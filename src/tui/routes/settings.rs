@@ -20,7 +20,7 @@ use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 use morpheus_tui::core::types::MouseEvent;
 
 use crate::theme::{Theme, rgba_color};
-use crate::ui::dialogs::WhatsAppList;
+use crate::ui::dialogs::{VoiceField, WhatsAppList};
 use crate::util::list_selection::ListSelection;
 use morpheus::setup::{HookEntry, Setup, WhatsAppEntry};
 
@@ -97,6 +97,9 @@ enum SwitchAction {
     /// Flip `setup.whatsapp.self_chat`, the default-on origin of the
     /// WhatsApp allowlist.
     WhatsAppSelfChat,
+    /// Flip `setup.voice.auto_generate` (automatic generation at the end of
+    /// a turn); the caller also syncs the app's `SpeechState`.
+    VoiceAuto,
 }
 
 #[derive(PartialEq, Eq)]
@@ -111,6 +114,9 @@ enum ChoiceInput {
     /// Comma-separated WhatsApp allowlist (`setup.whatsapp.contacts` /
     /// `setup.whatsapp.groups`).
     WhatsAppAllowlist(WhatsAppList),
+    /// One "how it sounds" value of `setup.voice` (speaker, pace, language
+    /// or model directory).
+    Voice(VoiceField),
     /// Checkup model picker (`setup.decision.model`: english | multilingual
     /// | typed-decisions — custom checkpoints stay in setup.json).
     #[cfg(feature = "onnx")]
@@ -176,6 +182,47 @@ const AUTOMATION: SettingsSection = SettingsSection {
             label: "Checkup min confidence",
             description: "Confidence floor for a veto: 0 always continues, 1 never does (default 75%)",
             kind: SettingKind::Choice(ChoiceInput::CheckupMinConfidence),
+        },
+    ],
+};
+
+// Voice output (`setup.json` → `voice`). Gated like the ONNX checkup items:
+// without the `speak` feature (or outside unix, where the daemon transport
+// does not exist) there is no engine behind these values, so the rows do not
+// exist in that build.
+#[cfg(all(feature = "speak", unix))]
+const VOICE: SettingsSection = SettingsSection {
+    title: "Voice",
+    items: &[
+        SettingsItem {
+            id: "voice_auto_generate",
+            label: "Auto-generate",
+            description: "Generate audio for every final answer automatically (off: only on demand)",
+            kind: SettingKind::Switch(SwitchAction::VoiceAuto),
+        },
+        SettingsItem {
+            id: "voice_speaker",
+            label: "Speaker",
+            description: "Speaker id in the Kokoro bundle (e.g. 42 = pf_dora in v1.0)",
+            kind: SettingKind::Choice(ChoiceInput::Voice(VoiceField::Speaker)),
+        },
+        SettingsItem {
+            id: "voice_speed",
+            label: "Speech pace",
+            description: "Pace factor, 1.0 is natural",
+            kind: SettingKind::Choice(ChoiceInput::Voice(VoiceField::Speed)),
+        },
+        SettingsItem {
+            id: "voice_language",
+            label: "Language",
+            description: "espeak-ng code such as pt-br; empty uses the bundle lexicon",
+            kind: SettingKind::Choice(ChoiceInput::Voice(VoiceField::Language)),
+        },
+        SettingsItem {
+            id: "voice_model_dir",
+            label: "Model directory",
+            description: "Kokoro bundle directory; empty uses the built-in cache path",
+            kind: SettingKind::Choice(ChoiceInput::Voice(VoiceField::ModelDir)),
         },
     ],
 };
@@ -297,6 +344,8 @@ const GENERAL: SettingsSection = SettingsSection {
 fn sections() -> &'static [SettingsSection] {
     &[
         AUTOMATION,
+        #[cfg(all(feature = "speak", unix))]
+        VOICE,
         MODELS_AND_CACHING,
         ENVIRONMENT,
         INTEGRATIONS,
@@ -369,6 +418,18 @@ fn cache_choice_value(id: &str, setup: &Setup) -> Option<String> {
             "{:.0}%",
             setup.decision.termination.min_confidence * 100.0
         )),
+        "voice_speaker" => Some(setup.voice.voice.to_string()),
+        "voice_speed" => Some(format!("{:.2}×", setup.voice.speed())),
+        "voice_language" => Some(if setup.voice.language.trim().is_empty() {
+            "bundle lexicon (en/zh)".into()
+        } else {
+            setup.voice.language.trim().to_string()
+        }),
+        "voice_model_dir" => Some(if setup.voice.model_dir.trim().is_empty() {
+            "default cache".into()
+        } else {
+            truncate(setup.voice.model_dir.trim(), COMMAND_PREVIEW_LEN * 2)
+        }),
         _ => None,
     }
 }
@@ -386,6 +447,7 @@ fn is_enabled(item: &SettingsItem, setup: &Setup) -> bool {
         SettingKind::Switch(SwitchAction::Persist) => setup.decision.termination.enabled,
         SettingKind::Switch(SwitchAction::EffectiveContext) => setup.effective_context,
         SettingKind::Switch(SwitchAction::WhatsAppSelfChat) => setup.whatsapp.self_chat,
+        SettingKind::Switch(SwitchAction::VoiceAuto) => setup.voice.auto_generate,
         _ => false,
     }
 }
@@ -660,10 +722,15 @@ pub enum SettingsRow {
     AddProvider,
     /// One allowed origin of a `setup.json` → `whatsapp` allowlist
     /// (index into that list's entries).
-    WhatsAppEntry { list: WhatsAppList, index: usize },
+    WhatsAppEntry {
+        list: WhatsAppList,
+        index: usize,
+    },
     /// Add an origin to a WhatsApp allowlist (opens the same box as the
     /// category row).
-    AddWhatsAppEntry { list: WhatsAppList },
+    AddWhatsAppEntry {
+        list: WhatsAppList,
+    },
 }
 
 /// Every rendered line with its vertical offset from the content top.
@@ -741,9 +808,7 @@ impl Line {
                 list: *list,
                 index: *index,
             }),
-            Line::AddWhatsAppEntry { list } => {
-                Some(SettingsRow::AddWhatsAppEntry { list: *list })
-            }
+            Line::AddWhatsAppEntry { list } => Some(SettingsRow::AddWhatsAppEntry { list: *list }),
             Line::Title | Line::SectionBorder { .. } | Line::Blank | Line::Description(_) => None,
         }
     }
@@ -985,6 +1050,14 @@ pub enum SettingsAction {
     /// Telemetry consent flipped; caller must `setup.save()`. The new consent
     /// takes effect when the facade is next resolved (app restart).
     TelemetryToggled,
+    /// The auto-generation switch flipped; caller must `setup.save()` AND
+    /// sync the app's `SpeechState` (the other persisted switches have no
+    /// in-memory mirror).
+    VoiceAutoToggled,
+    /// Open the voice-field input box (Settings → Voice) for `field`.
+    OpenVoiceInput {
+        field: VoiceField,
+    },
     /// Open the registration box: blank when `index` is `None`.
     OpenHookForm {
         event: &'static str,
@@ -1264,6 +1337,9 @@ impl SettingsView {
                     SettingKind::Choice(ChoiceInput::WhatsAppAllowlist(list)) => {
                         return Some(SettingsAction::OpenWhatsAppListInput { list: *list });
                     }
+                    SettingKind::Choice(ChoiceInput::Voice(field)) => {
+                        return Some(SettingsAction::OpenVoiceInput { field: *field });
+                    }
                     #[cfg(feature = "onnx")]
                     SettingKind::Choice(ChoiceInput::CheckupModel) => {
                         return Some(SettingsAction::OpenCheckupModelDialog);
@@ -1299,6 +1375,11 @@ impl SettingsView {
                         setup.whatsapp.self_chat = !setup.whatsapp.self_chat;
                         self.selection.clamp(selectable_rows(setup).len());
                         return Some(SettingsAction::ToggleSaved);
+                    }
+                    SettingKind::Switch(SwitchAction::VoiceAuto) => {
+                        setup.voice.auto_generate = !setup.voice.auto_generate;
+                        self.selection.clamp(selectable_rows(setup).len());
+                        return Some(SettingsAction::VoiceAutoToggled);
                     }
                     // Each hook category flips only its own event's switch.
                     SettingKind::HookList(event) => match *event {
@@ -2392,6 +2473,31 @@ mod tests {
                 rows.insert(after_post, cat("checkup_model"));
                 rows.insert(after_post, cat("checkup_termination"));
             }
+            // The Voice box sits between Automation and Models & caching;
+            // without the `speak` feature it does not exist. Insert its
+            // rows right before the first Models item so the expected list
+            // stays independent of the onnx/hook combinations above.
+            #[cfg(all(feature = "speak", unix))]
+            {
+                let at = rows
+                    .iter()
+                    .position(|r| {
+                        matches!(r, SettingsRow::Category(x) if *x == catalog_index("anthropic_cache_ttl"))
+                    })
+                    .expect("models section follows voice");
+                for (offset, id) in [
+                    "voice_auto_generate",
+                    "voice_speaker",
+                    "voice_speed",
+                    "voice_language",
+                    "voice_model_dir",
+                ]
+                .iter()
+                .enumerate()
+                {
+                    rows.insert(at + offset, cat(id));
+                }
+            }
             rows
         };
 
@@ -3448,6 +3554,86 @@ mod tests {
         }
         // Every catalog section must have produced a closed box.
         assert_eq!(boxes_seen, sections().len());
+    }
+
+    /// Settings → Voice: the switch flips only `auto_generate` (on-demand
+    /// speech stays available) and reports the dedicated action so the app
+    /// can sync its in-memory `SpeechState`; each of the four "how it
+    /// sounds" rows opens its field box, and the row carries the configured
+    /// value (defaults included).
+    #[cfg(all(feature = "speak", unix))]
+    #[test]
+    fn voice_section_toggles_auto_and_opens_field_inputs() {
+        let mut setup = Setup::default();
+        assert!(setup.voice.auto_generate);
+        assert_eq!(
+            cache_choice_value("voice_speaker", &setup).as_deref(),
+            Some("0")
+        );
+        assert_eq!(
+            cache_choice_value("voice_speed", &setup).as_deref(),
+            Some("1.00×")
+        );
+        assert_eq!(
+            cache_choice_value("voice_language", &setup).as_deref(),
+            Some("bundle lexicon (en/zh)")
+        );
+        assert_eq!(
+            cache_choice_value("voice_model_dir", &setup).as_deref(),
+            Some("default cache")
+        );
+
+        let mut view = SettingsView::new();
+        view.selection.selected_index = selectable_rows(&setup)
+            .iter()
+            .position(
+                |r| matches!(r, SettingsRow::Category(x) if *x == catalog_index("voice_auto_generate")),
+            )
+            .unwrap();
+        assert_eq!(
+            view.activate_selected(&mut setup),
+            Some(SettingsAction::VoiceAutoToggled)
+        );
+        assert!(!setup.voice.auto_generate);
+        // The activation only flips the persisted flag; persistence and the
+        // SpeechState mirror are the caller's job.
+
+        for (id, field) in [
+            ("voice_speaker", VoiceField::Speaker),
+            ("voice_speed", VoiceField::Speed),
+            ("voice_language", VoiceField::Language),
+            ("voice_model_dir", VoiceField::ModelDir),
+        ] {
+            view.selection.selected_index = selectable_rows(&setup)
+                .iter()
+                .position(|r| matches!(r, SettingsRow::Category(x) if *x == catalog_index(id)))
+                .unwrap();
+            assert_eq!(
+                view.activate_selected(&mut setup),
+                Some(SettingsAction::OpenVoiceInput { field })
+            );
+        }
+
+        setup.voice.voice = 42;
+        setup.voice.speed = 1.25;
+        setup.voice.language = "pt-br".into();
+        setup.voice.model_dir = "/tmp/kokoro-v1_0".into();
+        assert_eq!(
+            cache_choice_value("voice_speaker", &setup).as_deref(),
+            Some("42")
+        );
+        assert_eq!(
+            cache_choice_value("voice_speed", &setup).as_deref(),
+            Some("1.25×")
+        );
+        assert_eq!(
+            cache_choice_value("voice_language", &setup).as_deref(),
+            Some("pt-br")
+        );
+        assert_eq!(
+            cache_choice_value("voice_model_dir", &setup).as_deref(),
+            Some("/tmp/kokoro-v1_0")
+        );
     }
 
     /// Visual dump of the rendered screen (run with --nocapture). Ignored

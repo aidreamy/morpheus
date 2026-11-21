@@ -449,6 +449,54 @@ pub enum DeviceLoginPhase {
     Authorizing { url: String, user_code: String },
 }
 
+/// One editable value of `setup.json` → `voice` (Settings → Voice).
+/// Automatic generation is a switch of its own, so the fields here are the
+/// four "how it sounds" knobs; the field travels with the dialog so render
+/// and save agree on the title, the hint and the target value.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum VoiceField {
+    /// Speaker id in the loaded Kokoro bundle (`voice.voice`).
+    Speaker,
+    /// Speech pace (`voice.speed`).
+    Speed,
+    /// espeak-ng language code (`voice.language`).
+    Language,
+    /// Kokoro bundle directory (`voice.model_dir`).
+    ModelDir,
+}
+
+impl VoiceField {
+    /// Dialog title naming the value being edited.
+    pub fn title(self) -> &'static str {
+        match self {
+            Self::Speaker => "Voice speaker",
+            Self::Speed => "Speech pace",
+            Self::Language => "Voice language",
+            Self::ModelDir => "Voice model directory",
+        }
+    }
+
+    /// Placeholder describing the accepted input and the default.
+    pub fn hint(self) -> &'static str {
+        match self {
+            Self::Speaker => "speaker id in the Kokoro bundle (e.g. 42) — empty: 0",
+            Self::Speed => "pace factor, 1.0 is natural — empty: 1.0",
+            Self::Language => "espeak-ng code such as pt-br — empty: bundle lexicon",
+            Self::ModelDir => "Kokoro bundle directory — empty: built-in cache path",
+        }
+    }
+
+    /// The persisted value shown when the box opens (blank for a default).
+    pub fn value(self, voice: &morpheus::setup::VoiceConfig) -> String {
+        match self {
+            Self::Speaker => voice.voice.to_string(),
+            Self::Speed => format!("{}", voice.speed()),
+            Self::Language => voice.language.trim().to_string(),
+            Self::ModelDir => voice.model_dir.trim().to_string(),
+        }
+    }
+}
+
 /// Which `setup.json` → `whatsapp` allowlist a
 /// [`DialogType::WhatsAppListInput`] edits. The kind travels with the
 /// dialog so render and save agree on the title and the target field.
@@ -621,6 +669,14 @@ pub enum DialogType {
     /// types colon-separated source directories for the `skills_*` tools
     /// (~ expands to $HOME) or leaves it blank to fall back to `~/.skills`.
     SkillsInput {
+        input: String,
+        cursor_pos: usize,
+    },
+    /// One "how it sounds" value of `setup.json` → `voice` (Settings →
+    /// Voice). `field` selects which value the input applies to; blank
+    /// restores that field's default.
+    VoiceInput {
+        field: VoiceField,
         input: String,
         cursor_pos: usize,
     },
@@ -909,6 +965,16 @@ impl std::fmt::Debug for DialogType {
                 .finish(),
             Self::SkillsInput { input, cursor_pos } => f
                 .debug_struct("SkillsInput")
+                .field("input", input)
+                .field("cursor_pos", cursor_pos)
+                .finish(),
+            Self::VoiceInput {
+                field,
+                input,
+                cursor_pos,
+            } => f
+                .debug_struct("VoiceInput")
+                .field("field", field)
                 .field("input", input)
                 .field("cursor_pos", cursor_pos)
                 .finish(),
@@ -1671,6 +1737,7 @@ impl DialogState {
             | DialogType::CacheTtlInput { input, .. }
             | DialogType::EditorInput { input, .. }
             | DialogType::SkillsInput { input, .. }
+            | DialogType::VoiceInput { input, .. }
             | DialogType::WhatsAppListInput { input, .. }
             | DialogType::CheckupMinConfidenceInput { input, .. } => {
                 // Click outside the dialog box → dismiss. The box grows with
@@ -2476,6 +2543,24 @@ impl DialogState {
                     &instance.cursor,
                     "Skill directories",
                     "colon-separated paths (~ = $HOME) — empty: ~/.skills",
+                    false,
+                    input,
+                    *cursor_pos,
+                );
+            }
+            DialogType::VoiceInput {
+                field,
+                input,
+                cursor_pos,
+            } => {
+                render_text_input_dialog(
+                    buf,
+                    area,
+                    theme,
+                    now,
+                    &instance.cursor,
+                    field.title(),
+                    field.hint(),
                     false,
                     input,
                     *cursor_pos,

@@ -3,7 +3,7 @@ use super::super::providers::{is_valid_local_url, save_provider_api_key};
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::layout::Rect;
 
-use crate::ui::dialogs::{DialogType, WhatsAppList};
+use crate::ui::dialogs::{DialogType, VoiceField, WhatsAppList};
 use crate::util::field_selection::DragSelection;
 use morpheus::setup::WhatsAppEntry;
 
@@ -18,6 +18,7 @@ impl App {
                         | DialogType::CacheTtlInput { .. }
                         | DialogType::EditorInput { .. }
                         | DialogType::SkillsInput { .. }
+                        | DialogType::VoiceInput { .. }
                         | DialogType::WhatsAppListInput { .. }
                         | DialogType::CheckupMinConfidenceInput { .. }
                         | DialogType::RenameSession { .. },
@@ -70,6 +71,7 @@ impl App {
                     | DialogType::CacheTtlInput { cursor_pos, .. }
                     | DialogType::EditorInput { cursor_pos, .. }
                     | DialogType::SkillsInput { cursor_pos, .. }
+                    | DialogType::VoiceInput { cursor_pos, .. }
                     | DialogType::WhatsAppListInput { cursor_pos, .. }
                     | DialogType::CheckupMinConfidenceInput { cursor_pos, .. }
                     | DialogType::RenameSession { cursor_pos, .. } = &mut d.dialog_type
@@ -92,6 +94,9 @@ impl App {
                     }
                     | DialogType::EditorInput { input, cursor_pos }
                     | DialogType::SkillsInput { input, cursor_pos }
+                    | DialogType::VoiceInput {
+                        input, cursor_pos, ..
+                    }
                     | DialogType::WhatsAppListInput {
                         input, cursor_pos, ..
                     }
@@ -114,6 +119,7 @@ impl App {
                     | DialogType::CacheTtlInput { cursor_pos, .. }
                     | DialogType::EditorInput { cursor_pos, .. }
                     | DialogType::SkillsInput { cursor_pos, .. }
+                    | DialogType::VoiceInput { cursor_pos, .. }
                     | DialogType::WhatsAppListInput { cursor_pos, .. }
                     | DialogType::RenameSession { cursor_pos, .. } = &mut d.dialog_type
                 {
@@ -134,6 +140,9 @@ impl App {
                     }
                     | DialogType::EditorInput { input, cursor_pos }
                     | DialogType::SkillsInput { input, cursor_pos }
+                    | DialogType::VoiceInput {
+                        input, cursor_pos, ..
+                    }
                     | DialogType::WhatsAppListInput {
                         input, cursor_pos, ..
                     }
@@ -161,6 +170,9 @@ impl App {
                     }
                     | DialogType::EditorInput { input, cursor_pos }
                     | DialogType::SkillsInput { input, cursor_pos }
+                    | DialogType::VoiceInput {
+                        input, cursor_pos, ..
+                    }
                     | DialogType::WhatsAppListInput {
                         input, cursor_pos, ..
                     }
@@ -190,6 +202,9 @@ impl App {
                     }
                     | DialogType::EditorInput { input, cursor_pos }
                     | DialogType::SkillsInput { input, cursor_pos }
+                    | DialogType::VoiceInput {
+                        input, cursor_pos, ..
+                    }
                     | DialogType::WhatsAppListInput {
                         input, cursor_pos, ..
                     }
@@ -220,6 +235,9 @@ impl App {
                     }
                     | DialogType::EditorInput { input, cursor_pos }
                     | DialogType::SkillsInput { input, cursor_pos }
+                    | DialogType::VoiceInput {
+                        input, cursor_pos, ..
+                    }
                     | DialogType::WhatsAppListInput {
                         input, cursor_pos, ..
                     }
@@ -1240,6 +1258,17 @@ impl App {
         });
     }
 
+    /// Open the voice-field input box (Settings → Voice), prefilled with the
+    /// configured value (blank = that field's default).
+    pub(in crate::app) fn open_voice_input(&mut self, field: VoiceField) {
+        let input = field.value(&self.setup.voice);
+        self.dialog.show(DialogType::VoiceInput {
+            field,
+            cursor_pos: input.len(),
+            input,
+        });
+    }
+
     /// Open the EMPTY allowlist input box (Settings → WhatsApp). Confirming
     /// appends the typed entries to the configured list; the box is never
     /// prefilled, so the list rows are the only representation of what is
@@ -1434,12 +1463,78 @@ impl App {
                     }
                 }
             }
+            DialogType::VoiceInput { field, input, .. } => {
+                // The dialog borrow ends before the save (which borrows the
+                // whole App to persist and drain the daemon).
+                let field = *field;
+                let input = input.clone();
+                self.save_voice_input(field, &input)
+            }
             DialogType::HookInput { .. } => self.save_hook_input_dialog(),
             DialogType::McpForm { .. } => self.save_mcp_form_dialog(),
             DialogType::AcpForm { .. } => self.save_acp_form_dialog(),
             DialogType::ProviderForm { .. } => self.save_provider_form_dialog(),
             _ => false,
         }
+    }
+
+    /// Save one Settings → Voice field. A blank value restores that field's
+    /// default; numeric garbage keeps the box open with an error toast. The
+    /// daemon reads `setup.json` only at startup, so every save drains it and
+    /// lets the next synthesis activate a fresh one with the new voice.
+    fn save_voice_input(&mut self, field: VoiceField, input: &str) -> bool {
+        let trimmed = input.trim();
+        let result = match field {
+            VoiceField::Speaker => {
+                if trimmed.is_empty() {
+                    self.setup.voice.voice = 0;
+                    Ok(())
+                } else {
+                    match trimmed.parse::<i32>() {
+                        Ok(voice) if voice >= 0 => {
+                            self.setup.voice.voice = voice;
+                            Ok(())
+                        }
+                        _ => Err("Speaker must be a non-negative integer id (e.g. 42)."),
+                    }
+                }
+            }
+            VoiceField::Speed => {
+                if trimmed.is_empty() {
+                    self.setup.voice.speed = 1.0;
+                    Ok(())
+                } else {
+                    match trimmed.parse::<f32>() {
+                        Ok(speed) if speed > 0.0 && speed.is_finite() => {
+                            self.setup.voice.speed = speed;
+                            Ok(())
+                        }
+                        _ => Err("Pace must be a number greater than zero (1.0 is natural)."),
+                    }
+                }
+            }
+            VoiceField::Language => {
+                self.setup.voice.language = trimmed.to_string();
+                Ok(())
+            }
+            VoiceField::ModelDir => {
+                self.setup.voice.model_dir = trimmed.to_string();
+                Ok(())
+            }
+        };
+        if let Err(message) = result {
+            use crate::ui::toast::{ToastOptions, ToastVariant};
+            self.toast_state.show(ToastOptions {
+                title: Some("Voice not saved".into()),
+                message: message.to_string(),
+                variant: ToastVariant::Error,
+                duration_ms: 6000,
+            });
+            return false;
+        }
+        self.setup.save();
+        self.restart_tts_daemon();
+        true
     }
 }
 

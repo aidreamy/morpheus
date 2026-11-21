@@ -12,7 +12,11 @@ use crate::daemon::client::DaemonClient;
 use crate::daemon::ipc;
 use crate::daemon::ipc_error::Ipc;
 
-use super::protocol::{self, SynthesizeParams, SynthesizeResult, code, method};
+use super::protocol::{self, ShutdownResult, SynthesizeParams, SynthesizeResult, code, method};
+
+/// Draining is a flag flip plus a response; a short budget is enough. The
+/// server joins in-flight connections before exiting.
+const SHUTDOWN_BUDGET: Duration = Duration::from_secs(5);
 
 /// The first synthesis may load the model (multi-second) plus run it.
 const SYNTH_BUDGET: Duration = Duration::from_secs(180);
@@ -71,6 +75,23 @@ impl TtsClient {
             other => other,
         }
         .map_err(|error| error.to_string())
+    }
+
+    /// Ask the resident daemon to drain and exit.
+    ///
+    /// The daemon reads `setup.json` (voice, speed, language, model dir) only
+    /// at startup, so a settings change takes effect on the next synthesis
+    /// only after this. The next request activates a fresh daemon.
+    pub fn shutdown(&self) -> Result<ShutdownResult, String> {
+        let value = self
+            .client
+            .call_with_budget(
+                method::SHUTDOWN,
+                serde_json::Value::Object(serde_json::Map::new()),
+                SHUTDOWN_BUDGET,
+            )
+            .map_err(|error| error.to_string())?;
+        ipc::from_value(value).map_err(|error| error.to_string())
     }
 
     fn call(&self, method: &str, params: &SynthesizeParams) -> Result<SynthesizeResult, Ipc> {

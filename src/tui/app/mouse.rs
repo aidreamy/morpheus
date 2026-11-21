@@ -1992,6 +1992,14 @@ impl App {
                     Some(crate::routes::settings::SettingsAction::ToggleSaved) => {
                         self.setup.save();
                     }
+                    Some(crate::routes::settings::SettingsAction::VoiceAutoToggled) => {
+                        // The switch has an in-memory mirror: without this
+                        // the turn-end hook keeps the old mode until a
+                        // restart.
+                        self.speech
+                            .set_auto_generate(self.setup.voice.auto_generate);
+                        self.setup.save();
+                    }
                     Some(crate::routes::settings::SettingsAction::LspToggled) => {
                         morpheus::harness::lsp::set_lsp_enabled(self.setup.lsp);
                         self.state.lsp_available = self.setup.lsp;
@@ -2017,6 +2025,9 @@ impl App {
                     }
                     Some(crate::routes::settings::SettingsAction::OpenSkillsInput) => {
                         self.open_skills_input();
+                    }
+                    Some(crate::routes::settings::SettingsAction::OpenVoiceInput { field }) => {
+                        self.open_voice_input(field);
                     }
                     Some(crate::routes::settings::SettingsAction::OpenWhatsAppListInput {
                         list,

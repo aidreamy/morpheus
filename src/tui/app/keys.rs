@@ -928,6 +928,16 @@ impl App {
                             Some(crate::routes::settings::SettingsAction::ToggleSaved) => {
                                 self.setup.save();
                             }
+                            Some(
+                                crate::routes::settings::SettingsAction::VoiceAutoToggled,
+                            ) => {
+                                // The switch has an in-memory mirror: without
+                                // this the turn-end hook keeps the old mode
+                                // until a restart.
+                                self.speech
+                                    .set_auto_generate(self.setup.voice.auto_generate);
+                                self.setup.save();
+                            }
                             Some(crate::routes::settings::SettingsAction::LspToggled) => {
                                 // Keep the harness's process-wide LSP flag and
                                 // the prompt footer in sync with the new switch.
@@ -957,6 +967,11 @@ impl App {
                             }
                             Some(crate::routes::settings::SettingsAction::OpenSkillsInput) => {
                                 self.open_skills_input();
+                            }
+                            Some(crate::routes::settings::SettingsAction::OpenVoiceInput {
+                                field,
+                            }) => {
+                                self.open_voice_input(field);
                             }
                             Some(
                                 crate::routes::settings::SettingsAction::OpenWhatsAppListInput {

@@ -231,6 +231,9 @@ impl App {
                         | DialogType::CheckupMinConfidenceInput {
                             input, cursor_pos, ..
                         }
+                        | DialogType::VoiceInput {
+                            input, cursor_pos, ..
+                        }
                         | DialogType::RenameSession {
                             input, cursor_pos, ..
                         } = &mut d.dialog_type
@@ -1813,7 +1816,7 @@ impl App {
                         // when the user enabled it. Generation never starts
                         // playback — the audio waits for Speak / Ctrl+Y.
                         self.speech.set_targets(&id, speech_targets);
-                        if self.speech.enabled() {
+                        if self.speech.auto_generate() {
                             // Disjoint fields: `session` borrows
                             // `state.session_cache`, not the voice/store.
                             self.speech.generate_tail(&self.session_store);

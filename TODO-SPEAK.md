@@ -21,18 +21,24 @@ the reason.
 ## 2. Configuration / feature
 
 - [x] Reused the existing `speak` Cargo feature (no new feature).
-- [x] `Setup.voice` (`setup.json` → `"voice"`): `enabled`, `voice`, `speed`,
-      `language`, `model_dir`.
-- [x] Enabled (`enabled = true`, the **default** — compiling with `speak`
-      means wanting the answers spoken): generates audio in the background at
-      the end of every turn — **generation only, never plays on its own**; the
-      WAV is kept until the user presses `speak`/`Ctrl+Y`.
+- [x] `Setup.voice` (`setup.json` → `"voice"`): `auto_generate`, `voice`,
+      `speed`, `language`, `model_dir`. The old `enabled` key is accepted as
+      a serde alias (it never meant "voice on/off").
+- [x] Auto generation (`auto_generate = true`, the **default** — compiling
+      with `speak` means wanting the answers spoken): generates audio in the
+      background at the end of every turn — **generation only, never plays on
+      its own**; the WAV is kept until the user presses `speak`/`Ctrl+Y`.
 - [x] While generating: a braille spinner (the project's `SpinnerState`), no
       text, in place of the buttons; the buttons appear when it finishes.
 - [x] Bass bars animate only while a playback is loaded; when the player ends
       the bars disappear and only the speak label remains.
-- [x] Disabled: generation only on demand (speak button / Ctrl+Y).
+- [x] `auto_generate = false`: generation only on demand (speak button /
+      Ctrl+Y); the controls and the TTS engine stay available.
 - [x] `/voice` toggles the mode in the app and persists through `Setup::save`.
+- [x] Settings → Voice (gated on the `speak` feature): the auto-generation
+      switch plus input boxes for speaker, pace, language and model directory.
+      Saving any of them drains the daemon so the next synthesis re-reads
+      `setup.json` (the daemon loads the voice settings only at startup).
 
 ## 3. Audio for the last output
 
@@ -143,10 +149,11 @@ the reason.
   and never take part in any height calculation. Only answers that have a
   stored audio — and the tail, which can be generated on demand — get a
   cluster, so earlier audios stay replayable without cluttering the rest.
-- Configuration lives in `setup.json` (`voice`) and `/voice` (toggles the
-  automatic generation); no row was added to the Settings screen. The other
-  fields (`voice`, `speed`, `language`, `model_dir`) are edited in the file —
-  a UI for them was not part of the request.
+- Configuration lives in `setup.json` (`voice`), in Settings → Voice (which
+  owns every field, including the auto-generation switch) and in `/voice`
+  (a shortcut for that switch). A voice-field save drains the resident daemon
+  because it snapshots the settings at startup; the next synthesis activates
+  a fresh one.
 - The TTS daemon is `unix`-only (like the existing daemon transport); on
   Windows the `speak` feature still compiles the synthesis module, but the
   voice controls are not mounted.

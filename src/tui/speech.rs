@@ -126,7 +126,7 @@ const AVAILABLE: bool = cfg!(all(feature = "speak", unix));
 
 /// Voice state attached to the App.
 pub struct SpeechState {
-    enabled: bool,
+    auto_generate: bool,
     session_id: Option<String>,
     targets: Vec<VoiceTarget>,
     button_rects: Vec<(SpeechButton, usize, Rect)>,
@@ -149,7 +149,7 @@ pub struct SpeechState {
 impl Default for SpeechState {
     fn default() -> Self {
         Self {
-            enabled: false,
+            auto_generate: false,
             session_id: None,
             targets: Vec::new(),
             button_rects: Vec::new(),
@@ -169,20 +169,20 @@ impl Default for SpeechState {
 
 impl SpeechState {
     #[must_use]
-    pub fn new(enabled: bool) -> Self {
+    pub fn new(auto_generate: bool) -> Self {
         Self {
-            enabled,
+            auto_generate,
             ..Self::default()
         }
     }
 
     #[must_use]
-    pub const fn enabled(&self) -> bool {
-        self.enabled
+    pub const fn auto_generate(&self) -> bool {
+        self.auto_generate
     }
 
-    pub const fn set_enabled(&mut self, enabled: bool) {
-        self.enabled = enabled;
+    pub const fn set_auto_generate(&mut self, auto_generate: bool) {
+        self.auto_generate = auto_generate;
     }
 
     /// Point the controls at `session_id`'s answers. Answers without text are
@@ -204,7 +204,7 @@ impl SpeechState {
         self.targets.clear();
     }
 
-    /// Whether the controls belong on screen. `enabled` is only the
+    /// Whether the controls belong on screen. `auto_generate` is only the
     /// auto-generation switch: with it off they still appear so the audio can
     /// be asked for on demand.
     #[must_use]
@@ -786,7 +786,7 @@ mod tests {
         assert!(!speech.is_visible());
         speech.set_targets("s1", vec![target(0, "the answer", None)]);
         assert!(speech.is_visible());
-        assert!(!speech.enabled());
+        assert!(!speech.auto_generate());
         speech.set_targets("s2", Vec::new());
         assert!(!speech.is_visible());
     }

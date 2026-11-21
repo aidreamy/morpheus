@@ -133,7 +133,7 @@ impl Default for Setup {
 ///
 /// Two independent decisions live here:
 ///
-/// - **when** audio is generated: `enabled` defaults to `true` (the user
+/// - **when** audio is generated: `auto_generate` defaults to `true` (the user
 ///   builds with the `speak` feature to hear answers, so generation is on by
 ///   default) and generates the final answer of every turn in the background
 ///   as soon as it is complete; `false` only generates it on demand (the Speak
@@ -144,7 +144,9 @@ impl Default for Setup {
 #[serde(default)]
 pub struct VoiceConfig {
     /// Generate the final answer automatically at the end of every turn.
-    pub enabled: bool,
+    /// On-demand synthesis (Speak / Ctrl+Y) stays available either way.
+    #[serde(alias = "enabled")]
+    pub auto_generate: bool,
     /// Speaker id of the loaded Kokoro model.
     pub voice: i32,
     /// Speech pace (`1.0` is natural).
@@ -160,7 +162,7 @@ pub struct VoiceConfig {
 impl Default for VoiceConfig {
     fn default() -> Self {
         Self {
-            enabled: true,
+            auto_generate: true,
             voice: 0,
             speed: 1.0,
             language: String::new(),
@@ -182,9 +184,9 @@ impl VoiceConfig {
     }
 
     /// Toggle the background-generation mode.
-    pub fn toggle(&mut self) -> bool {
-        self.enabled = !self.enabled;
-        self.enabled
+    pub fn toggle_auto_generate(&mut self) -> bool {
+        self.auto_generate = !self.auto_generate;
+        self.auto_generate
     }
 }
 
@@ -1579,6 +1581,24 @@ mod tests {
         let legacy: Setup = serde_json::from_str("{}").unwrap();
         assert!(legacy.telemetry);
         assert!(!legacy.effective_context);
+    }
+
+    /// `voice.auto_generate` replaced the ambiguous `voice.enabled`: the
+    /// alias keeps pre-rename setups loading, and the saved value round-trips
+    /// under the new key. The flag only controls automatic generation at the
+    /// end of a turn — on-demand synthesis is independent of it.
+    #[test]
+    fn voice_auto_generate_roundtrips_and_accepts_legacy_enabled() {
+        let mut setup = Setup::default();
+        assert!(setup.voice.auto_generate, "default is on");
+        setup.voice.auto_generate = false;
+        let json = serde_json::to_string(&setup).unwrap();
+        assert!(json.contains("auto_generate"));
+        let loaded: Setup = serde_json::from_str(&json).unwrap();
+        assert!(!loaded.voice.auto_generate);
+        // The pre-rename key still loads instead of falling back to default.
+        let legacy: Setup = serde_json::from_str(r#"{"voice": {"enabled": false}}"#).unwrap();
+        assert!(!legacy.voice.auto_generate);
     }
 
     /// The telemetry consent flag round-trips and stays default-on: a legacy

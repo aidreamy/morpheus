@@ -701,7 +701,7 @@ impl App {
         let setup = morpheus::setup::Setup::load();
         // Captured before `setup` moves into the App: voice auto-generation is
         // enabled by config, and the state seeds its toggle from it.
-        let voice_enabled = setup.voice.enabled;
+        let voice_auto_generate = setup.voice.auto_generate;
 
         // Publish the user-registered ACP harnesses into the sub-agent
         // registry BEFORE any harness (or its tool description) is built:
@@ -973,7 +973,7 @@ impl App {
             stop_signal: Arc::new(AtomicBool::new(false)),
             terminal_focused: true,
             agent_spinner: None,
-            speech: crate::speech::SpeechState::new(voice_enabled),
+            speech: crate::speech::SpeechState::new(voice_auto_generate),
             agent_activity: crate::types::AgentActivity::Working,
             context_info: None,
             left_panel: Mode::default(),
@@ -1744,19 +1744,28 @@ impl App {
 
     /// `/voice`: toggle background generation and persist the choice.
     pub(crate) fn toggle_voice_auto(&mut self) {
-        let enabled = !self.speech.enabled();
-        self.speech.set_enabled(enabled);
-        self.setup.voice.enabled = enabled;
+        let auto_generate = !self.speech.auto_generate();
+        self.speech.set_auto_generate(auto_generate);
+        self.setup.voice.auto_generate = auto_generate;
         self.setup.save();
         self.toast_state.show(crate::ui::toast::ToastOptions {
             title: Some("Voice".into()),
-            message: if enabled {
+            message: if auto_generate {
                 "Automatic generation enabled — every final answer gets audio.".into()
             } else {
                 "Automatic generation disabled — use the Speak button.".into()
             },
             variant: crate::ui::toast::ToastVariant::Info,
             duration_ms: 4000,
+        });
+    }
+
+    /// Drain the resident voice daemon so the next synthesis re-reads the
+    /// voice settings it loaded at startup (`setup.json` → `voice`).
+    fn restart_tts_daemon(&self) {
+        #[cfg(all(feature = "speak", unix))]
+        std::thread::spawn(|| {
+            let _ = morpheus::daemon::tts::TtsClient::new().shutdown();
         });
     }
 

@@ -594,3 +594,55 @@ async fn prompt_correction_spinner_yields_to_the_agent_loop_spinner() {
 
     assert!(rendered.contains("Working"));
 }
+
+/// A finalized answer keeps its voice controls while the NEXT answer streams:
+/// only the message currently being written withholds them, so the speak
+/// button of an earlier answer no longer vanishes for the whole turn.
+#[cfg(all(feature = "speak", unix))]
+#[tokio::test]
+async fn finalized_speak_controls_survive_while_the_next_answer_streams() {
+    let _guard = HOME_LOCK.lock();
+    isolate_home();
+
+    let mut app = App::new("/tmp".to_string());
+    app.state.add_empty_session("s1".into(), "t".into(), 0);
+    app.state.current_session_id = Some("s1".into());
+    if let Some(session) = app.state.current_session_mut() {
+        for (id, text) in [("msg-0", "the finished answer"), ("msg-1", "partial")] {
+            session.messages.push(crate::types::Message {
+                id: id.into(),
+                role: crate::types::MessageRole::Assistant,
+                parts: vec![crate::types::Part::Text(crate::types::TextPart {
+                    text: text.into(),
+                    synthetic: false,
+                })],
+                created_at: 0,
+                agent: None,
+                model: None,
+            });
+        }
+    }
+    app.speech.set_targets(
+        "s1",
+        vec![crate::speech::VoiceTarget {
+            slot: 0,
+            closure_id: Some(1),
+            text: "the finished answer".into(),
+            audio: Some("/tmp/a.wav".into()),
+        }],
+    );
+
+    app.state.status = crate::types::SessionStatus::Working;
+    assert!(
+        app.speech_controls_visible(),
+        "a finalized answer keeps its controls while the agent works"
+    );
+
+    // Only the streaming message is withheld; the finished one still shows.
+    app.stream_msg_id = Some(("s1".into(), "msg-1".into()));
+    assert_eq!(app.streaming_answer_slot(), Some(1));
+
+    // A stream owned by another session suppresses nothing in this one.
+    app.stream_msg_id = Some(("other".into(), "msg-1".into()));
+    assert_eq!(app.streaming_answer_slot(), None);
+}

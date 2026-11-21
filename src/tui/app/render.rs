@@ -837,13 +837,22 @@ impl App {
                     }
                     // Voice controls ride each answer's final line: their
                     // anchors come from the transcript layout this frame, so
-                    // no row is reserved and nothing below ever moves.
-                    let anchors: &[(usize, Rect)] = if self.speech_controls_visible() {
-                        &self.session_view.answer_anchors
+                    // no row is reserved and nothing below ever moves. The
+                    // answer still streaming is skipped — only its finalized
+                    // siblings keep their speak/pause controls while the
+                    // agent works.
+                    let streaming_slot = self.streaming_answer_slot();
+                    let anchors: Vec<(usize, Rect)> = if self.speech_controls_visible() {
+                        self.session_view
+                            .answer_anchors
+                            .iter()
+                            .filter(|(slot, _)| Some(*slot) != streaming_slot)
+                            .copied()
+                            .collect()
                     } else {
-                        &[]
+                        Vec::new()
                     };
-                    self.speech.render_inline(buf, anchors, &self.theme);
+                    self.speech.render_inline(buf, &anchors, &self.theme);
                     // Question/permission/queue-choice/recommendation dialogs
                     // rendered inline between messages and prompt (mutually exclusive).
                     if self.question_dialog.visible {

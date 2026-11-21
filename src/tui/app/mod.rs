@@ -1681,13 +1681,14 @@ impl App {
 
     /// Whether the voice controls belong on the transcript right now.
     ///
-    /// Only an idle session shows them: while the agent works the last answer
-    /// is not final yet. Dialogs cover the transcript, and the /agents split
-    /// replaces it, so neither paints controls. The renderer and the mouse
-    /// hit-test read this same predicate.
+    /// Finalized answers keep their controls even while the agent works: the
+    /// answers already closed are still replayable, and their audio does not
+    /// depend on the turn in flight. Only the answer still streaming is
+    /// withheld (see [`Self::streaming_answer_slot`]). Dialogs cover the
+    /// transcript, and the /agents split replaces it, so neither paints
+    /// controls. The renderer and the mouse hit-test read this same predicate.
     pub(crate) fn speech_controls_visible(&self) -> bool {
         self.speech.is_visible()
-            && self.state.status != SessionStatus::Working
             && self.agents_split.is_none()
             && !self
                 .parked_agents_split
@@ -1697,6 +1698,23 @@ impl App {
             && !self.permission_dialog.visible
             && !self.queue_choice_dialog.visible
             && !self.free_gateway_dialog.visible
+    }
+
+    /// The slot of the answer still streaming in the viewed session, if any.
+    ///
+    /// Its voice controls are withheld until the turn finalizes: speaking a
+    /// half-written answer would synthesize the partial text. A stream that
+    /// belongs to another session (a background loop) suppresses nothing here.
+    pub(crate) fn streaming_answer_slot(&self) -> Option<usize> {
+        let (session_id, message_id) = self.stream_msg_id.as_ref()?;
+        if self.state.current_session_id.as_deref() != Some(session_id.as_str()) {
+            return None;
+        }
+        self.state
+            .current_session()?
+            .messages
+            .iter()
+            .position(|message| &message.id == message_id)
     }
 
     /// Point the voice controls at the current session's answers.

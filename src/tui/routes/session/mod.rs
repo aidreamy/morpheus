@@ -55,7 +55,6 @@ use morpheus_tui::core::lib::border::BorderSidesConfig;
 use morpheus_tui::core::lib::rgba::{ColorInput, RGBA, ansi256_index_to_rgb};
 use morpheus_tui::core::renderable::Renderable;
 use morpheus_tui::core::renderables::r#box::BoxRenderable;
-use morpheus_tui::core::renderables::scroll_bar::{ScrollBarOrientation, ScrollBarRenderable};
 use morpheus_tui::core::types::MouseEvent;
 
 use morpheus_tui::core::renderables::markdown::estimate_height;
@@ -105,7 +104,7 @@ pub struct SessionView {
     pub total_height: i32,
     /// Visible viewport height from last render.
     pub visible_height: i32,
-    /// Actual scanned content height from last render (used by scrollbar for accurate sizing).
+    /// Actual scanned content height from last render.
     actual_total_height: i32,
 
     // ── Scroll position at mouse-down (for content-space selection) ────────────

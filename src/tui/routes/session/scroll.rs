@@ -214,8 +214,8 @@ impl SessionView {
 
         // Use cached_total_height for max_scroll during streaming to prevent
         // scroll jumping. The cached height is the stable source of truth for
-        // layout calculations, while actual_total_height is only used for
-        // scrollbar sizing and may fluctuate slightly during rendering.
+        // layout calculations, while actual_total_height may fluctuate slightly
+        // during rendering.
         let new_max_scroll = (total_height - visible_height).max(0);
 
         if !self.has_manual_scroll {

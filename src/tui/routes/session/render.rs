@@ -137,22 +137,6 @@ impl SessionView {
             log::debug!("[PERF] text_regions: skipped (no change)");
         }
 
-        if config.show_scrollbar {
-            let scrollbar_area = Rect::new(
-                inner_area.right().saturating_sub(1),
-                inner_area.y,
-                1,
-                inner_area.height,
-            );
-            let mut scrollbar = ScrollBarRenderable::new(ScrollBarOrientation::Vertical);
-            scrollbar.set_scroll_size(f64::from(self.actual_total_height.max(1)));
-            scrollbar.set_viewport_size(f64::from(visible_height));
-            scrollbar.set_scroll_position(f64::from(self.scroll_y));
-            scrollbar.set_track_color(Some(theme.background.into()));
-            scrollbar.set_thumb_color(Some(theme.text_muted.into()));
-            scrollbar.render_self(buf, scrollbar_area);
-        }
-
         let vp_top = i32::from(inner_area.y);
         let vp_bottom = i32::from(inner_area.bottom());
 
@@ -838,7 +822,7 @@ impl SessionView {
             y += render_actual_h;
         }
 
-        // Record actual rendered total height (accurate, for scrollbar sizing).
+        // Record actual rendered total height (accurate layout measurement).
         // Do NOT inflate cached_total_height from the render scan — the cache
         // is the stable source of truth for height estimates. Inflating it would
         // cause total_height != last_content_height on the next frame, triggering

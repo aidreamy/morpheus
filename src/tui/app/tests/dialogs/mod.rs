@@ -6,3 +6,5 @@ mod queue_actions;
 mod text_input;
 mod tool_call;
 mod undo;
+#[cfg(all(feature = "speak", unix))]
+mod voice;

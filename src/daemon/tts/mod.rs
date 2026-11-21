@@ -58,7 +58,7 @@ pub fn run() -> i32 {
     // defaults and the first synthesis reports the model error.
     let voice = crate::setup::Setup::load().voice;
     let settings = server::Settings {
-        voice: voice.voice,
+        voice: voice.speaker,
         speed: voice.speed(),
         language: voice.language,
         model_dir: voice.model_dir,

@@ -483,6 +483,13 @@ impl App {
                 return Ok(false);
             }
 
+            // Voice picker (Settings → Voice): same list mechanics as the
+            // model picker, checked before the generic action lookup.
+            #[cfg(all(feature = "speak", unix))]
+            if self.is_voice_dialog_visible() && self.handle_voice_dialog_key(key.code) {
+                return Ok(false);
+            }
+
             // Check model dialog THIRD, before action lookup
             if self.is_model_dialog_visible() && self.handle_model_dialog_key(key.code) {
                 return Ok(false);
@@ -968,10 +975,17 @@ impl App {
                             Some(crate::routes::settings::SettingsAction::OpenSkillsInput) => {
                                 self.open_skills_input();
                             }
-                            Some(crate::routes::settings::SettingsAction::OpenVoiceInput {
-                                field,
-                            }) => {
-                                self.open_voice_input(field);
+                            #[cfg(all(feature = "speak", unix))]
+                            Some(crate::routes::settings::SettingsAction::OpenVoicePicker) => {
+                                self.open_voice_dialog();
+                            }
+                            // The picker only exists in speak/unix builds (the
+                            // Settings row is absent too); keep the match
+                            // exhaustive without the module.
+                            #[cfg(not(all(feature = "speak", unix)))]
+                            Some(crate::routes::settings::SettingsAction::OpenVoicePicker) => {}
+                            Some(crate::routes::settings::SettingsAction::OpenVoiceSpeed) => {
+                                self.open_voice_speed_input();
                             }
                             Some(
                                 crate::routes::settings::SettingsAction::OpenWhatsAppListInput {

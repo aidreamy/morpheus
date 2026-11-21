@@ -20,7 +20,7 @@ use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
 use morpheus_tui::core::types::MouseEvent;
 
 use crate::theme::{Theme, rgba_color};
-use crate::ui::dialogs::{VoiceField, WhatsAppList};
+use crate::ui::dialogs::WhatsAppList;
 use crate::util::list_selection::ListSelection;
 use morpheus::setup::{HookEntry, Setup, WhatsAppEntry};
 
@@ -114,9 +114,12 @@ enum ChoiceInput {
     /// Comma-separated WhatsApp allowlist (`setup.whatsapp.contacts` /
     /// `setup.whatsapp.groups`).
     WhatsAppAllowlist(WhatsAppList),
-    /// One "how it sounds" value of `setup.voice` (speaker, pace, language
-    /// or model directory).
-    Voice(VoiceField),
+    /// Searchable voice picker: language + model + speaker in one list
+    /// (`setup.voice.speaker` and `setup.voice.language` are applied
+    /// together).
+    VoicePicker,
+    /// Speech pace (`setup.voice.speed`), a scalar of its own.
+    VoiceSpeed,
     /// Checkup model picker (`setup.decision.model`: english | multilingual
     /// | typed-decisions — custom checkpoints stay in setup.json).
     #[cfg(feature = "onnx")]
@@ -201,28 +204,16 @@ const VOICE: SettingsSection = SettingsSection {
             kind: SettingKind::Switch(SwitchAction::VoiceAuto),
         },
         SettingsItem {
-            id: "voice_speaker",
-            label: "Speaker",
-            description: "Speaker id in the Kokoro bundle (e.g. 42 = pf_dora in v1.0)",
-            kind: SettingKind::Choice(ChoiceInput::Voice(VoiceField::Speaker)),
+            id: "voice_picker",
+            label: "Voice",
+            description: "Search by language, model or voice name; selects the speaker too",
+            kind: SettingKind::Choice(ChoiceInput::VoicePicker),
         },
         SettingsItem {
             id: "voice_speed",
             label: "Speech pace",
             description: "Pace factor, 1.0 is natural",
-            kind: SettingKind::Choice(ChoiceInput::Voice(VoiceField::Speed)),
-        },
-        SettingsItem {
-            id: "voice_language",
-            label: "Language",
-            description: "espeak-ng code such as pt-br; empty uses the bundle lexicon",
-            kind: SettingKind::Choice(ChoiceInput::Voice(VoiceField::Language)),
-        },
-        SettingsItem {
-            id: "voice_model_dir",
-            label: "Model directory",
-            description: "Kokoro bundle directory; empty uses the built-in cache path",
-            kind: SettingKind::Choice(ChoiceInput::Voice(VoiceField::ModelDir)),
+            kind: SettingKind::Choice(ChoiceInput::VoiceSpeed),
         },
     ],
 };
@@ -371,6 +362,26 @@ fn item_at(index: usize) -> &'static SettingsItem {
         .expect("category index within the catalog")
 }
 
+/// The configured speaker as the picker names it (`pf_dora · Portuguese
+/// (Brazil) · Kokoro v1.0`); the raw id when the bundle is not one of the
+/// published catalogs.
+#[cfg(all(feature = "speak", unix))]
+fn voice_summary(voice: &morpheus::setup::VoiceConfig) -> String {
+    let dir = if voice.model_dir.trim().is_empty() {
+        morpheus::speak::default_model_dir()
+    } else {
+        std::path::PathBuf::from(voice.model_dir.trim())
+    };
+    morpheus::speak::voice_entry(&dir, voice.speaker)
+        .map(|entry| {
+            format!(
+                "{} · {} · {}",
+                entry.name, entry.language_label, entry.bundle_label
+            )
+        })
+        .unwrap_or_else(|| format!("speaker {}", voice.speaker))
+}
+
 /// The current value of a CHOICE setting (rendered in place of the ✔/✗
 /// switch symbol), or `None` for plain switches.
 fn cache_choice_value(id: &str, setup: &Setup) -> Option<String> {
@@ -418,18 +429,9 @@ fn cache_choice_value(id: &str, setup: &Setup) -> Option<String> {
             "{:.0}%",
             setup.decision.termination.min_confidence * 100.0
         )),
-        "voice_speaker" => Some(setup.voice.voice.to_string()),
+        #[cfg(all(feature = "speak", unix))]
+        "voice_picker" => Some(voice_summary(&setup.voice)),
         "voice_speed" => Some(format!("{:.2}×", setup.voice.speed())),
-        "voice_language" => Some(if setup.voice.language.trim().is_empty() {
-            "bundle lexicon (en/zh)".into()
-        } else {
-            setup.voice.language.trim().to_string()
-        }),
-        "voice_model_dir" => Some(if setup.voice.model_dir.trim().is_empty() {
-            "default cache".into()
-        } else {
-            truncate(setup.voice.model_dir.trim(), COMMAND_PREVIEW_LEN * 2)
-        }),
         _ => None,
     }
 }
@@ -1054,10 +1056,10 @@ pub enum SettingsAction {
     /// sync the app's `SpeechState` (the other persisted switches have no
     /// in-memory mirror).
     VoiceAutoToggled,
-    /// Open the voice-field input box (Settings → Voice) for `field`.
-    OpenVoiceInput {
-        field: VoiceField,
-    },
+    /// Open the searchable voice picker (Settings → Voice).
+    OpenVoicePicker,
+    /// Open the speech-pace input box (Settings → Voice).
+    OpenVoiceSpeed,
     /// Open the registration box: blank when `index` is `None`.
     OpenHookForm {
         event: &'static str,
@@ -1337,8 +1339,11 @@ impl SettingsView {
                     SettingKind::Choice(ChoiceInput::WhatsAppAllowlist(list)) => {
                         return Some(SettingsAction::OpenWhatsAppListInput { list: *list });
                     }
-                    SettingKind::Choice(ChoiceInput::Voice(field)) => {
-                        return Some(SettingsAction::OpenVoiceInput { field: *field });
+                    SettingKind::Choice(ChoiceInput::VoicePicker) => {
+                        return Some(SettingsAction::OpenVoicePicker);
+                    }
+                    SettingKind::Choice(ChoiceInput::VoiceSpeed) => {
+                        return Some(SettingsAction::OpenVoiceSpeed);
                     }
                     #[cfg(feature = "onnx")]
                     SettingKind::Choice(ChoiceInput::CheckupModel) => {
@@ -2485,15 +2490,9 @@ mod tests {
                         matches!(r, SettingsRow::Category(x) if *x == catalog_index("anthropic_cache_ttl"))
                     })
                     .expect("models section follows voice");
-                for (offset, id) in [
-                    "voice_auto_generate",
-                    "voice_speaker",
-                    "voice_speed",
-                    "voice_language",
-                    "voice_model_dir",
-                ]
-                .iter()
-                .enumerate()
+                for (offset, id) in ["voice_auto_generate", "voice_picker", "voice_speed"]
+                    .iter()
+                    .enumerate()
                 {
                     rows.insert(at + offset, cat(id));
                 }
@@ -3558,30 +3557,30 @@ mod tests {
 
     /// Settings → Voice: the switch flips only `auto_generate` (on-demand
     /// speech stays available) and reports the dedicated action so the app
-    /// can sync its in-memory `SpeechState`; each of the four "how it
-    /// sounds" rows opens its field box, and the row carries the configured
-    /// value (defaults included).
+    /// can sync its in-memory `SpeechState`. The voice rows are a single
+    /// searchable picker (language + model + speaker) plus the pace, and the
+    /// picker row names the configured voice instead of showing a bare id.
     #[cfg(all(feature = "speak", unix))]
     #[test]
-    fn voice_section_toggles_auto_and_opens_field_inputs() {
+    fn voice_section_toggles_auto_and_opens_picker_and_pace() {
         let mut setup = Setup::default();
+        setup.voice.model_dir = "/models/kokoro-multi-lang-v1_0".into();
+        setup.voice.speaker = 42;
+        setup.voice.language = "pt-br".into();
         assert!(setup.voice.auto_generate);
         assert_eq!(
-            cache_choice_value("voice_speaker", &setup).as_deref(),
-            Some("0")
+            cache_choice_value("voice_picker", &setup).as_deref(),
+            Some("pf_dora · Portuguese (Brazil) · Kokoro v1.0")
         );
         assert_eq!(
             cache_choice_value("voice_speed", &setup).as_deref(),
             Some("1.00×")
         );
-        assert_eq!(
-            cache_choice_value("voice_language", &setup).as_deref(),
-            Some("bundle lexicon (en/zh)")
-        );
-        assert_eq!(
-            cache_choice_value("voice_model_dir", &setup).as_deref(),
-            Some("default cache")
-        );
+        // The old per-field rows are gone: speaker/language/model dir are
+        // edited through the picker, which applies them as one choice.
+        assert_eq!(cache_choice_value("voice_speaker", &setup), None);
+        assert_eq!(cache_choice_value("voice_language", &setup), None);
+        assert_eq!(cache_choice_value("voice_model_dir", &setup), None);
 
         let mut view = SettingsView::new();
         view.selection.selected_index = selectable_rows(&setup)
@@ -3598,41 +3597,30 @@ mod tests {
         // The activation only flips the persisted flag; persistence and the
         // SpeechState mirror are the caller's job.
 
-        for (id, field) in [
-            ("voice_speaker", VoiceField::Speaker),
-            ("voice_speed", VoiceField::Speed),
-            ("voice_language", VoiceField::Language),
-            ("voice_model_dir", VoiceField::ModelDir),
+        for (id, action) in [
+            ("voice_picker", SettingsAction::OpenVoicePicker),
+            ("voice_speed", SettingsAction::OpenVoiceSpeed),
         ] {
             view.selection.selected_index = selectable_rows(&setup)
                 .iter()
                 .position(|r| matches!(r, SettingsRow::Category(x) if *x == catalog_index(id)))
                 .unwrap();
-            assert_eq!(
-                view.activate_selected(&mut setup),
-                Some(SettingsAction::OpenVoiceInput { field })
-            );
+            assert_eq!(view.activate_selected(&mut setup), Some(action));
         }
 
-        setup.voice.voice = 42;
         setup.voice.speed = 1.25;
-        setup.voice.language = "pt-br".into();
-        setup.voice.model_dir = "/tmp/kokoro-v1_0".into();
-        assert_eq!(
-            cache_choice_value("voice_speaker", &setup).as_deref(),
-            Some("42")
-        );
         assert_eq!(
             cache_choice_value("voice_speed", &setup).as_deref(),
             Some("1.25×")
         );
+
+        // A bundle outside the published catalogs still names the id rather
+        // than pretending a voice it cannot resolve.
+        setup.voice.model_dir = "/models/renamed-bundle".into();
+        setup.voice.speaker = 7;
         assert_eq!(
-            cache_choice_value("voice_language", &setup).as_deref(),
-            Some("pt-br")
-        );
-        assert_eq!(
-            cache_choice_value("voice_model_dir", &setup).as_deref(),
-            Some("/tmp/kokoro-v1_0")
+            cache_choice_value("voice_picker", &setup).as_deref(),
+            Some("speaker 7")
         );
     }
 

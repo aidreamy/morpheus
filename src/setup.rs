@@ -147,8 +147,10 @@ pub struct VoiceConfig {
     /// On-demand synthesis (Speak / Ctrl+Y) stays available either way.
     #[serde(alias = "enabled")]
     pub auto_generate: bool,
-    /// Speaker id of the loaded Kokoro model.
-    pub voice: i32,
+    /// Speaker id of the loaded Kokoro model. The pre-rename `voice` key
+    /// is still accepted.
+    #[serde(alias = "voice")]
+    pub speaker: i32,
     /// Speech pace (`1.0` is natural).
     pub speed: f32,
     /// espeak-ng language for the external phonemizer (`"pt-br"`, `"en-us"`, …).
@@ -163,7 +165,7 @@ impl Default for VoiceConfig {
     fn default() -> Self {
         Self {
             auto_generate: true,
-            voice: 0,
+            speaker: 0,
             speed: 1.0,
             language: String::new(),
             model_dir: String::new(),
@@ -1592,13 +1594,18 @@ mod tests {
         let mut setup = Setup::default();
         assert!(setup.voice.auto_generate, "default is on");
         setup.voice.auto_generate = false;
+        setup.voice.speaker = 43;
         let json = serde_json::to_string(&setup).unwrap();
         assert!(json.contains("auto_generate"));
+        assert!(json.contains("speaker"));
         let loaded: Setup = serde_json::from_str(&json).unwrap();
         assert!(!loaded.voice.auto_generate);
-        // The pre-rename key still loads instead of falling back to default.
-        let legacy: Setup = serde_json::from_str(r#"{"voice": {"enabled": false}}"#).unwrap();
+        assert_eq!(loaded.voice.speaker, 43);
+        // The pre-rename keys still load instead of falling back to default.
+        let legacy: Setup =
+            serde_json::from_str(r#"{"voice": {"enabled": false, "voice": 42}}"#).unwrap();
         assert!(!legacy.voice.auto_generate);
+        assert_eq!(legacy.voice.speaker, 42);
     }
 
     /// The telemetry consent flag round-trips and stays default-on: a legacy

@@ -231,7 +231,7 @@ impl App {
                         | DialogType::CheckupMinConfidenceInput {
                             input, cursor_pos, ..
                         }
-                        | DialogType::VoiceInput {
+                        | DialogType::VoiceSpeedInput {
                             input, cursor_pos, ..
                         }
                         | DialogType::RenameSession {

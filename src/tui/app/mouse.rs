@@ -1590,6 +1590,11 @@ impl App {
                                 self.confirm_agent_config_from_mouse();
                                 return Ok(true);
                             }
+                            #[cfg(all(feature = "speak", unix))]
+                            DialogType::VoiceList { .. } => {
+                                self.handle_voice_dialog_key(KeyCode::Enter);
+                                return Ok(true);
+                            }
                             DialogType::CheckupModelList { .. } => {
                                 self.handle_checkup_model_dialog_key(KeyCode::Enter);
                                 return Ok(true);
@@ -2026,8 +2031,14 @@ impl App {
                     Some(crate::routes::settings::SettingsAction::OpenSkillsInput) => {
                         self.open_skills_input();
                     }
-                    Some(crate::routes::settings::SettingsAction::OpenVoiceInput { field }) => {
-                        self.open_voice_input(field);
+                    #[cfg(all(feature = "speak", unix))]
+                    Some(crate::routes::settings::SettingsAction::OpenVoicePicker) => {
+                        self.open_voice_dialog();
+                    }
+                    #[cfg(not(all(feature = "speak", unix)))]
+                    Some(crate::routes::settings::SettingsAction::OpenVoicePicker) => {}
+                    Some(crate::routes::settings::SettingsAction::OpenVoiceSpeed) => {
+                        self.open_voice_speed_input();
                     }
                     Some(crate::routes::settings::SettingsAction::OpenWhatsAppListInput {
                         list,

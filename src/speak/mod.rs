@@ -101,4 +101,6 @@ pub use bass::{BassEnvelope, bass_envelope};
 pub use config::{Phonemizer, SpeakConfig, SpeakError};
 pub use engine::{Speak, Speech};
 pub use player::Playback;
-pub use voice::{Voice, find as find_voice};
+pub use voice::{
+    Voice, VoiceEntry, entries as voice_entries, entry as voice_entry, find as find_voice,
+};

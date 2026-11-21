@@ -18,6 +18,7 @@ use crate::component::cursor::{Cursor, paint_cursor_cell};
 use crate::component::list_dialog::{self, FilterState, ListRow, MouseHit};
 use crate::component::spinner::SpinnerState;
 use crate::theme::{Theme, rgba_color};
+use crate::ui::voice_list;
 use crate::util::draw::draw_text_line_compact;
 use crate::util::field_selection::DragSelection;
 
@@ -449,54 +450,6 @@ pub enum DeviceLoginPhase {
     Authorizing { url: String, user_code: String },
 }
 
-/// One editable value of `setup.json` → `voice` (Settings → Voice).
-/// Automatic generation is a switch of its own, so the fields here are the
-/// four "how it sounds" knobs; the field travels with the dialog so render
-/// and save agree on the title, the hint and the target value.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum VoiceField {
-    /// Speaker id in the loaded Kokoro bundle (`voice.voice`).
-    Speaker,
-    /// Speech pace (`voice.speed`).
-    Speed,
-    /// espeak-ng language code (`voice.language`).
-    Language,
-    /// Kokoro bundle directory (`voice.model_dir`).
-    ModelDir,
-}
-
-impl VoiceField {
-    /// Dialog title naming the value being edited.
-    pub fn title(self) -> &'static str {
-        match self {
-            Self::Speaker => "Voice speaker",
-            Self::Speed => "Speech pace",
-            Self::Language => "Voice language",
-            Self::ModelDir => "Voice model directory",
-        }
-    }
-
-    /// Placeholder describing the accepted input and the default.
-    pub fn hint(self) -> &'static str {
-        match self {
-            Self::Speaker => "speaker id in the Kokoro bundle (e.g. 42) — empty: 0",
-            Self::Speed => "pace factor, 1.0 is natural — empty: 1.0",
-            Self::Language => "espeak-ng code such as pt-br — empty: bundle lexicon",
-            Self::ModelDir => "Kokoro bundle directory — empty: built-in cache path",
-        }
-    }
-
-    /// The persisted value shown when the box opens (blank for a default).
-    pub fn value(self, voice: &morpheus::setup::VoiceConfig) -> String {
-        match self {
-            Self::Speaker => voice.voice.to_string(),
-            Self::Speed => format!("{}", voice.speed()),
-            Self::Language => voice.language.trim().to_string(),
-            Self::ModelDir => voice.model_dir.trim().to_string(),
-        }
-    }
-}
-
 /// Which `setup.json` → `whatsapp` allowlist a
 /// [`DialogType::WhatsAppListInput`] edits. The kind travels with the
 /// dialog so render and save agree on the title and the target field.
@@ -591,6 +544,16 @@ pub enum DialogType {
         search: bool,
         filter: FilterState,
     },
+    /// Searchable voice picker (Settings → Voice): one row per speaker of
+    /// the installed Kokoro bundle, grouped by language and model. Uses the
+    /// SAME shared list component as `/models` — search by voice name, id,
+    /// language or model, Enter applies speaker + language together.
+    VoiceList {
+        voices: Vec<crate::ui::voice_list::VoiceChoice>,
+        /// The configured speaker id (the ● indicator).
+        current: i32,
+        filter: FilterState,
+    },
     /// Compact three-option picker for the checkup resident model
     /// (Settings → Checkup model): `english` / `multilingual` /
     /// `typed-decisions`. Custom checkpoints stay setup.json-only and are
@@ -672,11 +635,8 @@ pub enum DialogType {
         input: String,
         cursor_pos: usize,
     },
-    /// One "how it sounds" value of `setup.json` → `voice` (Settings →
-    /// Voice). `field` selects which value the input applies to; blank
-    /// restores that field's default.
-    VoiceInput {
-        field: VoiceField,
+    /// Speech pace entry (Settings → Voice). Blank restores `1.0`.
+    VoiceSpeedInput {
         input: String,
         cursor_pos: usize,
     },
@@ -903,6 +863,16 @@ impl std::fmt::Debug for DialogType {
                 .field("search", search)
                 .field("filter", &filter.filter)
                 .finish(),
+            Self::VoiceList {
+                voices,
+                current,
+                filter,
+            } => f
+                .debug_struct("VoiceList")
+                .field("voices", voices)
+                .field("current", current)
+                .field("filter", &filter.filter)
+                .finish(),
             Self::CheckupModelList { current } => f
                 .debug_struct("CheckupModelList")
                 .field("current", current)
@@ -968,13 +938,8 @@ impl std::fmt::Debug for DialogType {
                 .field("input", input)
                 .field("cursor_pos", cursor_pos)
                 .finish(),
-            Self::VoiceInput {
-                field,
-                input,
-                cursor_pos,
-            } => f
-                .debug_struct("VoiceInput")
-                .field("field", field)
+            Self::VoiceSpeedInput { input, cursor_pos } => f
+                .debug_struct("VoiceSpeedInput")
                 .field("input", input)
                 .field("cursor_pos", cursor_pos)
                 .finish(),
@@ -1694,6 +1659,43 @@ impl DialogState {
                     }
                 }
             }
+            DialogType::VoiceList {
+                voices,
+                current,
+                filter,
+            } => {
+                // Same shared component/geometry as the render arm: over the
+                // SAME filtered rows, so a click always lands on the voice
+                // the search painted. A header click is a no-op.
+                let matching = voice_list::filtered(voices, &filter.filter);
+                let rows = voice_list::rows(&matching, *current);
+                let selection = filter.clamped(matching.len());
+                let visual = voice_list::visual_index(&rows, selection);
+                let layout =
+                    filter.layout(visual, rows.len(), usize::MAX, 50, 30, area, false, true);
+                match filter.mouse_hit(&layout, x, y_click) {
+                    MouseHit::Outside | MouseHit::Dismiss => DialogAction::Dismissed,
+                    MouseHit::Inside => DialogAction::Consumed,
+                    MouseHit::Row(index) => {
+                        if let Some(selection) = voice_list::index_at_visual(&rows, index) {
+                            filter.selected = selection;
+                            match mouse.event_type {
+                                // Hover just moves the visual selection;
+                                // release confirms — the model list's rule.
+                                MouseEventType::Move
+                                | MouseEventType::Drag
+                                | MouseEventType::Down => DialogAction::Consumed,
+                                MouseEventType::Up if mouse.button == MouseButton::Left => {
+                                    DialogAction::Confirmed
+                                }
+                                _ => DialogAction::Consumed,
+                            }
+                        } else {
+                            DialogAction::Consumed
+                        }
+                    }
+                }
+            }
             DialogType::ApiKeyInput { input, .. } => {
                 // Same box geometry as render (`render_text_input_dialog`):
                 // the Login button lives on the box's bottom row, right-aligned.
@@ -1737,7 +1739,7 @@ impl DialogState {
             | DialogType::CacheTtlInput { input, .. }
             | DialogType::EditorInput { input, .. }
             | DialogType::SkillsInput { input, .. }
-            | DialogType::VoiceInput { input, .. }
+            | DialogType::VoiceSpeedInput { input, .. }
             | DialogType::WhatsAppListInput { input, .. }
             | DialogType::CheckupMinConfidenceInput { input, .. } => {
                 // Click outside the dialog box → dismiss. The box grows with
@@ -2548,19 +2550,15 @@ impl DialogState {
                     *cursor_pos,
                 );
             }
-            DialogType::VoiceInput {
-                field,
-                input,
-                cursor_pos,
-            } => {
+            DialogType::VoiceSpeedInput { input, cursor_pos } => {
                 render_text_input_dialog(
                     buf,
                     area,
                     theme,
                     now,
                     &instance.cursor,
-                    field.title(),
-                    field.hint(),
+                    "Speech pace",
+                    "pace factor, 1.0 is natural — empty: 1.0",
                     false,
                     input,
                     *cursor_pos,
@@ -3889,6 +3887,47 @@ impl DialogState {
                         .map(|(value, name)| ListRow::item(name, "", value == current.as_str()))
                         .collect::<Vec<_>>();
                     list_dialog::render_rows(buf, &layout, theme, &rows, selection);
+                }
+            }
+            DialogType::VoiceList {
+                voices,
+                current,
+                filter,
+            } => {
+                // The shared list-dialog component owns the box, exactly like
+                // `/models`: Search line, cursor-follow scroll and the SAME
+                // geometry the keyboard/mouse hit-test uses. Rows are grouped
+                // by language · model, with the voice name and its id/gender
+                // on each selectable row.
+                let matching = voice_list::filtered(voices, &filter.filter);
+                let rows = voice_list::rows(&matching, *current);
+                let selection = filter.clamped(matching.len());
+                let visual = voice_list::visual_index(&rows, selection);
+                let layout =
+                    filter.layout(visual, rows.len(), usize::MAX, 50, 30, area, false, true);
+                list_dialog::render_chrome_raw(
+                    buf,
+                    &layout,
+                    theme,
+                    now,
+                    &filter.filter,
+                    &filter.cursor,
+                    "Voice",
+                    None,
+                );
+                if matching.is_empty() {
+                    let list_x = layout.x + 1;
+                    let list_w = layout.width.saturating_sub(2);
+                    draw_text_line_compact(
+                        buf,
+                        "No matching voices",
+                        list_x,
+                        layout.list_top(),
+                        list_w,
+                        Style::default().fg(rgba_color(theme.text_muted)),
+                    );
+                } else {
+                    list_dialog::render_rows(buf, &layout, theme, &rows, visual);
                 }
             }
         }

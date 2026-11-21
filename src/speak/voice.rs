@@ -19,6 +19,110 @@ pub struct Voice {
     pub name: &'static str,
 }
 
+/// One speaker with the metadata a picker needs: the espeak-ng language it
+/// was trained for, its gender and the bundle that owns it. `voices.bin`
+/// carries none of this — it is derived from the published name prefixes
+/// (`pf_` = Portuguese female, `am_` = American male, ...).
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct VoiceEntry {
+    /// Speaker id passed to sherpa-onnx as `sid`.
+    pub speaker: i32,
+    /// Published voice name (`pf_dora`).
+    pub name: &'static str,
+    /// espeak-ng language code (`pt-br`), the value `SpeakConfig`'s external
+    /// phonemizer takes.
+    pub language: &'static str,
+    /// Human-readable language (`Portuguese (Brazil)`).
+    pub language_label: &'static str,
+    /// `female` or `male`.
+    pub gender: &'static str,
+    /// Bundle directory name that owns the speaker.
+    pub bundle: &'static str,
+    /// Human-readable bundle name (`Kokoro v1.0`).
+    pub bundle_label: &'static str,
+}
+
+/// Language and label for a Kokoro name prefix (`af_maple` → `af`).
+fn language(prefix: &str) -> Option<(&'static str, &'static str)> {
+    Some(match prefix {
+        "af" | "am" => ("en-us", "English (US)"),
+        "bf" | "bm" => ("en-gb", "English (UK)"),
+        "ef" | "em" => ("es", "Spanish"),
+        "ff" | "fm" => ("fr", "French"),
+        "hf" | "hm" => ("hi", "Hindi"),
+        "if" | "im" => ("it", "Italian"),
+        "jf" | "jm" => ("ja", "Japanese"),
+        "pf" | "pm" => ("pt-br", "Portuguese (Brazil)"),
+        "zf" | "zm" => ("zh", "Chinese"),
+        _ => return None,
+    })
+}
+
+fn prefix(name: &str) -> &str {
+    name.split('_').next().unwrap_or(name)
+}
+
+fn gender(prefix: &str) -> &'static str {
+    if prefix.ends_with('f') {
+        "female"
+    } else {
+        "male"
+    }
+}
+
+/// The catalog and bundle labels for the directory in `model_dir`.
+///
+/// The directory name decides, exactly like [`catalog`], so a picker can
+/// list the voices of the installed bundle without loading the model (which
+/// is what makes the list reachable at all: loading costs seconds and the
+/// daemon owns that instance).
+fn bundle(model_dir: &Path) -> Option<(&'static [Voice], &'static str, &'static str)> {
+    let name = model_dir
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or_default();
+    if name.contains("v1_1") {
+        Some((V1_1, "kokoro-multi-lang-v1_1", "Kokoro v1.1"))
+    } else if name.contains("v1_0") {
+        Some((V1_0, "kokoro-multi-lang-v1_0", "Kokoro v1.0"))
+    } else {
+        None
+    }
+}
+
+/// Every speaker of the bundle in `model_dir`, with its language metadata.
+/// Empty when the directory name matches neither known bundle.
+#[must_use]
+pub fn entries(model_dir: &Path) -> Vec<VoiceEntry> {
+    let Some((catalog, bundle, bundle_label)) = bundle(model_dir) else {
+        return Vec::new();
+    };
+    catalog
+        .iter()
+        .filter_map(|voice| {
+            let prefix = prefix(voice.name);
+            let (language, language_label) = language(prefix)?;
+            Some(VoiceEntry {
+                speaker: voice.sid,
+                name: voice.name,
+                language,
+                language_label,
+                gender: gender(prefix),
+                bundle,
+                bundle_label,
+            })
+        })
+        .collect()
+}
+
+/// The entry for `speaker` in the bundle at `model_dir`.
+#[must_use]
+pub fn entry(model_dir: &Path, speaker: i32) -> Option<VoiceEntry> {
+    entries(model_dir)
+        .into_iter()
+        .find(|voice| voice.speaker == speaker)
+}
+
 /// `kokoro-multi-lang-v1_0`: 54 speakers, Chinese + English.
 pub const V1_0: &[Voice] = &[
     Voice {
@@ -723,7 +827,10 @@ mod tests {
             54,
             "the directory name wins over the reported count"
         );
-        assert_eq!(catalog(Path::new("kokoro-int8-multi-lang-v1_1"), 54).len(), 103);
+        assert_eq!(
+            catalog(Path::new("kokoro-int8-multi-lang-v1_1"), 54).len(),
+            103
+        );
         assert_eq!(catalog(Path::new("some-model"), 54).len(), 54);
         assert_eq!(catalog(Path::new("some-model"), 103).len(), 103);
         assert!(catalog(Path::new("some-model"), 7).is_empty());
@@ -761,5 +868,45 @@ mod tests {
             })
         );
         assert_eq!(find("not_a_voice"), None);
+    }
+
+    /// The picker-facing table pairs every published name with the language
+    /// the voice was trained for (the value the external phonemizer needs),
+    /// its gender and the bundle it belongs to.
+    #[test]
+    fn entries_carry_language_gender_and_bundle() {
+        let dir = Path::new("/models/kokoro-multi-lang-v1_0");
+        let all = entries(dir);
+        assert_eq!(all.len(), V1_0.len());
+        assert!(all.iter().all(|v| v.bundle_label == "Kokoro v1.0"));
+
+        let dora = entry(dir, 42).expect("pf_dora is in the v1.0 catalog");
+        assert_eq!(dora.name, "pf_dora");
+        assert_eq!(dora.language, "pt-br");
+        assert_eq!(dora.language_label, "Portuguese (Brazil)");
+        assert_eq!(dora.gender, "female");
+        assert_eq!(dora.bundle, "kokoro-multi-lang-v1_0");
+
+        let portuguese: Vec<_> = all
+            .iter()
+            .filter(|v| v.language == "pt-br")
+            .map(|v| (v.speaker, v.name))
+            .collect();
+        assert_eq!(
+            portuguese,
+            vec![(42, "pf_dora"), (43, "pm_alex"), (44, "pm_santa")]
+        );
+        assert_eq!(entry(dir, 44).unwrap().gender, "male");
+
+        // The v1.1 bundle name selects its own (larger) catalog and label.
+        let v11 = entries(Path::new("/models/kokoro-int8-multi-lang-v1_1"));
+        assert_eq!(v11.len(), V1_1.len());
+        assert!(v11.iter().all(|v| v.bundle_label == "Kokoro v1.1"));
+        assert!(v11.iter().all(|v| language(prefix(v.name)).is_some()));
+
+        // Unknown directories have no catalog to list (the ids still work
+        // through SpeakConfig::voice, only the names are unknown).
+        assert!(entries(Path::new("/models/renamed-bundle")).is_empty());
+        assert_eq!(entry(Path::new("/models/renamed-bundle"), 42), None);
     }
 }

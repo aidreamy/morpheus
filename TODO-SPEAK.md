@@ -21,9 +21,10 @@ the reason.
 ## 2. Configuration / feature
 
 - [x] Reused the existing `speak` Cargo feature (no new feature).
-- [x] `Setup.voice` (`setup.json` → `"voice"`): `auto_generate`, `voice`,
-      `speed`, `language`, `model_dir`. The old `enabled` key is accepted as
-      a serde alias (it never meant "voice on/off").
+- [x] `Setup.voice` (`setup.json` → `"voice"`): `auto_generate`, `speaker`,
+      `speed`, `language`, `model_dir`. The old `enabled` and `voice` keys are
+      accepted as serde aliases (`enabled` never meant "voice on/off"; `voice`
+      became `speaker` so the field and the UI name the same thing).
 - [x] Auto generation (`auto_generate = true`, the **default** — compiling
       with `speak` means wanting the answers spoken): generates audio in the
       background at the end of every turn — **generation only, never plays on
@@ -35,10 +36,16 @@ the reason.
 - [x] `auto_generate = false`: generation only on demand (speak button /
       Ctrl+Y); the controls and the TTS engine stay available.
 - [x] `/voice` toggles the mode in the app and persists through `Setup::save`.
-- [x] Settings → Voice (gated on the `speak` feature): the auto-generation
-      switch plus input boxes for speaker, pace, language and model directory.
-      Saving any of them drains the daemon so the next synthesis re-reads
-      `setup.json` (the daemon loads the voice settings only at startup).
+- [x] Settings → Voice (gated on the `speak`/unix pair, like the engine):
+      the auto-generation switch, a searchable voice picker and the pace box.
+      The picker is the SAME shared list component as `/models`: rows group
+      by language · model, each row names the voice and its id/gender, and
+      the search matches voice name, id, language code/label, gender and
+      model. Confirming a row writes `speaker` AND `language` together, so
+      the user never types a numeric id or an espeak code.
+- [x] Saving a voice or the pace drains the daemon so the next synthesis
+      re-reads `setup.json` (the daemon loads the voice settings only at
+      startup).
 
 ## 3. Audio for the last output
 
@@ -151,9 +158,12 @@ the reason.
   cluster, so earlier audios stay replayable without cluttering the rest.
 - Configuration lives in `setup.json` (`voice`), in Settings → Voice (which
   owns every field, including the auto-generation switch) and in `/voice`
-  (a shortcut for that switch). A voice-field save drains the resident daemon
-  because it snapshots the settings at startup; the next synthesis activates
-  a fresh one.
+  (a shortcut for that switch). The picker's catalog comes from the bundle
+  directory name and covers the published v1.0/v1.1 voice tables; a renamed
+  bundle still works through the raw `speaker` id, the list just cannot name
+  the voices. A voice-field save drains the resident daemon because it
+  snapshots the settings at startup; the next synthesis activates a fresh
+  one.
 - The TTS daemon is `unix`-only (like the existing daemon transport); on
   Windows the `speak` feature still compiles the synthesis module, but the
   voice controls are not mounted.

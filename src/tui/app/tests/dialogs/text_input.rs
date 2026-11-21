@@ -1,5 +1,5 @@
 use super::super::{App, CLIPBOARD_LOCK, HOME_LOCK, isolate_home, key, mod_key};
-use crate::ui::dialogs::{DialogType, VoiceField};
+use crate::ui::dialogs::DialogType;
 use crossterm::event::{KeyCode, KeyModifiers};
 
 /// The hook registration box saves a valid hook into setup (in-memory)
@@ -826,41 +826,17 @@ async fn registration_form_copy_toast_paints_above_the_panel() {
         );
     }
 }
-
-/// Settings → Voice boxes share the single-input mechanics: numeric garbage
-/// keeps the box open without touching setup, blank restores the field's
-/// default, and a valid value persists to `setup.json` (the daemon re-reads
-/// it only at startup, so the save also drains the resident daemon).
+/// Settings → Voice's pace box: numeric garbage keeps the box open without
+/// touching setup, blank restores 1.0, and a valid value persists to
+/// `setup.json` (the daemon re-reads it only at startup, so the save also
+/// drains the resident daemon).
 #[tokio::test]
-async fn voice_input_validates_and_persists_fields() {
+async fn voice_speed_input_validates_and_persists() {
     let _guard = HOME_LOCK.lock();
     isolate_home();
     let mut app = App::new("/tmp".to_string());
 
-    app.dialog.show(DialogType::VoiceInput {
-        field: VoiceField::Speaker,
-        input: "abc".into(),
-        cursor_pos: 3,
-    });
-    assert!(app.handle_text_input_dialog_key(KeyCode::Enter));
-    assert!(
-        app.dialog.visible(),
-        "a non-numeric speaker keeps the box open"
-    );
-    assert_eq!(app.setup.voice.voice, 0);
-    app.handle_text_input_dialog_key(KeyCode::Esc);
-
-    app.dialog.show(DialogType::VoiceInput {
-        field: VoiceField::Speaker,
-        input: "42".into(),
-        cursor_pos: 2,
-    });
-    assert!(app.handle_text_input_dialog_key(KeyCode::Enter));
-    assert!(!app.dialog.visible());
-    assert_eq!(app.setup.voice.voice, 42);
-
-    app.dialog.show(DialogType::VoiceInput {
-        field: VoiceField::Speed,
+    app.dialog.show(DialogType::VoiceSpeedInput {
         input: "0".into(),
         cursor_pos: 1,
     });
@@ -869,8 +845,7 @@ async fn voice_input_validates_and_persists_fields() {
     assert_eq!(app.setup.voice.speed, 1.0);
     app.handle_text_input_dialog_key(KeyCode::Esc);
 
-    app.dialog.show(DialogType::VoiceInput {
-        field: VoiceField::Speed,
+    app.dialog.show(DialogType::VoiceSpeedInput {
         input: "1.25".into(),
         cursor_pos: 4,
     });
@@ -878,25 +853,13 @@ async fn voice_input_validates_and_persists_fields() {
     assert!(!app.dialog.visible());
     assert_eq!(app.setup.voice.speed, 1.25);
 
-    app.dialog.show(DialogType::VoiceInput {
-        field: VoiceField::Language,
-        input: "pt-br".into(),
-        cursor_pos: 5,
-    });
-    assert!(app.handle_text_input_dialog_key(KeyCode::Enter));
-    assert_eq!(app.setup.voice.language, "pt-br");
-
-    app.dialog.show(DialogType::VoiceInput {
-        field: VoiceField::ModelDir,
+    app.dialog.show(DialogType::VoiceSpeedInput {
         input: String::new(),
         cursor_pos: 0,
     });
     assert!(app.handle_text_input_dialog_key(KeyCode::Enter));
-    assert!(app.setup.voice.model_dir.is_empty());
+    assert_eq!(app.setup.voice.speed, 1.0);
 
     let persisted = morpheus::setup::Setup::load();
-    assert_eq!(persisted.voice.voice, 42);
-    assert_eq!(persisted.voice.speed, 1.25);
-    assert_eq!(persisted.voice.language, "pt-br");
-    assert!(persisted.voice.model_dir.is_empty());
+    assert_eq!(persisted.voice.speed, 1.0);
 }

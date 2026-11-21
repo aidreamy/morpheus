@@ -5,6 +5,7 @@ use ratatui::layout::Rect;
 
 use crate::ui::dialogs::{DialogType, WhatsAppList};
 use crate::util::field_selection::DragSelection;
+use morpheus::setup::WhatsAppEntry;
 
 impl App {
     pub(in crate::app) fn is_text_input_visible(&self) -> bool {
@@ -1239,19 +1240,15 @@ impl App {
         });
     }
 
-    /// Open the comma-separated allowlist input box (Settings → WhatsApp),
-    /// prefilled with the configured entries. Blank clears the list, which
-    /// denies that origin kind entirely.
+    /// Open the EMPTY allowlist input box (Settings → WhatsApp). Confirming
+    /// appends the typed entries to the configured list; the box is never
+    /// prefilled, so the list rows are the only representation of what is
+    /// configured and a confirm can never overwrite it.
     pub(in crate::app) fn open_whatsapp_list_input(&mut self, list: WhatsAppList) {
-        let entries = match list {
-            WhatsAppList::Contacts => &self.setup.whatsapp.contacts,
-            WhatsAppList::Groups => &self.setup.whatsapp.groups,
-        };
-        let input = entries.join(", ");
         self.dialog.show(DialogType::WhatsAppListInput {
             list,
-            cursor_pos: input.len(),
-            input,
+            cursor_pos: 0,
+            input: String::new(),
         });
     }
 
@@ -1374,18 +1371,20 @@ impl App {
                 true
             }
             DialogType::WhatsAppListInput { list, input, .. } => {
-                // Comma-separated entries, stored exactly as typed: the
-                // matcher ignores `@server`, `+`, spaces and punctuation, so
-                // normalizing here would only lose what the user wrote.
-                let entries = input
-                    .split(',')
-                    .map(str::trim)
-                    .filter(|entry| !entry.is_empty())
-                    .map(String::from)
-                    .collect();
-                match list {
-                    WhatsAppList::Contacts => self.setup.whatsapp.contacts = entries,
-                    WhatsAppList::Groups => self.setup.whatsapp.groups = entries,
+                // ADDITIVE on purpose: the box adds entries, the list rows
+                // toggle and remove them. Comma-separated entries are stored
+                // exactly as typed — the matcher ignores `@server`, `+`,
+                // spaces and punctuation, so normalizing here would only
+                // lose what the user wrote — skipping ones already listed so
+                // the same origin never appears twice.
+                let entries = match list {
+                    WhatsAppList::Contacts => &mut self.setup.whatsapp.contacts,
+                    WhatsAppList::Groups => &mut self.setup.whatsapp.groups,
+                };
+                for id in input.split(',').map(str::trim).filter(|id| !id.is_empty()) {
+                    if !entries.iter().any(|entry| entry.id == id) {
+                        entries.push(WhatsAppEntry::new(id));
+                    }
                 }
                 self.setup.save();
                 true
@@ -1524,8 +1523,9 @@ impl App {
     }
 
     /// Remove the entry selected in the settings list — an MCP server (its
-    /// keyring credential is purged too) or a user-registered ACP agent
-    /// (the process registry is re-published without it). Shared by the
+    /// keyring credential is purged too), a user-registered ACP agent (the
+    /// process registry is re-published without it), a user-registered
+    /// provider, or a WhatsApp allowlist entry. Shared by the
     /// Delete/Backspace key path and the 🗑 glyph click, exactly the
     /// sessions-list pairing. Returns whether anything was removed.
     pub(in crate::app) fn remove_selected_settings_entry(&mut self) -> bool {
@@ -1583,6 +1583,13 @@ impl App {
             ) {
                 log::warn!("re-publishing user-registered providers: {err}");
             }
+            return true;
+        }
+        if self
+            .settings_view
+            .remove_selected_whatsapp_entry(&mut self.setup)
+        {
+            self.setup.save();
             return true;
         }
         false

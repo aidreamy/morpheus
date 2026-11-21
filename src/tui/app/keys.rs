@@ -1017,7 +1017,8 @@ impl App {
                         self.show_settings = false;
                         return Ok(false);
                     }
-                    // Backspace on an MCP/ACP row mirrors the 🗑 glyph click
+                    // Backspace on an MCP/ACP/provider/WhatsApp-entry row
+                    // mirrors the 🗑 glyph click
                     // (the sessions-list pairing). It must come BEFORE the
                     // fallthrough so the prompt editor never eats the key,
                     // and only claims it on rows the removal applies to —
@@ -1030,6 +1031,7 @@ impl App {
                                 crate::routes::settings::SettingsRow::McpServer(_)
                                     | crate::routes::settings::SettingsRow::AcpAgent(_)
                                     | crate::routes::settings::SettingsRow::Provider(_)
+                                    | crate::routes::settings::SettingsRow::WhatsAppEntry { .. }
                             )
                         ) =>
                     {

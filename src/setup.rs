@@ -714,10 +714,74 @@ pub struct WhatsAppConfig {
     /// number in international format or an account id (LID included); the
     /// `@server` suffix, spaces, `+` and punctuation are ignored, so
     /// `5511912345678` and `+55 (11) 91234-5678` both match the same chat.
-    pub contacts: Vec<String>,
+    /// A disabled entry stays saved but grants nothing.
+    pub contacts: Vec<WhatsAppEntry>,
     /// Groups allowed to use the agent: the group id (`120363…@g.us`) or
-    /// just its digits.
-    pub groups: Vec<String>,
+    /// just its digits. A disabled entry stays saved but grants nothing.
+    pub groups: Vec<WhatsAppEntry>,
+}
+
+/// One allowlisted WhatsApp origin (`setup.json` → `whatsapp.contacts` /
+/// `whatsapp.groups`).
+///
+/// Persisted as `{ "id": …, "enabled": … }`, the same shape the MCP, ACP
+/// and provider lists use. A bare string — the pre-toggle form — still loads
+/// as an ENABLED entry, so an old setup file keeps granting exactly what it
+/// granted before.
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(from = "WhatsAppEntryRepr", into = "WhatsAppEntryRepr")]
+pub struct WhatsAppEntry {
+    /// The address exactly as the user wrote it (a phone number, a LID or a
+    /// group id).
+    pub id: String,
+    /// Whether this entry grants access to the agent.
+    pub enabled: bool,
+}
+
+impl WhatsAppEntry {
+    /// An ENABLED entry for `id` (new items are allowed until turned off).
+    #[must_use]
+    pub fn new(id: impl Into<String>) -> Self {
+        Self {
+            id: id.into(),
+            enabled: true,
+        }
+    }
+}
+
+/// Wire shape of [`WhatsAppEntry`]: an object carries the toggle, a bare
+/// string is the legacy (always enabled) form.
+#[derive(Serialize, Deserialize)]
+#[serde(untagged)]
+enum WhatsAppEntryRepr {
+    Id(String),
+    Toggled {
+        id: String,
+        #[serde(default = "enabled_by_default")]
+        enabled: bool,
+    },
+}
+
+fn enabled_by_default() -> bool {
+    true
+}
+
+impl From<WhatsAppEntryRepr> for WhatsAppEntry {
+    fn from(repr: WhatsAppEntryRepr) -> Self {
+        match repr {
+            WhatsAppEntryRepr::Id(id) => Self::new(id),
+            WhatsAppEntryRepr::Toggled { id, enabled } => Self { id, enabled },
+        }
+    }
+}
+
+impl From<WhatsAppEntry> for WhatsAppEntryRepr {
+    fn from(entry: WhatsAppEntry) -> Self {
+        Self::Toggled {
+            id: entry.id,
+            enabled: entry.enabled,
+        }
+    }
 }
 
 impl Default for WhatsAppConfig {
@@ -1760,8 +1824,11 @@ mod tests {
 
         let mut setup = Setup::default();
         setup.whatsapp.self_chat = false;
-        setup.whatsapp.contacts = vec!["5511912345678".into()];
-        setup.whatsapp.groups = vec!["120363012345678901@g.us".into()];
+        setup.whatsapp.contacts = vec![WhatsAppEntry::new("5511912345678")];
+        setup.whatsapp.groups = vec![WhatsAppEntry {
+            id: "120363012345678901@g.us".into(),
+            enabled: false,
+        }];
         let json = serde_json::to_string_pretty(&setup).unwrap();
         assert!(
             json.contains(r#""whatsapp""#),
@@ -1769,11 +1836,29 @@ mod tests {
         );
         let loaded: Setup = serde_json::from_str(&json).unwrap();
         assert!(!loaded.whatsapp.self_chat);
-        assert_eq!(loaded.whatsapp.contacts, vec!["5511912345678".to_string()]);
+        assert_eq!(
+            loaded.whatsapp.contacts,
+            vec![WhatsAppEntry::new("5511912345678")]
+        );
         assert_eq!(
             loaded.whatsapp.groups,
-            vec!["120363012345678901@g.us".to_string()]
+            vec![WhatsAppEntry {
+                id: "120363012345678901@g.us".into(),
+                enabled: false,
+            }]
         );
+
+        // A setup file written before the toggle existed stores bare
+        // strings; they load as ENABLED entries instead of failing or
+        // (worse) silently losing access.
+        let legacy: Setup =
+            serde_json::from_str(r#"{"whatsapp":{"contacts":["+55 11 91234-5678"],"groups":[]}}"#)
+                .unwrap();
+        assert_eq!(
+            legacy.whatsapp.contacts,
+            vec![WhatsAppEntry::new("+55 11 91234-5678")]
+        );
+        assert!(legacy.whatsapp.contacts[0].enabled);
     }
 
     /// The global model selection is a single overwritten slot that

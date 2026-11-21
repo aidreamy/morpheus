@@ -22,7 +22,7 @@ use morpheus_tui::core::types::MouseEvent;
 use crate::theme::{Theme, rgba_color};
 use crate::ui::dialogs::WhatsAppList;
 use crate::util::list_selection::ListSelection;
-use morpheus::setup::{HookEntry, Setup};
+use morpheus::setup::{HookEntry, Setup, WhatsAppEntry};
 
 /// Event section keys inside `setup.json` (`hooks.events`).
 pub const PRE_TOOL_USE_EVENT: &str = "PreToolUse";
@@ -390,12 +390,28 @@ fn is_enabled(item: &SettingsItem, setup: &Setup) -> bool {
     }
 }
 
-/// Value row text for a `setup.json` → `whatsapp` allowlist.
-fn allowlist_summary(entries: &[String]) -> String {
-    match entries.len() {
-        0 => "none".into(),
-        1 => "1 allowed".into(),
-        len => format!("{len} allowed"),
+/// Entries of a `setup.json` → `whatsapp` allowlist.
+fn whatsapp_entries<'a>(setup: &'a Setup, list: WhatsAppList) -> &'a [WhatsAppEntry] {
+    match list {
+        WhatsAppList::Contacts => &setup.whatsapp.contacts,
+        WhatsAppList::Groups => &setup.whatsapp.groups,
+    }
+}
+
+/// Value row text for a `setup.json` → `whatsapp` allowlist: "allowed"
+/// counts only the entries that actually grant access, with the disabled
+/// ones called out so a toggled-off item is never mistaken for a removal.
+fn allowlist_summary(entries: &[WhatsAppEntry]) -> String {
+    let allowed = entries.iter().filter(|entry| entry.enabled).count();
+    let disabled = entries.len() - allowed;
+    match (allowed, disabled) {
+        (0, 0) => "none".into(),
+        (1, 0) => "1 allowed".into(),
+        (allowed, 0) => format!("{allowed} allowed"),
+        (1, 1) => "1 allowed, 1 disabled".into(),
+        (allowed, 1) => format!("{allowed} allowed, 1 disabled"),
+        (1, disabled) => format!("1 allowed, {disabled} disabled"),
+        (allowed, disabled) => format!("{allowed} allowed, {disabled} disabled"),
     }
 }
 
@@ -642,6 +658,12 @@ pub enum SettingsRow {
     Provider(usize),
     /// Register a new custom provider.
     AddProvider,
+    /// One allowed origin of a `setup.json` → `whatsapp` allowlist
+    /// (index into that list's entries).
+    WhatsAppEntry { list: WhatsAppList, index: usize },
+    /// Add an origin to a WhatsApp allowlist (opens the same box as the
+    /// category row).
+    AddWhatsAppEntry { list: WhatsAppList },
 }
 
 /// Every rendered line with its vertical offset from the content top.
@@ -688,6 +710,13 @@ enum Line {
         index: usize,
     },
     AddProvider,
+    WhatsAppEntry {
+        list: WhatsAppList,
+        index: usize,
+    },
+    AddWhatsAppEntry {
+        list: WhatsAppList,
+    },
 }
 
 impl Line {
@@ -708,6 +737,13 @@ impl Line {
             Line::AddAcpAgent => Some(SettingsRow::AddAcpAgent),
             Line::Provider { index } => Some(SettingsRow::Provider(*index)),
             Line::AddProvider => Some(SettingsRow::AddProvider),
+            Line::WhatsAppEntry { list, index } => Some(SettingsRow::WhatsAppEntry {
+                list: *list,
+                index: *index,
+            }),
+            Line::AddWhatsAppEntry { list } => {
+                Some(SettingsRow::AddWhatsAppEntry { list: *list })
+            }
             Line::Title | Line::SectionBorder { .. } | Line::Blank | Line::Description(_) => None,
         }
     }
@@ -853,6 +889,23 @@ fn build_layout(setup: &Setup, width: u16) -> Vec<LayoutLine> {
                     });
                     y += 1;
                 }
+                // One row per allowed origin, like the MCP/ACP/provider
+                // sub-lists: a ✔/✗ toggle per entry plus the shared 🗑
+                // removal glyph, then the "+ Add" action.
+                SettingKind::Choice(ChoiceInput::WhatsAppAllowlist(list)) => {
+                    for index in 0..whatsapp_entries(setup, list).len() {
+                        lines.push(LayoutLine {
+                            y,
+                            line: Line::WhatsAppEntry { list, index },
+                        });
+                        y += 1;
+                    }
+                    lines.push(LayoutLine {
+                        y,
+                        line: Line::AddWhatsAppEntry { list },
+                    });
+                    y += 1;
+                }
                 // Switches and choices are a single toggle row.
                 _ => {}
             }
@@ -967,9 +1020,10 @@ pub enum SettingsAction {
     /// Open the skill-directories input box (Settings → Skill directories;
     /// setup.json `skills.dirs`). Blank = the `~/.skills` default.
     OpenSkillsInput,
-    /// Open the comma-separated allowlist input box (Settings → WhatsApp;
-    /// setup.json `whatsapp.contacts` / `whatsapp.groups`). Blank clears
-    /// that list, denying every origin of that kind.
+    /// Open the empty allowlist input box (Settings → WhatsApp; setup.json
+    /// `whatsapp.contacts` / `whatsapp.groups`). Typed entries are APPENDED
+    /// to the list as enabled items; enabling, disabling and removal happen
+    /// on the list itself.
     OpenWhatsAppListInput {
         list: WhatsAppList,
     },
@@ -1121,6 +1175,7 @@ impl SettingsView {
             Some(SettingsRow::McpServer(_))
                 | Some(SettingsRow::AcpAgent(_))
                 | Some(SettingsRow::Provider(_))
+                | Some(SettingsRow::WhatsAppEntry { .. })
         ) {
             let max_row_w = max_row_width(setup, area.width) as u16;
             let box_x = area.x + (area.width.saturating_sub(max_row_w)) / 2;
@@ -1299,6 +1354,26 @@ impl SettingsView {
                 index: Some(*index),
             }),
             SettingsRow::AddProvider => Some(SettingsAction::OpenProviderFormFor { index: None }),
+            // An allowlist entry row opens the same comma-separated box as
+            // its category row; only the 🗑 glyph (or Delete/Backspace)
+            // removes the entry itself.
+            SettingsRow::AddWhatsAppEntry { list } => {
+                Some(SettingsAction::OpenWhatsAppListInput { list: *list })
+            }
+            // Each entry row is a switch of its own, like an MCP server:
+            // flipping it keeps the item saved but stops it from granting
+            // access. Editing happens through the category/Add box; only
+            // the 🗑 glyph (or Delete/Backspace) removes the entry.
+            SettingsRow::WhatsAppEntry { list, index } => {
+                let entries = match list {
+                    WhatsAppList::Contacts => &mut setup.whatsapp.contacts,
+                    WhatsAppList::Groups => &mut setup.whatsapp.groups,
+                };
+                if let Some(entry) = entries.get_mut(*index) {
+                    entry.enabled = !entry.enabled;
+                }
+                Some(SettingsAction::ToggleSaved)
+            }
         }
     }
 
@@ -1357,6 +1432,27 @@ impl SettingsView {
         let rows = selectable_rows(setup);
         self.selection.clamp(rows.len());
         Some(removed.name)
+    }
+
+    /// Remove the WhatsApp allowlist entry selected in the settings list,
+    /// if any. Returns whether anything was removed; the caller saves.
+    pub fn remove_selected_whatsapp_entry(&mut self, setup: &mut Setup) -> bool {
+        let rows = selectable_rows(setup);
+        let (list, index) = match rows.get(self.selection.selected_index) {
+            Some(SettingsRow::WhatsAppEntry { list, index }) => (*list, *index),
+            _ => return false,
+        };
+        let entries = match list {
+            WhatsAppList::Contacts => &mut setup.whatsapp.contacts,
+            WhatsAppList::Groups => &mut setup.whatsapp.groups,
+        };
+        if index >= entries.len() {
+            return false;
+        }
+        entries.remove(index);
+        let rows = selectable_rows(setup);
+        self.selection.clamp(rows.len());
+        true
     }
 
     pub fn handle_mouse(&self, mouse: &MouseEvent, area: Rect, setup: &Setup) -> Option<usize> {
@@ -1794,6 +1890,74 @@ impl SettingsView {
                     draw_text(buf, &preview, col_x, y, area, Style::default().fg(muted));
                     draw_trash(buf, trash_x, y, area, muted);
                 }
+                Line::WhatsAppEntry { list, index } => {
+                    let idx = rows.iter().position(|r| {
+                        matches!(
+                            r,
+                            SettingsRow::WhatsAppEntry { list: l, index: i }
+                                if l == list && i == index
+                        )
+                    });
+                    let is_selected = idx == Some(selected_idx);
+                    if !in_window(idx, visible, self.selection.scroll_offset) {
+                        continue;
+                    }
+                    let Some(entry) = whatsapp_entries(setup, *list).get(*index) else {
+                        continue;
+                    };
+                    // Same row shape as an MCP server: the ✔/✗ toggle at the
+                    // sub-list glyph column, the address at the shared +4
+                    // indent, and the 🗑 removal glyph on the right edge.
+                    let trash_x = trash_x_for_row(box_x, max_w as u16, row_x);
+                    let symbol = if entry.enabled { "✔" } else { "✗" };
+                    let sym_color = if entry.enabled {
+                        Color::Green
+                    } else {
+                        Color::Red
+                    };
+                    draw_text(
+                        buf,
+                        symbol,
+                        row_x + 2,
+                        y,
+                        area,
+                        Style::default().fg(sym_color),
+                    );
+                    let text = truncate(
+                        &entry.id,
+                        (trash_x.saturating_sub(row_x + 4).saturating_sub(1)) as usize,
+                    );
+                    draw_text(
+                        buf,
+                        &text,
+                        row_x + 4,
+                        y,
+                        area,
+                        Style::default().fg(if is_selected { primary } else { fg }),
+                    );
+                    draw_trash(buf, trash_x, y, area, muted);
+                }
+                Line::AddWhatsAppEntry { list } => {
+                    let idx = rows.iter().position(
+                        |r| matches!(r, SettingsRow::AddWhatsAppEntry { list: l } if l == list),
+                    );
+                    let is_selected = idx == Some(selected_idx);
+                    if !in_window(idx, visible, self.selection.scroll_offset) {
+                        continue;
+                    }
+                    let label = match list {
+                        WhatsAppList::Contacts => "+ Add contact",
+                        WhatsAppList::Groups => "+ Add group",
+                    };
+                    draw_text(
+                        buf,
+                        label,
+                        row_x + 4,
+                        y,
+                        area,
+                        Style::default().fg(if is_selected { primary } else { muted }),
+                    );
+                }
                 Line::AddProvider => {
                     let idx = rows
                         .iter()
@@ -1927,6 +2091,14 @@ fn max_row_width(setup: &Setup, width: u16) -> usize {
         width = width.max(len.min(width_cap));
     }
     width = width.max(4 + "+ Add provider".len());
+    // WhatsApp allowlist rows (same indent, same 🗑 slot at the right edge).
+    for entries in [&setup.whatsapp.contacts, &setup.whatsapp.groups] {
+        for entry in entries {
+            let len = 4 + entry.id.chars().count() + TRASH_W as usize;
+            width = width.max(len.min(width_cap));
+        }
+    }
+    width = width.max(4 + "+ Add contact".len());
     // The contour must enclose the padded content: plus the breathing room
     // on each side, so `╭…╮` extends past the widest drawn row.
     width + 2 * BOX_PAD
@@ -2250,7 +2422,13 @@ mod tests {
                 SettingsRow::AddProvider,
                 cat("whatsapp_self_chat"),
                 cat("whatsapp_contacts"),
+                SettingsRow::AddWhatsAppEntry {
+                    list: WhatsAppList::Contacts
+                },
                 cat("whatsapp_groups"),
+                SettingsRow::AddWhatsAppEntry {
+                    list: WhatsAppList::Groups
+                },
                 cat("telemetry"),
             ])
         );
@@ -2291,7 +2469,13 @@ mod tests {
                 SettingsRow::AddProvider,
                 cat("whatsapp_self_chat"),
                 cat("whatsapp_contacts"),
+                SettingsRow::AddWhatsAppEntry {
+                    list: WhatsAppList::Contacts
+                },
                 cat("whatsapp_groups"),
+                SettingsRow::AddWhatsAppEntry {
+                    list: WhatsAppList::Groups
+                },
                 cat("telemetry"),
             ])
         );
@@ -2721,10 +2905,10 @@ mod tests {
         assert!(setup.whatsapp.groups.is_empty());
 
         // The rows render "label: count" at the switch rows' indent.
-        setup.whatsapp.contacts = vec!["5511912345678".into()];
+        setup.whatsapp.contacts = vec![WhatsAppEntry::new("5511912345678")];
         setup.whatsapp.groups = vec![
-            "120363012345678901@g.us".into(),
-            "120363099999999999@g.us".into(),
+            WhatsAppEntry::new("120363012345678901@g.us"),
+            WhatsAppEntry::new("120363099999999999@g.us"),
         ];
         assert_eq!(
             cache_choice_value("whatsapp_contacts", &setup),
@@ -2752,6 +2936,131 @@ mod tests {
         assert!(all.contains("Allowed contacts: 1 allowed"));
         assert!(all.contains("Allowed groups: 2 allowed"));
         assert!(!all.contains("✗ Allowed contacts"));
+    }
+
+    /// Each configured allowlist origin is its own sub-row shaped like an
+    /// MCP server: activation flips its ✔/✗ switch (keeping it saved), the
+    /// 🗑 glyph removes it, and the Add row opens the empty box that appends
+    /// new origins.
+    #[test]
+    fn whatsapp_allowlist_entries_toggle_and_remove() {
+        let mut setup = Setup::default();
+        setup.whatsapp.contacts = vec![WhatsAppEntry::new("5511912345678")];
+        setup.whatsapp.groups = vec![
+            WhatsAppEntry::new("120363012345678901@g.us"),
+            WhatsAppEntry::new("120363099999999999@g.us"),
+        ];
+        let mut view = SettingsView::new();
+        let rows = selectable_rows(&setup);
+        let contact_row = rows
+            .iter()
+            .position(|r| {
+                matches!(
+                    r,
+                    SettingsRow::WhatsAppEntry {
+                        list: WhatsAppList::Contacts,
+                        index: 0
+                    }
+                )
+            })
+            .expect("contact entry row exists");
+        let group_row = rows
+            .iter()
+            .position(|r| {
+                matches!(
+                    r,
+                    SettingsRow::WhatsAppEntry {
+                        list: WhatsAppList::Groups,
+                        index: 1
+                    }
+                )
+            })
+            .expect("group entry row exists");
+
+        // Activation flips the entry's own switch, like an MCP server; the
+        // entry stays saved (disabling and removing are distinct actions).
+        view.selection.selected_index = contact_row;
+        assert_eq!(
+            view.activate_selected(&mut setup),
+            Some(SettingsAction::ToggleSaved)
+        );
+        assert!(!setup.whatsapp.contacts[0].enabled);
+        assert_eq!(setup.whatsapp.contacts.len(), 1);
+        assert_eq!(
+            cache_choice_value("whatsapp_contacts", &setup),
+            Some("0 allowed, 1 disabled".to_string())
+        );
+
+        // The Add row (like the category row) opens the empty box that
+        // appends entries; it never removes anything.
+        let add_row = selectable_rows(&setup)
+            .iter()
+            .position(|r| {
+                matches!(
+                    r,
+                    SettingsRow::AddWhatsAppEntry {
+                        list: WhatsAppList::Contacts
+                    }
+                )
+            })
+            .expect("add-contact row exists");
+        view.selection.selected_index = add_row;
+        assert_eq!(
+            view.activate_selected(&mut setup),
+            Some(SettingsAction::OpenWhatsAppListInput {
+                list: WhatsAppList::Contacts
+            })
+        );
+        assert_eq!(setup.whatsapp.contacts.len(), 1);
+
+        // Removal drops exactly the selected entry and persists via the
+        // caller (never another list).
+        view.selection.selected_index = contact_row;
+        assert!(view.remove_selected_whatsapp_entry(&mut setup));
+        assert!(setup.whatsapp.contacts.is_empty());
+        assert_eq!(setup.whatsapp.groups.len(), 2);
+
+        let group_rows = selectable_rows(&setup);
+        let last_group = group_rows
+            .iter()
+            .position(|r| {
+                matches!(
+                    r,
+                    SettingsRow::WhatsAppEntry {
+                        list: WhatsAppList::Groups,
+                        index: 1
+                    }
+                )
+            })
+            .expect("second group row exists");
+        view.selection.selected_index = last_group;
+        assert!(view.remove_selected_whatsapp_entry(&mut setup));
+        assert_eq!(
+            setup.whatsapp.groups,
+            vec![WhatsAppEntry::new("120363012345678901@g.us")]
+        );
+
+        // The remaining entry renders as an enabled switch row with the
+        // shared 🗑 glyph; the groups count shrinks in the summary.
+        let theme = test_theme();
+        let area = Rect::new(0, 0, 120, 120);
+        let mut buf = Buffer::empty(area);
+        view.render(&mut buf, area, &theme, &setup);
+        let all: String = (area.y..area.bottom())
+            .map(|y| {
+                (area.x..area.right())
+                    .map(|x| {
+                        buf.cell((x, y))
+                            .map(|c| c.symbol().to_string())
+                            .unwrap_or_default()
+                    })
+                    .collect::<String>()
+            })
+            .collect::<String>();
+        assert!(all.contains("120363012345678901@g.us"));
+        assert!(all.contains("✔"));
+        assert!(all.contains("🗑"));
+        assert!(all.contains("Allowed groups: 1 allowed"));
     }
 
     #[test]

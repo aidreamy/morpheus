@@ -29,8 +29,9 @@ impl Access {
     /// `from_me` messages are the account's own; `is_prompt` only lets the
     /// self-chat through, so the toggle alone applies to them. Every other
     /// message must match its chat's allowlist by kind — direct chats
-    /// against `contacts`, groups against `groups`. Chat kinds the policy
-    /// does not model are never allowed.
+    /// against `contacts`, groups against `groups` — and the matching entry
+    /// must be ENABLED (a disabled entry stays saved but denies access).
+    /// Chat kinds the policy does not model are never allowed.
     ///
     /// A direct chat is matched on both of its address forms: WhatsApp now
     /// routes some of them by LID, so a contact the owner wrote as a phone
@@ -55,8 +56,8 @@ impl Access {
         }
         allowed
             .iter()
-            .filter(|entry| !entry.trim().is_empty())
-            .map(|entry| identity(entry))
+            .filter(|entry| entry.enabled && !entry.id.trim().is_empty())
+            .map(|entry| identity(&entry.id))
             .any(|entry| ids.contains(&entry))
     }
 }
@@ -81,6 +82,7 @@ mod tests {
     use chrono::Utc;
 
     use super::*;
+    use crate::setup::WhatsAppEntry;
     use morpheus_whatsapp::{ChatId, MessageContent, Sender};
 
     const OWNER: &str = "5511999999999";
@@ -105,8 +107,8 @@ mod tests {
     fn policy(contacts: &[&str], groups: &[&str]) -> Access {
         Access::new(WhatsAppConfig {
             self_chat: true,
-            contacts: contacts.iter().map(|s| s.to_string()).collect(),
-            groups: groups.iter().map(|s| s.to_string()).collect(),
+            contacts: contacts.iter().map(|s| WhatsAppEntry::new(*s)).collect(),
+            groups: groups.iter().map(|s| WhatsAppEntry::new(*s)).collect(),
         })
     }
 
@@ -174,6 +176,21 @@ mod tests {
         assert!(access.allows(&message("120363012345678901@g.us", false)));
         assert!(!access.allows(&message("120363099999999999@g.us", false)));
         assert!(!access.allows(&message("5511912345678@s.whatsapp.net", false)));
+    }
+
+    /// Disabling keeps the entry in `setup.json` but denies that origin.
+    #[test]
+    fn a_disabled_entry_stays_saved_but_denies_access() {
+        let mut access = policy(&["5511912345678"], &["120363012345678901"]);
+        assert!(access.allows(&message("5511912345678@s.whatsapp.net", false)));
+        assert!(access.allows(&message("120363012345678901@g.us", false)));
+
+        access.policy.contacts[0].enabled = false;
+        access.policy.groups[0].enabled = false;
+        assert!(!access.allows(&message("5511912345678@s.whatsapp.net", false)));
+        assert!(!access.allows(&message("120363012345678901@g.us", false)));
+        assert_eq!(access.policy.contacts.len(), 1);
+        assert_eq!(access.policy.groups.len(), 1);
     }
 
     #[test]

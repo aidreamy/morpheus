@@ -311,24 +311,36 @@ agent. No contact and no group is answered until it is listed here.
 {
   "whatsapp": {
     "self_chat": true,
-    "contacts": ["5511912345678"],
-    "groups": ["120363012345678901@g.us"]
+    "contacts": [{ "id": "5511912345678", "enabled": true }],
+    "groups": [
+      { "id": "120363012345678901@g.us", "enabled": true },
+      { "id": "120363099999999999@g.us", "enabled": false }
+    ]
   }
 }
 ```
 
-The same three knobs are editable from `/settings` → WhatsApp; the list
-inputs take comma-separated entries, and saving an empty box clears that
-list (denying every origin of that kind).
+Each entry is `{ "id": …, "enabled": … }`. An entry with `enabled: false`
+stays in the file but grants nothing — disabling is separate from removing.
+Older files that list bare strings (the pre-toggle shape) still load, with
+every string treated as enabled.
 
-Each `contacts` entry is a phone number in international format or an account
+The same three knobs are editable from `/settings` → WhatsApp. Each list
+shows its configured entries as toggle rows: Enter flips the entry on or
+off, the 🗑 glyph removes it, and the "+ Add" row opens an empty box where
+comma-separated entries are appended as enabled items. The box is cleared
+after each confirmation, so the list is the only view of what is configured
+and a confirm never overwrites it.
+
+Each `contacts` id is a phone number in international format or an account
 id (`@lid` included); the `+`, spaces, punctuation and `@server` suffix are
 ignored, so `+55 (11) 91234-5678` and `5511912345678` are the same contact.
 WhatsApp routes some direct chats by LID instead of phone number; those are
 matched against the phone number WhatsApp reports for the chat, so an entry
 written as a number still authorizes its LID-routed conversation.
-Each `groups` entry is the group id (`120363…@g.us`) or just its digits. An
-empty list denies that origin kind entirely.
+Each `groups` id is the group id (`120363…@g.us`) or just its digits. An
+empty list (or one whose entries are all disabled) denies that origin kind
+entirely.
 
 A message from an origin that is not allowed is logged and never answered:
 the sender gets no reply, and the agent never starts a turn for that chat.

@@ -155,14 +155,11 @@ pub(crate) fn acquire_activation_lock(name: &str) -> ActivationLock {
 /// detaches into its own process group with stdio null: it must survive
 /// the spawning app (that is the point — other instances share it) and
 /// never write to the app's terminal.
-pub(crate) fn spawn_sibling(name: &str) -> Result<(), Lifecycle> {
+pub(crate) fn spawn_sibling(name: &'static str) -> Result<(), Lifecycle> {
     use std::os::unix::process::CommandExt;
     // The real daemon name in both error paths (m4) — "cannot spawn the
     // daemon daemon" was the old hardcoded-report bug.
-    let exe = std::env::current_exe().map_err(|e| Lifecycle::Spawn {
-        name: "decision",
-        source: e,
-    })?;
+    let exe = std::env::current_exe().map_err(|e| Lifecycle::Spawn { name, source: e })?;
     let daemon_exe = exe.with_file_name(format!("morpheus-{name}d"));
     std::process::Command::new(&daemon_exe)
         .stdin(std::process::Stdio::null())
@@ -170,10 +167,7 @@ pub(crate) fn spawn_sibling(name: &str) -> Result<(), Lifecycle> {
         .stderr(std::process::Stdio::null())
         .process_group(0)
         .spawn()
-        .map_err(|e| Lifecycle::Spawn {
-            name: "decision",
-            source: e,
-        })?;
+        .map_err(|e| Lifecycle::Spawn { name, source: e })?;
     Ok(())
 }
 

@@ -17,6 +17,7 @@ impl SessionView {
             auto_scroll_speed_slow: 6.0,
             auto_scroll_speed_medium: 36.0,
             auto_scroll_speed_fast: 72.0,
+            answer_anchors: Vec::new(),
             total_height: 0,
             visible_height: 0,
             actual_total_height: 0,

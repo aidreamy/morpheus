@@ -97,6 +97,10 @@ pub struct SessionView {
     auto_scroll_speed_medium: f64,
     auto_scroll_speed_fast: f64,
 
+    /// Screen rows of every assistant message whose final line is fully
+    /// visible, in message order: the voice controls anchor after the last
+    /// word of each one. Empty when no answer ends inside the viewport.
+    pub answer_anchors: Vec<(usize, Rect)>,
     /// Total content height from last render (used by app.rs for scroll calcs).
     pub total_height: i32,
     /// Visible viewport height from last render.

@@ -103,6 +103,7 @@ pub const COMMAND_INVENTORY: &[(&str, CommandScope)] = &[
     ("themes", CommandScope::Global),
     ("background", CommandScope::Global),
     ("bell", CommandScope::Global),
+    ("voice", CommandScope::Global),
     ("spinner", CommandScope::Global),
     ("new", CommandScope::Global),
     ("rename", CommandScope::Global),
@@ -252,6 +253,10 @@ impl SlashMenu {
             SlashCommand {
                 name: "bell".into(),
                 desc: "Toggle completion bell".into(),
+            },
+            SlashCommand {
+                name: "voice".into(),
+                desc: "Toggle automatic voice generation".into(),
             },
             SlashCommand {
                 name: "spinner".into(),
@@ -709,6 +714,7 @@ mod tests {
         for global in [
             "background",
             "bell",
+            "voice",
             "settings",
             "themes",
             "spinner",

@@ -178,6 +178,14 @@ pub enum ContextItem {
         /// and for every reasoning-less response.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         reasoning: Option<String>,
+        /// Path of the synthesized audio for this closure's text, when the
+        /// user has one. DISPLAY-ONLY like `reasoning`: it never reaches the
+        /// model. Set after the loop ends (generation is asynchronous), and
+        /// persisted with the context so any point of the timeline can be
+        /// replayed, not just the tail. Absent for closures from builds
+        /// without the `speak` feature and for audio-less contexts.
+        #[serde(default, skip_serializing_if = "Option::is_none")]
+        audio: Option<String>,
     },
     /// A derived continuation checkpoint produced by LLM compaction. It is
     /// appended to immutable history and records the exact ranges it covers;
@@ -426,6 +434,66 @@ pub struct LlmCompactionRequest {
 /// manager: rewrites a compaction summary before it is committed (see
 /// `annotate_summary_tool_set` in the harness core).
 type SummaryAnnotator = dyn Fn(&str) -> String + Send + Sync;
+
+impl ContextManagerState {
+    /// Attach the synthesized audio path to closure `id`.
+    ///
+    /// Returns `true` when the closure exists and the path changed. The
+    /// caller persists the context afterwards; this method only mutates the
+    /// in-memory state so the display projection and the JSONL stay in sync.
+    pub fn set_closure_audio(&mut self, id: u64, audio: String) -> bool {
+        for item in self.items.iter_mut().rev() {
+            if let ContextItem::Closure {
+                id: closure_id,
+                audio: slot,
+                ..
+            } = item
+                && *closure_id == id
+            {
+                let changed = slot.as_deref() != Some(audio.as_str());
+                *slot = Some(audio);
+                return changed;
+            }
+        }
+        false
+    }
+
+    /// Every closure that already carries audio, oldest first:
+    /// `(id, content, path)`.
+    ///
+    /// The transcript keeps one message per closure, so this list aligns with
+    /// the assistant messages by content and every stored file stays
+    /// replayable long after its turn ended.
+    #[must_use]
+    pub fn audible_closures(&self) -> Vec<(u64, String, String)> {
+        self.items
+            .iter()
+            .filter_map(|item| match item {
+                ContextItem::Closure {
+                    id,
+                    content,
+                    audio: Some(audio),
+                    ..
+                } if !content.trim().is_empty() => Some((*id, content.clone(), audio.clone())),
+                _ => None,
+            })
+            .collect()
+    }
+
+    /// The last closure that carries text and its audio slot, newest first.
+    ///
+    /// Used to find what to synthesize (the finalized answer) and what was
+    /// already generated for it.
+    #[must_use]
+    pub fn last_closure_audio(&self) -> Option<(u64, String, Option<String>)> {
+        self.items.iter().rev().find_map(|item| match item {
+            ContextItem::Closure {
+                id, content, audio, ..
+            } if !content.trim().is_empty() => Some((*id, content.clone(), audio.clone())),
+            _ => None,
+        })
+    }
+}
 
 /// Orchestrates the single-owner conversation timeline: the useless tool-chain
 /// sweep, the `Closure` promotion of each finished agent loop, and the 80%
@@ -1361,6 +1429,7 @@ impl ContextManager {
             id: draft_id,
             content,
             reasoning: draft_reasoning,
+            audio: None,
         };
         let new_tokens = self.items[last].tokens(self.encoding);
         self.cached_items_tokens = self

@@ -13,8 +13,9 @@
 
 use std::fs;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Child, Command};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::Duration;
 
 use super::config::SpeakError;
 use super::engine::Speech;
@@ -31,6 +32,148 @@ pub(crate) fn play(speech: &Speech) -> Result<(), SpeakError> {
     let result = play_file(&path);
     let _ = fs::remove_file(&path);
     result
+}
+
+/// A live playback process the caller can pause, resume and restart.
+///
+/// The player binaries are external commands (see the module docs), so the
+/// only portable pause primitive is a job-control signal: `SIGSTOP` freezes
+/// the process and with it the audio device feed, `SIGCONT` resumes it. On
+/// platforms without that signal (Windows) the controls report failure and
+/// the caller falls back to stop/start.
+///
+/// The WAV is opened by the player at spawn, so the caller is free to remove
+/// or replace the file afterwards.
+pub struct Playback {
+    child: Child,
+    paused: bool,
+}
+
+impl Playback {
+    /// Start playing `path`, trying each available system player until one
+    /// stays alive. The failed candidates are reaped before the next one is
+    /// tried.
+    pub fn start(path: &Path) -> Result<Self, SpeakError> {
+        let mut tried = Vec::new();
+        for mut command in commands(path) {
+            let name = command.get_program().to_string_lossy().into_owned();
+            match command.spawn() {
+                Ok(mut child) => {
+                    // A player that immediately exits (no sound server, closed
+                    // device) is not "playing": try the next candidate.
+                    std::thread::sleep(Duration::from_millis(120));
+                    match child.try_wait() {
+                        Ok(Some(status)) if !status.success() => {
+                            tried.push(format!("{name}: {status}"));
+                        }
+                        Ok(Some(_)) | Ok(None) => {
+                            return Ok(Self {
+                                child,
+                                paused: false,
+                            });
+                        }
+                        Err(error) => tried.push(format!("{name}: {error}")),
+                    }
+                }
+                Err(error) => tried.push(format!("{name}: {error}")),
+            }
+        }
+        Err(SpeakError::NoPlayer(tried.join(", ")))
+    }
+
+    /// Whether this playback is currently paused.
+    #[must_use]
+    pub const fn is_paused(&self) -> bool {
+        self.paused
+    }
+
+    /// Pause the audio. Returns `false` when the process is already gone or
+    /// the platform has no pause primitive.
+    pub fn pause(&mut self) -> bool {
+        if self.paused || self.is_finished() {
+            return false;
+        }
+        if signal(&self.child, STOP_SIGNAL) {
+            self.paused = true;
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Resume a paused playback.
+    pub fn resume(&mut self) -> bool {
+        if !self.paused {
+            return false;
+        }
+        if signal(&self.child, CONT_SIGNAL) {
+            self.paused = false;
+            true
+        } else {
+            false
+        }
+    }
+
+    /// Stop playback now (best effort; the reap happens in [`Self::is_finished`]
+    /// or on drop).
+    pub fn stop(&mut self) {
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+        self.paused = false;
+    }
+
+    /// Whether the player process has exited. Reaps the child when it has.
+    pub fn is_finished(&mut self) -> bool {
+        match self.child.try_wait() {
+            Ok(Some(_)) | Err(_) => true,
+            Ok(None) => false,
+        }
+    }
+}
+
+impl Playback {
+    /// A player that stays alive until dropped, for tests that only inspect
+    /// the playback state and never touch a sound device.
+    #[doc(hidden)]
+    pub fn idle_for_test() -> Self {
+        let child = Command::new("sleep")
+            .arg("30")
+            .spawn()
+            .expect("spawn sleep");
+        Self {
+            child,
+            paused: false,
+        }
+    }
+}
+
+impl Drop for Playback {
+    fn drop(&mut self) {
+        // A playback dropped while still running must not outlive the screen
+        // that owns it. Killing a finished child is harmless.
+        let _ = self.child.kill();
+        let _ = self.child.wait();
+    }
+}
+
+#[cfg(unix)]
+const STOP_SIGNAL: i32 = libc::SIGSTOP;
+#[cfg(unix)]
+const CONT_SIGNAL: i32 = libc::SIGCONT;
+#[cfg(not(unix))]
+const STOP_SIGNAL: i32 = 0;
+#[cfg(not(unix))]
+const CONT_SIGNAL: i32 = 0;
+
+#[cfg(unix)]
+fn signal(child: &Child, sig: i32) -> bool {
+    // `kill(2)` on the child pid: the process may already have exited.
+    unsafe { libc::kill(child.id() as libc::pid_t, sig) == 0 }
+}
+
+#[cfg(not(unix))]
+fn signal(_child: &Child, _signal: i32) -> bool {
+    false
 }
 
 fn temp_path() -> PathBuf {

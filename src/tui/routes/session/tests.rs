@@ -190,6 +190,48 @@ fn user_message_actions_only_hit_inside_the_rendered_box() {
 }
 
 #[test]
+fn answer_anchor_ends_on_the_final_answer_row() {
+    let msg = Message {
+        id: "msg-anchor".into(),
+        role: MessageRole::Assistant,
+        parts: vec![Part::Text(TextPart {
+            text: "the final answer".into(),
+            synthetic: false,
+        })],
+        created_at: 0,
+        agent: None,
+        model: None,
+    };
+    let state = test_state(msg);
+    let theme = test_theme();
+    let config = test_config();
+    let area = Rect::new(0, 0, 60, 12);
+    let mut view = SessionView::new();
+    let mut buf = Buffer::empty(area);
+    view.render(&mut buf, area, &state, &theme, &config, 0.016);
+
+    let (slot, anchor) = *view.answer_anchors.last().expect("answer anchor");
+    assert_eq!(slot, 0);
+    let final_row = anchor.y + anchor.height - 1;
+
+    let mut seen = false;
+    for y in anchor.y..anchor.y + anchor.height {
+        let mut line = String::new();
+        for x in anchor.x..anchor.right() {
+            line.push_str(buf.cell((x, y)).map_or(" ", |cell| cell.symbol()));
+        }
+        if line.contains("answer") {
+            assert_eq!(
+                y, final_row,
+                "anchor must end on the last answer row: {line:?}"
+            );
+            seen = true;
+        }
+    }
+    assert!(seen, "answer text is not inside the anchor: {anchor:?}");
+}
+
+#[test]
 fn test_render_large_message() {
     let msg = build_streaming_message(5000);
     let state = test_state(msg);

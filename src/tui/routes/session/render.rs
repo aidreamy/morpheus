@@ -15,6 +15,7 @@ impl SessionView {
         config: &TuiConfig,
         delta_time: f64,
     ) -> i32 {
+        self.answer_anchors.clear();
         let Some(session) = state.current_session() else {
             return 0;
         };
@@ -857,6 +858,37 @@ impl SessionView {
         self.actual_total_height = actual_total;
         self.total_height = self.cached_total_height;
         self.last_content_height = self.cached_total_height;
+
+        // Screen rows of every answer whose final line is visible: the voice
+        // controls anchor after the last word of each one, so older audios
+        // stay replayable after new turns land. A message ending below the
+        // viewport is skipped (its final word is off-screen) and the walk
+        // stops where the render walk above stopped.
+        for idx in first_vis..session.messages.len() {
+            let message = &session.messages[idx];
+            let top = i32::from(inner_area.y) - self.scroll_y + self.prefix_y[idx];
+            if top >= vp_bottom {
+                break;
+            }
+            if !matches!(message.role, MessageRole::Assistant) {
+                continue;
+            }
+            let bottom = top.saturating_add(self.msg_height_cache[idx]);
+            let visible_top = top.max(vp_top);
+            if bottom <= visible_top || bottom > vp_bottom {
+                continue;
+            }
+            #[allow(clippy::cast_possible_truncation)]
+            self.answer_anchors.push((
+                idx,
+                Rect::new(
+                    inner_area.x,
+                    visible_top as u16,
+                    inner_area.width,
+                    (bottom - visible_top) as u16,
+                ),
+            ));
+        }
 
         // ── Hover highlight for user messages (opencode-style) ────────────────
         self.render_hover_highlight(buf, inner_area, session, theme);

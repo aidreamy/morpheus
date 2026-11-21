@@ -18,6 +18,8 @@
 //!                  correlation, reconnect); protocol types stay per-daemon
 //!   decision/      the decision-model daemon (`morpheus-decisiond`): protocol,
 //!                  server, resident model registry, and the `Checkup` client
+//!   tts/           the voice daemon (`morpheus-ttsd`): protocol, server,
+//!                  resident TTS model, and the synthesis client
 //! ```
 //!
 //! ## How to add a new daemon
@@ -36,13 +38,12 @@
 //! second workspace crate ever needs a daemon, `ipc.rs`/`activation.rs`/
 //! `client.rs` are the exact boundary to lift into a `morpheus-ipc` crate.
 //!
-//! Everything here is gated on `onnx` like the runtime it serves: today the
-//! only daemon consumes the ONNX decision engine, so a build without the
-//! feature compiles none of this (no dead code, no warnings — the module
-//! tree IS the feature boundary). When a second daemon needs a different
-//! gate, the shared layer moves to its own feature and only `decision/`
-//! stays behind `onnx`.
-#![cfg(feature = "onnx")]
+//! The shared layer is gated on the features of the daemons it carries: it
+//! compiles when either the decision engine (`onnx`) or the voice engine
+//! (`speak`) is enabled, and each daemon subdirectory keeps its own gate. A
+//! build with neither feature compiles none of this (no dead code, no
+//! warnings — the module tree IS the feature boundary).
+#![cfg(any(feature = "onnx", all(feature = "speak", unix)))]
 
 pub(crate) mod activation;
 pub(crate) mod client;
@@ -51,4 +52,9 @@ pub(crate) mod ipc_error;
 
 /// The decision daemon (see the module docs above for the layout and the
 /// "how to add one" contract).
+#[cfg(feature = "onnx")]
 pub mod decision;
+
+/// The voice daemon. Unix-only: the transport is a Unix domain socket.
+#[cfg(all(feature = "speak", unix))]
+pub mod tts;

@@ -453,6 +453,10 @@ pub struct App {
     pub(crate) cleared_stream_msg: Option<(String, String)>,
     terminal_focused: bool,
     pub(crate) agent_spinner: Option<AgentSpinner>,
+    /// Voice controls at the end of the chat: generation state, the player
+    /// handle and the equalizer driven by the real bass of the speech. See
+    /// [`crate::speech`] for the layout contract.
+    pub(crate) speech: crate::speech::SpeechState,
     /// What the running agent loop is doing right now (drives the spinner
     /// label). Set at loop start, narrowed by the event intake as harness
     /// events arrive, and re-derived at the NEXT loop start (loop end only
@@ -695,6 +699,9 @@ impl App {
 
         let theme_registry = ThemeRegistry::new();
         let setup = morpheus::setup::Setup::load();
+        // Captured before `setup` moves into the App: voice auto-generation is
+        // enabled by config, and the state seeds its toggle from it.
+        let voice_enabled = setup.voice.enabled;
 
         // Publish the user-registered ACP harnesses into the sub-agent
         // registry BEFORE any harness (or its tool description) is built:
@@ -966,6 +973,7 @@ impl App {
             stop_signal: Arc::new(AtomicBool::new(false)),
             terminal_focused: true,
             agent_spinner: None,
+            speech: crate::speech::SpeechState::new(voice_enabled),
             agent_activity: crate::types::AgentActivity::Working,
             context_info: None,
             left_panel: Mode::default(),
@@ -1145,6 +1153,13 @@ impl App {
             // (no input -> no ticks). Ticking on the measured delta keeps
             // the lifetime exact at any frame rate.
             self.toast_state.tick(delta.as_millis() as u64);
+
+            // Voice playback: reap a finished player / receive a finished
+            // synthesis and, on success, link the WAV into the session's
+            // closure so it can be replayed from any later point.
+            if let Some(finished) = self.speech.tick() {
+                self.on_speech_finished(finished);
+            }
 
             // The /agents queue service: queued `agents_call` requests whose
             // pane freed (or idled all along) dispatch here — the frame tick
@@ -1664,6 +1679,95 @@ impl App {
         };
     }
 
+    /// Whether the voice controls belong on the transcript right now.
+    ///
+    /// Only an idle session shows them: while the agent works the last answer
+    /// is not final yet. Dialogs cover the transcript, and the /agents split
+    /// replaces it, so neither paints controls. The renderer and the mouse
+    /// hit-test read this same predicate.
+    pub(crate) fn speech_controls_visible(&self) -> bool {
+        self.speech.is_visible()
+            && self.state.status != SessionStatus::Working
+            && self.agents_split.is_none()
+            && !self
+                .parked_agents_split
+                .as_ref()
+                .is_some_and(crate::routes::session::agents_split::AgentsSplitState::any_running)
+            && !self.question_dialog.visible
+            && !self.permission_dialog.visible
+            && !self.queue_choice_dialog.visible
+            && !self.free_gateway_dialog.visible
+    }
+
+    /// Point the voice controls at the current session's answers.
+    ///
+    /// Every closure's persisted `audio` link is read from the stored
+    /// context, so reopening a session after a restart still shows the
+    /// controls (and can replay any of the files) without regenerating them.
+    pub(crate) fn refresh_speech_targets(&mut self) {
+        let Some(session_id) = self.state.current_session_id.clone() else {
+            self.speech.clear_targets();
+            return;
+        };
+        let context = self.session_store.load_context(&session_id);
+        let targets = self
+            .state
+            .current_session()
+            .map(|session| speech_targets(&session.messages, context.as_ref()))
+            .unwrap_or_default();
+        self.speech.set_targets(&session_id, targets);
+    }
+
+    /// Start (or replay) the tail's audio on demand. The Speak button and
+    /// Ctrl+Y both land here.
+    pub(crate) fn speak_tail(&mut self) {
+        self.speech.speak_tail(&self.session_store);
+    }
+
+    /// `/voice`: toggle background generation and persist the choice.
+    pub(crate) fn toggle_voice_auto(&mut self) {
+        let enabled = !self.speech.enabled();
+        self.speech.set_enabled(enabled);
+        self.setup.voice.enabled = enabled;
+        self.setup.save();
+        self.toast_state.show(crate::ui::toast::ToastOptions {
+            title: Some("Voice".into()),
+            message: if enabled {
+                "Automatic generation enabled — every final answer gets audio.".into()
+            } else {
+                "Automatic generation disabled — use the Speak button.".into()
+            },
+            variant: crate::ui::toast::ToastVariant::Info,
+            duration_ms: 4000,
+        });
+    }
+
+    /// A synthesis finished: persist the WAV link into the closure (so any
+    /// part of the timeline can be replayed later) and surface failures.
+    fn on_speech_finished(&mut self, finished: crate::speech::SpeechFinished) {
+        if let Some(error) = finished.error.as_deref() {
+            self.toast_state.show(crate::ui::toast::ToastOptions {
+                title: Some("Voice".into()),
+                message: error.to_owned(),
+                variant: crate::ui::toast::ToastVariant::Warning,
+                duration_ms: 6000,
+            });
+        }
+        let (Some(wav), Some(closure_id)) = (finished.wav, finished.closure_id) else {
+            return;
+        };
+        let Some(mut context) = self.session_store.load_context(&finished.session_id) else {
+            return;
+        };
+        if !context.set_closure_audio(closure_id, wav.to_string_lossy().into_owned()) {
+            return;
+        }
+        if let Some(session) = self.state.session_cache.get_mut(&finished.session_id) {
+            self.session_store
+                .save_session_async_with_context(session, context);
+        }
+    }
+
     /// The session transcript viewport (shared by render and the mouse
     /// dispatch): the main area minus header, prompt, spinner and question
     /// rows. Used for click hit-testing AND hover tracking so both map
@@ -1992,6 +2096,83 @@ impl App {
     fn terminal_height(&self) -> u16 {
         self.terminal_size().height
     }
+}
+
+/// The visible final text of an assistant message: the last real (non
+/// synthetic) text part, which is the answer its closure carries.
+fn final_answer_text(message: &crate::types::Message) -> Option<String> {
+    if message.role != crate::types::MessageRole::Assistant {
+        return None;
+    }
+    message.parts.iter().rev().find_map(|part| match part {
+        crate::types::Part::Text(text) if !text.synthetic && !text.text.trim().is_empty() => {
+            Some(text.text.clone())
+        }
+        _ => None,
+    })
+}
+
+/// The answers of `messages` the voice controls attach to: every closure whose
+/// audio was persisted, plus the tail (which can be generated on demand).
+///
+/// Closures and assistant messages are matched by their final text: the
+/// context keeps the audio link, the transcript keeps the display rows. A
+/// closure is paired at most once, so a repeated answer still gets its own
+/// controls.
+fn speech_targets(
+    messages: &[crate::types::Message],
+    context: Option<&morpheus::harness::ContextManagerState>,
+) -> Vec<crate::speech::VoiceTarget> {
+    let mut closures = context
+        .map(morpheus::harness::ContextManagerState::audible_closures)
+        .unwrap_or_default();
+    let mut targets = Vec::new();
+    for (slot, message) in messages.iter().enumerate() {
+        let Some(text) = final_answer_text(message) else {
+            continue;
+        };
+        let Some(index) = closures
+            .iter()
+            .position(|(_, content, _)| content.trim() == text.trim())
+        else {
+            continue;
+        };
+        let (id, _, audio) = closures.remove(index);
+        targets.push(crate::speech::VoiceTarget {
+            slot,
+            closure_id: Some(id),
+            text,
+            audio: Some(std::path::PathBuf::from(audio)),
+        });
+    }
+
+    // The tail keeps its controls even before any audio exists, so the user
+    // can ask for it on demand and watch the generation spinner there.
+    let tail = messages
+        .iter()
+        .enumerate()
+        .rev()
+        .find_map(|(slot, message)| final_answer_text(message).map(|text| (slot, text)));
+    if let Some((slot, text)) = tail
+        && !targets.iter().any(|target| target.slot == slot)
+    {
+        let closure = context
+            .and_then(morpheus::harness::ContextManagerState::last_closure_audio)
+            .filter(|(_, content, _)| content.trim() == text.trim());
+        let (closure_id, audio) = match closure {
+            Some((id, _, audio)) => (Some(id), audio),
+            None => (None, None),
+        };
+        targets.push(crate::speech::VoiceTarget {
+            slot,
+            closure_id,
+            text,
+            audio: audio.map(std::path::PathBuf::from),
+        });
+    }
+
+    targets.sort_by_key(|target| target.slot);
+    targets
 }
 
 // Embedding helpers (feature-gated)

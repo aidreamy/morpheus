@@ -109,6 +109,10 @@ impl App {
                 .agents_split
                 .as_ref()
                 .is_some_and(|split| split.pill_animating());
+        // A speaking voice drives the equalizer every frame (and a pending
+        // synthesis must be polled); without this the bars would freeze
+        // between unrelated input events.
+        live = live || self.speech.is_animating();
         self.live_requested = live;
         let area = frame.area();
 
@@ -831,6 +835,15 @@ impl App {
                             delta_time,
                         );
                     }
+                    // Voice controls ride each answer's final line: their
+                    // anchors come from the transcript layout this frame, so
+                    // no row is reserved and nothing below ever moves.
+                    let anchors: &[(usize, Rect)] = if self.speech_controls_visible() {
+                        &self.session_view.answer_anchors
+                    } else {
+                        &[]
+                    };
+                    self.speech.render_inline(buf, anchors, &self.theme);
                     // Question/permission/queue-choice/recommendation dialogs
                     // rendered inline between messages and prompt (mutually exclusive).
                     if self.question_dialog.visible {

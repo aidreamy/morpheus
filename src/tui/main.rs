@@ -13,6 +13,7 @@ mod left_panel;
 mod logo;
 mod lsp_colors;
 mod routes;
+mod speech;
 mod state;
 mod theme;
 mod transcript_export;

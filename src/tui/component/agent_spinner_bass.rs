@@ -298,6 +298,11 @@ pub struct AgentSpinnerBass {
     label_color: RGBA,
     /// Number of characters in the label.
     label_width: usize,
+    /// Real bass levels supplied by the caller (one per bar, normalized).
+    /// When present the random waves, kick and holds are bypassed entirely:
+    /// the equalizer follows the voice it is speaking instead of inventing a
+    /// rhythm. `None` restores the decorative animation.
+    bass_levels: Option<Vec<f32>>,
 }
 
 impl AgentSpinnerBass {
@@ -335,7 +340,23 @@ impl AgentSpinnerBass {
             label: label.to_string(),
             label_color,
             label_width,
+            bass_levels: None,
         }
+    }
+
+    /// Drive the bars from real audio levels (one per bar, `0.0..=1.0`).
+    ///
+    /// While this is set the component no longer runs its random wave/kick/
+    /// hold animation — every bar's height is exactly the level read from the
+    /// voice. `None` hands control back to the decorative animation.
+    pub fn set_bass_levels(&mut self, levels: Option<Vec<f32>>) {
+        self.bass_levels = levels;
+    }
+
+    /// Whether the bars are currently following real audio.
+    #[must_use]
+    pub const fn is_driven_by_audio(&self) -> bool {
+        self.bass_levels.is_some()
     }
 
     /// Advance the animation by one frame. Call once per rendered frame.
@@ -615,6 +636,11 @@ impl AgentSpinnerBass {
     /// updraft on top: snappy, unpredictable surges upward (also scaled by
     /// height) so upward moves never settle into a fixed rhythm.
     fn bar_height(&self, col: usize, frame: u32) -> f32 {
+        // Real audio wins over every decorative layer: the voice's own low end
+        // is the rhythm, so the bars are exactly as tall as it is loud.
+        if let Some(levels) = &self.bass_levels {
+            return levels.get(col).copied().unwrap_or(0.0).clamp(0.0, 1.0);
+        }
         if let Some(hold_round) = self.hold_start_round(col, frame) {
             #[allow(clippy::cast_precision_loss)]
             let pin = HOLD_FLOOR_HEIGHT
@@ -769,6 +795,33 @@ impl AgentSpinnerBass {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn bass_levels_drive_the_bars_and_disable_the_random_animation() {
+        let registry = crate::theme::ThemeRegistry::new();
+        let theme = registry.get("opencode").cloned().unwrap();
+        let mut spinner = AgentSpinnerBass::new("speaking", &theme);
+        assert!(!spinner.is_driven_by_audio());
+
+        let mut levels = vec![0.0; NUM_BARS];
+        levels[0] = 1.0;
+        levels[1] = 0.5;
+        spinner.set_bass_levels(Some(levels));
+        assert!(spinner.is_driven_by_audio());
+        for _ in 0..120 {
+            spinner.advance();
+        }
+        let frame = spinner.frames_elapsed;
+        assert_eq!(
+            spinner.bar_char(0, frame),
+            BLOCK_CHARS[BLOCK_CHARS.len() - 1]
+        );
+        assert_eq!(spinner.bar_char(2, frame), BLOCK_CHARS[0]);
+
+        // Clearing hands control back to the decorative animation.
+        spinner.set_bass_levels(None);
+        assert!(!spinner.is_driven_by_audio());
+    }
 
     #[test]
     fn set_activity_swaps_label_without_disturbing_the_animation() {

@@ -182,6 +182,15 @@ impl SessionStore {
         &self.sessions_dir
     }
 
+    /// Directory holding the session's generated audio, next to its JSONL
+    /// (`session-<id>.audio/`). Returns the path even when it does not exist
+    /// yet; the caller creates it before writing.
+    #[must_use]
+    pub fn audio_dir(&self, session_id: &str) -> std::path::PathBuf {
+        self.sessions_dir
+            .join(format!("session-{session_id}.audio"))
+    }
+
     /// Test-only store rooted at an explicit directory (lets integration
     /// tests drive the real load path against fixture session files).
     /// Bin tests consume it too, so it is compiled unconditionally now that
@@ -1770,6 +1779,13 @@ mod tests {
     use super::*;
     use crate::harness::context::{ContextItem, SplitState};
     use crate::types::{Message, Part, ReasoningPart, TextPart, ToolPart, ToolStatus};
+
+    #[test]
+    fn audio_dir_sits_next_to_the_session_jsonl() {
+        let dir = tempfile::tempdir().unwrap();
+        let store = SessionStore::with_dir(dir.path().to_path_buf(), "hash".into());
+        assert_eq!(store.audio_dir("abc"), dir.path().join("session-abc.audio"));
+    }
 
     #[test]
     fn versioned_view_survives_display_only_mapping_loss_and_restores_hidden() {
@@ -3642,6 +3658,7 @@ mod tests {
             id: 2,
             content: "draft".into(),
             reasoning: None,
+            audio: None,
         };
         changed.next_id = 9;
         changed.max_tokens = 64_000;

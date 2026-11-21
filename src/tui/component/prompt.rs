@@ -559,6 +559,13 @@ impl PromptView {
         outcome
     }
 
+    /// Whether Ctrl+Y has a redo step to apply. The key handler uses this to
+    /// yield Ctrl+Y to the voice replay when the edit history is at its end.
+    #[must_use]
+    pub fn can_redo(&self) -> bool {
+        self.history.can_redo()
+    }
+
     /// Ctrl+Y: step forward again and apply the restored snapshot.
     pub fn redo(&mut self) -> RedoOutcome {
         let outcome = self.history.redo();

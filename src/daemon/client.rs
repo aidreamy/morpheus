@@ -63,6 +63,7 @@ impl DaemonClient {
     /// The JSON-RPC error object of a failed call, for consumers that map
     /// remote error codes to their own policies (e.g. `-32003` busy → one
     /// retry).
+    #[cfg_attr(not(feature = "onnx"), allow(dead_code))]
     pub(crate) fn remote_error(e: &Ipc) -> Option<&super::ipc::RpcError> {
         match e {
             Ipc::Remote(error) => Some(error),

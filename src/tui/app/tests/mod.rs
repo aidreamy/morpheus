@@ -76,5 +76,6 @@ mod render;
 mod restart_toast;
 mod router_mouse;
 mod sessions_mouse;
+mod speech_targets;
 #[cfg(target_os = "linux")] // subprocess isolation uses XDG data/config roots
 mod telemetry;

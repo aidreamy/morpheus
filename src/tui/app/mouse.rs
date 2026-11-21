@@ -79,6 +79,20 @@ impl App {
             || self.queue_choice_dialog.visible
             || self.free_gateway_dialog.visible;
 
+        // Voice controls are painted after each answer's final word. Their
+        // rectangles come from the last rendered frame, so a click always
+        // lands on the label the user saw; they are checked before the
+        // transcript so a click on them never starts a selection.
+        if !dialog_box_open
+            && event_type == MouseEventType::Down
+            && button == MouseButton::Left
+            && self.speech_controls_visible()
+            && let Some((button, slot)) = self.speech.button_at(x, y)
+        {
+            self.speech.activate(button, slot, &self.session_store);
+            return Ok(true);
+        }
+
         // The /agents picker is a top-most modal: it owns clicks over its
         // centered box (toggle the row, wheel to navigate) before the split
         // panes, the slash menu or the transcript can react — but never

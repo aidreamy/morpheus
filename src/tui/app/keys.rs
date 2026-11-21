@@ -2190,7 +2190,17 @@ impl App {
                                         return Ok(false);
                                     }
                                     if ch == 'y' {
-                                        self.prompt_redo();
+                                        // Ctrl+Y already means "redo prompt
+                                        // edit". Redo keeps precedence while
+                                        // it has something to restore; at the
+                                        // end of the edit history the same
+                                        // key replays the tail's audio.
+                                        if !self.prompt_view.can_redo() && self.speech.is_visible()
+                                        {
+                                            self.speak_tail();
+                                        } else {
+                                            self.prompt_redo();
+                                        }
                                         return Ok(false);
                                     }
                                 }

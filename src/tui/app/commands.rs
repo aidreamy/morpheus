@@ -1039,6 +1039,9 @@ impl App {
         self.rehydrate_right_panel();
         self.session_view.hovered_msg_idx = None;
         self.title_generated = true;
+        // The voice controls follow the visible session: its last answer and
+        // the audio link persisted with its closure.
+        self.refresh_speech_targets();
         // The OLD session's split slots stop and clear here: running pane
         // turns are session-bound (their stop signals were armed for the
         // old session's fan-out), so switching away must not leave them
@@ -1194,6 +1197,9 @@ impl App {
         self.persist_and_release_current_session();
         self.state.add_empty_session(id.clone(), title, now_ms);
         self.state.current_session_id = Some(id);
+        // A fresh session has no answer to speak; the previous session's
+        // player must not keep running into the new screen.
+        self.speech.clear_targets();
         // A fresh session NEVER inherits the previous one's /agents split:
         // its persisted pane set is `None`, so the mode closes here (the
         // persist call is a no-op — the fresh session already records None).
@@ -1401,6 +1407,8 @@ impl App {
             self.open_undo_dialog();
         } else if cmd.name == "background" {
             self.toggle_transparent_background();
+        } else if cmd.name == "voice" {
+            self.toggle_voice_auto();
         } else if cmd.name == "bell" {
             self.bell_enabled = !self.bell_enabled;
             use crate::ui::toast::{ToastOptions, ToastVariant};

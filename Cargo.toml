@@ -105,6 +105,13 @@ name = "morpheus-decisiond"
 path = "src/daemon/decision/main.rs"
 required-features = ["onnx"]
 
+# The voice daemon exists only when a TTS backend does; the binary is never
+# built in a default build.
+[[bin]]
+name = "morpheus-ttsd"
+path = "src/daemon/tts/main.rs"
+required-features = ["speak"]
+
 # ---
 [dependencies]
 serde_json = "1.0"

@@ -27,6 +27,7 @@ use super::ipc_error::Ipc;
 
 /// Hard ceiling on one request/response round trip, enforced with socket
 /// timeouts on the client side (`ClientConnection::new`).
+#[cfg_attr(not(feature = "onnx"), allow(dead_code))]
 pub(crate) const CALL_TIMEOUT: Duration = Duration::from_secs(30);
 
 /// Maximum frame payload. Real payloads are kilobytes; the cap exists so a

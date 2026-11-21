@@ -288,6 +288,13 @@ impl EditHistory {
         }
     }
 
+    /// Whether [`Self::redo`] would restore a state (used to let Ctrl+Y fall
+    /// through to another action when there is nothing to redo).
+    #[must_use]
+    pub fn can_redo(&self) -> bool {
+        !self.redo_stack.is_empty()
+    }
+
     /// `Ctrl+Y`: step forward again, restoring the most recently undone
     /// state. Reports [`RedoOutcome::Correction`] when that state is a
     /// correction result.

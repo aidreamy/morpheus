@@ -1646,11 +1646,72 @@ fn reasoning_less_items_serialize_without_the_reasoning_key() {
         id: 8,
         content: "done".into(),
         reasoning: Some("thought it through".into()),
+        audio: None,
     };
     let json = serde_json::to_string(&with).unwrap();
     assert!(
         json.contains("reasoning"),
         "a reasoning-carrying Closure must serialize the key: {json}"
+    );
+}
+
+#[test]
+fn closure_audio_link_roundtrips_and_is_omitted_when_absent() {
+    let mut manager = cm(10_000);
+    manager.add_user("prompt");
+    manager.add_assistant("the answer", true);
+    manager.close_loop();
+    let mut state = manager.save_state();
+
+    let (id, text, audio) = state.last_closure_audio().expect("closed closure");
+    assert_eq!(text, "the answer");
+    assert!(audio.is_none());
+    // Absent audio must not add a key to the append-only JSONL.
+    let json = serde_json::to_string(&state).unwrap();
+    assert!(!json.contains("\"audio\""), "{json}");
+
+    assert!(state.set_closure_audio(id, "/tmp/closure-1.wav".into()));
+    assert_eq!(
+        state.last_closure_audio().unwrap().2.as_deref(),
+        Some("/tmp/closure-1.wav")
+    );
+    // Setting the same path again is not a change (no redundant save).
+    assert!(!state.set_closure_audio(id, "/tmp/closure-1.wav".into()));
+
+    let json = serde_json::to_string(&state).unwrap();
+    let restored: ContextManagerState = serde_json::from_str(&json).unwrap();
+    assert_eq!(
+        restored.last_closure_audio().unwrap().2.as_deref(),
+        Some("/tmp/closure-1.wav")
+    );
+}
+
+#[test]
+fn audible_closures_list_every_stored_file_oldest_first() {
+    let mut manager = cm(10_000);
+    manager.add_user("first");
+    manager.add_assistant("first answer", true);
+    manager.close_loop();
+    let mut state = manager.save_state();
+    assert!(state.audible_closures().is_empty());
+    let (first, _, _) = state.last_closure_audio().expect("first closure");
+    assert!(state.set_closure_audio(first, "/tmp/first.wav".into()));
+    manager.restore_state(&state);
+
+    manager.add_user("second");
+    manager.add_assistant("second answer", true);
+    manager.close_loop();
+    let mut state = manager.save_state();
+    let (second, _, _) = state.last_closure_audio().expect("second closure");
+    assert!(state.set_closure_audio(second, "/tmp/second.wav".into()));
+
+    let audible = state.audible_closures();
+    assert_eq!(
+        audible,
+        vec![
+            (first, "first answer".into(), "/tmp/first.wav".into()),
+            (second, "second answer".into(), "/tmp/second.wav".into()),
+        ]
     );
 }
 

@@ -86,6 +86,7 @@
 //! event loop.
 
 mod backend;
+mod bass;
 mod config;
 mod engine;
 #[cfg(feature = "speak-phonemize")]
@@ -96,6 +97,8 @@ mod voice;
 pub use backend::{
     Backend, DEFAULT_MODEL_DIR_NAME, KokoroConfig, MODEL_DIR_ENV, default_model_dir,
 };
+pub use bass::{BassEnvelope, bass_envelope};
 pub use config::{Phonemizer, SpeakConfig, SpeakError};
 pub use engine::{Speak, Speech};
+pub use player::Playback;
 pub use voice::{Voice, find as find_voice};

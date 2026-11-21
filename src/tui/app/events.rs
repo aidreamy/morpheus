@@ -6,7 +6,7 @@ use morpheus_tui::core::lib::rgba::RGBA;
 use ratatui::style::Color;
 
 use super::agents_dispatch::{either_split, either_split_mut};
-use super::{App, AppMode};
+use super::{App, AppMode, speech_targets};
 use crate::component::spinner_highlight::HighlightSpinner;
 use crate::notification;
 use crate::routes::session::delete::terminated_loop_save_target;
@@ -1800,8 +1800,24 @@ impl App {
                         && let Some(session) = self.state.session_cache.get_mut(&id)
                         && is_valid_session(session)
                     {
+                        // Capture the answers the voice controls point at
+                        // before `context` is moved into the save: every
+                        // closure that already carries audio keeps its
+                        // controls, and the new tail gets its own.
+                        let speech_targets = speech_targets(&session.messages, Some(&context));
                         self.session_store
                             .save_session_async_with_context(session, context);
+
+                        // Voice follows the finalized answer: show the
+                        // controls always, generate in the background only
+                        // when the user enabled it. Generation never starts
+                        // playback — the audio waits for Speak / Ctrl+Y.
+                        self.speech.set_targets(&id, speech_targets);
+                        if self.speech.enabled() {
+                            // Disjoint fields: `session` borrows
+                            // `state.session_cache`, not the voice/store.
+                            self.speech.generate_tail(&self.session_store);
+                        }
 
                         // Trigger async title generation for the first response.
                         // The session title starts as a timestamp; the LLM produces

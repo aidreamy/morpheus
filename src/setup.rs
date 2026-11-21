@@ -36,6 +36,12 @@ pub struct Setup {
     /// the owner's own self-chat only; contacts and groups must be listed
     /// explicitly.
     pub whatsapp: WhatsAppConfig,
+    /// Voice output configuration (`setup.json` → `voice`). Only meaningful
+    /// when the binary was built with the `speak` cargo feature; the section
+    /// keeps the user's choices either way so a build without the feature
+    /// never rewrites them.
+    #[serde(rename = "voice")]
+    pub voice: VoiceConfig,
     /// Decision-model configuration (Settings screen; `setup.json` →
     /// `model_decision`). The section names what it configures — the
     /// resident decision model and its audited decisions — explicitly, for
@@ -106,6 +112,7 @@ impl Default for Setup {
             cache: Cache::default(),
             skills: SkillsConfig::default(),
             whatsapp: WhatsAppConfig::default(),
+            voice: VoiceConfig::default(),
             decision: DecisionConfig::default(),
             lsp: true,
             mcp: McpConfig::default(),
@@ -121,6 +128,65 @@ impl Default for Setup {
 }
 
 // Categories
+
+/// Voice output preferences (`setup.json` → `voice`).
+///
+/// Two independent decisions live here:
+///
+/// - **when** audio is generated: `enabled` defaults to `true` (the user
+///   builds with the `speak` feature to hear answers, so generation is on by
+///   default) and generates the final answer of every turn in the background
+///   as soon as it is complete; `false` only generates it on demand (the Speak
+///   button / Ctrl+Y);
+/// - **how** it sounds: speaker id, speed, language and an optional model
+///   directory.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+#[serde(default)]
+pub struct VoiceConfig {
+    /// Generate the final answer automatically at the end of every turn.
+    pub enabled: bool,
+    /// Speaker id of the loaded Kokoro model.
+    pub voice: i32,
+    /// Speech pace (`1.0` is natural).
+    pub speed: f32,
+    /// espeak-ng language for the external phonemizer (`"pt-br"`, `"en-us"`, …).
+    /// Empty selects the model's own lexicon frontend (English/Chinese).
+    pub language: String,
+    /// Kokoro bundle directory; empty uses the `speak` default (cache dir or
+    /// `MORPHEUS_KOKORO_MODEL_DIR`).
+    pub model_dir: String,
+}
+
+impl Default for VoiceConfig {
+    fn default() -> Self {
+        Self {
+            enabled: true,
+            voice: 0,
+            speed: 1.0,
+            language: String::new(),
+            model_dir: String::new(),
+        }
+    }
+}
+
+impl VoiceConfig {
+    /// Speed clamped to a value the engine accepts (a persisted zero/NaN must
+    /// not make every turn fail).
+    #[must_use]
+    pub fn speed(&self) -> f32 {
+        if self.speed > 0.0 && self.speed.is_finite() {
+            self.speed
+        } else {
+            1.0
+        }
+    }
+
+    /// Toggle the background-generation mode.
+    pub fn toggle(&mut self) -> bool {
+        self.enabled = !self.enabled;
+        self.enabled
+    }
+}
 
 /// Which agent-loop spinner animation the prompt row plays (`/spinner`).
 /// Purely decorative: every style exposes the same surface the loop drives
@@ -1173,6 +1239,9 @@ impl Setup {
         }
         if section_differs(&self.whatsapp, &baseline.whatsapp) {
             merged.whatsapp = self.whatsapp.clone();
+        }
+        if section_differs(&self.voice, &baseline.voice) {
+            merged.voice = self.voice.clone();
         }
         if section_differs(&self.decision, &baseline.decision) {
             merged.decision = self.decision.clone();

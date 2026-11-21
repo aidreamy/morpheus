@@ -665,8 +665,15 @@ impl AgentSpinnerBass {
     /// Height actually displayed for bar `col` at frame `frame`, in
     /// `[0.0, 1.0]`: zero before the bar is born, eased up from zero to the
     /// animated height while it grows in.
+    ///
+    /// Real audio skips the birth animation entirely: the bars are exactly as
+    /// tall as the measured levels from the first frame, so a clip that starts
+    /// speaking is painted at once instead of fading in from the floor.
     fn rendered_height(&self, col: usize, frame: u32) -> f32 {
         let height = self.bar_height(col, frame);
+        if self.bass_levels.is_some() {
+            return height;
+        }
         let birth = self.birth_steps.get(col).copied().unwrap_or(0);
         if frame < birth {
             return 0.0;

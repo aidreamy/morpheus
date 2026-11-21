@@ -18,6 +18,8 @@ use ratatui::layout::Rect;
 use ratatui::style::Style;
 
 #[cfg(all(feature = "speak", unix))]
+use crate::component::agent_spinner_bass::AgentSpinnerBass;
+#[cfg(all(feature = "speak", unix))]
 use crate::component::spinner::SpinnerState;
 use crate::theme::Theme;
 #[cfg(all(feature = "speak", unix))]
@@ -28,8 +30,6 @@ const BARS: u32 = 8;
 const FPS: u32 = 30;
 /// Blank columns between two painted elements of the control cluster.
 const GAP: u16 = 2;
-/// One print column per equalizer level, quiet to loud.
-const BASS_GLYPHS: [char; 8] = ['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
 
 /// One of the buttons in an answer's controls.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -132,6 +132,10 @@ pub struct SpeechState {
     button_rects: Vec<(SpeechButton, usize, Rect)>,
     #[cfg(all(feature = "speak", unix))]
     spinner: SpinnerState,
+    /// The bass equalizer that takes the speak button's place while a clip is
+    /// playing, driven by the measured low end of the real speech.
+    #[cfg(all(feature = "speak", unix))]
+    bass: Option<AgentSpinnerBass>,
     #[cfg(all(feature = "speak", unix))]
     request: Option<Generation>,
     #[cfg(all(feature = "speak", unix))]
@@ -151,6 +155,8 @@ impl Default for SpeechState {
             button_rects: Vec::new(),
             #[cfg(all(feature = "speak", unix))]
             spinner: SpinnerState::new(),
+            #[cfg(all(feature = "speak", unix))]
+            bass: None,
             #[cfg(all(feature = "speak", unix))]
             request: None,
             #[cfg(all(feature = "speak", unix))]
@@ -486,17 +492,15 @@ impl SpeechState {
             .playback_levels(target.slot)
             .filter(|levels| !levels.is_empty())
         {
-            let bars = levels.len().min(BARS as usize);
-            for (offset, level) in levels.iter().take(bars).enumerate() {
-                #[allow(clippy::cast_possible_truncation)]
-                let glyph = BASS_GLYPHS[(level.clamp(0.0, 1.0) * 7.0).round() as usize];
-                buf.set_string(
-                    x.saturating_add(offset as u16),
-                    y,
-                    glyph.to_string(),
-                    Style::default().fg(rgba_color(theme.primary)),
-                );
-            }
+            // The real bass of the utterance replaces the speak button while
+            // the clip plays: the bass equalizer runs in its non-random mode,
+            // every bar as tall as the measured level. Clicking it replays.
+            let bars = {
+                let spinner = self.bass_spinner(theme);
+                spinner.set_bass_levels(Some(levels));
+                spinner.render(buf, x, y);
+                spinner.width()
+            };
             #[allow(clippy::cast_possible_truncation)]
             self.button_rects.push((
                 SpeechButton::Speak,
@@ -571,6 +575,17 @@ impl SpeechState {
     }
 
     #[cfg(all(feature = "speak", unix))]
+    fn bass_spinner(&mut self, theme: &Theme) -> &mut AgentSpinnerBass {
+        let spinner = self.bass.get_or_insert_with(|| {
+            let mut spinner = AgentSpinnerBass::new("", theme);
+            spinner.set_mode_color(theme.primary);
+            spinner
+        });
+        spinner.set_mode_color(theme.primary);
+        spinner
+    }
+
+    #[cfg(all(feature = "speak", unix))]
     fn playback_levels(&self, slot: usize) -> Option<Vec<f32>> {
         let active = self.active.as_ref()?;
         if active.slot != slot {
@@ -617,6 +632,7 @@ impl SpeechState {
             self.active = None;
             self.request = None;
             self.prepared = None;
+            self.bass = None;
         }
     }
 
@@ -863,6 +879,40 @@ mod tests {
                 .iter()
                 .all(|(button, _, _)| *button == SpeechButton::Speak)
         );
+    }
+
+    #[test]
+    fn the_bass_spinner_replaces_speak_while_playing_and_yields_to_it_after() {
+        let mut speech = SpeechState::new(true);
+        speech.set_targets("s1", vec![target(0, "the answer", Some("/tmp/a.wav"))]);
+        speech.active = Some(Active {
+            clip: Clip {
+                wav: "/tmp/a.wav".into(),
+                bass: vec![1.0, 0.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+                bars: BARS as usize,
+                fps: FPS,
+            },
+            playback: Some(morpheus::speak::Playback::idle_for_test()),
+            slot: 0,
+            paused_at: None,
+            started: Instant::now(),
+        });
+
+        // While the clip plays the bars take the speak button's place, each
+        // exactly as tall as the real level measured for that band.
+        let (mut buf, area) = answer_area(60);
+        speech.render_inline(&mut buf, &[(0, area)], &theme());
+        assert_eq!(buf.cell((13, 0)).unwrap().symbol(), "█");
+        assert_eq!(buf.cell((14, 0)).unwrap().symbol(), "▅");
+        assert_eq!(buf.cell((15, 0)).unwrap().symbol(), "▁");
+        assert_eq!(speech.button_at(13, 0), Some((SpeechButton::Speak, 0)));
+
+        // The player ends: the bars go away and the speak label returns.
+        speech.active.as_mut().expect("clip").playback = None;
+        let (mut buf, area) = answer_area(60);
+        speech.render_inline(&mut buf, &[(0, area)], &theme());
+        assert_eq!(buf.cell((13, 0)).unwrap().symbol(), "s");
+        assert_eq!(speech.button_at(13, 0), Some((SpeechButton::Speak, 0)));
     }
 
     #[test]

@@ -12,7 +12,8 @@
 #   $env:MORPHEUS_BIN_DIR  - Installation directory (default: $env:USERPROFILE\morpheus)
 #   $env:MORPHEUS_VERSION  - Specific version to install (e.g., "v0.1.0" or "0.1.0")
 #   $env:MORPHEUS_VARIANT  - Package variant: "slim" (default, no RAG, no Home) or
-#                        "slim-embed" (local RAG via fastembed, no Home)
+#                        "slim-embed" (local RAG via fastembed, no Home).
+#                        Voice output ("slim-speak") is not supported on Windows yet.
 #
 # Release artifacts are produced by .github/workflows/release.yml on tag push
 # (v*) and published at github.com/aidreamy/morpheus/releases.
@@ -62,6 +63,10 @@ if ($ARCH -eq "AMD64") {
 # (--no-default-features). "slim-embed" additionally enables the workspace
 # `embed` feature (morpheus-tools/embed + fastembed) for local RAG. Both are
 # produced by the release workflow.
+if ($MORPHEUS_VARIANT -eq "slim-speak") {
+    Write-Error "The 'slim-speak' variant (voice output) is not supported on Windows yet. Use 'slim' or 'slim-embed'."
+    exit 1
+}
 if ($MORPHEUS_VARIANT -ne "slim" -and $MORPHEUS_VARIANT -ne "slim-embed") {
     Write-Error "Unsupported MORPHEUS_VARIANT '$MORPHEUS_VARIANT'. Expected 'slim' or 'slim-embed'."
     exit 1

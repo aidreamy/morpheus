@@ -11,7 +11,7 @@ edition = "2024"
 
 [dependencies]
 # Unified multi-provider LLM connector (published standalone as `aiface`).
-aiface = "0.2.6"
+aiface = "0.3.0"
 morpheus-sdk = { path = "../morpheus-sdk", version = "0.1.6" }
 schemars = "1"
 thiserror = "2"
@@ -54,9 +54,22 @@ features = ["test-support"]
 version = "1.52.3"
 features = ["rt", "macros"]
 
+# Explicit features instead of `full`: the tools use tokio's fs/io-util
+# drivers, process spawning (bash/ACP), the multi-thread and current-thread
+# runtimes, and time/sync primitives. Nothing here uses tokio's net driver,
+# signal handling, io-std or the parking_lot allocator hook.
 [dependencies.tokio]
 version = "1.52.3"
-features = ["full"]
+features = [
+    "fs",
+    "io-util",
+    "macros",
+    "process",
+    "rt",
+    "rt-multi-thread",
+    "sync",
+    "time",
+]
 
 [dependencies.reqwest]
 version = "0.13"

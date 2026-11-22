@@ -17,7 +17,7 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Fails fast, before spending ~1h building 8 artifacts: the tag version
+  # Fails fast, before spending ~1h building 9 artifacts: the tag version
   # must match the version of the main `morpheus` app package (the binaries
   # embed their own version via CARGO_PKG_VERSION, and the release assets
   # are named morpheus-v<VERSION>-...). Bumping the version of the library
@@ -45,12 +45,18 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # Two variants per platform, matching what download.sh/download.ps1 expect.
-        # Both ship as slim builds (`--no-default-features`):
+        # Variants, matching what download.sh/download.ps1 expect. All ship
+        # as slim builds (`--no-default-features`):
         #   slim       -> morpheus-v<VERSION>-<OS>-<ARCH>-slim.tar.gz|.zip
         #                 (no RAG)
         #   slim-embed -> morpheus-v<VERSION>-<OS>-<ARCH>-slim-embed.tar.gz|.zip
         #                 (workspace `embed` feature = local RAG)
+        #   slim-speak -> morpheus-v<VERSION>-<OS>-<ARCH>-slim-speak.tar.gz
+        #                 (voice output; `speak-phonemize` adds PT-BR and the
+        #                 other languages without a Kokoro lexicon). Unix only:
+        #                 the voice daemon transports over a Unix domain socket
+        #                 and its activation uses Unix process APIs, so this
+        #                 variant is never built for Windows.
         # `os` must be a real matrix key (not include-only): include entries
         # whose keys don't overlap the matrix get merged into EVERY existing
         # combination instead of creating new ones, so the last entry (win32)
@@ -60,16 +66,19 @@ jobs:
         # the only aarch64-apple-darwin distribution is built with CoreML,
         # whose static-link stage (CoreML framework +
         # onnxruntime_providers_coreml) fails on the runner — macOS therefore
-        # ships the slim variant only (the excludes below), while linux and
-        # windows keep both variants.
+        # excludes `slim-embed` (below). Result: linux ships all three
+        # variants, macOS ships `slim` and `slim-speak`, windows ships `slim`
+        # and `slim-embed` (voice is Unix-only).
         os: [ubuntu-latest, macos-15-intel, macos-latest, windows-latest]
-        variant: [slim, slim-embed]
+        variant: [slim, slim-embed, slim-speak]
 
         exclude:
           - os: macos-15-intel
             variant: slim-embed
           - os: macos-latest
             variant: slim-embed
+          - os: windows-latest
+            variant: slim-speak
 
         # Each include entry references the `os` matrix key, so it merges
         # into the matching combinations (both variants of that platform).
@@ -129,12 +138,21 @@ jobs:
         id: vars
         shell: bash
         run: |
-          # Both variants are built --no-default-features; slim-embed
+          # Every variant is built --no-default-features. slim-embed
           # additionally enables the workspace `embed` feature (local RAG via
-          # fastembed).
+          # fastembed); slim-speak enables `speak-phonemize`, the complete
+          # voice build (Kokoro plus the espeak-ng frontend, which is what
+          # makes PT-BR and the other non-lexicon languages work).
+          echo "bins=--bin morpheus --bin morpheus-uninstall" >> $GITHUB_OUTPUT
+          echo "extra_bin=" >> $GITHUB_OUTPUT
           if [ "${{ matrix.variant }}" = "slim-embed" ]; then
             echo "variant_suffix=-slim-embed" >> $GITHUB_OUTPUT
             echo "features=--no-default-features --features embed" >> $GITHUB_OUTPUT
+          elif [ "${{ matrix.variant }}" = "slim-speak" ]; then
+            echo "variant_suffix=-slim-speak" >> $GITHUB_OUTPUT
+            echo "features=--no-default-features --features speak-phonemize" >> $GITHUB_OUTPUT
+            echo "bins=--bin morpheus --bin morpheus-uninstall --bin morpheus-ttsd" >> $GITHUB_OUTPUT
+            echo "extra_bin=morpheus-ttsd" >> $GITHUB_OUTPUT
           else
             echo "variant_suffix=-slim" >> $GITHUB_OUTPUT
             echo "features=--no-default-features" >> $GITHUB_OUTPUT
@@ -143,8 +161,13 @@ jobs:
       # The `slim-embed` variant enables the workspace `embed` feature
       # (morpheus-tools/embed + fastembed). fastembed pulls the ONNX Runtime
       # shared library as a build-time download, so this job is slower.
-      # Both variants are built `--no-default-features`.
-      # Both `morpheus` and `morpheus-uninstall` are shipped; `highlight-demo`
+      # The `slim-speak` variant enables `speak-phonemize`; its build script
+      # downloads prebuilt static sherpa-onnx and piper-phonemize libraries
+      # plus espeak-ng-data, so it needs network access.
+      # Every variant is built `--no-default-features`.
+      # `morpheus` and `morpheus-uninstall` are always shipped; `slim-speak`
+      # also ships `morpheus-ttsd`, which the TUI spawns as a sibling (a
+      # missing daemon makes voice output fail at runtime). `highlight-demo`
       # is a dev-only target.
       #
       # MORPHEUS_TELEMETRY_PUBLISHABLE_KEY is a BUILD-TIME constant: option_env!()
@@ -156,7 +179,7 @@ jobs:
         shell: bash
         env:
           MORPHEUS_TELEMETRY_PUBLISHABLE_KEY: ${{ secrets.MORPHEUS_TELEMETRY_PUBLISHABLE_KEY }}
-        run: cargo build --release --locked --bin morpheus --bin morpheus-uninstall --target ${{ matrix.target }} ${{ steps.vars.outputs.features }}
+        run: cargo build --release --locked ${{ steps.vars.outputs.bins }} --target ${{ matrix.target }} ${{ steps.vars.outputs.features }}
 
       - name: Package GitHub Release asset
         shell: bash
@@ -164,16 +187,24 @@ jobs:
           VERSION="${GITHUB_REF_NAME#v}"
           EXT="${{ matrix.platform == 'win32' && '.exe' || '' }}"
           SUFFIX="${{ steps.vars.outputs.variant_suffix }}"
+          EXTRA="${{ steps.vars.outputs.extra_bin }}"
           ASSET="morpheus-v${VERSION}-${{ matrix.platform }}-${{ matrix.arch }}${SUFFIX}"
 
           cd "target/${{ matrix.target }}/release"
+
+          # `extra_bin` is only set for slim-speak (the voice daemon); every
+          # other variant ships just the app and its uninstaller.
+          FILES=("morpheus${EXT}" "morpheus-uninstall${EXT}")
+          if [ -n "$EXTRA" ]; then
+            FILES+=("${EXTRA}${EXT}")
+          fi
 
           if [ "${{ matrix.platform }}" = "win32" ]; then
             ASSET_FILE="${ASSET}.zip"
             powershell -NoProfile -Command "Compress-Archive -Path 'morpheus${EXT}','morpheus-uninstall${EXT}' -DestinationPath '${ASSET_FILE}' -Force"
           else
             ASSET_FILE="${ASSET}.tar.gz"
-            tar czf "${ASSET_FILE}" "morpheus${EXT}" "morpheus-uninstall${EXT}"
+            tar czf "${ASSET_FILE}" "${FILES[@]}"
           fi
 
           if [ "${{ matrix.platform }}" = "win32" ]; then

@@ -115,8 +115,7 @@ required-features = ["speak"]
 # ---
 [dependencies]
 serde_json = "1.0"
-# Unified multi-provider LLM connector (published standalone as `aiface`).
-aiface = "0.2.6"
+aiface = "0.3.0"
 morpheus-sdk = { path = "crates/morpheus-sdk", version = "0.1.6" }
 # toml = "1.1"
 chrono = "0.4"
@@ -147,12 +146,11 @@ regex = "1"
 # Image decoding for prompt image previews (thumbnails).
 image = { version = "0.25", default-features = false, features = ["png", "jpeg", "gif", "webp"] }
 tiktoken-rs = "0.12.0"
-keyring = { version = "4.1.6", features = [
-    "v1",
-    "apple-native-keyring-store",
-    "windows-native-keyring-store",
-    "zbus-secret-service-keyring-store",
-] }
+# `v1` is keyring's whole default surface (the Entry/Error API used by
+# `src/mcp/auth.rs`); it already pulls the Apple, Windows and zbus secret
+# service stores, all of which are target-gated to their own OS. Listing them
+# again only duplicates what `v1` implies.
+keyring = { version = "4.1.6", features = ["v1"] }
 
 # ---
 # Display-width measurement for the footer (already a transitive dependency
@@ -167,19 +165,37 @@ default-features = false
 features = ["crossterm"]
 
 # ---
+# Explicit features instead of `full`: the TUI needs the multi-thread
+# runtime, tokio's net/process/fs/signal drivers, io-util (duplex/split) and
+# the time/sync primitives. `full` additionally turns on `io-std` and the
+# `parking_lot` allocator hook, neither of which any call site uses.
 [dependencies.tokio]
 version = "1"
-features = ["full"]
+features = [
+  "fs",
+  "io-util",
+  "macros",
+  "net",
+  "process",
+  "rt",
+  "rt-multi-thread",
+  "signal",
+  "sync",
+  "time",
+]
 
 [dependencies.serde]
 version = "1"
 features = ["derive", "rc"]
 
+# `server` is intentionally absent: Morpheus only *consumes* MCP servers, so
+# the server half of rmcp (schemars, uuid, pastey, async-rw transport) is only
+# needed by the fake servers in `src/mcp/test/`. It is re-enabled from
+# dev-dependencies below, which keeps it out of the release binary.
 [dependencies.rmcp]
 version = "3.2.0"
 features = [
   "client",
-  "server",
   "transport-child-process",
   "transport-streamable-http-client-reqwest",
 ]
@@ -218,6 +234,11 @@ version = "0.18"
 tempfile = "3"
 parking_lot = "0.12"
 
+# The MCP integration tests stand up in-process rmcp servers
+# (`src/mcp/test/manager_support.rs`), so only test builds need `server`.
+# Features unify with the client-only normal dependency above.
+rmcp = { version = "3.2.0", default-features = false, features = ["server"] }
+
 # In-process loopback TLS fixture for the telemetry transport tests (no
 # external process, no Python, no openssl CLI).
 rcgen = "0.13"
@@ -241,6 +262,12 @@ opt-level = 3
 
 [profile.release]
 lto = "thin"
+# Ship symbols-free binaries: nothing in the shipped build consumes debuginfo
+# or ELF/Mach-O symbols (panics report source locations compiled into the
+# binary, and the telemetry path has no backtrace capture), so the symbol
+# tables are pure download weight. `debug` already defaults to 0; `strip`
+# additionally drops the symbol table that rustc otherwise emits.
+strip = "symbols"
 
 # ___
 [workspace.lints.clippy]

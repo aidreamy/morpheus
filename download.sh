@@ -15,8 +15,10 @@ set -eu
 # Environment variables:
 #   MORPHEUS_BIN_DIR  - Installation directory (default: $HOME/.local/bin, Windows: %USERPROFILE%/morpheus)
 #   MORPHEUS_VERSION  - Specific version to install (e.g., "v0.1.0" or "0.1.0")
-#   MORPHEUS_VARIANT  - Package variant: "slim" (default, no RAG, no Home) or
-#                   "slim-embed" (local RAG via fastembed, no Home)
+#   MORPHEUS_VARIANT  - Package variant: "slim" (default, no RAG, no Home),
+#                   "slim-embed" (local RAG via fastembed, no Home) or
+#                   "slim-speak" (voice output with the complete language
+#                   set, PT-BR included; Linux and macOS only)
 #   INSTALL_OS    - Override OS detection: "linux", "darwin", or "win32"
 #
 # Release artifacts are produced by .github/workflows/release.yml on tag push
@@ -93,17 +95,26 @@ if [ "$OS" = "win32" ] && [ "$ARCH" != "x64" ]; then
   exit 1
 fi
 
-# Variant note: both variants are built with --no-default-features.
+# Variant note: every variant is built with --no-default-features.
 # "slim-embed" additionally enables the workspace `embed` feature
 # (morpheus-tools/embed + fastembed) for local RAG. slim-embed is
 # produced for linux-x64 and win32-x64; macOS (both x64 and arm64) ships slim
 # only — ort-sys has no prebuilt ONNX Runtime for x86_64-apple-darwin, and
 # the aarch64-apple-darwin distribution (CoreML build) fails to static-link
-# on the CI runner.
+# on the CI runner. "slim-speak" enables `speak-phonemize` (the complete
+# voice build, which is what makes PT-BR work) and is produced for linux-x64
+# and macOS only: the voice daemon uses a Unix domain socket and Unix process
+# APIs, so there is no Windows build.
 case "$MORPHEUS_VARIANT" in
-  slim|slim-embed) ;;
-  *) echo "Error: Unsupported MORPHEUS_VARIANT '$MORPHEUS_VARIANT'. Expected 'slim' or 'slim-embed'."; exit 1 ;;
+  slim|slim-embed|slim-speak) ;;
+  *) echo "Error: Unsupported MORPHEUS_VARIANT '$MORPHEUS_VARIANT'. Expected 'slim', 'slim-embed' or 'slim-speak'."; exit 1 ;;
 esac
+
+if [ "$MORPHEUS_VARIANT" = "slim-speak" ] && [ "$OS" = "win32" ]; then
+  echo "Error: the 'slim-speak' variant (voice output) is not supported on Windows yet."
+  echo "Use MORPHEUS_VARIANT=slim or MORPHEUS_VARIANT=slim-embed instead."
+  exit 1
+fi
 
 SUFFIX="-$MORPHEUS_VARIANT"
 
@@ -150,7 +161,7 @@ if [ ! -f "$EXTRACT_DIR/$BINARY" ]; then
   exit 1
 fi
 
-chmod +x "$EXTRACT_DIR/$BINARY" "$EXTRACT_DIR/morpheus-uninstall" 2>/dev/null || true
+chmod +x "$EXTRACT_DIR/$BINARY" "$EXTRACT_DIR/morpheus-uninstall" "$EXTRACT_DIR/morpheus-ttsd" 2>/dev/null || true
 
 if [ ! -d "$MORPHEUS_BIN_DIR" ]; then
   mkdir -p "$MORPHEUS_BIN_DIR"
@@ -173,6 +184,12 @@ fi
 # deletes BOTH images from the same directory).
 if [ -f "$EXTRACT_DIR/morpheus-uninstall" ]; then
   mv -f "$EXTRACT_DIR/morpheus-uninstall" "$MORPHEUS_BIN_DIR/morpheus-uninstall"
+fi
+
+# slim-speak ships the voice daemon as a sibling of the main binary; the TUI
+# spawns it from there, so it must be installed in the same directory.
+if [ -f "$EXTRACT_DIR/morpheus-ttsd" ]; then
+  mv -f "$EXTRACT_DIR/morpheus-ttsd" "$MORPHEUS_BIN_DIR/morpheus-ttsd"
 fi
 
 if [ "$OS" = "win32" ]; then

@@ -96,7 +96,20 @@ tree-sitter-vue = { version = "0.1.0", package = "tree-sitter-vue-next" }
 tree-sitter-xml = "0.7"
 tree-sitter-yaml = "0.7"
 xxhash-rust = { version = "0.8", features = ["xxh32"] }
-tokio = { version = "1.52.3", features = ["full"] }
+# Explicit features instead of `full`: the SDK uses tokio's fs/io-util
+# drivers, process spawning, task spawning and time/sync primitives. It never
+# touches tokio's net driver, signal handling, io-std or the parking_lot
+# allocator hook, all of which `full` would switch on.
+tokio = { version = "1.52.3", features = [
+    "fs",
+    "io-util",
+    "macros",
+    "process",
+    "rt",
+    "rt-multi-thread",
+    "sync",
+    "time",
+] }
 async-stream = "0.3"
 tokio-stream = "0.1"
 url = "2"

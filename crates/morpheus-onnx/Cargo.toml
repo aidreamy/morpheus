@@ -45,10 +45,11 @@ thiserror = "2"
 # workspace lockfile via tokenizers' icu stack, so no new crates are added.
 icu_properties = "2.2.0"
 
-# email.rs ports
-# regex crate cannot express. 0.17 is already in the workspace lockfile via
-# tiktoken-rs, so no new crate version is introduced.
-fancy-regex = "0.17"
+# email.rs ports. The `regex` crate cannot express the lookarounds used here,
+# so `fancy-regex` is required. Pinned to the 0.19 line tiktoken-rs (the
+# workspace's other fancy-regex user) resolves to, so the graph carries a
+# single build instead of 0.17 + 0.19.
+fancy-regex = "0.19"
 
 [dev-dependencies]
 # benches/parity.rs: typed access to the shared dataset records. serde_json

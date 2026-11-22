@@ -10,7 +10,11 @@ version = "0.1.6"
 edition = "2024"
 
 [dependencies]
-ratatui = "0.30"
+# Same feature set as the root binary: default features would pull
+# `all-widgets` (the calendar widget and the `time` crate), which nothing
+# renders. Feature unification means this crate's defaults were forcing them
+# into the release build.
+ratatui = { version = "0.30", default-features = false, features = ["crossterm"] }
 bitflags = "2.13"
 taffy = "0.11.0"
 pulldown-cmark = "0.13"

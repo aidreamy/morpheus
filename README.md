@@ -89,4 +89,4 @@ After installing, run `morpheus` in your terminal. If the install directory is n
 
 ## License
 
-GPL-3.0. See [LICENSE](./LICENSE).
+GPL-3.0.

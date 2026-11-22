@@ -9,3 +9,15 @@ copyright and attribution notices contained in this NOTICE file.
 
 Original project:
 https://github.com/aidreamy/morpheus
+
+Third-party components used by the `speak-phonemize` build variant:
+- piper-phonemize (https://github.com/csukuangfj/piper-phonemize), GPL-3.0-or-later (due to espeak-ng)
+- espeak-ng (https://github.com/espeak-ng/espeak-ng), GPL-3.0-or-later
+
+Note: the older rhasspy/piper-phonemize repository is archived and deprecated;
+the Rust crate used here (piper-phonemize-sys 1.5.9) pulls its prebuilt
+libraries and espeak-ng-data from the csukuangfj/piper-phonemize releases.
+
+These components are only linked into builds produced with
+`--features speak-phonemize`. Their respective copyright and license terms
+apply to those builds.

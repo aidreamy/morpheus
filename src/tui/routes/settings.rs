@@ -205,7 +205,7 @@ const VOICE: SettingsSection = SettingsSection {
         },
         SettingsItem {
             id: "voice_picker",
-            label: "Voice",
+            label: "Speaker",
             description: "Search by language, model or voice name; selects the speaker too",
             kind: SettingKind::Choice(ChoiceInput::VoicePicker),
         },

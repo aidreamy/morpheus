@@ -149,7 +149,7 @@ impl App {
         if is_local_provider(provider) {
             return None;
         }
-        if !has_api_key(provider) || auth_failure {
+        if !has_api_key(provider, Some(morpheus::KEYRING_SERVICE)) || auth_failure {
             return Some(OFFERS);
         }
         None

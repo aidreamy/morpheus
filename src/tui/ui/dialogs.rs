@@ -690,11 +690,13 @@ pub enum DialogType {
     },
     /// Custom LLM provider registration form (Settings → Integrations →
     /// Custom providers): the same panel mechanics as [`DialogType::AcpForm`]
-    /// with three fields — the public provider name, the endpoint's base
-    /// URL, and the API family (free text, validated on save; only
-    /// `openai-compatible` is accepted today). `editing` targets an
-    /// existing `setup.custom_providers` entry (the form opens prefilled);
-    /// `None` creates one.
+    /// with four fields — the public provider name, the endpoint's base
+    /// URL, the API family (free text, validated on save; only
+    /// `openai-compatible` is accepted today), an optional model name, and
+    /// the provider's API key (masked, stored in the OS keyring — never in
+    /// setup.json). `editing` targets an existing `setup.custom_providers`
+    /// entry (the form opens prefilled); `None` creates one. A blank API key
+    /// while editing keeps whatever credential is already stored.
     ProviderForm {
         /// Index of the entry being edited, or `None` when creating one.
         editing: Option<usize>,
@@ -704,7 +706,10 @@ pub enum DialogType {
         family: String,
         /// Optional model name to leave selected for use.
         model: String,
-        /// Active field: 0 name · 1 base URL · 2 family · 3 model.
+        /// The raw typed key (never persisted anywhere but the keyring);
+        /// masked in [`Debug`] like every other credential preview.
+        api_key: String,
+        /// Active field: 0 name · 1 base URL · 2 family · 3 model · 4 API key.
         field: usize,
         cursor_pos: usize,
         /// Mouse drag selection on the active field; same kernel as the
@@ -993,6 +998,7 @@ impl std::fmt::Debug for DialogType {
                 base_url,
                 family,
                 model,
+                api_key,
                 field,
                 cursor_pos,
                 selection,
@@ -1003,6 +1009,7 @@ impl std::fmt::Debug for DialogType {
                 .field("base_url", base_url)
                 .field("family", family)
                 .field("model", model)
+                .field("api_key", &secret(api_key))
                 .field("field", field)
                 .field("cursor_pos", cursor_pos)
                 .field("selection", selection)
@@ -1834,6 +1841,7 @@ impl DialogState {
                 base_url,
                 family,
                 model,
+                api_key,
                 field,
                 cursor_pos,
                 selection,
@@ -1844,6 +1852,7 @@ impl DialogState {
                     base_url.as_str(),
                     family.as_str(),
                     model.as_str(),
+                    api_key.as_str(),
                 ];
                 focus_form_field(
                     area,
@@ -2723,6 +2732,7 @@ impl DialogState {
                 base_url,
                 family,
                 model,
+                api_key,
                 field,
                 cursor_pos,
                 selection,
@@ -2737,6 +2747,7 @@ impl DialogState {
                     base_url.as_str(),
                     family.as_str(),
                     model.as_str(),
+                    api_key.as_str(),
                 ];
                 render_form_panel(
                     buf,
@@ -4241,10 +4252,10 @@ fn acp_field_mask(_field: usize) -> bool {
     false
 }
 
-/// Per-field secrecy for the provider form: nothing is secret (name, URL,
-/// family), show all values.
-fn provider_field_mask(_field: usize) -> bool {
-    false
+/// Per-field secrecy for the provider form: the last field (API key) is
+/// masked, same as the MCP form's key.
+fn provider_field_mask(field: usize) -> bool {
+    field >= 4
 }
 
 fn provider_field_label(field: usize) -> &'static str {
@@ -4252,7 +4263,8 @@ fn provider_field_label(field: usize) -> &'static str {
         0 => "Name",
         1 => "Base URL",
         2 => "Family",
-        _ => "Model",
+        3 => "Model",
+        _ => "API Key",
     }
 }
 
@@ -4261,7 +4273,8 @@ fn provider_field_hint(field: usize) -> &'static str {
         0 => "single word · the id the model picker and routing use",
         1 => "e.g. https://api.company.com/v1",
         2 => "openai-compatible (only family supported today)",
-        _ => "optional · model name to leave selected for use",
+        3 => "optional · model name to leave selected for use",
+        _ => "optional · stored in the OS keyring · blank keeps the saved key",
     }
 }
 
@@ -4272,7 +4285,8 @@ fn provider_field_placeholder(field: usize) -> &'static str {
         0 => "e.g. company-proxy",
         1 => "e.g. https://litellm.corp:4000/v1",
         2 => "openai-compatible",
-        _ => "e.g. gpt-4o",
+        3 => "e.g. gpt-4o",
+        _ => "Optional · paste the provider API key",
     }
 }
 
@@ -4423,7 +4437,7 @@ pub(crate) fn dialog_panel_demand(dialog: Option<&DialogType>) -> usize {
             provider_field_label,
             provider_field_hint,
             provider_field_placeholder,
-            4,
+            5,
         ),
         _ => 0,
     }

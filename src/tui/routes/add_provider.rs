@@ -33,7 +33,7 @@ impl ProviderEntry {
         if self.local {
             setup.local_base_url(self.name).is_some()
         } else {
-            has_api_key(self.name)
+            has_api_key(self.name, Some(morpheus::KEYRING_SERVICE))
         }
     }
 }

@@ -46,7 +46,9 @@ impl LlmConfig {
         // Try to get provider from env, otherwise auto-detect from available API keys
         let provider = std::env::var("MORPHEUS_PROVIDER")
             .ok()
-            .or_else(|| aiface::connector::detect_provider().map(String::from))
+            .or_else(|| {
+                aiface::connector::detect_provider(Some(crate::KEYRING_SERVICE)).map(String::from)
+            })
             .unwrap_or_else(|| "openai".to_string());
 
         let tool_call_mode = match std::env::var("MORPHEUS_TOOL_CALL_MODE").as_deref() {

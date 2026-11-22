@@ -112,7 +112,7 @@ async fn auth_error_reoffers_but_never_deletes_gateway_credentials() {
     isolate_home();
     // An install already using the gateway (marker = authorized).
     write_marker("authorized");
-    let had_credential = has_api_key("charm");
+    let had_credential = has_api_key("charm", Some(morpheus::KEYRING_SERVICE));
 
     let mut app = session_app("charm");
     app.maybe_offer_gateway_on_error("401 unauthorized");
@@ -121,7 +121,7 @@ async fn auth_error_reoffers_but_never_deletes_gateway_credentials() {
         "a dead gateway credential is exactly what re-running the sign-in fixes"
     );
     assert_eq!(
-        has_api_key("charm"),
+        has_api_key("charm", Some(morpheus::KEYRING_SERVICE)),
         had_credential,
         "the error heuristic must not change stored credentials — re-running the opt-in overwrites them instead"
     );

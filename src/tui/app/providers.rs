@@ -48,7 +48,9 @@ impl App {
 
         let mut active: Vec<&'static str> = Vec::new();
         for (provider, _) in known_providers_with_env() {
-            if !is_local_provider(provider) && aiface::connector::has_api_key(provider) {
+            if !is_local_provider(provider)
+                && aiface::connector::has_api_key(provider, Some(morpheus::KEYRING_SERVICE))
+            {
                 active.push(provider);
             }
         }
@@ -56,7 +58,9 @@ impl App {
         // User-registered custom providers: same credential rule as the
         // built-in cloud endpoints (keyring first, then `<NAME>_API_KEY`).
         for provider in aiface::connector::custom_provider_names() {
-            if aiface::connector::has_api_key(provider) && !active.contains(&provider) {
+            if aiface::connector::has_api_key(provider, Some(morpheus::KEYRING_SERVICE))
+                && !active.contains(&provider)
+            {
                 active.push(provider);
             }
         }
@@ -152,7 +156,7 @@ pub(super) fn keyring_has_provider_key(env_var: &str) -> bool {
 /// advertise a provider that can no longer authenticate.
 pub(super) fn provider_has_credential(provider: &str) -> bool {
     use aiface::connector::{has_api_key, is_local_provider};
-    is_local_provider(provider) || has_api_key(provider)
+    is_local_provider(provider) || has_api_key(provider, Some(morpheus::KEYRING_SERVICE))
 }
 
 /// Remove a provider API key from the OS credential store through the

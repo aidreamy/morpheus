@@ -330,11 +330,15 @@ impl App {
                 base_url,
                 family,
                 model,
+                api_key,
                 field,
                 cursor_pos,
                 selection,
                 ..
-            } => match [name, base_url, family, model].into_iter().nth(*field) {
+            } => match [name, base_url, family, model, api_key]
+                .into_iter()
+                .nth(*field)
+            {
                 Some(line) => (line, cursor_pos, selection, *field),
                 None => return,
             },
@@ -408,10 +412,11 @@ impl App {
                     base_url,
                     family,
                     model,
+                    api_key,
                     field,
                     selection,
                     ..
-                } => [name, base_url, family, model]
+                } => [name, base_url, family, model, api_key]
                     .get(*field)
                     .copied()
                     .map(|line| {
@@ -504,6 +509,7 @@ impl App {
                     base_url,
                     family,
                     model,
+                    api_key,
                     ..
                 } => {
                     let values = [
@@ -511,6 +517,7 @@ impl App {
                         base_url.as_str(),
                         family.as_str(),
                         model.as_str(),
+                        api_key.as_str(),
                     ];
                     let demand = dialog_panel_demand(Some(&d.dialog_type));
                     form_panel_hit_field(area, demand, &values, x, y)
@@ -635,6 +642,7 @@ impl App {
                     base_url,
                     family,
                     model,
+                    api_key,
                     selection: Some(sel),
                     ..
                 } => {
@@ -643,6 +651,7 @@ impl App {
                         base_url.as_str(),
                         family.as_str(),
                         model.as_str(),
+                        api_key.as_str(),
                     ];
                     values.get(sel.field()).map(|_| {
                         (
@@ -751,10 +760,11 @@ impl App {
                     base_url,
                     family,
                     model,
+                    api_key,
                     field,
                     selection,
                     ..
-                } => [name, base_url, family, model]
+                } => [name, base_url, family, model, api_key]
                     .get(*field)
                     .copied()
                     .and_then(|line| {
@@ -883,12 +893,13 @@ impl App {
                             base_url,
                             family,
                             model,
+                            api_key,
                             field,
                             cursor_pos,
                             selection,
                             ..
                         } => drive_form_edit(
-                            [name, base_url, family, model],
+                            [name, base_url, family, model, api_key],
                             field,
                             cursor_pos,
                             selection,
@@ -936,12 +947,14 @@ impl App {
             base_url,
             family,
             model,
+            api_key,
             ..
         } = &d.dialog_type
         else {
             return false;
         };
         let model = model.clone();
+        let api_key = api_key.trim().to_string();
         let entry = match crate::routes::settings::validate_custom_provider(
             name,
             base_url,
@@ -979,6 +992,23 @@ impl App {
         if let Err(error) = aiface::connector::register_custom_providers(entries) {
             self.toast_form_error("Provider not saved", error);
             return false;
+        }
+        // A typed API key goes to the OS keyring (under the provider's
+        // derived `<NAME>_API_KEY`), never to setup.json. Blank leaves any
+        // previously stored credential untouched. The store happens before
+        // the entry is persisted, so a failed keyring write can never leave
+        // a saved provider that cannot authenticate.
+        let env_var = crate::routes::add_provider::provider_env_var_name(&entry.name);
+        if !api_key.is_empty() {
+            if let Err(error) = save_provider_api_key(&env_var, &api_key) {
+                self.toast_form_error(
+                    "Provider not saved",
+                    format!("Failed to store the API key in the OS keyring: {error}"),
+                );
+                return false;
+            }
+            aiface::connector::invalidate_api_key(&env_var);
+            self.model_cache.invalidate(&entry.name);
         }
         let saved_provider_name = entry.name.clone();
         // Published (the call above already swapped the process registry).
@@ -1047,6 +1077,7 @@ impl App {
             base_url,
             family,
             model,
+            api_key: String::new(),
             field: 0,
             cursor_pos: 0,
             selection: None,
@@ -1630,7 +1661,9 @@ impl App {
         {
             // Purge the keyring credential too: a forgotten endpoint must
             // not leave a live secret behind (same contract as MCP).
-            if let Err(err) = aiface::connector::forget_provider_key(&name) {
+            if let Err(err) =
+                aiface::connector::forget_provider_key(&name, morpheus::KEYRING_SERVICE)
+            {
                 log::warn!("keyring cleanup for removed provider failed: {}", err);
             }
             self.setup.save();

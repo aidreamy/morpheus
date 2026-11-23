@@ -82,11 +82,13 @@ the description says to install one.
 
 The named harness is spawned in ACP server mode and driven through a full
 [Agent Client Protocol](https://agentclientprotocol.com/) turn as a client:
-`initialize` (advertising the `fs` capability) → `authenticate` (when the
-harness advertises auth methods) → `session/new` (rooted at the workspace
-directory) → `session/prompt` with the task as the user message. Agent
-message chunks stream back in real time; the turn ends when the prompt
-response arrives with a stop reason. The engine is documented on the
+`initialize` (advertising the `fs` capability) → `session/new` (or a
+`session/resume` of the stored id, rooted at the workspace directory) →
+`session/prompt` with the task as the user message, authenticating lazily if
+the open or the prompt is rejected with `auth_required`. Agent message chunks
+stream back in real time; the turn ends when the prompt response arrives with
+a stop reason. The `/agents` panes keep that session alive between turns
+instead of re-spawning it. The engine is documented on the
 [acp page](acp.md). Only agents with **ACP support** are registered - the
 protocol contract replaces the fragile per-CLI flag scraping of the old
 one-shot integration, so any harness in the official ACP registry works.

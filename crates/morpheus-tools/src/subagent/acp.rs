@@ -1291,6 +1291,13 @@ pub struct SessionHandle {
     tx: tokio::sync::mpsc::UnboundedSender<HostCommand>,
     cwd: PathBuf,
     shutdown: Arc<AtomicBool>,
+    /// Why the supervisor is closing: a failed handshake, a harness that
+    /// refused the session, an unpinnable workspace, a dead transport. The
+    /// pending turn's reply channel dies with the thread, so this slot is the
+    /// only place the real reason survives — without it every one of those
+    /// failures surfaces as the generic "closed before answering the turn"
+    /// (G9/G22).
+    closed_reason: Arc<Mutex<Option<String>>>,
 }
 
 impl Clone for SessionHandle {
@@ -1299,6 +1306,7 @@ impl Clone for SessionHandle {
             tx: self.tx.clone(),
             cwd: self.cwd.clone(),
             shutdown: self.shutdown.clone(),
+            closed_reason: self.closed_reason.clone(),
         }
     }
 }
@@ -1367,9 +1375,34 @@ impl SessionHandle {
             reply,
         };
         if self.tx.send(HostCommand::Turn(Box::new(request))).is_err() {
-            return TurnOutcome::closed();
+            return self.closed_outcome();
         }
-        answer.await.unwrap_or_else(|_| TurnOutcome::closed())
+        answer.await.unwrap_or_else(|_| self.closed_outcome())
+    }
+
+    /// The outcome for a turn the supervisor never answered: the recorded
+    /// reason for the close when there is one (G9/G22), the generic closed
+    /// message otherwise (an intentional shutdown).
+    fn closed_outcome(&self) -> TurnOutcome {
+        let recorded = self
+            .closed_reason
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone();
+        recorded.map_or_else(TurnOutcome::closed, failed_outcome)
+    }
+}
+
+/// Record why the supervisor is closing. The FIRST reason wins: it is the
+/// specific one (a refused workspace, a failed `initialize`, the error that
+/// killed the turn), while whatever ends the connection afterwards is usually
+/// a consequence of it.
+fn closing_reason(slot: &Mutex<Option<String>>, error: &str) {
+    let mut slot = slot
+        .lock()
+        .unwrap_or_else(std::sync::PoisonError::into_inner);
+    if slot.is_none() {
+        *slot = Some(error.to_string());
     }
 }
 
@@ -1383,8 +1416,9 @@ impl SessionHandle {
 /// # Errors
 ///
 /// Returns an error when the agent is unknown, its launcher cannot be built,
-/// or the supervisor thread cannot be spawned. Handshake failures surface as a
-/// failed first [`TurnOutcome`] instead (the pane is already running by then).
+/// or the supervisor thread cannot be spawned. Handshake and workspace
+/// failures surface as a failed first [`TurnOutcome`] carrying the harness's
+/// own error instead (the pane is already running by then).
 pub fn open_session(
     agent: &str,
     resume: Option<String>,
@@ -1400,10 +1434,12 @@ pub fn open_session(
     });
     let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
     let shutdown = Arc::new(AtomicBool::new(false));
+    let closed_reason = Arc::new(Mutex::new(None));
     let handle = SessionHandle {
         tx,
         cwd: cwd.clone(),
         shutdown: shutdown.clone(),
+        closed_reason: closed_reason.clone(),
     };
     let thread_cwd = cwd.clone();
     std::thread::Builder::new()
@@ -1416,6 +1452,10 @@ pub fn open_session(
                 Ok(runtime) => runtime,
                 Err(error) => {
                     log::error!("failed to build ACP session runtime: {error}");
+                    closing_reason(
+                        &closed_reason,
+                        &format!("failed to build ACP session runtime: {error}"),
+                    );
                     return;
                 }
             };
@@ -1426,6 +1466,7 @@ pub fn open_session(
                 thread_cwd,
                 rx,
                 shutdown,
+                closed_reason,
             ));
         })
         .map_err(|error| format!("failed to spawn ACP session thread: {error}"))?;
@@ -1449,10 +1490,12 @@ where
     let cwd = prepare_session_cwd(&cwd, CwdStrictness::Strict);
     let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
     let shutdown = Arc::new(AtomicBool::new(false));
+    let closed_reason = Arc::new(Mutex::new(None));
     let handle = SessionHandle {
         tx,
         cwd: cwd.clone(),
         shutdown: shutdown.clone(),
+        closed_reason: closed_reason.clone(),
     };
     std::thread::spawn(move || {
         let runtime = tokio::runtime::Builder::new_current_thread()
@@ -1460,7 +1503,13 @@ where
             .build()
             .expect("test ACP runtime");
         runtime.block_on(run_host_session(
-            transport, entry, resume, cwd, rx, shutdown,
+            transport,
+            entry,
+            resume,
+            cwd,
+            rx,
+            shutdown,
+            closed_reason,
         ));
     });
     handle
@@ -1475,14 +1524,19 @@ async fn run_host_session<T>(
     cwd: PathBuf,
     mut cmd_rx: tokio::sync::mpsc::UnboundedReceiver<HostCommand>,
     shutdown: Arc<AtomicBool>,
+    closed_reason: Arc<Mutex<Option<String>>>,
 ) where
     T: agent_client_protocol::ConnectTo<agent_client_protocol::Client> + 'static,
 {
+    // G22: a missing workspace fails loudly. It cannot fail at `open_session`
+    // time (the pin lives in this thread), so record the reason for the first
+    // turn instead of leaving it to the generic "session closed" message.
     #[cfg(unix)]
     let read_root = match super::sandbox::PinnedRoot::acquire(&cwd) {
         Ok(root) => root,
         Err(error) => {
             log::error!("ACP session workspace unavailable: {error}");
+            closing_reason(&closed_reason, &error.to_string());
             return;
         }
     };
@@ -1491,6 +1545,7 @@ async fn run_host_session<T>(
         Ok(root) => root,
         Err(error) => {
             log::error!("ACP session workspace unavailable: {error}");
+            closing_reason(&closed_reason, &error.to_string());
             return;
         }
     };
@@ -1500,6 +1555,11 @@ async fn run_host_session<T>(
     let write_root = cwd.clone();
 
     let shared = Arc::new(HostShared {
+        // No turn has declared its mode yet: a request arriving in the open
+        // window is answered `Cancelled` (N6) instead of being auto-approved
+        // for a pane whose mode is still unknown. The first turn sets this
+        // from its own permission channel.
+        interactive: AtomicBool::new(true),
         shutdown: shutdown.clone(),
         ..HostShared::default()
     });
@@ -1713,7 +1773,10 @@ async fn run_host_session<T>(
             },
             on_receive_request!(),
         )
-        .connect_with(transport, async move |connection: ConnectionTo<AcpRole>| {
+        // NOT `async move`: the command receiver must outlive the handler (see
+        // the failure drain after `connect_with`), so a turn queued behind a
+        // failed open can be answered with the REAL reason (G9/G22).
+        .connect_with(transport, async |connection: ConnectionTo<AcpRole>| {
             let capabilities = ClientCapabilities::new().fs(FileSystemCapabilities::new()
                 .read_text_file(true)
                 .write_text_file(true));
@@ -1756,6 +1819,10 @@ async fn run_host_session<T>(
             load_window.store(false, Ordering::Relaxed);
             let session_id = opened.session_id.clone();
             let open_modes = opened.modes.clone();
+            // The options the session opened with. Each successful set answers
+            // with the harness's new full set, which replaces this — a live
+            // session outlives the session-open snapshot (N19).
+            let mut config_options = opened.config_options.clone();
             log::debug!(
                 "ACP pane session open: {} (cwd {})",
                 session_id.0,
@@ -1804,13 +1871,18 @@ async fn run_host_session<T>(
                         apply_session_picks(
                             &connection,
                             &session_id,
-                            opened.config_options.as_deref(),
+                            config_options.as_deref(),
                             &effective,
                         ),
                     )
                     .await;
                     match result {
-                        Ok(()) => applied_picks = Some(effective.clone()),
+                        Ok(updated) => {
+                            applied_picks = Some(effective.clone());
+                            if let Some(updated) = updated {
+                                config_options = Some(updated);
+                            }
+                        }
                         Err(auth_error) if auth_error.code == ErrorCode::AuthRequired => {
                             authenticate_on_auth_required(
                                 &connection,
@@ -1818,21 +1890,28 @@ async fn run_host_session<T>(
                                 &auth_error,
                             )
                             .await?;
-                            if let Err(error) = handshake_step(
+                            match handshake_step(
                                 "config picks",
                                 apply_session_picks(
                                     &connection,
                                     &session_id,
-                                    opened.config_options.as_deref(),
+                                    config_options.as_deref(),
                                     &effective,
                                 ),
                             )
                             .await
                             {
-                                let _ = reply.send(failed_outcome(error.to_string()));
-                                continue;
+                                Ok(updated) => {
+                                    applied_picks = Some(effective.clone());
+                                    if let Some(updated) = updated {
+                                        config_options = Some(updated);
+                                    }
+                                }
+                                Err(error) => {
+                                    let _ = reply.send(failed_outcome(error.to_string()));
+                                    continue;
+                                }
                             }
-                            applied_picks = Some(effective.clone());
                         }
                         Err(error) => {
                             let _ = reply.send(failed_outcome(error.to_string()));
@@ -1887,7 +1966,7 @@ async fn run_host_session<T>(
                     .map(|(_, value)| value.as_str())
                     .unwrap_or("");
                 let _ = chunk_tx
-                    .send(session_model_info(opened.config_options.as_deref(), preferred_model));
+                    .send(session_model_info(config_options.as_deref(), preferred_model));
                 let _ = chunk_tx.send(SubagentEvent::Modes {
                     modes: open_modes
                         .as_ref()
@@ -2007,12 +2086,12 @@ async fn run_host_session<T>(
                 };
 
                 // Close the turn's routing before reporting: whatever arrives
-                // from here belongs to no live turn.
+                // from here belongs to no live turn. `interactive` is the
+                // PANE's mode, not the turn's, so it survives the turn end: a
+                // request that arrives now sees "interactive, no channel" and
+                // is answered `Cancelled` (N6) instead of falling into the
+                // auto-approve path reserved for Yolo/manager panes (G18).
                 {
-                    // Order matters: the pane stops being interactive before
-                    // the slot disappears, so a late request sees "interactive,
-                    // no channel" and is cancelled (N6).
-                    shared.interactive.store(false, Ordering::Relaxed);
                     *shared
                         .sink
                         .lock()
@@ -2047,7 +2126,10 @@ async fn run_host_session<T>(
                         });
                         // A protocol-level failure: the pane drops the handle
                         // and the next dispatch opens a fresh session (the
-                        // closed rebuild list).
+                        // closed rebuild list). Remember WHY, so a turn that
+                        // was already queued behind this one reports the
+                        // cause instead of "closed before answering".
+                        closing_reason(&closed_reason, &error.to_string());
                         break;
                     }
                 }
@@ -2056,8 +2138,18 @@ async fn run_host_session<T>(
         })
         .await;
 
-    if let Err(error) = result {
+    if let Err(error) = &result {
         log::warn!("ACP pane session ended: {error}");
+        closing_reason(&closed_reason, &error.to_string());
+        // Answer whatever is still queued with the real reason: a request that
+        // arrived after the fatal failure would otherwise be dropped with the
+        // reply channel and surface as "closed before answering" (G9/G22).
+        // Later sends fail against the recorded reason instead.
+        while let Ok(command) = cmd_rx.try_recv() {
+            if let HostCommand::Turn(request) = command {
+                let _ = request.reply.send(failed_outcome(error.to_string()));
+            }
+        }
     }
 }
 
@@ -2720,10 +2812,16 @@ async fn authenticate_on_auth_required(
 /// request that the harness or transport rejects is fatal: something is
 /// genuinely wrong with the connection.
 ///
+/// Returns the harness's NEW full option set when at least one set landed.
+/// `session/set_config_option` answers with the complete options and their
+/// current values, so the caller must continue from THAT snapshot: a live
+/// session outlives the set, and validating the next pick against the
+/// session-open snapshot would skip a value the harness only started
+/// offering after the previous change.
+///
 /// # Errors
 ///
-/// Returns an error when the config id is unknown to the harness's own
-/// pick list, or when the `session/set_config_option` request fails. The
+/// Returns an error when the `session/set_config_option` request fails. The
 /// wire error's protocol code is preserved so a rejection can be
 /// recognized as `auth_required` by the lazy-auth retry.
 async fn apply_session_picks(
@@ -2731,8 +2829,9 @@ async fn apply_session_picks(
     session_id: &SessionId,
     config_options: Option<&[SessionConfigOption]>,
     picks: &[(String, String)],
-) -> Result<(), AcpError> {
-    let options = config_options.unwrap_or_default();
+) -> Result<Option<Vec<SessionConfigOption>>, AcpError> {
+    let mut options: Vec<SessionConfigOption> = config_options.unwrap_or_default().to_vec();
+    let mut updated: Option<Vec<SessionConfigOption>> = None;
     for (config_id, value) in picks {
         let Some(option) = options
             .iter()
@@ -2763,7 +2862,7 @@ async fn apply_session_picks(
             );
             continue;
         }
-        connection
+        let response = connection
             .send_request(SetSessionConfigOptionRequest::new(
                 session_id.clone(),
                 SessionConfigId::new(config_id.as_str()),
@@ -2772,8 +2871,10 @@ async fn apply_session_picks(
             .block_task()
             .await
             .map_err(|e| wrap_acp_failure("ACP session/set_config_option failed", e))?;
+        options = response.config_options;
+        updated = Some(options.clone());
     }
-    Ok(())
+    Ok(updated)
 }
 
 /// Bind the session to ONE of the agent's advertised modes — the client's
@@ -3316,7 +3417,7 @@ where
             )
             .await;
             match picks_applied {
-                Ok(()) => {}
+                Ok(_) => {}
                 Err(auth_error) if auth_error.code == ErrorCode::AuthRequired => {
                     authenticate_on_auth_required(
                         &connection,

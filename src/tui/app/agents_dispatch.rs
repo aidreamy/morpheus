@@ -1938,9 +1938,12 @@ impl App {
             // N22: every dispatch is auditable as reuse/open/rebuild.
             match (&existing, live.is_some()) {
                 (Some(_), true) => log::debug!("ACP pane {pane_id}: reuse live session"),
-                (Some(_), false) => log::debug!(
-                    "ACP pane {pane_id}: rebuild — the previous session is gone or in another cwd"
-                ),
+                (Some(handle), false) if !handle.is_alive() => {
+                    log::debug!("ACP pane {pane_id}: rebuild — the previous session is gone");
+                }
+                (Some(_), false) => {
+                    log::debug!("ACP pane {pane_id}: rebuild — the workspace changed");
+                }
                 (None, _) => log::debug!("ACP pane {pane_id}: open — no live session"),
             }
             if live.is_none() {
@@ -2966,6 +2969,18 @@ impl App {
         if either_split(&self.agents_split, &self.parked_agents_split)
             .and_then(|split| split.panes.get(pane))
             .is_some_and(|p| p.rewound)
+        {
+            return;
+        }
+        // A pane with a LIVE session owns its connection (N20): a replay would
+        // open a second one against the same bound session and the harness
+        // would see it used twice. Its history is already in the timeline.
+        // A handle whose supervisor died does not own anything: the empty
+        // timeline is exactly what the replay is for, and the next prompt
+        // discards the dead handle anyway.
+        if either_split(&self.agents_split, &self.parked_agents_split)
+            .and_then(|split| split.panes.get(pane))
+            .is_some_and(|p| p.acp_session.as_ref().is_some_and(|h| h.is_alive()))
         {
             return;
         }

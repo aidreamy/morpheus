@@ -3908,16 +3908,30 @@ async fn persistent_session_applies_picks_and_mode_only_on_change() {
                             >,
                             _cx| {
                     config_calls_a.fetch_add(1, Ordering::SeqCst);
+                    // The set response is AUTHORITATIVE and carries the full
+                    // option set with the new current value: both models stay
+                    // offered, so the next pick is judged against it (N19).
+                    let current = request
+                        .value
+                        .as_value_id()
+                        .map(|id| id.0.to_string())
+                        .unwrap_or_default();
                     responder.respond(
                         agent_client_protocol::schema::v1::SetSessionConfigOptionResponse::new(
                             vec![SessionConfigOption::select(
                                 SessionConfigId::new("model"),
                                 "Model",
-                                SessionConfigValueId::new("preferred-model"),
-                                vec![SessionConfigSelectOption::new(
-                                    SessionConfigValueId::new("preferred-model"),
-                                    "Preferred",
-                                )],
+                                SessionConfigValueId::new(current),
+                                vec![
+                                    SessionConfigSelectOption::new(
+                                        SessionConfigValueId::new("default-model"),
+                                        "Default",
+                                    ),
+                                    SessionConfigSelectOption::new(
+                                        SessionConfigValueId::new("preferred-model"),
+                                        "Preferred",
+                                    ),
+                                ],
                             )],
                         ),
                     )
@@ -4211,6 +4225,27 @@ async fn persistent_session_protocol_failure_fails_and_drops_handle() {
     }
     assert!(!handle.is_alive(), "handle must be dead after a protocol failure");
 
+    // A turn that arrives after the fatal failure reports the CAUSE that closed
+    // the session, not the generic "closed before answering the turn"
+    // (G9/G22).
+    let (chunk_tx, _chunk_rx) = tokio::sync::mpsc::unbounded_channel();
+    let after = handle
+        .run_turn(
+            "again".to_string(),
+            &[],
+            None,
+            None,
+            Arc::new(AtomicBool::new(false)),
+            chunk_tx,
+        )
+        .await;
+    assert!(after.failed, "{after:?}");
+    assert!(
+        after.output.contains("boom"),
+        "the reason that closed the session must survive it, got {:?}",
+        after.output
+    );
+
     let _ = agent_task.await;
 }
 
@@ -4494,6 +4529,361 @@ async fn session_handle_matches_cwd_distinguishes_workspaces() {
     assert!(handle.matches_cwd(dir_a.path()));
     assert!(!handle.matches_cwd(dir_b.path()));
 
+    handle.shutdown();
+    let _ = agent_task.await;
+}
+
+/// N6: a permission request that arrives AFTER the turn ended is answered
+/// `Cancelled` — never auto-approved. `interactive` is the PANE's mode, so it
+/// survives the turn boundary; the auto-approve path (G18) belongs to
+/// Yolo/manager panes only, which never install a permission channel.
+#[tokio::test(flavor = "current_thread")]
+async fn persistent_session_answers_a_late_permission_as_cancelled() {
+    use agent_client_protocol::schema::v1::{
+        AgentCapabilities, InitializeRequest, InitializeResponse, NewSessionRequest,
+        NewSessionResponse, PermissionOption, PermissionOptionKind, PromptRequest, PromptResponse,
+        RequestPermissionRequest, SessionId, StopReason, ToolCallUpdate, ToolCallUpdateFields,
+    };
+    use agent_client_protocol::{Agent as AgentRole, Channel, Responder};
+    use std::sync::atomic::AtomicBool;
+
+    let (client_side, agent_side) = Channel::duplex();
+    let after_turn = Arc::new(tokio::sync::Notify::new());
+    let notify = after_turn.clone();
+    let (answer_tx, mut answer_rx) = tokio::sync::mpsc::unbounded_channel::<String>();
+
+    let agent_task = tokio::spawn(async move {
+        let _ = AgentRole
+            .builder()
+            .name("late-permission-fixture")
+            .on_receive_request(
+                async move |request: InitializeRequest,
+                            responder: Responder<InitializeResponse>,
+                            _cx| {
+                    responder.respond(
+                        InitializeResponse::new(request.protocol_version)
+                            .agent_capabilities(AgentCapabilities::new()),
+                    )
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |_request: NewSessionRequest,
+                            responder: Responder<NewSessionResponse>,
+                            _cx| {
+                    responder.respond(NewSessionResponse::new(SessionId::new(
+                        "late-permission-session",
+                    )))
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |request: PromptRequest, responder: Responder<PromptResponse>, cx| {
+                    let session_id = request.session_id.clone();
+                    // The turn ends FIRST; the permission request goes out once
+                    // the client already reported the turn outcome (so its
+                    // routing is definitively closed).
+                    let _ = responder.respond(PromptResponse::new(StopReason::EndTurn));
+                    let asker = cx.clone();
+                    let notify = notify.clone();
+                    let answer_tx = answer_tx.clone();
+                    cx.spawn(async move {
+                        notify.notified().await;
+                        let response = asker
+                            .send_request(RequestPermissionRequest::new(
+                                session_id,
+                                ToolCallUpdate::new(
+                                    "late-tool-call",
+                                    ToolCallUpdateFields::default(),
+                                ),
+                                vec![PermissionOption::new(
+                                    "allow-always",
+                                    "Always allow",
+                                    PermissionOptionKind::AllowAlways,
+                                )],
+                            ))
+                            .block_task()
+                            .await?;
+                        let _ = answer_tx.send(format!("{:?}", response.outcome));
+                        Ok(())
+                    })?;
+                    Ok(())
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .connect_to(agent_side)
+            .await;
+    });
+
+    let handle =
+        super::acp::open_session_with_transport(client_side, "gemini", None, std::env::temp_dir());
+
+    // An INTERACTIVE pane: the channel exists and the user simply never used
+    // it (no request arrived during the turn).
+    let (permission_tx, permission_rx) = tokio::sync::mpsc::unbounded_channel();
+    let (chunk_tx, _chunk_rx) = tokio::sync::mpsc::unbounded_channel();
+    let outcome = handle
+        .run_turn(
+            "hi".to_string(),
+            &[],
+            None,
+            Some(permission_rx),
+            Arc::new(AtomicBool::new(false)),
+            chunk_tx,
+        )
+        .await;
+    assert!(!outcome.failed, "{outcome:?}");
+    assert_eq!(outcome.stop_reason, "end_turn");
+
+    after_turn.notify_one();
+    let answer = tokio::time::timeout(std::time::Duration::from_secs(5), answer_rx.recv())
+        .await
+        .expect("the fixture must receive an answer to its late permission")
+        .expect("the answer channel");
+    assert_eq!(
+        answer, "Cancelled",
+        "N6: a permission from an already-ended turn must be cancelled, not auto-approved"
+    );
+
+    drop(permission_tx);
+    handle.shutdown();
+    let _ = agent_task.await;
+}
+
+/// G9: a failed handshake surfaces the harness's REAL error on the first turn
+/// instead of the generic "closed before answering the turn".
+#[tokio::test(flavor = "current_thread")]
+async fn persistent_session_handshake_failure_reports_the_real_error() {
+    use agent_client_protocol::schema::v1::{InitializeRequest, InitializeResponse};
+    use agent_client_protocol::{Agent as AgentRole, Channel, Responder};
+    use std::sync::atomic::AtomicBool;
+
+    let (client_side, agent_side) = Channel::duplex();
+    let agent_task = tokio::spawn(async move {
+        let _ = AgentRole
+            .builder()
+            .name("refusing-fixture")
+            .on_receive_request(
+                async move |_request: InitializeRequest,
+                            responder: Responder<InitializeResponse>,
+                            _cx| {
+                    responder.respond_with_internal_error("fixture refused the handshake")
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .connect_to(agent_side)
+            .await;
+    });
+
+    let handle =
+        super::acp::open_session_with_transport(client_side, "gemini", None, std::env::temp_dir());
+    let (chunk_tx, _chunk_rx) = tokio::sync::mpsc::unbounded_channel();
+    let outcome = handle
+        .run_turn(
+            "hi".to_string(),
+            &[],
+            None,
+            None,
+            Arc::new(AtomicBool::new(false)),
+            chunk_tx,
+        )
+        .await;
+
+    assert!(outcome.failed, "{outcome:?}");
+    assert_eq!(outcome.stop_reason, "error");
+    assert_eq!(
+        outcome.session_id, None,
+        "G9: a failure must not bind a session"
+    );
+    assert!(
+        outcome.output.contains("fixture refused the handshake"),
+        "G9: the harness error must reach the pane, got {:?}",
+        outcome.output
+    );
+    assert!(!handle.is_alive(), "a failed handshake closes the session");
+
+    let _ = agent_task.await;
+}
+
+/// G22: an unpinnable workspace fails loudly on the first turn with the
+/// sandbox's own reason (never a silent home substitution, never the generic
+/// closed message).
+#[cfg(unix)]
+#[tokio::test(flavor = "current_thread")]
+async fn persistent_session_unpinnable_workspace_reports_the_real_error() {
+    use agent_client_protocol::Channel;
+    use std::sync::atomic::AtomicBool;
+
+    let missing = std::env::temp_dir().join(format!(
+        "morpheus-acp-missing-workspace-{}",
+        std::process::id()
+    ));
+    // `prepare_session_cwd(Strict)` passes a vanished path through on purpose;
+    // the pin is what refuses it, inside the supervisor thread.
+    assert!(!missing.exists());
+
+    let (client_side, agent_side) = Channel::duplex();
+    let handle = super::acp::open_session_with_transport(client_side, "gemini", None, missing);
+    let _agent_side = agent_side;
+    let (chunk_tx, _chunk_rx) = tokio::sync::mpsc::unbounded_channel();
+    let outcome = handle
+        .run_turn(
+            "hi".to_string(),
+            &[],
+            None,
+            None,
+            Arc::new(AtomicBool::new(false)),
+            chunk_tx,
+        )
+        .await;
+
+    assert!(outcome.failed, "{outcome:?}");
+    assert_eq!(outcome.session_id, None);
+    assert!(
+        outcome.output.contains("session workspace") && outcome.output.contains("not accessible"),
+        "G22: the sandbox reason must reach the pane, got {:?}",
+        outcome.output
+    );
+    handle.shutdown();
+}
+
+/// N19: a live session validates each new pick against the harness's CURRENT
+/// config options (the last `session/set_config_option` response), not against
+/// the session-open snapshot. A value the harness only starts offering after
+/// the first change must still be applied.
+#[tokio::test(flavor = "current_thread")]
+async fn persistent_session_revalidates_picks_against_the_latest_options() {
+    use agent_client_protocol::schema::v1::{
+        AgentCapabilities, ContentBlock, ContentChunk, InitializeRequest, InitializeResponse,
+        NewSessionRequest, NewSessionResponse, PromptRequest, PromptResponse, SessionConfigId,
+        SessionConfigOption, SessionConfigSelectOption, SessionConfigValueId, SessionId,
+        SetSessionConfigOptionRequest, SetSessionConfigOptionResponse, StopReason, TextContent,
+    };
+    use agent_client_protocol::{Agent as AgentRole, Channel, Responder};
+    use std::sync::atomic::AtomicBool;
+
+    let applied_values: Arc<Mutex<Vec<String>>> = Arc::new(Mutex::new(Vec::new()));
+    let values = applied_values.clone();
+
+    let (client_side, agent_side) = Channel::duplex();
+    let agent_task = tokio::spawn(async move {
+        let _ = AgentRole
+            .builder()
+            .name("fresh-options-fixture")
+            .on_receive_request(
+                async move |request: InitializeRequest,
+                            responder: Responder<InitializeResponse>,
+                            _cx| {
+                    responder.respond(
+                        InitializeResponse::new(request.protocol_version)
+                            .agent_capabilities(AgentCapabilities::new()),
+                    )
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |_request: NewSessionRequest,
+                            responder: Responder<NewSessionResponse>,
+                            _cx| {
+                    // The session OPENS with two models: the third one
+                    // ("second-model") only becomes offered after a change.
+                    responder.respond(
+                        NewSessionResponse::new(SessionId::new("fresh-options-session"))
+                            .config_options(vec![SessionConfigOption::select(
+                                SessionConfigId::new("model"),
+                                "Model",
+                                SessionConfigValueId::new("other-model"),
+                                vec![
+                                    SessionConfigSelectOption::new(
+                                        SessionConfigValueId::new("default-model"),
+                                        "Default",
+                                    ),
+                                    SessionConfigSelectOption::new(
+                                        SessionConfigValueId::new("preferred-model"),
+                                        "Preferred",
+                                    ),
+                                ],
+                            )]),
+                    )
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |request: SetSessionConfigOptionRequest,
+                            responder: Responder<SetSessionConfigOptionResponse>,
+                            _cx| {
+                    let value = request
+                        .value
+                        .as_value_id()
+                        .map(|id| id.0.to_string())
+                        .unwrap_or_default();
+                    values.lock().unwrap().push(value.clone());
+                    // The response answers with the FULL new option set: the
+                    // newly selected value plus one the snapshot never had.
+                    responder.respond(SetSessionConfigOptionResponse::new(vec![
+                        SessionConfigOption::select(
+                            SessionConfigId::new("model"),
+                            "Model",
+                            SessionConfigValueId::new(value.clone()),
+                            vec![
+                                SessionConfigSelectOption::new(
+                                    SessionConfigValueId::new("second-model"),
+                                    "Second",
+                                ),
+                                SessionConfigSelectOption::new(
+                                    SessionConfigValueId::new(value.as_str()),
+                                    "Current",
+                                ),
+                            ],
+                        ),
+                    ]))
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |request: PromptRequest, responder: Responder<PromptResponse>, cx| {
+                    let _ = cx.send_notification(
+                        agent_client_protocol::schema::v1::SessionNotification::new(
+                            request.session_id.clone(),
+                            agent_client_protocol::schema::v1::SessionUpdate::AgentMessageChunk(
+                                ContentChunk::new(ContentBlock::Text(TextContent::new(
+                                    "ok".to_string(),
+                                ))),
+                            ),
+                        ),
+                    );
+                    responder.respond(PromptResponse::new(StopReason::EndTurn))
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .connect_to(agent_side)
+            .await;
+    });
+
+    let handle =
+        super::acp::open_session_with_transport(client_side, "gemini", None, std::env::temp_dir());
+
+    for value in ["preferred-model", "second-model"] {
+        let (chunk_tx, mut chunk_rx) = tokio::sync::mpsc::unbounded_channel();
+        let outcome = handle
+            .run_turn(
+                "hi".to_string(),
+                &[("model".to_string(), value.to_string())],
+                None,
+                None,
+                Arc::new(AtomicBool::new(false)),
+                chunk_tx,
+            )
+            .await;
+        assert!(!outcome.failed, "{outcome:?}");
+        while chunk_rx.try_recv().is_ok() {}
+    }
+
+    assert_eq!(
+        applied_values.lock().unwrap().as_slice(),
+        ["preferred-model", "second-model"],
+        "the second pick must validate against the set response, not the open snapshot"
+    );
     handle.shutdown();
     let _ = agent_task.await;
 }

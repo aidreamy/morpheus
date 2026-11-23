@@ -6,21 +6,43 @@ mode, drives a full [Agent Client Protocol](https://agentclientprotocol.com/)
 turn as a client, streams the agent's output in real time, and accumulates
 the result until the turn ends.
 
+There are two entry points over the same turn engine:
+
 ```rust,ignore
+// One turn, one process: the `subagent` tool and prompt correction.
 pub async fn call(
     agent: &str,
     input: &str,
+    resume: Option<String>,
+    picks: &[(String, String)],
+    mode: Option<&str>,
+    permission_rx: Option<UnboundedReceiver<PanePermissionAnswer>>,
     cwd: PathBuf,
-    chunk_tx: tokio::sync::mpsc::UnboundedSender<String>,
-) -> Result<(String, String), String>
+    stop_signal: Arc<AtomicBool>,
+    chunk_tx: UnboundedSender<SubagentEvent>,
+) -> Result<(String, String, Option<String>), String>;
+
+// One live session per `/agents` pane, reused across turns.
+pub fn open_session(
+    agent: &str,
+    resume: Option<String>,
+    cwd: PathBuf,
+) -> Result<SessionHandle, String>;
 ```
 
-The `chunk_tx` channel receives every agent message chunk as it is produced
-(for live TUI display); the returned tuple is the accumulated output plus
-the ACP stop reason (e.g. `"EndTurn"`, or the client-side terminal marker
-`"error"`). The ACP session runs on a dedicated current-thread
-runtime inside `tokio::task::spawn_blocking`, so the ambient async runtime is
-not blocked and the caller's future stays `Send`.
+`call` is the one-shot shape: it spawns the harness, runs exactly one turn
+and tears the process down, returning the accumulated output, the ACP stop
+reason and the session id. `open_session` returns a [`SessionHandle`] whose
+supervisor thread keeps the process, the handshake and the session alive
+between turns; only the named rebuild causes (rewind, cwd change, harness
+death, rejected resume, protocol error, hidden/closed pane, restart) open a
+new one. The full guarantee contract is
+[acp-persistent-session-guarantees.md](acp-persistent-session-guarantees.md).
+
+In both shapes `chunk_tx` receives typed events as they are produced (for the
+live TUI display); a `call` session runs on a dedicated current-thread runtime
+inside `tokio::task::spawn_blocking`, and a pane session runs on its own
+supervisor thread, so the ambient async runtime is never blocked.
 
 ---
 
@@ -118,6 +140,10 @@ spawned.
 
 ## The ACP turn pipeline
 
+The steps below are shared by `call` and by the pane supervisor. The only
+difference is lifetime: `call` runs them once and exits, the pane supervisor
+runs the spawn/handshake once and then repeats picks/mode/prompt per turn.
+
 1. **Validate** the agent name (`validate_agent`) and build the
    [`AcpAgent`](https://docs.rs/agent-client-protocol) launcher for its
    command + args.
@@ -125,20 +151,24 @@ spawned.
    JSON-RPC over stdio; the client sends `initialize` advertising the `fs`
    capability (read/write text file) so conformant agents may delegate file
    operations to morpheus.
-3. **Authenticate** with the first advertised method, when the harness
-   advertises `auth_methods` (e.g. `goose acp`). Harnesses that manage auth
-   themselves advertise none and are skipped.
-4. **Session.** `session/new` opens a session rooted at `cwd` (the workspace
-   directory). When the agent entry names a `model`, the client switches
-   the session to it via `session/set_config_option` (see [Model
-   selection](#model-selection-model) above).
+3. **Session.** `session/resume` (or `session/load` for a cold replay) is
+   used when the harness advertises the capability and a stored id exists;
+   otherwise `session/new` opens a session rooted at `cwd`. When the agent
+   entry names a `model`, the client switches the session to it via
+   `session/set_config_option` (see [Model
+   selection](#model-selection-model) above). On a live pane session the
+   picks and mode are only re-sent when the user changed them.
+4. **Authenticate lazily.** There is no proactive `authenticate`: the open
+   (or a later operation) is rejected with `auth_required`, one advertised
+   method is tried, and the same operation is retried on the same session.
 5. **Prompt.** `session/prompt` sends the task as a single text content
    block. While the turn runs:
    - `session/update` notifications carrying `AgentMessageChunk` feed the
      turn's closure (see below) and stream through `chunk_tx`;
-   - `session/request_permission` requests are **auto-approved** (first
-     option, YOLO style) so a headless call never blocks; with no options
-     the request is answered `Cancelled` per the spec;
+   - `session/request_permission` requests go to the pane's permission box
+     in an interactive mode; without a channel (Yolo, manager, `call`) they
+     are auto-approved (AllowAlways, then AllowOnce, then the first option),
+     and with no options the request is answered `Cancelled` per the spec;
    - `fs/read_text_file` / `fs/write_text_file` requests operate on the real
      workspace files (1-based lines, absolute paths per the protocol).
 6. **Complete.** The prompt response's stop reason is returned with the
@@ -155,9 +185,10 @@ spawned.
    when the agent ends it - or earlier only when the user stops it, which
    sends `session/cancel` and yields the spec-mandated `"cancelled"` stop
    reason with the partial output preserved. A harness that ignores
-   `session/cancel` and never ends the turn is abandoned with the call
-   (its task and process stay alive until the app exits) - the stop signal
-   is the only early-end mechanism.
+   `session/cancel` gets a bounded grace on a pane session: past it the turn
+   fails, the pane drops the handle and the next dispatch opens a fresh
+   session instead of waiting forever. In the one-shot `call` shape the
+   stopped call is still awaited for its partial output.
 
 ---
 

@@ -23,13 +23,16 @@ use std::path::{Path, PathBuf};
 use std::time::Duration;
 
 use super::ipc_error::Lifecycle;
+use super::transport::{self, Stream};
 
 /// The runtime socket directory: `$XDG_RUNTIME_DIR/morpheus/daemon`, falling
 /// back to what `directories` computes when the runtime dir is not set
-/// (some containers drop it).
+/// (some containers drop it, and Windows has no runtime dir at all).
 ///
 /// Under `XDG_RUNTIME_DIR` the path is tmpfs, user-owned and wiped at
-/// logout — the right home for a per-user socket with `0600` perms.
+/// logout — the right home for a per-user socket with `0600` perms. The
+/// fallback is the LOCAL data dir, which is the closest Windows equivalent:
+/// per-user, not roaming, and its inherited ACL is user-only.
 pub(crate) fn socket_dir() -> PathBuf {
     if let Some(runtime) = std::env::var_os("XDG_RUNTIME_DIR") {
         return Path::new(&runtime).join("morpheus").join("daemon");
@@ -37,7 +40,7 @@ pub(crate) fn socket_dir() -> PathBuf {
     directories::ProjectDirs::from("", "", "morpheus")
         .map(|dirs| {
             dirs.runtime_dir().map_or_else(
-                || dirs.data_dir().join("daemon"),
+                || dirs.data_local_dir().join("daemon"),
                 |runtime| runtime.join("morpheus").join("daemon"),
             )
         })
@@ -56,9 +59,9 @@ pub(crate) fn socket_path(name: &str) -> PathBuf {
 pub(crate) fn connect_or_activate(
     name: &'static str,
     activate: impl FnOnce() -> Result<(), Lifecycle>,
-) -> Result<std::os::unix::net::UnixStream, Lifecycle> {
+) -> Result<Stream, Lifecycle> {
     let path = socket_path(name);
-    if let Ok(stream) = std::os::unix::net::UnixStream::connect(&path) {
+    if let Ok(stream) = transport::connect(&path) {
         return Ok(stream);
     }
 
@@ -74,7 +77,7 @@ pub(crate) fn connect_or_activate(
         // Every connect failure inside the window is retried (the socket
         // may not exist yet, or exist before its listener does); the
         // deadline is the single authority on giving up.
-        match std::os::unix::net::UnixStream::connect(&path) {
+        match transport::connect(&path) {
             Ok(stream) => return Ok(stream),
             Err(_) if std::time::Instant::now() >= deadline => {
                 return Err(Lifecycle::Timeout {
@@ -105,15 +108,16 @@ const ACTIVATION_BACKOFF_CAP: Duration = Duration::from_millis(250);
 /// lock held and knows a live daemon owns the path — it exits 0 as the
 /// loser instead of ever touching the socket file.
 ///
-/// The lock file persists when a daemon crashes (locks do not — `flock` is
-/// released by the kernel on process death), which is exactly the property
-/// a pidfile lacks.
+/// The lock file persists when a daemon crashes (locks do not — the OS
+/// releases them on process death), which is exactly the property a pidfile
+/// lacks.
 ///
 /// `None` when the lock cannot even be created (read-only dir): the caller
 /// then falls back to the racy path rather than refusing to run.
 pub(crate) enum ActivationLock {
-    /// We hold the lock: safe to probe/remove/bind the socket.
-    Held(std::fs::File),
+    /// We hold the lock: safe to probe/remove/bind the socket. The handle is
+    /// `None` only in the fail-open fallback above.
+    Held(Option<std::fs::File>),
     /// Someone else holds it: a live daemon owns the socket path.
     Contended,
 }
@@ -131,20 +135,47 @@ pub(crate) fn acquire_activation_lock(name: &str) -> ActivationLock {
             log::warn!("activation lock unavailable at {}: {e}", path.display());
             // Racy fallback rather than refusal — fail-open, like the rest
             // of the layer.
-            return ActivationLock::Held(std::fs::File::open("/dev/null").expect("/dev/null"));
+            return ActivationLock::Held(None);
         }
     };
-    use std::os::fd::AsRawFd;
-    let held = unsafe {
-        // `flock` is process-associated (not fd-associated) and released on
-        // process exit by the kernel; there is no unlock path to maintain.
-        libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB)
-    };
-    if held == 0 {
-        ActivationLock::Held(file)
+    if try_lock(&file) {
+        ActivationLock::Held(Some(file))
     } else {
         ActivationLock::Contended
     }
+}
+
+/// Take the lock without blocking. The lock is process-associated and
+/// released by the OS on process death, so there is no unlock path to
+/// maintain.
+#[cfg(unix)]
+fn try_lock(file: &std::fs::File) -> bool {
+    use std::os::fd::AsRawFd;
+    unsafe { libc::flock(file.as_raw_fd(), libc::LOCK_EX | libc::LOCK_NB) == 0 }
+}
+
+/// The Windows `flock` equivalent: an exclusive lock over the whole file,
+/// failing immediately instead of waiting. `File` handles are not opened
+/// with `FILE_FLAG_OVERLAPPED`, so the `OVERLAPPED` offset only selects the
+/// byte range and needs nothing else.
+#[cfg(windows)]
+fn try_lock(file: &std::fs::File) -> bool {
+    use std::os::windows::io::AsRawHandle;
+    use windows_sys::Win32::Storage::FileSystem::{
+        LOCKFILE_EXCLUSIVE_LOCK, LOCKFILE_FAIL_IMMEDIATELY, LockFileEx,
+    };
+    let mut overlapped = windows_sys::Win32::System::IO::OVERLAPPED::default();
+    let held = unsafe {
+        LockFileEx(
+            file.as_raw_handle() as _,
+            LOCKFILE_EXCLUSIVE_LOCK | LOCKFILE_FAIL_IMMEDIATELY,
+            0,
+            u32::MAX,
+            u32::MAX,
+            &mut overlapped,
+        )
+    };
+    held != 0
 }
 
 /// Spawn the daemon binary next to the running app.
@@ -156,16 +187,35 @@ pub(crate) fn acquire_activation_lock(name: &str) -> ActivationLock {
 /// the spawning app (that is the point — other instances share it) and
 /// never write to the app's terminal.
 pub(crate) fn spawn_sibling(name: &'static str) -> Result<(), Lifecycle> {
-    use std::os::unix::process::CommandExt;
     // The real daemon name in both error paths (m4) — "cannot spawn the
     // daemon daemon" was the old hardcoded-report bug.
     let exe = std::env::current_exe().map_err(|e| Lifecycle::Spawn { name, source: e })?;
     let daemon_exe = exe.with_file_name(format!("morpheus-{name}d"));
-    std::process::Command::new(&daemon_exe)
+    let mut command = std::process::Command::new(&daemon_exe);
+    command
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
-        .stderr(std::process::Stdio::null())
-        .process_group(0)
+        .stderr(std::process::Stdio::null());
+
+    // Detach from the spawning app's process group: the daemon outlives
+    // that app and must not receive its terminal signals.
+    #[cfg(unix)]
+    {
+        use std::os::unix::process::CommandExt;
+        command.process_group(0);
+    }
+    #[cfg(windows)]
+    {
+        use std::os::windows::process::CommandExt;
+        const CREATE_NEW_PROCESS_GROUP: u32 = 0x0000_0200;
+        const CREATE_NO_WINDOW: u32 = 0x0800_0000;
+        // No console of its own (a double-clicked GUI launch must not flash
+        // a console window) and a new process group so a Ctrl+C aimed at the
+        // spawning console never reaches the resident daemon.
+        command.creation_flags(CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP);
+    }
+
+    command
         .spawn()
         .map_err(|e| Lifecycle::Spawn { name, source: e })?;
     Ok(())

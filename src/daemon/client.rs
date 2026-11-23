@@ -2,8 +2,8 @@
 //! open. Fully synchronous — see `ipc` for why std is the right runtime.
 //!
 //! The connection policy is deliberately stateless: **every call gets a
-//! fresh connection**. A daemon call happens once per turn end, so a UDS
-//! connect is noise next to the inference; statelessness buys immunity to
+//! fresh connection**. A daemon call happens once per turn end, so a local
+//! socket connect is noise next to the inference; statelessness buys immunity to
 //! stale-connection bugs (daemon restarted between turns, drained, idle-
 //! exited) with no reconnect logic to maintain. Per-daemon modules layer
 //! typed methods on top.

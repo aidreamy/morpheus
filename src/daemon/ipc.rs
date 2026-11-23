@@ -1,5 +1,6 @@
-//! The daemon transport: UDS + length-prefixed JSON-RPC 2.0, fully
-//! synchronous (std only).
+//! The daemon transport: local sockets + length-prefixed JSON-RPC 2.0,
+//! fully synchronous (std only). The socket type is `transport`'s: a Unix
+//! domain socket on Unix, an AF_UNIX socket on Windows.
 //!
 //! One frame carries one JSON-RPC message; the frame is a big-endian `u32`
 //! length prefix followed by that many bytes of UTF-8 JSON (capped, so
@@ -16,7 +17,6 @@
 //! thread-per-connection, the client one socket with timeouts.
 
 use std::io::{Read, Write};
-use std::os::unix::net::{UnixListener, UnixStream};
 use std::time::Duration;
 
 use serde::de::DeserializeOwned;
@@ -24,6 +24,7 @@ use serde::ser::Serialize;
 use serde_json::Value;
 
 use super::ipc_error::Ipc;
+use super::transport::{self, Listener, Stream};
 
 /// Hard ceiling on one request/response round trip, enforced with socket
 /// timeouts on the client side (`ClientConnection::new`).
@@ -182,7 +183,7 @@ impl RpcError {
     pub(crate) const INTERNAL: i32 = -32603;
 }
 
-pub(crate) fn write_frame(stream: &mut UnixStream, message: &Message) -> Result<(), Ipc> {
+pub(crate) fn write_frame(stream: &mut Stream, message: &Message) -> Result<(), Ipc> {
     let payload = message.serialize()?;
     let len = u32::try_from(payload.len()).map_err(|_| Ipc::FrameTooLarge)?;
     stream.write_all(&len.to_be_bytes())?;
@@ -192,7 +193,7 @@ pub(crate) fn write_frame(stream: &mut UnixStream, message: &Message) -> Result<
 }
 
 /// Read one frame; `None` at a clean peer close (EOF between frames).
-pub(crate) fn read_frame(stream: &mut UnixStream) -> Result<Option<Vec<u8>>, Ipc> {
+pub(crate) fn read_frame(stream: &mut Stream) -> Result<Option<Vec<u8>>, Ipc> {
     let mut prefix = [0u8; 4];
     match stream.read_exact(&mut prefix) {
         Ok(_) => {}
@@ -213,11 +214,14 @@ pub(crate) fn read_frame(stream: &mut UnixStream) -> Result<Option<Vec<u8>>, Ipc
     }
 }
 
-/// A peer close mid-frame surfaces as `UnexpectedEof` (or `Reset`).
+/// A peer close mid-frame surfaces as `UnexpectedEof` (or `Reset`; Windows
+/// can also report an aborted connection).
 fn is_close(e: &std::io::Error) -> bool {
     matches!(
         e.kind(),
-        std::io::ErrorKind::UnexpectedEof | std::io::ErrorKind::ConnectionReset
+        std::io::ErrorKind::UnexpectedEof
+            | std::io::ErrorKind::ConnectionReset
+            | std::io::ErrorKind::ConnectionAborted
     )
 }
 
@@ -235,7 +239,7 @@ fn is_timeout(e: &std::io::Error) -> bool {
 /// connection** — a client that wants concurrency opens another connection
 /// (cheap on a UDS).
 pub(crate) fn serve_connection<S, F>(
-    mut stream: UnixStream,
+    mut stream: Stream,
     state: &mut S,
     mut handler: F,
 ) -> Result<(), Ipc>
@@ -266,7 +270,7 @@ where
 /// A client-side connection: the handshake is folded into the first call,
 /// then requests serialize over the one socket.
 pub(crate) struct ClientConnection {
-    stream: UnixStream,
+    stream: Stream,
     next_id: u64,
     /// The daemon name this connection expects to greet — a foreign daemon
     /// on our socket path fails the handshake.
@@ -282,7 +286,7 @@ impl ClientConnection {
     /// hold the caller for minutes. The budget caps the connection's
     /// read/write timeouts in one place and bounds the WHOLE call.
     pub(crate) fn with_budget(
-        stream: UnixStream,
+        stream: Stream,
         expected_daemon: &'static str,
         expected_protocol: u32,
         budget: Duration,
@@ -417,16 +421,15 @@ pub(crate) fn to_value<T: Serialize>(value: &T) -> Result<Value, Ipc> {
 ///
 /// Removing unconditionally would let a spawning loser detach a live
 /// daemon's socket from under every connected client.
-pub(crate) fn bind(path: &std::path::Path) -> std::io::Result<UnixListener> {
-    if path.exists() && UnixStream::connect(path).is_ok() {
+pub(crate) fn bind(path: &std::path::Path) -> std::io::Result<Listener> {
+    if path.exists() && transport::connect(path).is_ok() {
         return Err(std::io::Error::new(
             std::io::ErrorKind::AddrInUse,
             format!("a live daemon already owns {}", path.display()),
         ));
     }
     let _ = std::fs::remove_file(path);
-    let listener = UnixListener::bind(path)?;
-    use std::os::unix::fs::PermissionsExt;
-    std::fs::set_permissions(path, std::fs::Permissions::from_mode(0o600))?;
+    let listener = transport::bind(path)?;
+    transport::restrict_to_owner(path)?;
     Ok(listener)
 }

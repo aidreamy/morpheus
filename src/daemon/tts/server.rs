@@ -16,6 +16,7 @@ use std::time::{Duration, Instant};
 use serde_json::Value;
 
 use crate::daemon::ipc::{self, Message, RpcError};
+use crate::daemon::transport::Listener;
 use crate::speak::{BassEnvelope, KokoroConfig, Phonemizer, Speak, SpeakConfig};
 
 use super::protocol::{
@@ -131,11 +132,7 @@ impl Server {
 
     /// Serve until the listener errors, the idle budget is exceeded, or
     /// `shutdown` drains the server.
-    pub(crate) fn serve(
-        self: Arc<Self>,
-        listener: std::os::unix::net::UnixListener,
-        idle_timeout: Duration,
-    ) {
+    pub(crate) fn serve(self: Arc<Self>, listener: Listener, idle_timeout: Duration) {
         listener
             .set_nonblocking(true)
             .expect("listener nonblocking");

@@ -133,8 +133,8 @@ rayon = "1"
 # crates/morpheus-tools, crates/morpheus-recall): error enums, header maps, URL
 # parsing for the MCP client. Not new crates, just newly direct.
 thiserror = "2"
-# The activation lock (`flock`) that serializes daemon bind races — see
-# `daemon::activation`. Same crate/version morpheus-tools already carries.
+# The activation lock (`flock`) that serializes daemon bind races on Unix —
+# see `daemon::activation`. Same crate/version morpheus-tools already carries.
 libc = "0.2"
 http = "1"
 url = "2"
@@ -208,7 +208,17 @@ version = "5"
 version = "4"
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem"] }
+# `LockFileEx` is the Windows `flock` equivalent for the daemon activation
+# lock; `OVERLAPPED` lives in System::IO.
+windows-sys = { version = "0.61.2", features = [
+    "Win32_Foundation",
+    "Win32_Storage_FileSystem",
+    "Win32_System_IO",
+] }
+# AF_UNIX sockets on Windows (`daemon::transport`). The API mirrors
+# `std::os::unix::net`, and mio already pulls this crate in, so it is not a
+# new artifact in the graph. Requires Windows 10 1803+ / Server 2019+.
+uds_windows = "1.2.1"
 
 [dependencies.lru]
 version = "0.18"

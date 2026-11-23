@@ -5842,6 +5842,7 @@ dependencies = [
  "tokio",
  "tokio-rustls",
  "tokio-stream",
+ "uds_windows",
  "unicode-width",
  "url",
  "webbrowser",

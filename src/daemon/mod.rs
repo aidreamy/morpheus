@@ -10,7 +10,9 @@
 //! ```text
 //! src/daemon/
 //!   mod.rs         this file: the architecture contract for a new daemon
-//!   ipc.rs         transport: UDS listen/connect, length-prefixed JSON-RPC 2.0
+//!   transport.rs   the one platform seam: local stream sockets (Unix domain
+//!                  sockets on Unix, AF_UNIX on Windows)
+//!   ipc.rs         the protocol: listen/connect, length-prefixed JSON-RPC 2.0
 //!                  framing, per-connection request loop
 //!   activation.rs  lifecycle: socket activation (spawn-on-demand), the
 //!                  bind-as-lock race resolution, the idle shutdown timer
@@ -43,18 +45,27 @@
 //! (`speak`) is enabled, and each daemon subdirectory keeps its own gate. A
 //! build with neither feature compiles none of this (no dead code, no
 //! warnings — the module tree IS the feature boundary).
-#![cfg(any(feature = "onnx", all(feature = "speak", unix)))]
+//!
+//! ## Platforms
+//!
+//! The shared layer is OS-independent apart from [`transport`]: the socket
+//! is a Unix domain socket on Unix and an AF_UNIX socket on Windows
+//! (Windows 10 1803+ / Server 2019+), so the protocol, the framing, the
+//! timeouts and the activation flow are identical on both. The Windows
+//! activation lock is `LockFileEx`, the `flock` equivalent.
+#![cfg(any(feature = "onnx", feature = "speak"))]
 
 pub(crate) mod activation;
 pub(crate) mod client;
 pub(crate) mod ipc;
 pub(crate) mod ipc_error;
+pub(crate) mod transport;
 
 /// The decision daemon (see the module docs above for the layout and the
 /// "how to add one" contract).
 #[cfg(feature = "onnx")]
 pub mod decision;
 
-/// The voice daemon. Unix-only: the transport is a Unix domain socket.
-#[cfg(all(feature = "speak", unix))]
+/// The voice daemon: synthesis behind the same cross-platform transport.
+#[cfg(feature = "speak")]
 pub mod tts;

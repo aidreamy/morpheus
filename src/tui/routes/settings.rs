@@ -190,10 +190,9 @@ const AUTOMATION: SettingsSection = SettingsSection {
 };
 
 // Voice output (`setup.json` → `voice`). Gated like the ONNX checkup items:
-// without the `speak` feature (or outside unix, where the daemon transport
-// does not exist) there is no engine behind these values, so the rows do not
-// exist in that build.
-#[cfg(all(feature = "speak", unix))]
+// without the `speak` feature there is no engine behind these values, so the
+// rows do not exist in that build.
+#[cfg(feature = "speak")]
 const VOICE: SettingsSection = SettingsSection {
     title: "Voice",
     items: &[
@@ -335,7 +334,7 @@ const GENERAL: SettingsSection = SettingsSection {
 fn sections() -> &'static [SettingsSection] {
     &[
         AUTOMATION,
-        #[cfg(all(feature = "speak", unix))]
+        #[cfg(feature = "speak")]
         VOICE,
         MODELS_AND_CACHING,
         ENVIRONMENT,
@@ -365,7 +364,7 @@ fn item_at(index: usize) -> &'static SettingsItem {
 /// The configured speaker as the picker names it (`pf_dora · Portuguese
 /// (Brazil) · Kokoro v1.0`); the raw id when the bundle is not one of the
 /// published catalogs.
-#[cfg(all(feature = "speak", unix))]
+#[cfg(feature = "speak")]
 fn voice_summary(voice: &morpheus::setup::VoiceConfig) -> String {
     let dir = if voice.model_dir.trim().is_empty() {
         morpheus::speak::default_model_dir()
@@ -429,7 +428,7 @@ fn cache_choice_value(id: &str, setup: &Setup) -> Option<String> {
             "{:.0}%",
             setup.decision.termination.min_confidence * 100.0
         )),
-        #[cfg(all(feature = "speak", unix))]
+        #[cfg(feature = "speak")]
         "voice_picker" => Some(voice_summary(&setup.voice)),
         "voice_speed" => Some(format!("{:.2}×", setup.voice.speed())),
         _ => None,
@@ -2482,7 +2481,7 @@ mod tests {
             // without the `speak` feature it does not exist. Insert its
             // rows right before the first Models item so the expected list
             // stays independent of the onnx/hook combinations above.
-            #[cfg(all(feature = "speak", unix))]
+            #[cfg(feature = "speak")]
             {
                 let at = rows
                     .iter()
@@ -3560,7 +3559,7 @@ mod tests {
     /// can sync its in-memory `SpeechState`. The voice rows are a single
     /// searchable picker (language + model + speaker) plus the pace, and the
     /// picker row names the configured voice instead of showing a bare id.
-    #[cfg(all(feature = "speak", unix))]
+    #[cfg(feature = "speak")]
     #[test]
     fn voice_section_toggles_auto_and_opens_picker_and_pace() {
         let mut setup = Setup::default();

@@ -4,7 +4,7 @@ use crossterm::event::KeyCode;
 /// Settings → Voice's picker: search by voice name/language, then Enter
 /// applies speaker AND language from the same row. Esc cancels without
 /// touching setup, and the pick persists to `setup.json`.
-#[cfg(all(feature = "speak", unix))]
+#[cfg(feature = "speak")]
 #[tokio::test]
 async fn voice_picker_applies_speaker_and_language_together() {
     let _guard = HOME_LOCK.lock();

@@ -36,11 +36,11 @@ pub(crate) fn play(speech: &Speech) -> Result<(), SpeakError> {
 
 /// A live playback process the caller can pause, resume and restart.
 ///
-/// The player binaries are external commands (see the module docs), so the
-/// only portable pause primitive is a job-control signal: `SIGSTOP` freezes
-/// the process and with it the audio device feed, `SIGCONT` resumes it. On
-/// platforms without that signal (Windows) the controls report failure and
-/// the caller falls back to stop/start.
+/// The player binaries are external commands (see the module docs), so pause
+/// has to freeze the process itself: `SIGSTOP` on Unix and the process-wide
+/// thread suspension ntdll exposes on Windows. Either way the audio device
+/// stops being fed while the player is frozen, and thawing it carries on from
+/// the same sample.
 ///
 /// The WAV is opened by the player at spawn, so the caller is free to remove
 /// or replace the file afterwards.
@@ -93,7 +93,7 @@ impl Playback {
         if self.paused || self.is_finished() {
             return false;
         }
-        if signal(&self.child, STOP_SIGNAL) {
+        if freeze(&self.child, true) {
             self.paused = true;
             true
         } else {
@@ -106,7 +106,7 @@ impl Playback {
         if !self.paused {
             return false;
         }
-        if signal(&self.child, CONT_SIGNAL) {
+        if freeze(&self.child, false) {
             self.paused = false;
             true
         } else {
@@ -136,10 +136,27 @@ impl Playback {
     /// the playback state and never touch a sound device.
     #[doc(hidden)]
     pub fn idle_for_test() -> Self {
-        let child = Command::new("sleep")
-            .arg("30")
+        // Any long-running process stands in for the player. `sleep` is not a
+        // binary on Windows, so the loopback ping that drains its count
+        // takes over there.
+        #[cfg(windows)]
+        let mut command = {
+            let mut command = Command::new("ping");
+            command.args(["-n", "31", "127.0.0.1"]);
+            command
+        };
+        #[cfg(not(windows))]
+        let mut command = {
+            let mut command = Command::new("sleep");
+            command.arg("30");
+            command
+        };
+        let child = command
+            .stdin(std::process::Stdio::null())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
             .spawn()
-            .expect("spawn sleep");
+            .expect("spawn the idle test process");
         Self {
             child,
             paused: false,
@@ -156,24 +173,51 @@ impl Drop for Playback {
     }
 }
 
+/// Freeze (`suspend`) or thaw the player process.
+///
+/// Unix job control is the portable-enough primitive: `SIGSTOP` stops every
+/// thread of the process, `SIGCONT` resumes them.
 #[cfg(unix)]
-const STOP_SIGNAL: i32 = libc::SIGSTOP;
-#[cfg(unix)]
-const CONT_SIGNAL: i32 = libc::SIGCONT;
-#[cfg(not(unix))]
-const STOP_SIGNAL: i32 = 0;
-#[cfg(not(unix))]
-const CONT_SIGNAL: i32 = 0;
-
-#[cfg(unix)]
-fn signal(child: &Child, sig: i32) -> bool {
+fn freeze(child: &Child, suspend: bool) -> bool {
+    let signal = if suspend {
+        libc::SIGSTOP
+    } else {
+        libc::SIGCONT
+    };
     // `kill(2)` on the child pid: the process may already have exited.
-    unsafe { libc::kill(child.id() as libc::pid_t, sig) == 0 }
+    unsafe { libc::kill(child.id() as libc::pid_t, signal) == 0 }
 }
 
-#[cfg(not(unix))]
-fn signal(_child: &Child, _signal: i32) -> bool {
-    false
+/// Windows has no job-control signal, so the equivalent of `SIGSTOP`/`SIGCONT`
+/// is the process-wide thread suspension ntdll exposes. While the player's
+/// threads are frozen it stops feeding the device; the samples already handed
+/// to the driver may still be audible for a moment.
+#[cfg(windows)]
+fn freeze(child: &Child, suspend: bool) -> bool {
+    use std::os::windows::io::AsRawHandle;
+
+    // Ntdll exports these for the debugger/Process Explorer "Suspend" action.
+    // `windows-sys` surfaces thread-level suspension only, so the process-wide
+    // pair is linked directly.
+    #[link(name = "ntdll")]
+    unsafe extern "system" {
+        fn NtSuspendProcess(process: *mut core::ffi::c_void) -> i32;
+        fn NtResumeProcess(process: *mut core::ffi::c_void) -> i32;
+    }
+
+    let process = child.as_raw_handle().cast::<core::ffi::c_void>();
+    if process.is_null() {
+        return false;
+    }
+    let status = unsafe {
+        if suspend {
+            NtSuspendProcess(process)
+        } else {
+            NtResumeProcess(process)
+        }
+    };
+    // NTSTATUS: zero or any positive informational code is a success.
+    status >= 0
 }
 
 fn temp_path() -> PathBuf {
@@ -238,6 +282,32 @@ fn commands(path: &Path) -> Vec<Command> {
     play.args(["-q"]).arg(path);
 
     vec![paplay, pw_play, aplay, play, ffplay(path)]
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    /// `pause`/`resume` must reach the OS (no player fixture and no sound
+    /// device are needed): the process is frozen and stays alive, then thawed.
+    #[test]
+    fn pause_freezes_and_resume_thaws_the_player() {
+        let mut playback = Playback::idle_for_test();
+        assert!(!playback.is_paused());
+        assert!(!playback.resume(), "resume without a pause is refused");
+
+        assert!(playback.pause(), "the platform freezes the player");
+        assert!(playback.is_paused());
+        assert!(!playback.pause(), "a second pause is refused");
+        assert!(
+            !playback.is_finished(),
+            "a frozen player is alive, not finished"
+        );
+
+        assert!(playback.resume(), "the platform thaws the player");
+        assert!(!playback.is_paused());
+        assert!(!playback.is_finished());
+    }
 }
 
 #[cfg(not(windows))]

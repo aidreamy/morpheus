@@ -1763,7 +1763,7 @@ impl App {
     /// Drain the resident voice daemon so the next synthesis re-reads the
     /// voice settings it loaded at startup (`setup.json` → `voice`).
     fn restart_tts_daemon(&self) {
-        #[cfg(all(feature = "speak", unix))]
+        #[cfg(feature = "speak")]
         std::thread::spawn(|| {
             let _ = morpheus::daemon::tts::TtsClient::new().shutdown();
         });

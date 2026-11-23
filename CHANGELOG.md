@@ -20,6 +20,36 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   `morpheus-whatsapp`). Code that depended on the old crate names or on
   their crate paths must switch to `morpheus-*` / `morpheus_*`.
 
+## [1.0.1] - 2026-11-23
+
+### Added
+
+- `/wallpaper` in the TUI: a background ASCII layer behind the chat, from an
+  embedded default artwork or any image file, with an optional `[x,y]` cell
+  offset. The default art is anchored at the bottom-left; custom images are
+  centered. `/wallpaper default` (or no argument) restores the embedded art,
+  and `off`/`none`/`clear` removes it. The wallpaper writes only glyphs and
+  foreground so panes, dialogs and the transcript keep their own fill; the
+  old session logo is gone and the empty-session prompt is centered
+  vertically.
+
+- `/agents` panes now keep one live ACP session across turns instead of
+  reopening it on every dispatch; picks and mode are applied only when they
+  change and the handle is shut down on rebuild, removal, session switch,
+  rewind and exit.
+
+### Fixed
+
+- A permission request arriving after an ACP turn ended was auto-approved
+  instead of cancelled, because the turn end cleared the pane's interactive
+  flag. The flag now describes the pane (which starts interactive), so a
+  request in the session-open window is cancelled too.
+
+- A failed ACP handshake or an unpinnable workspace reached the user as
+  "the ACP session closed before answering the turn"; the supervisor now
+  records the first real reason and answers every queued turn with it,
+  including one that arrived after the connection failed.
+
 ## [0.3.0]
 
 ### Added

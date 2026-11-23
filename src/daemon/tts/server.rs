@@ -472,3 +472,54 @@ fn acquire_engine<'a>(
         }
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::speak::Backend;
+
+    /// `setup.json`'s `voice` block is the daemon's only input: the speaker,
+    /// the pace, the espeak language and the bundle directory must all land in
+    /// the engine configuration. A field dropped here speaks the wrong voice
+    /// or the wrong language without any error.
+    #[test]
+    fn the_setup_voice_block_reaches_the_engine() {
+        let settings = Settings {
+            voice: 42,
+            speed: 0.9,
+            language: "pt-br".to_string(),
+            model_dir: r"C:\models\kokoro-multi-lang-v1_0".to_string(),
+        };
+        let config = settings.speak_config();
+        assert_eq!(config.voice, 42);
+        assert_eq!(config.speed, 0.9);
+        match config.backend {
+            Backend::Kokoro(kokoro) => {
+                assert_eq!(
+                    kokoro.model_dir,
+                    PathBuf::from(r"C:\models\kokoro-multi-lang-v1_0")
+                );
+            }
+            other => panic!("unexpected backend: {other:?}"),
+        }
+        #[cfg(feature = "speak-phonemize")]
+        assert_eq!(
+            config.phonemizer,
+            Phonemizer::Piper {
+                lang: "pt-br".to_string()
+            }
+        );
+        #[cfg(not(feature = "speak-phonemize"))]
+        assert_eq!(config.phonemizer, Phonemizer::Lexicon);
+    }
+
+    /// An empty `model_dir` means "the default bundle", not the current
+    /// directory: the engine must keep its own default path.
+    #[test]
+    fn an_empty_model_dir_keeps_the_default_bundle() {
+        let config = Settings::default().speak_config();
+        assert_eq!(config.backend, Backend::default());
+        // No language selected: the bundle's own lexicon frontend.
+        assert_eq!(config.phonemizer, Phonemizer::Lexicon);
+    }
+}

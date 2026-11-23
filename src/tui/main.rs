@@ -10,7 +10,6 @@ mod cli;
 mod component;
 mod keymap;
 mod left_panel;
-mod logo;
 mod lsp_colors;
 mod routes;
 mod speech;
@@ -19,6 +18,7 @@ mod theme;
 mod transcript_export;
 mod ui;
 mod util;
+mod wallpaper;
 // Application modules that live in the library now (moved out of the TUI);
 // aliased at the bin root so `crate::x` paths in the app keep resolving.
 use morpheus::{config, fallback, notification, session, types, update, usage};

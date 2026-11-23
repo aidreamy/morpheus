@@ -180,9 +180,9 @@ pub struct Theme {
     pub queue_next_loop: RGBA,
     /// Background color of a "next request" pending-queue row.
     pub queue_next_request: RGBA,
-    /// Foreground of the session logo — the LOGO_CHAT drawn above the
-    /// prompt on an empty session. This slot exists so a theme can dim the
-    /// session mark independently (e.g. a near-background watermark).
+    /// Ink of the session wallpaper — the ASCII background layer drawn behind
+    /// the chat. This slot exists so a theme can dim the artwork independently
+    /// of the text (e.g. a near-background watermark on morpheus).
     pub session_logo: RGBA,
     /// Build-mode chrome override (`None` = the agent "build" color). Set by
     /// themes that want the rails, caps, label and spinners in Build mode in
@@ -324,6 +324,22 @@ impl ThemeRegistry {
 // Theme definitions — ported from opencode TUI
 //
 // Helper to build full Theme
+/// Ink for the session wallpaper: the theme's primary pulled most of the way
+/// toward its own background. The wallpaper spans the whole chat, so the raw
+/// primary would compete with the transcript; this keeps it a watermark in
+/// every palette instead of only the two that override the slot.
+fn wallpaper_ink(background: &str, primary: &str) -> RGBA {
+    let background = RGBA::from_hex(background);
+    let primary = RGBA::from_hex(primary);
+    let mix = 0.16;
+    RGBA::from_values(
+        background.r() + (primary.r() - background.r()) * mix,
+        background.g() + (primary.g() - background.g()) * mix,
+        background.b() + (primary.b() - background.b()) * mix,
+        background.a() + (primary.a() - background.a()) * mix,
+    )
+}
+
 #[allow(clippy::too_many_arguments, clippy::similar_names)]
 fn full_theme(
     bg: &str,
@@ -442,9 +458,9 @@ fn full_theme(
         syntax_punctuation: RGBA::from_hex(sp),
         queue_next_loop: RGBA::from_hex("#00000000"),
         queue_next_request: RGBA::from_hex("#00000000"),
-        // Static session logo defaults to the primary color (previous
-        // behavior); themes override below for a dedicated look.
-        session_logo: RGBA::from_hex(pr),
+        // The wallpaper ink follows the primary unless the palette overrides
+        // the slot for a dedicated look.
+        session_logo: wallpaper_ink(bg, pr),
         mode_build: None,
         reasoning_header: RGBA::from_hex(ac),
         thinking_opacity: 0.6,
@@ -679,7 +695,9 @@ fn orng() -> Theme {
         syntax_punctuation: RGBA::from_hex("#eeeeee"),
         queue_next_loop: RGBA::from_hex("#3A1C0C"),
         queue_next_request: RGBA::from_hex("#0C2A2E"),
-        session_logo: RGBA::from_hex("#FF6B30"),
+        // Wallpaper ink, kept as a dim ember: the layer spans the whole chat,
+        // so the brand orange would drown the transcript.
+        session_logo: RGBA::from_hex("#3A1C0C"),
         mode_build: None,
         reasoning_header: RGBA::from_hex("#FFF7F1"),
         thinking_opacity: 0.6,

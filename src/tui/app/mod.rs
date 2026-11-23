@@ -23,7 +23,6 @@ use crate::left_panel::explorer_status::{GitWatcher, StatusIndex};
 use crate::left_panel::file_explorer::FileExplorerView;
 use crate::left_panel::sessions::SessionsView;
 use crate::left_panel::{LEFT_PANEL_WIDTH, MIN_WIDTH_FOR_LEFT_PANEL, Mode};
-use crate::logo::LOGO_CHAT;
 use crate::routes::add_provider::AddProviderView;
 use crate::routes::router::RouterView;
 use crate::routes::session::SessionView;
@@ -212,6 +211,9 @@ pub struct App {
     /// instead of the theme color. Persisted in `setup.json`.
     pub transparent_background: bool,
     pub session_view: SessionView,
+    /// ASCII art painted behind the session, centered and dimmed to the
+    /// theme's watermark slot. `None` when `/wallpaper off` removed it.
+    pub wallpaper: Option<crate::wallpaper::Wallpaper>,
     pub prompt_view: PromptView,
     pub sidebar: SessionsView,
     /// Ctrl+F file explorer shown in the left panel while `left_panel` is
@@ -854,6 +856,9 @@ impl App {
             theme,
             transparent_background,
             session_view: SessionView::new(),
+            // The "ajinho" artwork is the default background; a decode
+            // failure only costs the wallpaper, never the session.
+            wallpaper: crate::wallpaper::Wallpaper::embedded().ok(),
             sparkle: SparkleState::new(),
             main_mirror_bridge: main_mirror::MirrorBridge::default(),
             pending_worktree_confirmation: None,
@@ -1900,38 +1905,24 @@ impl App {
         x >= right_panel_x
     }
 
-    /// Vertical layout of the prompt — and, when it fits, the centered
-    /// static logo block above it — for the session screen. Returns
-    /// `(prompt_area_y, logo_start_y)` where `logo_start_y` is `None` when
-    /// the terminal is too short to hold the logo block between the header
-    /// and the footer: the logo is dropped and the prompt bottom-anchored
-    /// above the footer instead. Shared by the renderer (`render.rs`) and
-    /// the mouse hit-testing helpers below so clicks always land on the
-    /// rows that were actually drawn.
+    /// Vertical layout of the prompt for the session screen. An empty
+    /// session centers the prompt vertically (the wallpaper fills the space
+    /// behind it); once the transcript has content the prompt stays
+    /// bottom-anchored above the footer. Shared by the renderer (`render.rs`)
+    /// and the mouse hit-testing helpers below so clicks always land on the
+    /// row that was actually drawn.
     fn prompt_vertical_layout(
         top_y: u16,
         footer_y: u16,
         prompt_h: u16,
         is_empty_session: bool,
-    ) -> (u16, Option<u16>) {
-        // Logo block: logo (6 rows) + gap before prompt (1)
-        let logo_block_h = if is_empty_session {
-            LOGO_CHAT.len() as u16 + 1
+    ) -> u16 {
+        let header_y = top_y + 1;
+        let available = footer_y.saturating_sub(header_y);
+        if is_empty_session && prompt_h > 0 && prompt_h <= available {
+            header_y + (available - prompt_h) / 2
         } else {
-            0
-        };
-        let logo_fits = is_empty_session
-            && prompt_h > 0
-            && logo_block_h + prompt_h <= footer_y.saturating_sub(top_y + 1);
-        if logo_fits {
-            let header_y = top_y + 1;
-            let total_block_h = logo_block_h + prompt_h;
-            let available = footer_y.saturating_sub(header_y);
-            let top_spacer = (available - total_block_h) / 2;
-            let start_y = header_y + top_spacer;
-            (start_y + logo_block_h, Some(start_y))
-        } else {
-            (footer_y.saturating_sub(prompt_h), None)
+            footer_y.saturating_sub(prompt_h)
         }
     }
 
@@ -2007,9 +1998,8 @@ impl App {
             .required_height(prompt_area_w, prompt_budget);
 
         // Shared with `render()` so mouse mapping matches the drawn layout,
-        // including the empty-session centered logo block and its short-screen
-        // fallback.
-        let (prompt_area_y, _logo_start_y) =
+        // including the empty-session centered prompt.
+        let prompt_area_y =
             Self::prompt_vertical_layout(area.y, footer_y, prompt_h, is_empty_session);
 
         Some(Rect::new(
@@ -2088,9 +2078,8 @@ impl App {
             .required_height(prompt_area_w, prompt_budget);
 
         // Shared with `render()` so the strip grows upward from the exact row
-        // the prompt is drawn at, including the empty-session centered logo
-        // block and its short-screen fallback.
-        let (prompt_area_y, _logo_start_y) =
+        // the prompt is drawn at, including the empty-session centered prompt.
+        let prompt_area_y =
             Self::prompt_vertical_layout(area.y, footer_y, prompt_h, is_empty_session);
 
         // Same clamp as `render()`: the wrapped strip never covers the header.

@@ -1320,6 +1320,65 @@ impl App {
         }
     }
 
+    /// Apply the tail of `/wallpaper`.
+    ///
+    /// - no tail, `default` or `reset` → the artwork embedded in the binary
+    ///   (the default background on startup);
+    /// - `off` / `none` / `clear` → no wallpaper at all;
+    /// - `image.png [x,y]` → that image, centered with an optional cell
+    ///   offset. A relative path resolves against the session's working
+    ///   directory, so `/wallpaper pics/art.png` means what a shell command
+    ///   typed in this project would mean.
+    fn apply_wallpaper_command(&mut self, tail: Option<&str>) {
+        use crate::ui::toast::{ToastOptions, ToastVariant};
+        use crate::wallpaper::{Request, Wallpaper};
+
+        let base = std::path::Path::new(&self.state.working_directory);
+        let request = match tail.map(|tail| crate::wallpaper::parse_request(tail, base)) {
+            None => Ok(Request::Default),
+            Some(result) => result,
+        };
+        let (message, variant) = match request {
+            Ok(Request::Default) => match Wallpaper::embedded() {
+                Ok(wallpaper) => {
+                    self.wallpaper = Some(wallpaper);
+                    (
+                        "Default wallpaper restored.".to_string(),
+                        ToastVariant::Info,
+                    )
+                }
+                Err(error) => (error, ToastVariant::Error),
+            },
+            Ok(Request::Off) => {
+                self.wallpaper = None;
+                ("Wallpaper removed.".to_string(), ToastVariant::Info)
+            }
+            Ok(Request::Load { path, offset }) => match Wallpaper::from_path(&path) {
+                Ok(wallpaper) => {
+                    let offset = offset.unwrap_or((0, 0));
+                    self.wallpaper = Some(wallpaper.with_offset(offset));
+                    let placement = if offset == (0, 0) {
+                        "centered".to_string()
+                    } else {
+                        format!("centered, offset {},{}", offset.0, offset.1)
+                    };
+                    (
+                        format!("Wallpaper set from {} ({placement}).", path.display()),
+                        ToastVariant::Info,
+                    )
+                }
+                Err(error) => (format!("Wallpaper: {error}"), ToastVariant::Error),
+            },
+            Err(error) => (format!("Wallpaper: {error}"), ToastVariant::Error),
+        };
+        self.toast_state.show(ToastOptions {
+            title: Some("Wallpaper".into()),
+            message,
+            variant,
+            duration_ms: 4000,
+        });
+    }
+
     /// Execute one slash command from the menu, routed by the command's
     /// DECLARED SCOPE (`slash_menu::COMMAND_INVENTORY`) and, for an
     /// Agent-scoped one, by the focused `/agents` pane:
@@ -1354,6 +1413,19 @@ impl App {
                 "worktree",
             );
             super::agents_dispatch::apply_main_agent_worktree_command(self, tail.as_deref());
+            self.slash_menu.visible = false;
+            self.prompt_view.clear_all();
+            return;
+        }
+        // `/wallpaper [image.png [x,y] | off]` — a GLOBAL appearance command.
+        // No argument restores the embedded artwork; the argument tail is read
+        // before the prompt is cleared.
+        if cmd.name == "wallpaper" {
+            let tail = crate::ui::slash_menu::SlashMenu::command_arg_tail(
+                &self.prompt_view.input,
+                "wallpaper",
+            );
+            self.apply_wallpaper_command(tail.as_deref());
             self.slash_menu.visible = false;
             self.prompt_view.clear_all();
             return;

@@ -84,6 +84,7 @@ pub enum CommandScope {
 /// | `settings`   | Global | `setup` (app configuration)                     |
 /// | `themes`     | Global | `setup.appearance` theme                        |
 /// | `background` | Global | `setup.appearance` terminal background          |
+/// | `wallpaper`  | Global | the session's ASCII background layer            |
 /// | `bell`       | Global | `setup.appearance.bell_enabled`                 |
 /// | `spinner`    | Global | `setup.appearance.spinner`                      |
 /// | `new`        | Global | the session list                                |
@@ -102,6 +103,7 @@ pub const COMMAND_INVENTORY: &[(&str, CommandScope)] = &[
     ("settings", CommandScope::Global),
     ("themes", CommandScope::Global),
     ("background", CommandScope::Global),
+    ("wallpaper", CommandScope::Global),
     ("bell", CommandScope::Global),
     ("voice", CommandScope::Global),
     ("spinner", CommandScope::Global),
@@ -251,6 +253,10 @@ impl SlashMenu {
                 desc: "Toggle terminal background".into(),
             },
             SlashCommand {
+                name: "wallpaper".into(),
+                desc: "Set the ASCII wallpaper (image.png [x,y], off)".into(),
+            },
+            SlashCommand {
                 name: "bell".into(),
                 desc: "Toggle completion bell".into(),
             },
@@ -332,7 +338,7 @@ impl SlashMenu {
     /// the raw input submits as a plain prompt, exactly as before.
     #[must_use]
     pub fn takes_args(name: &str) -> bool {
-        matches!(name, "worktree")
+        matches!(name, "worktree" | "wallpaper")
     }
 
     pub fn check_state(input: &str) -> (bool, String) {

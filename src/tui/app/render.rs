@@ -12,7 +12,6 @@ use super::{
 use crate::component::budget::{budget_bar_style, budget_block, budget_pct_style};
 use crate::component::prompt::PanePromptInfo;
 use crate::left_panel::{MIN_WIDTH_FOR_LEFT_PANEL, Mode};
-use crate::logo::LOGO_CHAT;
 use crate::routes::session::agents_split::{MANAGER_LABEL, brand_name_styles};
 use crate::routes::session::footer::FooterView;
 use crate::routes::session::right_panel::render_right_panel;
@@ -187,6 +186,23 @@ impl App {
                 sidebar_w,
                 right_panel_w,
             } = self.session_main_area(area);
+
+            // The ASCII wallpaper is the BASE layer: painted right after the
+            // background fill, with no background style of its own, so every
+            // pane, dialog and the transcript paint over it and keep their
+            // own fill. The header row and the footer row stay clear of it.
+            if matches!(self.mode(), AppMode::Session)
+                && let Some(wallpaper) = &mut self.wallpaper
+            {
+                let art_area = Rect::new(
+                    main_area.x,
+                    area.y.saturating_add(1),
+                    main_area.width,
+                    main_area.height.saturating_sub(2),
+                );
+                let ink = rgba_color(self.theme.session_logo);
+                wallpaper.render(buf, art_area, ink);
+            }
 
             // Context info bar — only after the user has sent at least one
             // message. Shows the agent's current context against the model
@@ -544,13 +560,10 @@ impl App {
                 };
 
             // Shared with the mouse hit-testing helpers (`App::prompt_vertical_layout`)
-            // so clicks always land on the rows that were actually drawn. On very
-            // short terminals the centered logo block + prompt don't fit between
-            // the header and the footer: the logo is dropped (`logo_start_y` is
-            // `None`) and the prompt bottom-anchored instead — drawing the static
-            // logo's unclamped `set_string` rows past the buffer bottom is what
-            // panicked with "index outside of buffer" on a resize to a few rows.
-            let (prompt_area_y, logo_start_y) =
+            // so clicks always land on the row that was actually drawn. An
+            // empty session centers the prompt between the header and the
+            // footer; a populated one stays bottom-anchored.
+            let prompt_area_y =
                 Self::prompt_vertical_layout(area.y, footer_y, prompt_h, is_empty_session);
 
             // Both spinners share the row above the prompt. The correction
@@ -1004,40 +1017,6 @@ impl App {
                             reasoning,
                             pane_badge,
                         );
-
-                        // Static LOGO_CHAT above the prompt input, centered.
-                        // Skipped on short terminals where the layout dropped
-                        // the logo block. Painted with the theme's
-                        // session-logo slot (a dim watermark on morpheus).
-                        if is_empty_session && let Some(logo_start_y) = logo_start_y {
-                            // Centered on the whole main area, not on the
-                            // (much narrower) empty-session prompt band: the
-                            // logo is wider than that band, so centering it
-                            // there pinned it to the band's left edge. When
-                            // the logo is wider than the terminal it is
-                            // center-cropped instead of left-anchored.
-                            let logo_cols = main_area.width as usize;
-                            let logo_style = Style::default()
-                                .fg(rgba_color(self.theme.session_logo))
-                                .bg(rgba_color(self.theme.background));
-                            for (i, line) in LOGO_CHAT.iter().enumerate() {
-                                let chars: Vec<char> = line.chars().collect();
-                                let line_w = chars.len();
-                                let (x_offset, skip) = if line_w <= logo_cols {
-                                    ((logo_cols - line_w) / 2, 0)
-                                } else {
-                                    (0, (line_w - logo_cols) / 2)
-                                };
-                                let visible: String =
-                                    chars[skip..(skip + logo_cols).min(line_w)].iter().collect();
-                                buf.set_string(
-                                    main_area.x + x_offset as u16,
-                                    logo_start_y + i as u16,
-                                    visible.trim_end(),
-                                    logo_style,
-                                );
-                            }
-                        }
                     }
                 }
             }

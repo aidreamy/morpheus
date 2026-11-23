@@ -1199,7 +1199,7 @@ pub fn render_edit(ctx: &mut ToolRenderCtx, part: &ToolPart) {
         *ctx.line_h = area.height;
 
         let mut border_box = BoxRenderable::new();
-        // Obsidian-only override — see `Theme::diff_panel_background`.
+        // Morpheus-only override — see `Theme::diff_panel_background`.
         border_box.set_background_color(Some(
             ctx.theme
                 .diff_panel_background

@@ -107,7 +107,7 @@ pub(crate) fn agent_mode_color(
     mode: morpheus::harness::Mode,
 ) -> RGBA {
     match mode {
-        // A theme-level override wins (obsidian: disabled tone, morpheus: muted
+        // A theme-level override wins (morpheus: disabled tone, indigo: muted
         // periwinkle); otherwise the per-agent "build" color, as before.
         morpheus::harness::Mode::Build => theme
             .mode_build

@@ -49,7 +49,7 @@ const SEVERITY_TINT_ALPHA: f32 = 0.65;
 /// success/warning/error stand-ins. Two findings forced the change: theme
 /// semantic colors are not hue-stable across themes (the `orng` theme's
 /// `success` is blue), and dark or earthy tones collapse through the
-/// background blend into perceptually different colors — the obsidian
+/// background blend into perceptually different colors — the morpheus
 /// theme's amber `warning` (#D4A742) at the old 18% blend over the near-black
 /// background read as brown, not yellow. The middle severity therefore
 /// carries an ORANGE origin color: yellow, even light, darkened through

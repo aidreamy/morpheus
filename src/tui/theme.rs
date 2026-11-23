@@ -146,10 +146,10 @@ pub struct Theme {
     pub diff_removed_line_number_bg: RGBA,
     /// Background of the box frame that wraps a rendered diff block (the
     /// edit tool's unified/split diff body). `None` (every theme except
-    /// obsidian) falls back to `background_panel` — the historical behavior.
-    /// obsidian sets this to `background` so the diff box disappears into the
+    /// morpheus) falls back to `background_panel` — the historical behavior.
+    /// morpheus sets this to `background` so the diff box disappears into the
     /// transcript background instead of showing as a black panel
-    /// (obsidian's `background_panel` is pure `#000000`).
+    /// (morpheus's `background_panel` is pure `#000000`).
     pub diff_panel_background: Option<RGBA>,
     pub markdown_text: RGBA,
     pub markdown_heading: RGBA,
@@ -215,8 +215,8 @@ impl ThemeRegistry {
                 theme: morpheus(),
             },
             ThemeDef {
-                name: "obsidian",
-                theme: obsidian(),
+                name: "indigo",
+                theme: indigo(),
             },
             ThemeDef {
                 name: "sakura",
@@ -426,8 +426,8 @@ fn full_theme(
         diff_line_number: RGBA::from_hex(dln),
         diff_added_line_number_bg: RGBA::from_hex(dalb),
         diff_removed_line_number_bg: RGBA::from_hex(drlb),
-        // Every theme except obsidian keeps the historical `background_panel`
-        // diff-box frame; obsidian overrides below.
+        // Every theme except morpheus keeps the historical `background_panel`
+        // diff-box frame; morpheus overrides below.
         diff_panel_background: None,
         markdown_text: RGBA::from_hex(mt),
         markdown_heading: RGBA::from_hex(mh),
@@ -467,8 +467,11 @@ fn full_theme(
     }
 }
 
-/// The default `morpheus` palette: a deep indigo night sky on the `#0F0F25` /
+/// The `indigo` palette: a deep indigo night sky on the `#0F0F25` /
 /// `#19192F` background pair.
+///
+/// This palette held the default `morpheus` slot before the near-black
+/// obsidian palette took over the name; it now lives under `indigo`.
 ///
 /// Color psychology: the whole chrome is a single hue-240 (indigo) ramp whose
 /// saturation falls as lightness rises, so depth comes from value alone.
@@ -490,7 +493,7 @@ fn full_theme(
 /// for state. The `Thought` header deliberately does *not* reuse the heading
 /// blue — it uses a deeper, grayer sky blue (`#7CB8E8`) so a reflection block
 /// never competes with a section title.
-fn morpheus() -> Theme {
+fn indigo() -> Theme {
     let mut t = full_theme(
         "#0F0F25", "#19192F", "#1D1D38", "#35356A", "#8F8FF2", "#24244A", "#E8E8F8", "#8F8FF2",
         "#B7A4FF", "#FFD28A", "#6FE3A8", "#F5C76B", "#FF7F96", "#6FC8FF", "#6FE3A8", "#FF7F96",
@@ -521,10 +524,11 @@ fn morpheus() -> Theme {
     t
 }
 
-/// The old `morpheus` palette: near-black (`#07070A`) chrome with neon magenta,
-/// amber and teal accents. Renamed when the indigo `morpheus` theme took over the
-/// default slot — the obsidian-black base is what the name now describes.
-fn obsidian() -> Theme {
+/// The default `morpheus` palette: near-black (`#07070A`) chrome with neon
+/// magenta, amber and teal accents. This is the obsidian palette that used to
+/// live under the `obsidian` name; it now owns the default `morpheus` slot,
+/// while the previous indigo `morpheus` palette became `indigo`.
+fn morpheus() -> Theme {
     let mut t = full_theme(
         "#07070A", "#000000", "#11111C", "#7F7F9F", "#9999B4", "#1E2030", "#E8F0FF", "#A1A1BD",
         "#9999B4", "#E8F0FF", "#5CB87A", "#D4A742", "#D4575A", "#5FD4CB", "#5CB87A", "#D4575A",
@@ -560,14 +564,14 @@ fn obsidian() -> Theme {
     // Static session logo as a near-background watermark: almost
     // `background` (#07070A), diverging just enough to be noticed.
     t.session_logo = RGBA::from_hex("#12121A");
-    // Build-mode chrome in the disabled tone (#474955): obsidian-only, every
+    // Build-mode chrome in the disabled tone (#474955): morpheus-only, every
     // other theme keeps the per-agent "build" color.
     t.mode_build = Some(RGBA::from_hex("#474955"));
     t.queue_next_loop = RGBA::from_hex("#3A3116");
     t.queue_next_request = RGBA::from_hex("#123A38");
     // Diff blocks (unified and split) blend into the transcript: the box
     // frame takes the chat `background` instead of `background_panel`
-    // (#000000). obsidian-only — see `Theme::diff_panel_background`.
+    // (#000000). morpheus-only — see `Theme::diff_panel_background`.
     t.diff_panel_background = Some(t.background);
     t
 }
@@ -945,17 +949,13 @@ mod tests {
     #[test]
     fn agents_pane_background_lifts_each_theme_off_its_own_background() {
         let registry = ThemeRegistry::new();
-        // The old morpheus palette (now `obsidian`) is the calibration pair: the
-        // derived fill must reproduce the exact tone the painter used to
-        // hardcode (background `#07070A` → pane `#0A0A0D`, a +3 step per
-        // channel).
-        let obsidian = registry
-            .get("obsidian")
-            .expect("obsidian is registered")
-            .clone();
-        assert_eq!(obsidian.background, RGBA::from_ints(0x07, 0x07, 0x0a, 255));
+        // The default morpheus palette is the calibration pair: the derived
+        // fill must reproduce the exact tone the painter used to hardcode
+        // (background `#07070A` → pane `#0A0A0D`, a +3 step per channel).
+        let morpheus = registry.get("morpheus").expect("morpheus is registered");
+        assert_eq!(morpheus.background, RGBA::from_ints(0x07, 0x07, 0x0a, 255));
         assert_eq!(
-            obsidian.agents_pane_background(),
+            morpheus.agents_pane_background(),
             RGBA::from_ints(0x0a, 0x0a, 0x0d, 255)
         );
         // Every theme derives its own step from its OWN background:

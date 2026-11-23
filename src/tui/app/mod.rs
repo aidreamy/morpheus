@@ -1246,6 +1246,9 @@ impl App {
             self.pump_gateway_events();
         }
 
+        // The panes' live ACP sessions are closed with the app: dropping the
+        // handles ends the supervisor loops and their harness processes.
+        self.shutdown_agents_sessions();
         restore_terminal()?;
         Ok(())
     }

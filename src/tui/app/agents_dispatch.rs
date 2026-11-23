@@ -963,6 +963,10 @@ pub(super) fn ensure_pane_snapshot(app: &mut App, pane: usize) {
     if p.agent == MANAGER_LABEL
         || (p.commands.is_some() && p.config_options.is_some())
         || p.snapshot_loading
+        // A pane with a live session owns its connection: a probe must never
+        // open a second one against the same session (the harnesses answer
+        // "already active elsewhere"). Chrome arrives with the turn stream.
+        || p.acp_session.is_some()
     {
         return;
     }
@@ -1322,8 +1326,9 @@ impl App {
     /// split is open). The focus IS the routing decision: the digit
     /// hotkeys / a click select which agent receives the message, so a
     /// message never propagates to every pane at once. A pane starts its
-    /// own turn (fresh context per turn, resumed session for external ACP
-    /// agents); the shared prompt is cleared by the caller.
+    /// own turn on its live session (ACP panes reuse it across turns;
+    /// morpheus panes are rebuilt per turn); the shared prompt is cleared by
+    /// the caller.
     pub(super) fn dispatch_to_agents_split(&mut self, msg: String) {
         let Some(split) = self.agents_split.as_ref() else {
             return;
@@ -1919,26 +1924,87 @@ impl App {
             } else {
                 None
             };
+            // The pane's LIVE session: reuse it when it is still alive and
+            // rooted at the same workspace, otherwise open a new one. These
+            // are the only rebuild triggers reachable here (rewind clears the
+            // handle, a worktree move fails the cwd match, death fails
+            // `is_alive`); the closed list lives in the guarantees doc.
+            let existing = either_split(&self.agents_split, &self.parked_agents_split)
+                .and_then(|split| split.panes.get(pane))
+                .and_then(|p| p.acp_session.clone());
+            let mut live = existing
+                .clone()
+                .filter(|handle| handle.is_alive() && handle.matches_cwd(&cwd));
+            // N22: every dispatch is auditable as reuse/open/rebuild.
+            match (&existing, live.is_some()) {
+                (Some(_), true) => log::debug!("ACP pane {pane_id}: reuse live session"),
+                (Some(_), false) => log::debug!(
+                    "ACP pane {pane_id}: rebuild — the previous session is gone or in another cwd"
+                ),
+                (None, _) => log::debug!("ACP pane {pane_id}: open — no live session"),
+            }
+            if live.is_none() {
+                // A stale handle (dead, or rooted elsewhere) is closed before
+                // the replacement opens — one owner per pane (N1).
+                if let Some(stale) = either_split_mut(
+                    &mut self.agents_split,
+                    &mut self.parked_agents_split,
+                )
+                .and_then(|split| split.panes.get_mut(pane))
+                .and_then(|p| p.acp_session.take())
+                {
+                    stale.shutdown();
+                }
+                match morpheus_tools::subagent::acp::open_session(
+                    &agent,
+                    resume.clone(),
+                    cwd.clone(),
+                ) {
+                    Ok(handle) => {
+                        if let Some(p) = either_split_mut(
+                            &mut self.agents_split,
+                            &mut self.parked_agents_split,
+                        )
+                        .and_then(|split| split.panes.get_mut(pane))
+                        {
+                            p.acp_session = Some(handle.clone());
+                        }
+                        live = Some(handle);
+                    }
+                    Err(error) => {
+                        // The pane was already marked running: close it with
+                        // the same terminal contract a failed turn uses.
+                        let _ = event_tx.send(HarnessEvent::AgentsPaneDone {
+                            pane: index,
+                            pane_id,
+                            epoch,
+                            turn,
+                            output: error,
+                            stop_reason: "error".to_string(),
+                            session: None,
+                        });
+                        return;
+                    }
+                }
+            }
+            let live = live.expect("the live session was opened above");
             tokio_handle.spawn(async move {
                 let (chunk_tx, mut chunk_rx) =
                     tokio::sync::mpsc::unbounded_channel::<SubagentEvent>();
-                let call = morpheus_tools::subagent::acp::call(
-                    &agent,
-                    &input,
-                    resume,
+                let turn_future = live.run_turn(
+                    input,
                     &picks,
                     mapped_mode.as_deref(),
                     permission_rx,
-                    cwd,
                     signal,
                     chunk_tx,
                 );
-                tokio::pin!(call);
+                tokio::pin!(turn_future);
                 let mut chunks_open = true;
-                let result = loop {
+                let outcome = loop {
                     if chunks_open {
                         tokio::select! {
-                            result = &mut call => break result,
+                            outcome = &mut turn_future => break outcome,
                             chunk = chunk_rx.recv() => match chunk {
                                 Some(event) => {
                                     let _ = event_tx.send(HarnessEvent::AgentsPaneEvent {
@@ -1949,20 +2015,16 @@ impl App {
                                         event,
                                     });
                                 }
-                                // The channel closes only when the call
-                                // future is dropped (turn stopped): keep
-                                // awaiting the future for its partial
-                                // output + stop reason.
+                                // The channel closes only when the turn
+                                // future is dropped (session closed): keep
+                                // awaiting the future for its terminal
+                                // outcome.
                                 None => chunks_open = false,
                             },
                         }
                     } else {
-                        break call.await;
+                        break turn_future.await;
                     }
-                };
-                let (output, stop_reason, session) = match result {
-                    Ok((output, stop_reason, session)) => (output, stop_reason, session),
-                    Err(error) => (error, "error".to_string(), None),
                 };
                 // The binding FACT first, gate-free: the id this turn
                 // actually drove (resumed, or the fresh `session/new`
@@ -1972,10 +2034,9 @@ impl App {
                 // — a pane force-closed by Ctrl+X or hidden mid-turn — and
                 // with it the binding; the App's absorb pass still finds the
                 // fact here and promotes the pane (live, parked OR hidden).
-                // Preserves the deliberate no-propagate-on-error contract of
-                // `acp::call`: an `Err` carries `session = None` and records
-                // nothing.
-                if let Some(id) = &session {
+                // Preserves the deliberate no-propagate-on-error contract: a
+                // failed turn carries `session = None` and records nothing.
+                if let Some(id) = &outcome.session_id {
                     morpheus::harness::agent_coworkers::record_session_binding(pane_id, id.clone());
                 }
                 let _ = event_tx.send(HarnessEvent::AgentsPaneDone {
@@ -1983,9 +2044,9 @@ impl App {
                     pane_id,
                     epoch,
                     turn,
-                    output,
-                    stop_reason,
-                    session,
+                    output: outcome.output,
+                    stop_reason: outcome.stop_reason,
+                    session: outcome.session_id,
                 });
             });
         }
@@ -2117,6 +2178,23 @@ impl App {
             self.todo_wakes_left
         );
         self.start_agent_loop(morpheus::harness::core::todo_rerun_message(Some(&listed)));
+    }
+
+    /// Close every live ACP pane session (live and parked splits). The quit
+    /// path calls this: the process is about to exit and no harness process
+    /// may keep running behind it.
+    pub(super) fn shutdown_agents_sessions(&mut self) {
+        for split in self
+            .agents_split
+            .iter_mut()
+            .chain(self.parked_agents_split.iter_mut())
+        {
+            for pane in &mut split.panes {
+                if let Some(handle) = pane.acp_session.take() {
+                    handle.shutdown();
+                }
+            }
+        }
     }
 
     /// Whether ANY agent turn is running: the main loop (`Working`) or any

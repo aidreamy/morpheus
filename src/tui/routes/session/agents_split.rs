@@ -165,6 +165,12 @@ pub struct AgentPane {
     pub stop_signal: Option<Arc<AtomicBool>>,
     /// Session id for a future `resume` flow.
     pub session_id: Option<String>,
+    /// The pane's LIVE ACP session, when one is open. Turns are dispatched
+    /// through this handle and reuse the same harness process/session; it is
+    /// dropped only for the named rebuild reasons (rewind, cwd move, harness
+    /// death, pane hidden/closed, app restart). `None` for a fresh pane and
+    /// for the manager pane (which runs morpheus's own loop).
+    pub acp_session: Option<morpheus_tools::subagent::acp::SessionHandle>,
     /// What serves this pane's session, from the ACP config options: the
     /// prompt badge's `(model, reasoning)` pair. Empty until the first
     /// turn (or replay pass) reports it; every report replaces it, so a
@@ -377,6 +383,7 @@ impl AgentPane {
             running: false,
             stop_signal: None,
             session_id: None,
+            acp_session: None,
             session_info: None,
             model_selection: None,
             commands: None,
@@ -635,6 +642,12 @@ impl AgentsSplitState {
             signal.store(true, std::sync::atomic::Ordering::Relaxed);
         }
         pane.running = false;
+        // The pane leaves the screen, so its live session leaves with it: a
+        // session never outlives the pane that owns it (the next restore
+        // reopens from the persisted binding).
+        if let Some(handle) = pane.acp_session.take() {
+            handle.shutdown();
+        }
         // Focus follows the removal: the pane that took the freed slot keeps
         // the focus; a removed FOCUSED pane clamps to the nearest survivor
         // (or none when the split emptied).
@@ -765,6 +778,11 @@ impl AgentsSplitState {
                     signal.store(true, std::sync::atomic::Ordering::Relaxed);
                 }
                 pane.running = false;
+                // A dropped pane takes its live session with it; kept panes
+                // keep running on the same handle (reconcile, not rebuild).
+                if let Some(handle) = pane.acp_session.take() {
+                    handle.shutdown();
+                }
             }
         }
         Self {

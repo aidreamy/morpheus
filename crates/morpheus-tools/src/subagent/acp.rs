@@ -436,6 +436,12 @@ pub(crate) fn acp_error(message: impl Into<String>) -> AcpError {
 /// loop continues.
 const HANDSHAKE_TIMEOUT: Duration = Duration::from_secs(120);
 
+/// How long a stopped turn waits for the agent's own stop reason after
+/// `session/cancel` before the session is declared unusable. Without this
+/// bound, hiding or closing a pane whose harness ignores cancellation would
+/// keep the process alive forever (N15).
+const CANCEL_GRACE: Duration = Duration::from_secs(10);
+
 /// Run one handshake step under [`HANDSHAKE_TIMEOUT`].
 async fn handshake_step<T>(
     what: &str,
@@ -1175,6 +1181,892 @@ pub async fn call(
                 Ok((final_output, "error".to_string(), None))
             }
         }
+    }
+}
+
+// ---------------------------------------------------------------------------
+// Persistent pane sessions
+// ---------------------------------------------------------------------------
+//
+// A pane keeps ONE harness process and ONE ACP session alive between turns
+// (see `docs/tools/subagent/acp-persistent-session-guarantees.md`). The
+// supervisor thread below owns the connection and serializes turns through a
+// command channel; a [`SessionHandle`] is the pane's only way in. Everything
+// the per-turn `call` path does (lazy auth, picks, mode, permission routing,
+// fs serving, closure report, cancellation) still happens — just once per
+// connection instead of once per turn.
+
+/// What one turn on a live session produced.
+#[derive(Debug, Clone)]
+pub struct TurnOutcome {
+    /// The turn's report (the last message after the last tool call, with the
+    /// same fallback the per-turn path uses).
+    pub output: String,
+    /// The ACP stop reason (`"end_turn"`, `"cancelled"`, `"error"`, …).
+    pub stop_reason: String,
+    /// The session id, present only when the turn ended protocol-clean. The
+    /// caller binds it to the pane; an errored turn leaves the previous
+    /// binding in place, exactly like the per-turn `call`.
+    pub session_id: Option<String>,
+    /// The turn failed at the protocol level: the caller drops the handle so
+    /// the next dispatch opens a fresh session (a named rebuild reason).
+    pub failed: bool,
+}
+
+impl TurnOutcome {
+    fn closed() -> Self {
+        Self {
+            output: "The ACP session closed before answering the turn.".to_string(),
+            stop_reason: "error".to_string(),
+            session_id: None,
+            failed: true,
+        }
+    }
+}
+
+/// One turn requested on a live session.
+struct TurnRequest {
+    input: String,
+    picks: Vec<(String, String)>,
+    mode: Option<String>,
+    permission_rx:
+        Option<tokio::sync::mpsc::UnboundedReceiver<super::events::PanePermissionAnswer>>,
+    stop_signal: Arc<AtomicBool>,
+    chunk_tx: tokio::sync::mpsc::UnboundedSender<SubagentEvent>,
+    reply: tokio::sync::oneshot::Sender<TurnOutcome>,
+}
+
+/// Commands the supervisor thread accepts.
+enum HostCommand {
+    Turn(Box<TurnRequest>),
+    /// Close the session and the harness process.
+    Shutdown,
+}
+
+/// Per-turn notification/permission routing, swapped by the supervisor before
+/// every prompt. Events outside a turn (nothing should produce them) are
+/// dropped rather than leaking into the next turn.
+#[derive(Default)]
+struct HostShared {
+    sink: Mutex<Option<TurnSink>>,
+    permission: Mutex<Option<PermissionSlot>>,
+    /// Whether the pane asks the user for permissions at all (non-Yolo).
+    /// Kept across turns so a request that arrives after a turn ended is
+    /// answered `Cancelled` instead of being silently auto-approved (N6).
+    interactive: AtomicBool,
+    /// Chrome (command list, config options) published while no turn is
+    /// running — the session-open window. It is handed to the next turn's
+    /// stream, so the pane does not lose what the harness advertised around
+    /// the handshake.
+    pending_chrome: Mutex<Vec<SubagentEvent>>,
+    shutdown: Arc<AtomicBool>,
+}
+
+/// Whether `event` is pane chrome rather than turn content.
+fn is_chrome(event: &SubagentEvent) -> bool {
+    matches!(
+        event,
+        SubagentEvent::Commands { .. } | SubagentEvent::ConfigOptions { .. }
+    )
+}
+
+struct TurnSink {
+    chunk_tx: tokio::sync::mpsc::UnboundedSender<SubagentEvent>,
+    accumulated: Arc<Mutex<super::closure::TurnClosure>>,
+}
+
+struct PermissionSlot {
+    rx: Option<tokio::sync::mpsc::UnboundedReceiver<super::events::PanePermissionAnswer>>,
+    stop_signal: Arc<AtomicBool>,
+    chunk_tx: tokio::sync::mpsc::UnboundedSender<SubagentEvent>,
+}
+
+/// The pane's handle to its live ACP session.
+///
+/// Dropping every clone closes the command channel and lets the supervisor
+/// finish; [`Self::shutdown`] asks it to stop immediately (it also aborts the
+/// turn in flight, so a pane that is being hidden or closed never leaves the
+/// harness working in the background).
+pub struct SessionHandle {
+    tx: tokio::sync::mpsc::UnboundedSender<HostCommand>,
+    cwd: PathBuf,
+    shutdown: Arc<AtomicBool>,
+}
+
+impl Clone for SessionHandle {
+    fn clone(&self) -> Self {
+        Self {
+            tx: self.tx.clone(),
+            cwd: self.cwd.clone(),
+            shutdown: self.shutdown.clone(),
+        }
+    }
+}
+
+impl std::fmt::Debug for SessionHandle {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.debug_struct("SessionHandle")
+            .field("cwd", &self.cwd)
+            .field("alive", &self.is_alive())
+            .finish()
+    }
+}
+
+impl SessionHandle {
+    /// The canonical cwd the session was opened in.
+    #[must_use]
+    pub fn cwd(&self) -> &Path {
+        &self.cwd
+    }
+
+    /// Whether this handle still answers (the supervisor thread is alive).
+    #[must_use]
+    pub fn is_alive(&self) -> bool {
+        !self.tx.is_closed()
+    }
+
+    /// Whether the session was opened in the same workspace as `cwd`. A moved
+    /// worktree fails this check on purpose: the session must be rebuilt in
+    /// the new directory (the dispatch sends the handoff block once).
+    #[must_use]
+    pub fn matches_cwd(&self, cwd: &Path) -> bool {
+        prepare_session_cwd(cwd, CwdStrictness::Strict) == self.cwd
+    }
+
+    /// Ask the supervisor to close the session and its harness process. Safe
+    /// to call more than once and from any thread.
+    pub fn shutdown(&self) {
+        self.shutdown.store(true, Ordering::Relaxed);
+        let _ = self.tx.send(HostCommand::Shutdown);
+    }
+
+    /// Run one turn on the live session and await its outcome.
+    ///
+    /// Turns are serialized by the supervisor (the pane dispatch gate already
+    /// guarantees one at a time); a cancelled turn still waits for the agent's
+    /// own stop reason, per the ACP contract.
+    pub async fn run_turn(
+        &self,
+        input: String,
+        picks: &[(String, String)],
+        mode: Option<&str>,
+        permission_rx: Option<
+            tokio::sync::mpsc::UnboundedReceiver<super::events::PanePermissionAnswer>,
+        >,
+        stop_signal: Arc<AtomicBool>,
+        chunk_tx: tokio::sync::mpsc::UnboundedSender<SubagentEvent>,
+    ) -> TurnOutcome {
+        let (reply, answer) = tokio::sync::oneshot::channel();
+        let request = TurnRequest {
+            input,
+            picks: picks.to_vec(),
+            mode: mode.map(str::to_string),
+            permission_rx,
+            stop_signal,
+            chunk_tx,
+            reply,
+        };
+        if self.tx.send(HostCommand::Turn(Box::new(request))).is_err() {
+            return TurnOutcome::closed();
+        }
+        answer.await.unwrap_or_else(|_| TurnOutcome::closed())
+    }
+}
+
+/// Open a persistent ACP session for one pane.
+///
+/// The supervisor thread performs the handshake and the session open (resume
+/// when `resume` names a stored id, falling back to `session/new`), then waits
+/// for turns. `resume` is only consulted on this open: a live handle keeps its
+/// session until a named rebuild reason closes it.
+///
+/// # Errors
+///
+/// Returns an error when the agent is unknown, its launcher cannot be built,
+/// or the supervisor thread cannot be spawned. Handshake failures surface as a
+/// failed first [`TurnOutcome`] instead (the pane is already running by then).
+pub fn open_session(
+    agent: &str,
+    resume: Option<String>,
+    cwd: PathBuf,
+) -> Result<SessionHandle, String> {
+    validate_agent(agent)?;
+    let entry = find_agent(agent).ok_or_else(|| format!("unknown agent '{agent}'"))?;
+    let cwd = prepare_session_cwd(&cwd, CwdStrictness::Strict);
+    let launcher = agent_launcher(&entry)?.with_debug(|line, direction| {
+        if matches!(direction, LineDirection::Stderr) {
+            log::debug!("subagent ACP stderr: {line}");
+        }
+    });
+    let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+    let shutdown = Arc::new(AtomicBool::new(false));
+    let handle = SessionHandle {
+        tx,
+        cwd: cwd.clone(),
+        shutdown: shutdown.clone(),
+    };
+    let thread_cwd = cwd.clone();
+    std::thread::Builder::new()
+        .name(format!("acp-session-{agent}"))
+        .spawn(move || {
+            let runtime = match tokio::runtime::Builder::new_current_thread()
+                .enable_all()
+                .build()
+            {
+                Ok(runtime) => runtime,
+                Err(error) => {
+                    log::error!("failed to build ACP session runtime: {error}");
+                    return;
+                }
+            };
+            runtime.block_on(run_host_session(
+                launcher,
+                entry,
+                resume,
+                thread_cwd,
+                rx,
+                shutdown,
+            ));
+        })
+        .map_err(|error| format!("failed to spawn ACP session thread: {error}"))?;
+    Ok(handle)
+}
+
+/// Open a session over a caller-provided transport (tests only): the same
+/// supervisor the pane uses, driven by an in-memory ACP fixture instead of a
+/// subprocess.
+#[cfg(test)]
+pub(crate) fn open_session_with_transport<T>(
+    transport: T,
+    agent: &str,
+    resume: Option<String>,
+    cwd: PathBuf,
+) -> SessionHandle
+where
+    T: agent_client_protocol::ConnectTo<agent_client_protocol::Client> + Send + 'static,
+{
+    let entry = find_agent(agent).expect("a registered agent");
+    let cwd = prepare_session_cwd(&cwd, CwdStrictness::Strict);
+    let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
+    let shutdown = Arc::new(AtomicBool::new(false));
+    let handle = SessionHandle {
+        tx,
+        cwd: cwd.clone(),
+        shutdown: shutdown.clone(),
+    };
+    std::thread::spawn(move || {
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .expect("test ACP runtime");
+        runtime.block_on(run_host_session(
+            transport, entry, resume, cwd, rx, shutdown,
+        ));
+    });
+    handle
+}
+
+/// The supervisor loop: one connection, one session, many turns.
+#[allow(clippy::unwrap_used)]
+async fn run_host_session<T>(
+    transport: T,
+    entry: Agent,
+    resume: Option<String>,
+    cwd: PathBuf,
+    mut cmd_rx: tokio::sync::mpsc::UnboundedReceiver<HostCommand>,
+    shutdown: Arc<AtomicBool>,
+) where
+    T: agent_client_protocol::ConnectTo<agent_client_protocol::Client> + 'static,
+{
+    #[cfg(unix)]
+    let read_root = match super::sandbox::PinnedRoot::acquire(&cwd) {
+        Ok(root) => root,
+        Err(error) => {
+            log::error!("ACP session workspace unavailable: {error}");
+            return;
+        }
+    };
+    #[cfg(unix)]
+    let write_root = match super::sandbox::PinnedRoot::acquire(&cwd) {
+        Ok(root) => root,
+        Err(error) => {
+            log::error!("ACP session workspace unavailable: {error}");
+            return;
+        }
+    };
+    #[cfg(not(unix))]
+    let read_root = cwd.clone();
+    #[cfg(not(unix))]
+    let write_root = cwd.clone();
+
+    let shared = Arc::new(HostShared {
+        shutdown: shutdown.clone(),
+        ..HostShared::default()
+    });
+    // The session-open replay window: content streamed while `session/load`
+    // reconstructs the history is not this turn's work.
+    let load_window = Arc::new(AtomicBool::new(false));
+
+    let notify_shared = shared.clone();
+    let notify_load_window = load_window.clone();
+    let permission_shared = shared.clone();
+
+    let result = Client
+        .builder()
+        .name("morpheus")
+        .on_receive_notification(
+            async move |notification: SessionNotification, _cx| {
+                let Some(event) = SubagentEvent::from_session_update(notification.update) else {
+                    log::debug!("sub-agent session update without a display mapping");
+                    return Ok(());
+                };
+                let sink = notify_shared
+                    .sink
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner());
+                let Some(sink) = sink.as_ref() else {
+                    // Outside a turn: content is dropped (the next turn must
+                    // not inherit it, N5); chrome is kept for the next turn
+                    // because it describes the SESSION, not the turn.
+                    if is_chrome(&event) {
+                        let mut pending = notify_shared
+                            .pending_chrome
+                            .lock()
+                            .unwrap_or_else(|e| e.into_inner());
+                        pending.retain(|cached| {
+                            std::mem::discriminant(cached) != std::mem::discriminant(&event)
+                        });
+                        pending.push(event);
+                    }
+                    return Ok(());
+                };
+                if event.is_content() && notify_load_window.load(Ordering::Relaxed) {
+                    log::debug!("sub-agent session/load replay chunk dropped from the live turn");
+                    return Ok(());
+                }
+                sink.accumulated.lock().unwrap().observe(&event);
+                let _ = sink.chunk_tx.send(event);
+                Ok(())
+            },
+            on_receive_notification!(),
+        )
+        .on_receive_request(
+            async move |request: RequestPermissionRequest, responder, _connection| {
+                // Auto-approve when the pane has no interactive channel (Yolo,
+                // manager) — the same preference order as the per-turn path.
+                let interactive = permission_shared.interactive.load(Ordering::Relaxed);
+                if !interactive {
+                    let selected = request
+                        .options
+                        .iter()
+                        .find(|option| option.kind == PermissionOptionKind::AllowAlways)
+                        .or_else(|| {
+                            request
+                                .options
+                                .iter()
+                                .find(|option| option.kind == PermissionOptionKind::AllowOnce)
+                        })
+                        .or_else(|| request.options.first());
+                    return match selected {
+                        Some(option) => {
+                            log::debug!(
+                                "sub-agent permission auto-approved: option '{}' (kind {:?}) for tool call {}",
+                                option.option_id.0,
+                                option.kind,
+                                request.tool_call.tool_call_id.0
+                            );
+                            responder.respond(RequestPermissionResponse::new(
+                                RequestPermissionOutcome::Selected(
+                                    SelectedPermissionOutcome::new(option.option_id.clone()),
+                                ),
+                            ))
+                        }
+                        None => responder.respond(RequestPermissionResponse::new(
+                            RequestPermissionOutcome::Cancelled,
+                        )),
+                    };
+                }
+
+                let fields = &request.tool_call.fields;
+                let permission_event = SubagentEvent::PermissionRequest {
+                    call_id: request.tool_call.tool_call_id.0.to_string(),
+                    title: fields.title.clone().unwrap_or_else(|| {
+                        "tool call awaiting permission".to_string()
+                    }),
+                    kind: fields
+                        .kind
+                        .map(super::events::ToolKind::from_acp)
+                        .unwrap_or(super::events::ToolKind::Unknown),
+                    raw_input: fields.raw_input.clone(),
+                    options: request
+                        .options
+                        .iter()
+                        .map(|option| super::events::AgentPermissionOption {
+                            id: option.option_id.0.to_string(),
+                            name: option.name.clone(),
+                            kind: match option.kind {
+                                PermissionOptionKind::AllowOnce => "allow_once".to_string(),
+                                PermissionOptionKind::AllowAlways => "allow_always".to_string(),
+                                PermissionOptionKind::RejectOnce => "reject_once".to_string(),
+                                PermissionOptionKind::RejectAlways => "reject_always".to_string(),
+                                _ => "other".to_string(),
+                            },
+                        })
+                        .collect(),
+                };
+
+                // Take this turn's channel out for ONE answer and put it back
+                // afterwards; a later request of the same turn reuses it.
+                let (mut rx, stop_signal, chunk_tx) = {
+                    let mut slot = permission_shared
+                        .permission
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner());
+                    match slot.as_mut() {
+                        Some(state) => (
+                            state.rx.take(),
+                            state.stop_signal.clone(),
+                            state.chunk_tx.clone(),
+                        ),
+                        None => (None, Arc::new(AtomicBool::new(true)), permission_shared
+                            .sink
+                            .lock()
+                            .unwrap_or_else(|e| e.into_inner())
+                            .as_ref()
+                            .map(|sink| sink.chunk_tx.clone())
+                            .unwrap_or_else(|| {
+                                tokio::sync::mpsc::unbounded_channel().0
+                            })),
+                    }
+                };
+                let _ = chunk_tx.send(permission_event);
+
+                let answer = async {
+                    match rx.as_mut() {
+                        Some(rx) => rx.recv().await,
+                        None => None,
+                    }
+                };
+                let host_shutdown = permission_shared.shutdown.clone();
+                let stop_wait = async move {
+                    while !stop_signal.load(Ordering::Relaxed)
+                        && !host_shutdown.load(Ordering::Relaxed)
+                    {
+                        tokio::time::sleep(Duration::from_millis(50)).await;
+                    }
+                };
+                let picked = tokio::select! {
+                    answer = answer => answer,
+                    () = stop_wait => None,
+                };
+                if let Some(slot) = permission_shared
+                    .permission
+                    .lock()
+                    .unwrap_or_else(|e| e.into_inner())
+                    .as_mut()
+                {
+                    slot.rx = rx;
+                }
+                match picked {
+                    Some(super::events::PanePermissionAnswer::Selected(option_id)) => {
+                        log::debug!(
+                            "sub-agent permission granted by user: option '{option_id}' for tool call {}",
+                            request.tool_call.tool_call_id.0
+                        );
+                        responder.respond(RequestPermissionResponse::new(
+                            RequestPermissionOutcome::Selected(SelectedPermissionOutcome::new(
+                                agent_client_protocol::schema::v1::PermissionOptionId::new(
+                                    option_id,
+                                ),
+                            )),
+                        ))
+                    }
+                    answer => {
+                        log::debug!(
+                            "sub-agent permission cancelled ({answer:?}): tool call {}",
+                            request.tool_call.tool_call_id.0
+                        );
+                        responder.respond(RequestPermissionResponse::new(
+                            RequestPermissionOutcome::Cancelled,
+                        ))
+                    }
+                }
+            },
+            on_receive_request!(),
+        )
+        .on_receive_request(
+            async move |request: ReadTextFileRequest, responder, _connection| {
+                let content = serve_read(
+                    &read_root,
+                    &request.path,
+                    request.line,
+                    request.limit,
+                )?;
+                responder.respond(ReadTextFileResponse::new(content))
+            },
+            on_receive_request!(),
+        )
+        .on_receive_request(
+            async move |request: WriteTextFileRequest, responder, _connection| {
+                serve_write(&write_root, &request.path, &request.content)?;
+                responder.respond(WriteTextFileResponse::new())
+            },
+            on_receive_request!(),
+        )
+        .connect_with(transport, async move |connection: ConnectionTo<AcpRole>| {
+            let capabilities = ClientCapabilities::new().fs(FileSystemCapabilities::new()
+                .read_text_file(true)
+                .write_text_file(true));
+            let init = connection
+                .send_request(
+                    InitializeRequest::new(ProtocolVersion::V1)
+                        .client_capabilities(capabilities),
+                )
+                .block_task()
+                .await
+                .map_err(|e| acp_error(format!("ACP initialize failed: {e}")))?;
+
+            // OPEN: resume-or-new (replay suppressed). Lazy auth on rejection.
+            let opened = {
+                load_window.store(true, Ordering::Relaxed);
+                let support = session_resume_support(&init.agent_capabilities);
+                match handshake_step(
+                    "session open",
+                    open_or_resume_session(&connection, resume.clone(), &cwd, support),
+                )
+                .await
+                {
+                    Ok(open) => open,
+                    Err(auth_error) if auth_error.code == ErrorCode::AuthRequired => {
+                        authenticate_on_auth_required(
+                            &connection,
+                            &init.auth_methods,
+                            &auth_error,
+                        )
+                        .await?;
+                        handshake_step(
+                            "session open",
+                            open_or_resume_session(&connection, resume, &cwd, support),
+                        )
+                        .await?
+                    }
+                    Err(auth_error) => return Err(auth_error),
+                }
+            };
+            load_window.store(false, Ordering::Relaxed);
+            let session_id = opened.session_id.clone();
+            let open_modes = opened.modes.clone();
+            log::debug!(
+                "ACP pane session open: {} (cwd {})",
+                session_id.0,
+                cwd.display()
+            );
+
+            // The connection's applied state, so picks/mode are only re-sent
+            // when the user actually changed them (N19).
+            let mut applied_picks: Option<Vec<(String, String)>> = None;
+            let mut applied_mode: Option<String> = None;
+
+            loop {
+                let Some(command) = cmd_rx.recv().await else {
+                    break;
+                };
+                let request = match command {
+                    HostCommand::Shutdown => break,
+                    HostCommand::Turn(request) => *request,
+                };
+                if shared.shutdown.load(Ordering::Relaxed) {
+                    let _ = request.reply.send(TurnOutcome::closed());
+                    break;
+                }
+                let TurnRequest {
+                    input,
+                    picks,
+                    mode,
+                    permission_rx,
+                    stop_signal,
+                    chunk_tx,
+                    reply,
+                } = request;
+
+                // Effective picks: the caller's order, plus the registry
+                // default model when nobody picked one (same contract as
+                // `acp::call`).
+                let mut effective = picks;
+                if !entry.model.is_empty()
+                    && !effective.iter().any(|(id, _)| id == "model")
+                {
+                    effective.push(("model".to_string(), entry.model.to_string()));
+                }
+                if applied_picks.as_ref() != Some(&effective) {
+                    let result = handshake_step(
+                        "config picks",
+                        apply_session_picks(
+                            &connection,
+                            &session_id,
+                            opened.config_options.as_deref(),
+                            &effective,
+                        ),
+                    )
+                    .await;
+                    match result {
+                        Ok(()) => applied_picks = Some(effective.clone()),
+                        Err(auth_error) if auth_error.code == ErrorCode::AuthRequired => {
+                            authenticate_on_auth_required(
+                                &connection,
+                                &init.auth_methods,
+                                &auth_error,
+                            )
+                            .await?;
+                            if let Err(error) = handshake_step(
+                                "config picks",
+                                apply_session_picks(
+                                    &connection,
+                                    &session_id,
+                                    opened.config_options.as_deref(),
+                                    &effective,
+                                ),
+                            )
+                            .await
+                            {
+                                let _ = reply.send(failed_outcome(error.to_string()));
+                                continue;
+                            }
+                            applied_picks = Some(effective.clone());
+                        }
+                        Err(error) => {
+                            let _ = reply.send(failed_outcome(error.to_string()));
+                            continue;
+                        }
+                    }
+                }
+                if let Some(mode_id) = mode.as_deref()
+                    && open_modes
+                        .as_ref()
+                        .is_some_and(|(_, modes)| modes.iter().any(|m| m.id == mode_id))
+                    && applied_mode.as_deref() != Some(mode_id)
+                {
+                    let result = handshake_step(
+                        "mode bind",
+                        apply_session_mode(&connection, &session_id, Some(mode_id)),
+                    )
+                    .await;
+                    match result {
+                        Ok(()) => applied_mode = Some(mode_id.to_string()),
+                        Err(auth_error) if auth_error.code == ErrorCode::AuthRequired => {
+                            authenticate_on_auth_required(
+                                &connection,
+                                &init.auth_methods,
+                                &auth_error,
+                            )
+                            .await?;
+                            if let Err(error) = handshake_step(
+                                "mode bind",
+                                apply_session_mode(&connection, &session_id, Some(mode_id)),
+                            )
+                            .await
+                            {
+                                let _ = reply.send(failed_outcome(error.to_string()));
+                                continue;
+                            }
+                            applied_mode = Some(mode_id.to_string());
+                        }
+                        Err(error) => {
+                            let _ = reply.send(failed_outcome(error.to_string()));
+                            continue;
+                        }
+                    }
+                }
+
+                // The badge and the mode list are pane chrome, emitted before
+                // the prompt like the per-turn path (the harness may have
+                // updated its config options since the session opened).
+                let preferred_model = effective
+                    .iter()
+                    .find(|(id, _)| id == "model")
+                    .map(|(_, value)| value.as_str())
+                    .unwrap_or("");
+                let _ = chunk_tx
+                    .send(session_model_info(opened.config_options.as_deref(), preferred_model));
+                let _ = chunk_tx.send(SubagentEvent::Modes {
+                    modes: open_modes
+                        .as_ref()
+                        .map(|(_, modes)| modes.clone())
+                        .unwrap_or_default(),
+                    current: open_modes
+                        .as_ref()
+                        .map(|(current, _)| current.clone())
+                        .unwrap_or_default(),
+                });
+                // Chrome the harness published while the session was opening
+                // (no live turn to carry it) goes out with this turn.
+                let pending: Vec<SubagentEvent> = {
+                    let mut pending = shared
+                        .pending_chrome
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner());
+                    pending.drain(..).collect()
+                };
+                for event in pending {
+                    let _ = chunk_tx.send(event);
+                }
+
+                let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));
+                shared
+                    .interactive
+                    .store(permission_rx.is_some(), Ordering::Relaxed);
+                {
+                    let mut sink = shared
+                        .sink
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner());
+                    *sink = Some(TurnSink {
+                        chunk_tx: chunk_tx.clone(),
+                        accumulated: accumulated.clone(),
+                    });
+                }
+                {
+                    let mut slot = shared
+                        .permission
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner());
+                    *slot = Some(PermissionSlot {
+                        rx: permission_rx,
+                        stop_signal: stop_signal.clone(),
+                        chunk_tx: chunk_tx.clone(),
+                    });
+                }
+
+                let prompt_request = connection
+                    .send_request(PromptRequest::new(
+                        session_id.clone(),
+                        vec![ContentBlock::Text(TextContent::new(input.clone()))],
+                    ))
+                    .block_task();
+                tokio::pin!(prompt_request);
+                let cancel_stop = stop_signal.clone();
+                let cancel_shutdown = shared.shutdown.clone();
+                let stop_wait = async move {
+                    while !cancel_stop.load(Ordering::Relaxed)
+                        && !cancel_shutdown.load(Ordering::Relaxed)
+                    {
+                        tokio::time::sleep(Duration::from_millis(50)).await;
+                    }
+                };
+                let prompt = tokio::select! {
+                    prompt = &mut prompt_request => prompt,
+                    () = stop_wait => {
+                        log::debug!("ACP pane turn cancelled by stop signal");
+                        if let Err(error) = connection.send_notification(CancelNotification::new(
+                            session_id.clone(),
+                        )) {
+                            log::warn!("sub-agent ACP cancel notification failed: {error}");
+                        }
+                        // The protocol asks the agent for its own stop reason,
+                        // but a harness may ignore `session/cancel`. Past the
+                        // grace, the session is unusable: the turn fails (the
+                        // caller drops the handle) and the supervisor closes
+                        // the process instead of waiting forever.
+                        match tokio::time::timeout(CANCEL_GRACE, &mut prompt_request).await {
+                            Ok(response) => response,
+                            Err(_) => {
+                                log::warn!(
+                                    "ACP pane harness did not answer session/cancel within {CANCEL_GRACE:?}; closing the session"
+                                );
+                                Err(acp_error(
+                                    "the ACP harness did not answer session/cancel; the session was closed",
+                                ))
+                            }
+                        }
+                    }
+                };
+                let prompt = prompt
+                    .map_err(|e| wrap_acp_failure("ACP session/prompt failed", e));
+                // The lazy-auth retry for the PROMPT is not raced against the
+                // stop signal (same as the per-turn path): an `auth_required`
+                // rejection precedes any model work.
+                let prompt = match prompt {
+                    Ok(prompt) => Ok(prompt),
+                    Err(auth_error) if auth_error.code == ErrorCode::AuthRequired => {
+                        authenticate_on_auth_required(
+                            &connection,
+                            &init.auth_methods,
+                            &auth_error,
+                        )
+                        .await?;
+                        connection
+                            .send_request(PromptRequest::new(
+                                session_id.clone(),
+                                vec![ContentBlock::Text(TextContent::new(input))],
+                            ))
+                            .block_task()
+                            .await
+                            .map_err(|e| wrap_acp_failure("ACP session/prompt failed", e))
+                    }
+                    Err(auth_error) => Err(auth_error),
+                };
+
+                // Close the turn's routing before reporting: whatever arrives
+                // from here belongs to no live turn.
+                {
+                    // Order matters: the pane stops being interactive before
+                    // the slot disappears, so a late request sees "interactive,
+                    // no channel" and is cancelled (N6).
+                    shared.interactive.store(false, Ordering::Relaxed);
+                    *shared
+                        .sink
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner()) = None;
+                    *shared
+                        .permission
+                        .lock()
+                        .unwrap_or_else(|e| e.into_inner()) = None;
+                }
+                let output = accumulated.lock().unwrap().output();
+                match prompt {
+                    Ok(prompt) => {
+                        let _ = reply.send(TurnOutcome {
+                            output,
+                            stop_reason: stop_reason_str(prompt.stop_reason),
+                            session_id: Some(session_id.0.to_string()),
+                            failed: false,
+                        });
+                    }
+                    Err(error) => {
+                        let output = if output.is_empty() {
+                            error.to_string()
+                        } else {
+                            log::warn!("ACP pane turn failed: {error}");
+                            output
+                        };
+                        let _ = reply.send(TurnOutcome {
+                            output,
+                            stop_reason: "error".to_string(),
+                            session_id: None,
+                            failed: true,
+                        });
+                        // A protocol-level failure: the pane drops the handle
+                        // and the next dispatch opens a fresh session (the
+                        // closed rebuild list).
+                        break;
+                    }
+                }
+            }
+            Ok(())
+        })
+        .await;
+
+    if let Err(error) = result {
+        log::warn!("ACP pane session ended: {error}");
+    }
+}
+
+fn failed_outcome(error: String) -> TurnOutcome {
+    TurnOutcome {
+        output: error,
+        stop_reason: "error".to_string(),
+        session_id: None,
+        failed: true,
     }
 }
 

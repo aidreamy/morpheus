@@ -3728,3 +3728,772 @@ async fn run_session_authenticates_lazily_only_after_auth_required() {
         SubagentEvent::Message { text } if text == "authenticated turn"
     ));
 }
+
+/// A pane's persistent session must open ONCE and reuse the same session for
+/// consecutive turns (guarantees N2/N4 of the persistent-session contract).
+#[tokio::test(flavor = "current_thread")]
+async fn persistent_session_reuses_one_session_across_turns() {
+    use agent_client_protocol::schema::v1::{
+        AgentCapabilities, InitializeResponse, NewSessionResponse, PromptResponse, SessionId,
+        StopReason,
+    };
+    use agent_client_protocol::{Agent as AgentRole, Channel, Responder};
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+
+    let (client_side, agent_side) = Channel::duplex();
+    let new_sessions = Arc::new(AtomicUsize::new(0));
+    let counted = new_sessions.clone();
+    let agent_task = tokio::spawn(async move {
+        AgentRole
+            .builder()
+            .name("reuse-fixture")
+            .on_receive_request(
+                async move |request: InitializeRequest,
+                            responder: Responder<InitializeResponse>,
+                            _cx| {
+                    responder.respond(
+                        InitializeResponse::new(request.protocol_version)
+                            .agent_capabilities(AgentCapabilities::new()),
+                    )
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |_request: NewSessionRequest,
+                            responder: Responder<NewSessionResponse>,
+                            _cx| {
+                    counted.fetch_add(1, Ordering::SeqCst);
+                    responder.respond(NewSessionResponse::new(SessionId::new("reuse-session")))
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |request: PromptRequest, responder: Responder<PromptResponse>, cx| {
+                    let text = request
+                        .prompt
+                        .iter()
+                        .filter_map(|block| match block {
+                            ContentBlock::Text(text) => Some(text.text.clone()),
+                            _ => None,
+                        })
+                        .collect::<Vec<_>>()
+                        .join("");
+                    let _ = cx.send_notification(SessionNotification::new(
+                        request.session_id.clone(),
+                        SessionUpdate::AgentMessageChunk(
+                            agent_client_protocol::schema::v1::ContentChunk::new(
+                                ContentBlock::Text(TextContent::new(text)),
+                            ),
+                        ),
+                    ));
+                    responder.respond(PromptResponse::new(StopReason::EndTurn))
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .connect_to(agent_side)
+            .await
+    });
+
+    let handle = super::acp::open_session_with_transport(
+        client_side,
+        "gemini",
+        None,
+        std::env::temp_dir(),
+    );
+
+    let mut outputs = Vec::new();
+    for input in ["first", "second"] {
+        let (chunk_tx, mut chunk_rx) = tokio::sync::mpsc::unbounded_channel();
+        let outcome = handle
+            .run_turn(
+                input.to_string(),
+                &[],
+                None,
+                None,
+                Arc::new(AtomicBool::new(false)),
+                chunk_tx,
+            )
+            .await;
+        assert!(!outcome.failed, "{outcome:?}");
+        assert_eq!(outcome.stop_reason, "end_turn");
+        assert_eq!(outcome.session_id.as_deref(), Some("reuse-session"));
+        while chunk_rx.try_recv().is_ok() {}
+        outputs.push(outcome.output);
+    }
+
+    assert_eq!(outputs, ["first", "second"]);
+    assert_eq!(
+        new_sessions.load(Ordering::SeqCst),
+        1,
+        "the second turn must reuse the session, not open a new one"
+    );
+    handle.shutdown();
+    let _ = agent_task.await;
+}
+
+
+/// Persistent session applies config picks and mode only when they change
+/// between turns (guarantee N19): the second identical turn must not issue
+/// another `session/set_config_option` or `session/set_mode`.
+#[tokio::test(flavor = "current_thread")]
+async fn persistent_session_applies_picks_and_mode_only_on_change() {
+    use agent_client_protocol::schema::v1::{
+        AgentCapabilities, ContentBlock, ContentChunk, InitializeRequest, InitializeResponse,
+        NewSessionRequest, NewSessionResponse, PromptRequest, PromptResponse, SessionConfigId,
+        SessionConfigOption, SessionConfigSelectOption, SessionConfigValueId, SessionId,
+        SessionMode, SessionModeState, SetSessionConfigOptionRequest, SetSessionModeRequest,
+        StopReason, TextContent,
+    };
+    use agent_client_protocol::{Agent as AgentRole, Channel, Responder};
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+
+    type Counter = Arc<AtomicUsize>;
+    let config_calls: Counter = Arc::new(AtomicUsize::new(0));
+    let mode_calls: Counter = Arc::new(AtomicUsize::new(0));
+    let config_calls_a = config_calls.clone();
+    let mode_calls_a = mode_calls.clone();
+
+    let (client_side, agent_side) = Channel::duplex();
+    let agent_task = tokio::spawn(async move {
+        AgentRole
+            .builder()
+            .name("picks-fixture")
+            .on_receive_request(
+                async move |request: InitializeRequest,
+                            responder: Responder<InitializeResponse>,
+                            _cx| {
+                    responder.respond(
+                        InitializeResponse::new(request.protocol_version)
+                            .agent_capabilities(AgentCapabilities::new()),
+                    )
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |_request: NewSessionRequest,
+                            responder: Responder<NewSessionResponse>,
+                            _cx| {
+                    responder.respond(
+                        NewSessionResponse::new(SessionId::new("picks-session"))
+                            .config_options(vec![SessionConfigOption::select(
+                                SessionConfigId::new("model"),
+                                "Model",
+                                SessionConfigValueId::new("other-model"),
+                                vec![
+                                    SessionConfigSelectOption::new(
+                                        SessionConfigValueId::new("default-model"),
+                                        "Default",
+                                    ),
+                                    SessionConfigSelectOption::new(
+                                        SessionConfigValueId::new("preferred-model"),
+                                        "Preferred",
+                                    ),
+                                ],
+                            )])
+                            .modes(SessionModeState::new(
+                                agent_client_protocol::schema::v1::SessionModeId::new("code"),
+                                vec![SessionMode::new(
+                                    agent_client_protocol::schema::v1::SessionModeId::new("code"),
+                                    "Code",
+                                )],
+                            )),
+                    )
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |request: SetSessionConfigOptionRequest,
+                            responder: Responder<
+                                agent_client_protocol::schema::v1::SetSessionConfigOptionResponse,
+                            >,
+                            _cx| {
+                    config_calls_a.fetch_add(1, Ordering::SeqCst);
+                    responder.respond(
+                        agent_client_protocol::schema::v1::SetSessionConfigOptionResponse::new(
+                            vec![SessionConfigOption::select(
+                                SessionConfigId::new("model"),
+                                "Model",
+                                SessionConfigValueId::new("preferred-model"),
+                                vec![SessionConfigSelectOption::new(
+                                    SessionConfigValueId::new("preferred-model"),
+                                    "Preferred",
+                                )],
+                            )],
+                        ),
+                    )
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |request: SetSessionModeRequest,
+                            responder: Responder<
+                                agent_client_protocol::schema::v1::SetSessionModeResponse,
+                            >,
+                            _cx| {
+                    mode_calls_a.fetch_add(1, Ordering::SeqCst);
+                    responder.respond(
+                        agent_client_protocol::schema::v1::SetSessionModeResponse::new(),
+                    )
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |request: PromptRequest, responder: Responder<PromptResponse>, cx| {
+                    let _ = cx.send_notification(SessionNotification::new(
+                        request.session_id.clone(),
+                        SessionUpdate::AgentMessageChunk(ContentChunk::new(ContentBlock::Text(
+                            TextContent::new("ok".to_string()),
+                        ))),
+                    ));
+                    responder.respond(PromptResponse::new(StopReason::EndTurn))
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .connect_to(agent_side)
+            .await
+    });
+
+    let handle = super::acp::open_session_with_transport(
+        client_side,
+        "gemini",
+        None,
+        std::env::temp_dir(),
+    );
+
+    let picks = [("model".to_string(), "preferred-model".to_string())];
+    for _ in 0..2 {
+        let (chunk_tx, mut chunk_rx) = tokio::sync::mpsc::unbounded_channel();
+        let outcome = handle
+            .run_turn(
+                "hi".to_string(),
+                &picks,
+                Some("code"),
+                None,
+                Arc::new(AtomicBool::new(false)),
+                chunk_tx,
+            )
+            .await;
+        assert!(!outcome.failed, "{outcome:?}");
+        assert_eq!(outcome.stop_reason, "end_turn");
+        while chunk_rx.try_recv().is_ok() {}
+    }
+
+    assert_eq!(
+        config_calls.load(Ordering::SeqCst),
+        1,
+        "identical picks must not re-issue set_config_option on the second turn"
+    );
+    assert_eq!(
+        mode_calls.load(Ordering::SeqCst),
+        1,
+        "identical mode must not re-issue set_mode on the second turn"
+    );
+
+    // Changing the picks must trigger a new apply.
+    let picks2 = [("model".to_string(), "default-model".to_string())];
+    let (chunk_tx, mut chunk_rx) = tokio::sync::mpsc::unbounded_channel();
+    let outcome = handle
+        .run_turn(
+            "hi2".to_string(),
+            &picks2,
+            Some("code"),
+            None,
+            Arc::new(AtomicBool::new(false)),
+            chunk_tx,
+        )
+        .await;
+    assert!(!outcome.failed, "{outcome:?}");
+    while chunk_rx.try_recv().is_ok() {}
+    assert_eq!(
+        config_calls.load(Ordering::SeqCst),
+        2,
+        "changed picks must re-issue set_config_option"
+    );
+
+    handle.shutdown();
+    let _ = agent_task.await;
+}
+
+
+/// A cancelled persistent turn yields a `cancelled` stop reason, streams the
+/// partial output, and leaves the handle alive + reusable (N7/N13).
+#[tokio::test(flavor = "current_thread")]
+async fn persistent_session_cancel_yields_cancelled_and_reuses_session() {
+    use agent_client_protocol::schema::v1::{
+        AgentCapabilities, CancelNotification, ContentBlock, ContentChunk, InitializeRequest,
+        InitializeResponse, NewSessionRequest, NewSessionResponse, PromptRequest, PromptResponse,
+        SessionId, SessionNotification, SessionUpdate, StopReason, TextContent,
+    };
+    use agent_client_protocol::{Agent as AgentRole, Channel, Responder};
+    use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
+
+    const PARTIAL: &str = "partial output so far";
+
+    let new_sessions = Arc::new(AtomicUsize::new(0));
+    let counted = new_sessions.clone();
+    let cancel_received = Arc::new(tokio::sync::Notify::new());
+    let cancel_flag = Arc::new(AtomicBool::new(false));
+    let notify = cancel_received.clone();
+    let flag = cancel_flag.clone();
+    let notify2 = cancel_received.clone();
+
+    let (client_side, agent_side) = Channel::duplex();
+    let agent_task = tokio::spawn(async move {
+        let _ = AgentRole
+            .builder()
+            .name("cancel-persistent")
+            .on_receive_request(
+                async move |request: InitializeRequest,
+                            responder: Responder<InitializeResponse>,
+                            _cx| {
+                    responder.respond(
+                        InitializeResponse::new(request.protocol_version)
+                            .agent_capabilities(AgentCapabilities::new()),
+                    )
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |_request: NewSessionRequest,
+                            responder: Responder<NewSessionResponse>,
+                            _cx| {
+                    counted.fetch_add(1, Ordering::SeqCst);
+                    responder.respond(NewSessionResponse::new(SessionId::new(
+                        "cancel-persistent-session",
+                    )))
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .on_receive_notification(
+                async move |_notification: CancelNotification, _cx| {
+                    flag.store(true, Ordering::Relaxed);
+                    notify.notify_one();
+                    Ok(())
+                },
+                agent_client_protocol::on_receive_notification!(),
+            )
+            .on_receive_request(
+                async move |request: PromptRequest, responder: Responder<PromptResponse>, cx| {
+                    let _ = cx.send_notification(SessionNotification::new(
+                        request.session_id.clone(),
+                        SessionUpdate::AgentMessageChunk(ContentChunk::new(ContentBlock::Text(
+                            TextContent::new(PARTIAL),
+                        ))),
+                    ));
+                    let notify = notify2.clone();
+                    cx.spawn(async move {
+                        notify.notified().await;
+                        responder.respond(PromptResponse::new(StopReason::Cancelled))
+                    })?;
+                    Ok(())
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .connect_to(agent_side)
+            .await;
+    });
+
+    let handle = super::acp::open_session_with_transport(
+        client_side,
+        "gemini",
+        None,
+        std::env::temp_dir(),
+    );
+
+    // First turn: cancelled.
+    let stop_signal = Arc::new(AtomicBool::new(false));
+    let (chunk_tx, _chunk_rx) = tokio::sync::mpsc::unbounded_channel();
+    let driver = {
+        let stop_signal = stop_signal.clone();
+        async move {
+            tokio::time::sleep(std::time::Duration::from_millis(100)).await;
+            stop_signal.store(true, Ordering::Relaxed);
+        }
+    };
+    let turn_fut = handle.run_turn(
+        "long task".to_string(),
+        &[],
+        None,
+        None,
+        stop_signal.clone(),
+        chunk_tx,
+    );
+    let (outcome, _) = tokio::join!(turn_fut, driver);
+    assert!(!outcome.failed, "{outcome:?}");
+    assert_eq!(outcome.stop_reason, "cancelled");
+    assert_eq!(outcome.output, PARTIAL);
+    assert_eq!(outcome.session_id.as_deref(), Some("cancel-persistent-session"));
+    assert!(handle.is_alive(), "handle must survive a cancelled turn");
+
+    handle.shutdown();
+    let _ = agent_task.await;
+}
+
+
+/// A protocol-level failure on a turn (prompt rejected) yields a failed
+/// `TurnOutcome` with `session_id: None`, breaks the supervisor loop, and
+/// drops the handle (N8/N9).
+#[tokio::test(flavor = "current_thread")]
+async fn persistent_session_protocol_failure_fails_and_drops_handle() {
+    use agent_client_protocol::schema::v1::{
+        AgentCapabilities, InitializeRequest, InitializeResponse, NewSessionRequest,
+        NewSessionResponse, PromptRequest, PromptResponse, SessionId, StopReason,
+    };
+    use agent_client_protocol::{Agent as AgentRole, Channel, Responder};
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    let (client_side, agent_side) = Channel::duplex();
+    let agent_task = tokio::spawn(async move {
+        let _ = AgentRole
+            .builder()
+            .name("fail-fixture")
+            .on_receive_request(
+                async move |request: InitializeRequest,
+                            responder: Responder<InitializeResponse>,
+                            _cx| {
+                    responder.respond(
+                        InitializeResponse::new(request.protocol_version)
+                            .agent_capabilities(AgentCapabilities::new()),
+                    )
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |_request: NewSessionRequest,
+                            responder: Responder<NewSessionResponse>,
+                            _cx| {
+                    responder.respond(NewSessionResponse::new(SessionId::new("fail-session")))
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |_request: PromptRequest,
+                            responder: Responder<PromptResponse>,
+                            _cx| {
+                    responder.respond_with_internal_error("boom")
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .connect_to(agent_side)
+            .await;
+    });
+
+    let handle = super::acp::open_session_with_transport(
+        client_side,
+        "gemini",
+        None,
+        std::env::temp_dir(),
+    );
+
+    let (chunk_tx, mut chunk_rx) = tokio::sync::mpsc::unbounded_channel();
+    let outcome = handle
+        .run_turn(
+            "hi".to_string(),
+            &[],
+            None,
+            None,
+            Arc::new(AtomicBool::new(false)),
+            chunk_tx,
+        )
+        .await;
+    assert!(outcome.failed, "{outcome:?}");
+    assert_eq!(outcome.stop_reason, "error");
+    assert!(outcome.session_id.is_none(), "{outcome:?}");
+    while chunk_rx.try_recv().is_ok() {}
+
+    // The supervisor closed the session after the failure.
+    // Give it a moment to tear down.
+    for _ in 0..50 {
+        if !handle.is_alive() {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    }
+    assert!(!handle.is_alive(), "handle must be dead after a protocol failure");
+
+    let _ = agent_task.await;
+}
+
+
+/// Chrome published while no turn is running (session-open window) is cached
+/// and replayed on the next turn; ordinary content published outside a turn
+/// is dropped (guarantee N5).
+#[tokio::test(flavor = "current_thread")]
+async fn persistent_session_caches_chrome_and_drops_stray_content() {
+    use agent_client_protocol::schema::v1::{
+        AgentCapabilities, AvailableCommand, AvailableCommandsUpdate, ContentBlock, ContentChunk,
+        InitializeRequest, InitializeResponse, NewSessionRequest, NewSessionResponse, PromptRequest,
+        PromptResponse, SessionConfigOption, SessionId, SessionNotification, SessionUpdate,
+        StopReason, TextContent,
+    };
+    use agent_client_protocol::{Agent as AgentRole, Channel, Responder};
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    let (client_side, agent_side) = Channel::duplex();
+    let agent_task = tokio::spawn(async move {
+        AgentRole
+            .builder()
+            .name("chrome-fixture")
+            .on_receive_request(
+                async move |request: InitializeRequest,
+                            responder: Responder<InitializeResponse>,
+                            _cx| {
+                    responder.respond(
+                        InitializeResponse::new(request.protocol_version)
+                            .agent_capabilities(AgentCapabilities::new()),
+                    )
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |request: NewSessionRequest,
+                            responder: Responder<NewSessionResponse>,
+                            cx| {
+                    let sid = SessionId::new("chrome-session");
+                    // Chrome published during the open window (no live turn):
+                    // must be cached and replayed on the next turn.
+                    let _ = cx.send_notification(SessionNotification::new(
+                        sid.clone(),
+                        SessionUpdate::AvailableCommandsUpdate(AvailableCommandsUpdate::new(vec![
+                            AvailableCommand::new("do_thing", "does a thing"),
+                        ])),
+                    ));
+                    let _ = cx.send_notification(SessionNotification::new(
+                        sid.clone(),
+                        SessionUpdate::ConfigOptionUpdate(
+                            agent_client_protocol::schema::v1::ConfigOptionUpdate::new(vec![]),
+                        ),
+                    ));
+                    // Stray content published outside a turn must be dropped.
+                    let _ = cx.send_notification(SessionNotification::new(
+                        sid.clone(),
+                        SessionUpdate::AgentMessageChunk(ContentChunk::new(ContentBlock::Text(
+                            TextContent::new("stray content".to_string()),
+                        ))),
+                    ));
+                    responder.respond(NewSessionResponse::new(sid))
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |request: PromptRequest, responder: Responder<PromptResponse>, cx| {
+                    let _ = cx.send_notification(SessionNotification::new(
+                        request.session_id.clone(),
+                        SessionUpdate::AgentMessageChunk(ContentChunk::new(ContentBlock::Text(
+                            TextContent::new("turn answer".to_string()),
+                        ))),
+                    ));
+                    responder.respond(PromptResponse::new(StopReason::EndTurn))
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .connect_to(agent_side)
+            .await
+    });
+
+    let handle = super::acp::open_session_with_transport(
+        client_side,
+        "gemini",
+        None,
+        std::env::temp_dir(),
+    );
+
+    // First turn: collects chrome replay + turn answer.
+    let (chunk_tx, mut chunk_rx) = tokio::sync::mpsc::unbounded_channel();
+    let outcome = handle
+        .run_turn(
+            "hi".to_string(),
+            &[],
+            None,
+            None,
+            Arc::new(AtomicBool::new(false)),
+            chunk_tx,
+        )
+        .await;
+    assert!(!outcome.failed, "{outcome:?}");
+    let mut events = Vec::new();
+    while let Ok(ev) = chunk_rx.try_recv() {
+        events.push(ev);
+    }
+    // Chrome replayed.
+    assert!(
+        events
+            .iter()
+            .any(|e| matches!(e, super::events::SubagentEvent::Commands { .. })),
+        "commands chrome must be replayed: {events:?}"
+    );
+    assert!(
+        events
+            .iter()
+            .any(|e| matches!(e, super::events::SubagentEvent::ConfigOptions { .. })),
+        "config options chrome must be replayed: {events:?}"
+    );
+    // Stray content dropped.
+    assert!(
+        !events.iter().any(|e| matches!(e, super::events::SubagentEvent::Message { text } if text == "stray content")),
+        "stray content must not leak into the turn: {events:?}"
+    );
+    // Turn answer present.
+    assert!(
+        events
+            .iter()
+            .any(|e| matches!(e, super::events::SubagentEvent::Message { text } if text == "turn answer")),
+        "turn answer must arrive: {events:?}"
+    );
+
+    // Second turn: chrome already drained, must NOT replay again.
+    let (chunk_tx, mut chunk_rx) = tokio::sync::mpsc::unbounded_channel();
+    let outcome = handle
+        .run_turn(
+            "hi2".to_string(),
+            &[],
+            None,
+            None,
+            Arc::new(AtomicBool::new(false)),
+            chunk_tx,
+        )
+        .await;
+    assert!(!outcome.failed, "{outcome:?}");
+    let mut events2 = Vec::new();
+    while let Ok(ev) = chunk_rx.try_recv() {
+        events2.push(ev);
+    }
+    assert!(
+        !events2
+            .iter()
+            .any(|e| matches!(e, super::events::SubagentEvent::Commands { .. })),
+        "chrome must not replay twice: {events2:?}"
+    );
+
+    handle.shutdown();
+    let _ = agent_task.await;
+}
+
+
+/// `shutdown()` closes the handle; subsequent turns report a closed session
+/// and `is_alive()` is false (G14/N15).
+#[tokio::test(flavor = "current_thread")]
+async fn persistent_session_shutdown_closes_handle() {
+    use agent_client_protocol::schema::v1::{
+        AgentCapabilities, InitializeRequest, InitializeResponse, NewSessionRequest,
+        NewSessionResponse, PromptResponse, SessionId,
+    };
+    use agent_client_protocol::{Agent as AgentRole, Channel, Responder};
+    use std::sync::atomic::{AtomicBool, Ordering};
+
+    let (client_side, agent_side) = Channel::duplex();
+    let agent_task = tokio::spawn(async move {
+        let _ = AgentRole
+            .builder()
+            .name("shutdown-fixture")
+            .on_receive_request(
+                async move |request: InitializeRequest,
+                            responder: Responder<InitializeResponse>,
+                            _cx| {
+                    responder.respond(
+                        InitializeResponse::new(request.protocol_version)
+                            .agent_capabilities(AgentCapabilities::new()),
+                    )
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |_request: NewSessionRequest,
+                            responder: Responder<NewSessionResponse>,
+                            _cx| {
+                    responder.respond(NewSessionResponse::new(SessionId::new("shutdown-session")))
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .connect_to(agent_side)
+            .await;
+    });
+
+    let handle = super::acp::open_session_with_transport(
+        client_side,
+        "gemini",
+        None,
+        std::env::temp_dir(),
+    );
+    assert!(handle.is_alive());
+
+    handle.shutdown();
+    for _ in 0..50 {
+        if !handle.is_alive() {
+            break;
+        }
+        tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+    }
+    assert!(!handle.is_alive(), "handle must be dead after shutdown");
+
+    let (chunk_tx, _chunk_rx) = tokio::sync::mpsc::unbounded_channel();
+    let outcome = handle
+        .run_turn(
+            "hi".to_string(),
+            &[],
+            None,
+            None,
+            Arc::new(AtomicBool::new(false)),
+            chunk_tx,
+        )
+        .await;
+    assert!(outcome.failed, "{outcome:?}");
+    assert_eq!(outcome.stop_reason, "error");
+    assert!(outcome.session_id.is_none());
+
+    let _ = agent_task.await;
+}
+
+/// `matches_cwd` is true for the same workspace and false for a different
+/// one (N16 rebuild trigger).
+#[tokio::test(flavor = "current_thread")]
+async fn session_handle_matches_cwd_distinguishes_workspaces() {
+    use agent_client_protocol::schema::v1::{
+        AgentCapabilities, InitializeRequest, InitializeResponse, NewSessionRequest,
+        NewSessionResponse, SessionId,
+    };
+    use agent_client_protocol::{Agent as AgentRole, Channel, Responder};
+
+    let dir_a = tempfile::tempdir().unwrap();
+    let dir_b = tempfile::tempdir().unwrap();
+
+    let (client_side, agent_side) = Channel::duplex();
+    let agent_task = tokio::spawn(async move {
+        let _ = AgentRole
+            .builder()
+            .name("cwd-fixture")
+            .on_receive_request(
+                async move |request: InitializeRequest,
+                            responder: Responder<InitializeResponse>,
+                            _cx| {
+                    responder.respond(
+                        InitializeResponse::new(request.protocol_version)
+                            .agent_capabilities(AgentCapabilities::new()),
+                    )
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .on_receive_request(
+                async move |_request: NewSessionRequest,
+                            responder: Responder<NewSessionResponse>,
+                            _cx| {
+                    responder.respond(NewSessionResponse::new(SessionId::new("cwd-session")))
+                },
+                agent_client_protocol::on_receive_request!(),
+            )
+            .connect_to(agent_side)
+            .await;
+    });
+
+    let handle = super::acp::open_session_with_transport(
+        client_side,
+        "gemini",
+        None,
+        dir_a.path().to_path_buf(),
+    );
+    assert!(handle.matches_cwd(dir_a.path()));
+    assert!(!handle.matches_cwd(dir_b.path()));
+
+    handle.shutdown();
+    let _ = agent_task.await;
+}

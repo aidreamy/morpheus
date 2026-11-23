@@ -213,7 +213,15 @@ impl App {
     /// the split: no pane can keep it alive once the panes are gone.
     pub(super) fn close_agents_split(&mut self) {
         self.set_agents_split(None);
-        self.parked_agents_split = None;
+        // A parked split is invisible but its sessions are still live; closing
+        // the mode ends them too (no session survives without a pane).
+        if let Some(parked) = self.parked_agents_split.take() {
+            for pane in parked.panes {
+                if let Some(handle) = pane.acp_session {
+                    handle.shutdown();
+                }
+            }
+        }
         // The MAIN-AGENT mirror leaves with the mode too (its projection
         // resets; the next open starts fresh).
         self.close_main_mirror();
@@ -541,6 +549,9 @@ impl App {
                     signal.store(true, std::sync::atomic::Ordering::Relaxed);
                 }
                 pane.running = false;
+                if let Some(handle) = pane.acp_session.take() {
+                    handle.shutdown();
+                }
             }
         }
         // A FRESH confirm supersedes a parked set of the same session: the
@@ -556,6 +567,9 @@ impl App {
                     signal.store(true, std::sync::atomic::Ordering::Relaxed);
                 }
                 pane.running = false;
+                if let Some(handle) = pane.acp_session.take() {
+                    handle.shutdown();
+                }
             }
             self.parked_agents_split = None;
         }
@@ -1073,6 +1087,11 @@ impl App {
                     signal.store(true, std::sync::atomic::Ordering::Relaxed);
                 }
                 pane.running = false;
+                // The outgoing session's live agents are closed with it; the
+                // pane set and bindings stay in that session's metadata.
+                if let Some(handle) = pane.acp_session.take() {
+                    handle.shutdown();
+                }
             }
         }
         // The session's mirrors leave the shared list with its slots (a

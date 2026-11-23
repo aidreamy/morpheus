@@ -627,6 +627,19 @@ impl App {
                         // saw end (the closed receiver answers `Cancelled`
                         // per the spec) — the box must not outlive it.
                         split.clear_permission(pane);
+                        // A failed turn (`session = None`) leaves the session
+                        // unusable: drop the handle so the next dispatch opens
+                        // a fresh one. The last known id stays in `session_id`
+                        // and is still offered as the resume attempt, exactly
+                        // like the per-turn path's degradation.
+                        if binding.is_none()
+                            && let Some(handle) = split
+                                .panes
+                                .get_mut(pane)
+                                .and_then(|p| p.acp_session.take())
+                        {
+                            handle.shutdown();
+                        }
                         if let (Some(id), Some(p)) = (binding.as_ref(), split.panes.get_mut(pane)) {
                             // The session id seeds the pane's next resume.
                             p.session_id = Some(id.clone());

@@ -583,6 +583,12 @@ impl App {
             if let Some(p) = split.panes.get_mut(pane) {
                 p.session_id = None;
                 p.rewound = true;
+                // The ACP session cannot be truncated: closing it is the
+                // rewind's rebuild reason. The next turn opens a fresh one
+                // primed with the kept prefix (`rewind_context`).
+                if let Some(handle) = p.acp_session.take() {
+                    handle.shutdown();
+                }
                 // Re-engage the sticky bottom: the rewind's whole point is
                 // the NEW tail, and a pane left scrolled up would keep the
                 // removed turn off-screen (reading as "nothing happened").

@@ -404,7 +404,7 @@ impl App {
                 && !key.modifiers.contains(KeyModifiers::ALT)
                 && self.prompt_owns_keyboard()
             {
-                self.paste_clipboard_text_into_prompt();
+                self.paste_clipboard_into_prompt();
                 return Ok(false);
             }
 
@@ -2411,26 +2411,45 @@ impl App {
         self.slash_menu_refresh();
     }
 
-    /// Paste the system clipboard's TEXT into the chat prompt through the
-    /// normal paste path (`PromptView::handle_paste`) — a mini-port of
-    /// opencode's Windows fix (anomalyco/opencode#13871): Windows terminals
-    /// do not reliably emit a bracketed paste for Ctrl+V, so the handler
-    /// reads the clipboard itself and routes the text through the same
-    /// pipeline as the terminal paste — line endings normalized, long pastes
-    /// compressed into `[Pasted ~N lines]`.
+    /// Paste the system clipboard into the chat prompt. Images are tried
+    /// first, then text.
     ///
-    /// No-op (not an error) when the clipboard has no text: the caller
-    /// consumes the key either way, so an empty clipboard never leaks a
-    /// stray `v` into the prompt. Whitespace-only clipboards are dropped by
-    /// the same guard (a lone `\n` pasted verbatim is visually identical to
-    /// nothing, but would leave the "is the prompt dirty" heuristics set).
+    /// IMAGE: when the clipboard holds pixels (an image copied from a
+    /// screenshot tool, browser or file manager), attach them to the draft as
+    /// a PNG preview. Such clipboards usually carry no useful path for the
+    /// text-only `try_load_image` route, so the pixels are read directly with
+    /// `selection::clipboard_image`.
     ///
-    /// NOTE: `selection::clipboard_text` is a synchronous IPC round-trip on
-    /// Linux (X11/Wayland); a hung clipboard owner can stall the UI thread.
-    /// Accepted for now — Windows, the motivating platform, uses a fast
-    /// local API — but a worker-thread read with a timeout is the hardening
-    /// path if that ever bites.
-    fn paste_clipboard_text_into_prompt(&mut self) {
+    /// TEXT: route through the normal paste path
+    /// (`PromptView::handle_paste`), a mini-port of opencode's Windows fix
+    /// (anomalyco/opencode#13871). Windows terminals do not reliably emit a
+    /// bracketed paste for Ctrl+V, so the handler reads the clipboard itself
+    /// and sends the text through the same pipeline as a terminal paste: line
+    /// endings are normalized and long pastes are compressed into
+    /// `[Pasted ~N lines]`.
+    ///
+    /// No-op (not an error) when the clipboard has neither an image nor text:
+    /// the caller consumes the key either way, so an empty clipboard never
+    /// leaks a stray `v` into the prompt. Whitespace-only clipboards are
+    /// dropped by the same guard; a lone `\n` pasted verbatim looks identical
+    /// to nothing but would leave the "is the prompt dirty" heuristics set.
+    ///
+    /// NOTE: `selection::clipboard_text`/`clipboard_image` are synchronous IPC
+    /// round-trips on Linux (X11/Wayland), and a hung clipboard owner can stall
+    /// the UI thread. Accepted for now because Windows, the motivating
+    /// platform, uses a fast local API, but a worker-thread read with a timeout
+    /// is the hardening path if that ever bites.
+    fn paste_clipboard_into_prompt(&mut self) {
+        if let Some(bytes) = selection::clipboard_image() {
+            self.prompt_view.note_activity();
+            // A copied image has no on-disk location, so the source stays
+            // empty and the provider-rejection retry has no bogus path to
+            // echo back.
+            self.prompt_view
+                .add_image(bytes, "clipboard.png".to_string(), String::new());
+            self.slash_menu_refresh();
+            return;
+        }
         let Some(text) = selection::clipboard_text() else {
             return;
         };

@@ -216,7 +216,9 @@ version = "0.3"
 [dependencies.arboard]
 version = "3"
 default-features = false
-features = []
+# `image-data` lets Ctrl+V read an image copied to the clipboard (a screenshot,
+# a copied picture) instead of only its text representation.
+features = ["image-data"]
 
 [dependencies.open]
 version = "5"

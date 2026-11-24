@@ -139,7 +139,9 @@ impl Default for Setup {
 ///   as soon as it is complete; `false` only generates it on demand (the Speak
 ///   button / Ctrl+Y);
 /// - **how** it sounds: speaker id, speed, language and an optional model
-///   directory.
+///   directory. The speaker id is the only required choice: the language and
+///   the bundle are derived from it whenever they are left empty (see the
+///   voice documentation in `docs/voice/README.md`).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct VoiceConfig {
@@ -151,13 +153,28 @@ pub struct VoiceConfig {
     /// is still accepted.
     #[serde(alias = "voice")]
     pub speaker: i32,
-    /// Speech pace (`1.0` is natural).
+    /// Speech pace (`1.0` is natural, larger is faster, smaller is slower).
+    /// Invalid persisted values (zero/NaN) fall back to `1.0` via
+    /// [`VoiceConfig::speed`].
     pub speed: f32,
     /// espeak-ng language for the external phonemizer (`"pt-br"`, `"en-us"`, …).
-    /// Empty selects the model's own lexicon frontend (English/Chinese).
+    ///
+    /// Empty derives the language from [`Self::speaker`] through the installed
+    /// bundle's published catalog: Portuguese/Spanish/French/Hindi/Italian/
+    /// Japanese voices then get their language automatically, while English
+    /// and Chinese voices keep the model's own lexicon frontend. A non-empty
+    /// value wins, except when it is the speaker's own language and the bundle
+    /// has a lexicon for it (`en-us`, `en-gb`, `zh`) — those voices were built
+    /// around that lexicon, so it is not swapped for espeak-ng. The TUI picker
+    /// writes this field together with `speaker` (empty for lexicon voices).
     pub language: String,
     /// Kokoro bundle directory; empty uses the `speak` default (cache dir or
     /// `MORPHEUS_KOKORO_MODEL_DIR`).
+    ///
+    /// The speaker id is only meaningful within one bundle: id 42 is `pf_dora`
+    /// (Portuguese) in v1.0 and `zf_075` (Chinese) in v1.1. Leave this empty
+    /// unless you need a specific bundle; when the recommended v1.1 bundle is
+    /// not installed, the v1.0 bundle beside it is used automatically.
     pub model_dir: String,
 }
 

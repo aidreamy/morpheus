@@ -17,8 +17,9 @@
 //! `speak` is behind the `speak` cargo feature because `sherpa-onnx` links a
 //! static ONNX Runtime (`~100 MB`), which the default build deliberately
 //! avoids. The optional `speak-phonemize` feature adds `piper-phonemize`
-//! (espeak-ng); that crate is **GPL-3.0-or-later**, so it is off by default
-//! and only the build that enables it takes on its obligations.
+//! (espeak-ng; **GPL-3.0-or-later**) and `sabiyomi` (the embedded Japanese
+//! dictionary), so it is off by default and only the build that enables it
+//! takes on the GPL obligations.
 //!
 //! ```toml
 //! morpheus = { version = "1", features = ["speak"] }
@@ -38,9 +39,11 @@
 //! ```
 //!
 //! The directory must contain `model.onnx` (or the int8 `model.int8.onnx`),
-//! `tokens.txt`, `voices.bin` and at least one `lexicon-*.txt`. The v1.0
-//! bundle works the same way and is the one to use for its Brazilian
-//! Portuguese, Spanish, French, Hindi, Italian and Japanese voices.
+//! `tokens.txt`, `voices.bin` and (for the lexicon frontend) at least one
+//! `lexicon-*.txt`. When the recommended v1.1 bundle is not installed,
+//! [`default_model_dir`] falls back to another complete bundle found beside
+//! it — v1.0 is the only release with Brazilian Portuguese, Spanish, French,
+//! Hindi, Italian and Japanese voices.
 //!
 //! # Languages
 //!
@@ -48,7 +51,9 @@
 //! the lexicon table, which is why the multilingual bundles cover **Chinese
 //! and English** — the only languages they ship lexicons for. Voices for the
 //! other Kokoro languages are still present in `voices.bin`; driving them
-//! needs the optional external phonemizer:
+//! needs the optional external phonemizer (espeak-ng for Spanish, French,
+//! Hindi, Italian and Brazilian Portuguese; a dictionary-based frontend for
+//! Japanese):
 //!
 //! ```text
 //! SpeakConfig {
@@ -56,6 +61,15 @@
 //!     ..SpeakConfig::default()
 //! }
 //! ```
+//!
+//! The language does not have to be repeated by hand: [`espeak_language`]
+//! maps a speaker id to the language its voice was trained for, so
+//! `"speaker": 42` alone selects `pf_dora` with `pt-br`. An explicit
+//! `voice.language` (as the TUI writes) always takes precedence.
+//!
+//! [`installed_bundles`] lists the complete Kokoro bundles found next to the
+//! default model directory, the same discovery the TUI picker uses to offer
+//! the v1.0 languages without a manual `model_dir`.
 //!
 //! # Example
 //!
@@ -102,5 +116,6 @@ pub use config::{Phonemizer, SpeakConfig, SpeakError};
 pub use engine::{Speak, Speech};
 pub use player::Playback;
 pub use voice::{
-    Voice, VoiceEntry, entries as voice_entries, entry as voice_entry, find as find_voice,
+    LANGUAGES, LanguageSupport, Voice, VoiceEntry, entries as voice_entries, entry as voice_entry,
+    espeak_language, find as find_voice, has_lexicon, installed_bundles,
 };

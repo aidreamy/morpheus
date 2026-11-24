@@ -7,6 +7,7 @@
 //! `/models` uses — so this module only owns the rows and the filter.
 
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 
 use crate::component::list_dialog::ListRow;
 
@@ -25,6 +26,14 @@ pub struct VoiceChoice {
     pub gender: String,
     /// Bundle label (`Kokoro v1.0`), shown in the header and searchable.
     pub model: String,
+    /// The bundle directory this row belongs to when it is NOT the configured
+    /// one; confirming the row switches `voice.model_dir` to it so a
+    /// Portuguese voice of the v1.0 bundle can be picked from a list that was
+    /// built around the v1.1 default.
+    pub model_dir: Option<PathBuf>,
+    /// Whether the voice needs an external frontend (every language except
+    /// the bundles' English and Chinese lexicons).
+    pub needs_phonemize: bool,
 }
 
 /// Case-insensitive match against everything the user can see or type: the
@@ -73,10 +82,18 @@ pub fn rows(voices: &[&VoiceChoice], current: i32) -> Vec<ListRow> {
     for ((language, model), group) in grouped {
         rows.push(ListRow::scope(format!("{language} · {model}")));
         for voice in group {
+            // The frontend note explains why some voices need a build with
+            // `speak-phonemize`: without it they fall back to a lexicon that
+            // does not cover their language.
+            let frontend = if voice.needs_phonemize {
+                " · espeak-ng"
+            } else {
+                " · lexicon"
+            };
             rows.push(ListRow::item(
                 voice.name.clone(),
-                format!("  ·  {} · {}", voice.speaker, voice.gender),
-                voice.speaker == current,
+                format!("  ·  {} · {}{frontend}", voice.speaker, voice.gender),
+                voice.speaker == current && voice.model_dir.is_none(),
             ));
         }
     }
@@ -121,6 +138,8 @@ mod tests {
             language_label: label.into(),
             gender: gender.into(),
             model: "Kokoro v1.0".into(),
+            model_dir: None,
+            needs_phonemize: !matches!(language, "en-us" | "en-gb" | "zh"),
         }
     }
 

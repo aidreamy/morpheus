@@ -544,10 +544,12 @@ pub enum DialogType {
         search: bool,
         filter: FilterState,
     },
-    /// Searchable voice picker (Settings → Voice): one row per speaker of
-    /// the installed Kokoro bundle, grouped by language and model. Uses the
-    /// SAME shared list component as `/models` — search by voice name, id,
-    /// language or model, Enter applies speaker + language together.
+    /// Searchable voice picker (Settings → Voice): one row per speaker of the
+    /// configured Kokoro bundle and of every other complete bundle installed
+    /// beside it, grouped by language and model. Uses the SAME shared list
+    /// component as `/models` — search by voice name, id, language or model,
+    /// Enter applies speaker + language (and the bundle when the row belongs
+    /// to another one) together.
     VoiceList {
         voices: Vec<crate::ui::voice_list::VoiceChoice>,
         /// The configured speaker id (the ● indicator).

@@ -18,6 +18,13 @@
 //! exits. Nothing is orphaned, nothing runs when the feature is unused, and
 //! the next request pays one activation instead of a resident process
 //! nobody is talking to.
+//!
+//! **Client liveness** — the idle budget alone leaves the daemon resident for
+//! up to [`IDLE`] after the last client exits, and on Windows a resident
+//! daemon holds `morpheus-ttsd.exe` open (a `cargo clean`/rebuild gets
+//! "access denied"). Each `hello` carries the client pid, so the serve loop
+//! can exit as soon as none of the registered clients is alive; the idle
+//! budget remains the backstop for a daemon whose client never greeted.
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -50,6 +57,53 @@ pub(crate) fn socket_dir() -> PathBuf {
 /// The socket path for a daemon named `name` (e.g. `decision`).
 pub(crate) fn socket_path(name: &str) -> PathBuf {
     socket_dir().join(format!("{name}.sock"))
+}
+
+/// Whether process `pid` is still alive.
+///
+/// The daemons register the pid of every process that greets them and exit
+/// when none is left, so a daemon spawned by a `morpheus` process does not
+/// outlive it (on Windows it holds the daemon `.exe` open the whole time).
+/// A pid the OS refuses to query is reported dead: the worst case is one
+/// extra activation, never a stranded process.
+pub(crate) fn is_process_alive(pid: u32) -> bool {
+    #[cfg(unix)]
+    {
+        if pid == 0 || pid > i32::MAX as u32 {
+            return false;
+        }
+        // Signal 0 performs the existence/permission checks and delivers
+        // nothing.
+        unsafe { libc::kill(pid as libc::pid_t, 0) == 0 }
+    }
+    #[cfg(windows)]
+    {
+        if pid == 0 {
+            return false;
+        }
+        use windows_sys::Win32::Foundation::{CloseHandle, WAIT_TIMEOUT};
+        use windows_sys::Win32::System::Threading::{OpenProcess, WaitForSingleObject};
+
+        // `PROCESS_SYNCHRONIZE` from the Windows SDK; `windows-sys` does not
+        // re-export the `SYNCHRONIZE` alias where the other constants live.
+        const PROCESS_SYNCHRONIZE: u32 = 0x0010_0000;
+
+        // A synchronizable handle: `OpenProcess` fails for a dead pid, and
+        // the wait is satisfied only once the process exits.
+        let handle = unsafe { OpenProcess(PROCESS_SYNCHRONIZE, 0, pid) };
+        if handle.is_null() {
+            return false;
+        }
+        let state = unsafe { WaitForSingleObject(handle, 0) };
+        let _ = unsafe { CloseHandle(handle) };
+        state == WAIT_TIMEOUT
+    }
+    #[cfg(not(any(unix, windows)))]
+    {
+        // No portable probe here; reporting dead only costs a reactivation.
+        let _ = pid;
+        false
+    }
 }
 
 /// Connect to `name`'s socket, activating (spawning) the daemon on demand.
@@ -233,5 +287,28 @@ mod tests {
         let path = socket_path("decision");
         assert!(path.ends_with("decision.sock"));
         assert!(path.starts_with(socket_dir()));
+    }
+
+    /// The daemon's client liveness check must be true for a running
+    /// process and false once it exited; a false positive means a stranded
+    /// daemon holding the `.exe`, a false negative kills a working one.
+    #[test]
+    fn a_process_is_alive_only_while_it_runs() {
+        assert!(is_process_alive(std::process::id()));
+
+        #[cfg(windows)]
+        let mut child = std::process::Command::new("cmd")
+            .args(["/C", "exit"])
+            .spawn()
+            .expect("spawn cmd");
+        #[cfg(unix)]
+        let mut child = std::process::Command::new("true")
+            .spawn()
+            .expect("spawn true");
+
+        let pid = child.id();
+        assert!(is_process_alive(pid));
+        child.wait().expect("wait child");
+        assert!(!is_process_alive(pid));
     }
 }

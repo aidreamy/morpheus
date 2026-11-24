@@ -24,7 +24,7 @@ speak = ["dep:sherpa-onnx"]
 # Rust for the Kokoro languages sherpa-onnx ships no lexicon for (pt-br,
 # es, fr, ...). That crate is GPL-3.0-or-later and adds an espeak-ng
 # build dependency, so it stays opt-in.
-speak-phonemize = ["speak", "dep:piper-phonemize"]
+speak-phonemize = ["speak", "dep:piper-phonemize", "dep:sabiyomi"]
 
 [package]
 description = "Morpheus - coding agent for the terminal"
@@ -61,6 +61,12 @@ optional = true
 # External phonemizer for the `speak-phonemize` feature. GPL-3.0-or-later.
 [dependencies.piper-phonemize]
 version = "1.5.9"
+optional = true
+
+# Japanese readings (kanji -> kana) for the Japanese frontend. The IPADIC
+# dictionary is embedded in the binary, so no download or setup is needed.
+[dependencies.sabiyomi]
+version = "0.1.0"
 optional = true
 
 [dependencies.morpheus-tui]
@@ -214,6 +220,7 @@ windows-sys = { version = "0.61.2", features = [
     "Win32_Foundation",
     "Win32_Storage_FileSystem",
     "Win32_System_IO",
+    "Win32_System_Threading",
 ] }
 # AF_UNIX sockets on Windows (`daemon::transport`). The API mirrors
 # `std::os::unix::net`, and mio already pulls this crate in, so it is not a

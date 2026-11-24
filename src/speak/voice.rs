@@ -7,7 +7,7 @@
 //! selected by the bundle directory name; when the directory was renamed the
 //! speaker count the loaded model reports is the fallback.
 
-use std::path::Path;
+use std::path::{Path, PathBuf};
 
 /// One Kokoro speaker.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -40,6 +40,100 @@ pub struct VoiceEntry {
     pub bundle: &'static str,
     /// Human-readable bundle name (`Kokoro v1.0`).
     pub bundle_label: &'static str,
+}
+
+impl VoiceEntry {
+    /// Whether this voice needs an external frontend because its bundle
+    /// ships no lexicon for [`Self::language`] (espeak-ng for most languages,
+    /// the Japanese dictionary for `ja`).
+    #[must_use]
+    pub fn needs_phonemize(&self) -> bool {
+        !has_lexicon(self.language)
+    }
+}
+
+/// One of the languages the multilingual Kokoro bundles ship voices for.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct LanguageSupport {
+    /// Language code the voice table and `setup.json` use (`pt-br`, `ja`).
+    pub language: &'static str,
+    /// Human-readable name (`Portuguese (Brazil)`).
+    pub label: &'static str,
+    /// Whether the bundle's own lexicon frontend covers the language.
+    pub lexicon: bool,
+}
+
+/// Every language with voices in `kokoro-multi-lang-v1_0`, the bundle that
+/// carries all nine. The tests walk this table so a new voice language cannot
+/// be added without deciding its frontend.
+///
+/// English and Chinese use the bundle lexicon; Spanish, French, Hindi,
+/// Italian and Brazilian Portuguese use espeak-ng; Japanese uses the
+/// dictionary-based Japanese frontend (see [`super::phonemize`]).
+pub const LANGUAGES: &[LanguageSupport] = &[
+    LanguageSupport {
+        language: "en-us",
+        label: "English (US)",
+        lexicon: true,
+    },
+    LanguageSupport {
+        language: "en-gb",
+        label: "English (UK)",
+        lexicon: true,
+    },
+    LanguageSupport {
+        language: "zh",
+        label: "Chinese",
+        lexicon: true,
+    },
+    LanguageSupport {
+        language: "es",
+        label: "Spanish",
+        lexicon: false,
+    },
+    LanguageSupport {
+        language: "fr",
+        label: "French",
+        lexicon: false,
+    },
+    LanguageSupport {
+        language: "hi",
+        label: "Hindi",
+        lexicon: false,
+    },
+    LanguageSupport {
+        language: "it",
+        label: "Italian",
+        lexicon: false,
+    },
+    LanguageSupport {
+        language: "ja",
+        label: "Japanese",
+        lexicon: false,
+    },
+    LanguageSupport {
+        language: "pt-br",
+        label: "Portuguese (Brazil)",
+        lexicon: false,
+    },
+];
+
+/// Whether the Kokoro bundle ships a lexicon for `language` (the exact codes
+/// published by [`entries`]).
+///
+/// Both multilingual bundles contain `lexicon-us-en.txt`,
+/// `lexicon-gb-en.txt` and `lexicon-zh.txt`, so English and Chinese need no
+/// external phonemizer. Every other language has voices in `voices.bin` but no
+/// lexicon, which is why it needs the external frontend
+/// ([`Phonemizer::Piper`](super::Phonemizer::Piper)): espeak-ng for Spanish,
+/// French, Hindi, Italian and Brazilian Portuguese, the dictionary-based
+/// Japanese frontend for Japanese.
+#[must_use]
+pub fn has_lexicon(language: &str) -> bool {
+    LANGUAGES
+        .iter()
+        .find(|entry| entry.language == language)
+        .is_some_and(|entry| entry.lexicon)
 }
 
 /// Language and label for a Kokoro name prefix (`af_maple` → `af`).
@@ -121,6 +215,58 @@ pub fn entry(model_dir: &Path, speaker: i32) -> Option<VoiceEntry> {
     entries(model_dir)
         .into_iter()
         .find(|voice| voice.speaker == speaker)
+}
+
+/// The espeak-ng language `speaker` needs when `model_dir`'s bundle has no
+/// lexicon for it (Portuguese, Spanish, French, Hindi, Italian, Japanese).
+///
+/// `None` when the bundle is unknown, the speaker is out of the published
+/// tables, or the voice is English/Chinese — those keep the bundle's own
+/// lexicon frontend. This is what lets `setup.json` select a Portuguese voice
+/// with only `"speaker": 42`; an explicit `voice.language` always wins over
+/// it.
+#[must_use]
+pub fn espeak_language(model_dir: &Path, speaker: i32) -> Option<&'static str> {
+    let voice = entry(model_dir, speaker)?;
+    voice.needs_phonemize().then_some(voice.language)
+}
+
+/// Kokoro bundles installed directly under `root`, newest release first.
+///
+/// A directory is listed only when its name identifies a known release and it
+/// contains the files the loader requires (`model.onnx` or
+/// `model.int8.onnx`, `tokens.txt`, `voices.bin`), so a half-extracted or
+/// unrelated directory is never offered as a usable bundle. Unknown names are
+/// ignored: their speakers still work through the raw id, only the names are
+/// unavailable.
+#[must_use]
+pub fn installed_bundles(root: &Path) -> Vec<PathBuf> {
+    let Ok(entries) = std::fs::read_dir(root) else {
+        return Vec::new();
+    };
+    let mut found: Vec<PathBuf> = entries
+        .filter_map(Result::ok)
+        .map(|entry| entry.path())
+        .filter(|path| path.is_dir() && bundle(path).is_some() && is_complete(path))
+        .collect();
+    // Newest bundle first, then by name, so the list is stable across
+    // filesystems and matches the default preference (v1.1, then v1.0).
+    found.sort_by(|left, right| {
+        let newest = |path: &Path| {
+            path.file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.contains("v1_1"))
+        };
+        newest(right)
+            .cmp(&newest(left))
+            .then_with(|| left.file_name().cmp(&right.file_name()))
+    });
+    found
+}
+
+fn is_complete(dir: &Path) -> bool {
+    let has_model = dir.join("model.onnx").is_file() || dir.join("model.int8.onnx").is_file();
+    has_model && dir.join("tokens.txt").is_file() && dir.join("voices.bin").is_file()
 }
 
 /// `kokoro-multi-lang-v1_0`: 54 speakers, Chinese + English.
@@ -908,5 +1054,105 @@ mod tests {
         // through SpeakConfig::voice, only the names are unknown).
         assert!(entries(Path::new("/models/renamed-bundle")).is_empty());
         assert_eq!(entry(Path::new("/models/renamed-bundle"), 42), None);
+    }
+
+    /// An English/Chinese voice keeps the bundle lexicon; every other voice
+    /// names the espeak-ng language `setup.json` would otherwise have to
+    /// repeat.
+    #[test]
+    fn only_non_lexicon_languages_need_espeak() {
+        let v10 = Path::new("/models/kokoro-multi-lang-v1_0");
+        assert_eq!(espeak_language(v10, 42), Some("pt-br"), "pf_dora");
+        assert_eq!(espeak_language(v10, 43), Some("pt-br"), "pm_alex");
+        assert_eq!(espeak_language(v10, 28), Some("es"), "ef_dora");
+        assert_eq!(espeak_language(v10, 30), Some("fr"), "ff_siwis");
+        assert_eq!(espeak_language(v10, 35), Some("it"), "if_sara");
+        assert_eq!(espeak_language(v10, 31), Some("hi"), "hf_alpha");
+        assert_eq!(espeak_language(v10, 37), Some("ja"), "jf_alpha");
+        assert_eq!(espeak_language(v10, 3), None, "af_heart has a lexicon");
+        assert_eq!(espeak_language(v10, 45), None, "zf_xiaobei has a lexicon");
+        assert_eq!(espeak_language(v10, 999), None, "out of range");
+        assert_eq!(espeak_language(Path::new("/models/renamed"), 42), None);
+
+        let v11 = Path::new("/models/kokoro-multi-lang-v1_1");
+        assert_eq!(espeak_language(v11, 0), None, "af_maple");
+        assert_eq!(espeak_language(v11, 3), None, "zf_001");
+
+        assert!(has_lexicon("en-us"));
+        assert!(has_lexicon("en-gb"));
+        assert!(has_lexicon("zh"));
+        assert!(!has_lexicon("pt-br"));
+        assert!(entry(v10, 42).unwrap().needs_phonemize());
+        assert!(!entry(v10, 3).unwrap().needs_phonemize());
+    }
+
+    /// Every language in the support table has voices in the full v1.0
+    /// bundle, and its declared frontend matches the data: the union of voice
+    /// languages is exactly the table, so adding a voice language without a
+    /// frontend decision fails here.
+    #[test]
+    fn every_supported_language_is_declared_with_a_frontend() {
+        let dir = Path::new("/models/kokoro-multi-lang-v1_0");
+        let voices = entries(dir);
+        let mut seen: Vec<&str> = voices.iter().map(|voice| voice.language).collect();
+        seen.sort_unstable();
+        seen.dedup();
+        let mut declared: Vec<&str> = LANGUAGES.iter().map(|entry| entry.language).collect();
+        declared.sort_unstable();
+        assert_eq!(
+            seen, declared,
+            "v1.0 voice languages must be fully declared"
+        );
+
+        for language in LANGUAGES {
+            let voice = voices
+                .iter()
+                .find(|voice| voice.language == language.language)
+                .unwrap_or_else(|| panic!("{} has no voice", language.language));
+            assert_eq!(
+                has_lexicon(language.language),
+                language.lexicon,
+                "{} frontend",
+                language.language
+            );
+            assert_eq!(voice.language_label, language.label);
+            assert_eq!(
+                espeak_language(dir, voice.speaker),
+                (!language.lexicon).then_some(language.language),
+                "{} frontend language",
+                language.language
+            );
+        }
+
+        // The v1.1 bundle only adds English and Chinese voices, so every one
+        // of its voices must stay on the bundle lexicon.
+        let v11 = entries(Path::new("/models/kokoro-multi-lang-v1_1"));
+        assert!(!v11.is_empty());
+        assert!(v11.iter().all(|voice| has_lexicon(voice.language)));
+    }
+
+    /// The models root lists only complete known bundles, newest first, so a
+    /// picker never offers a half-extracted directory.
+    #[test]
+    fn installed_bundles_are_complete_and_ordered() {
+        let root = tempfile::tempdir().unwrap();
+        let make = |name: &str, complete: bool| {
+            let dir = root.path().join(name);
+            std::fs::create_dir_all(&dir).unwrap();
+            std::fs::write(dir.join("tokens.txt"), b"").unwrap();
+            std::fs::write(dir.join("voices.bin"), b"").unwrap();
+            if complete {
+                std::fs::write(dir.join("model.onnx"), b"").unwrap();
+            }
+            dir
+        };
+        let v10 = make("kokoro-multi-lang-v1_0", true);
+        let v11 = make("kokoro-int8-multi-lang-v1_1", true);
+        make("kokoro-multi-lang-v1_1-broken", false);
+        make("unrelated", true);
+
+        let found = installed_bundles(root.path());
+        assert_eq!(found, vec![v11, v10], "newest first, only complete bundles");
+        assert!(installed_bundles(&root.path().join("missing")).is_empty());
     }
 }

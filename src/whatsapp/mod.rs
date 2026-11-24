@@ -30,24 +30,36 @@
 //!                       ▼
 //!                   WhatsAppAgent           (agent.rs: chat → worker routing)
 //!                       │
-//!                       ▼
-//!                   ChatSession             (session.rs: mode, context, turns)
-//!                       │
 //!          ┌────────────┴────────────┐
 //!          ▼                         ▼
-//!   commands::parse             crate::assembly::assemble
-//!   (commands.rs)               (the SAME harness assembly as the TUI)
+//!   ChatControl                  ChatSession
+//!   (control.rs: commands,        (session.rs: main turn, ACP turns,
+//!    mode, roster, sessions,       @all fan-out)
+//!    context, stop signals)            │
+//!          │                           ▼
+//!          ▼                    crate::assembly::assemble
+//!   commands::parse             (the SAME harness assembly as the TUI)
+//!   selection.rs / state.rs     executor.rs (ACP: permissions, resume)
 //! ```
 //!
 //! - **`commands.rs`** owns the slash-command grammar and the allowlist that
 //!   is published over WhatsApp. It is pure: parsing, argument validation
 //!   and help text are unit-tested without a network or a harness.
+//! - **`control.rs`** owns each chat's mode, external-agent roster, ACP
+//!   session ids, main-agent context and stop signal, and answers every slash
+//!   command immediately, outside the turn queue.
+//! - **`selection.rs`** parses and validates `/agent` rosters and routes an
+//!   inbound message (`@name`, `@name#k`, `@all`, main); **`state.rs`**
+//!   persists roster, sessions and context per chat, atomically.
+//! - **`executor.rs`** wraps one ACP instance: open/resume, mode and model
+//!   mapping, permission policy and turn event draining.
 //! - **`mode.rs`** owns the harness mode spellings (`build`, `ask`, `yolo`,
 //!   `command`, `manager`), all case-insensitive.
 //! - **`config.rs`** resolves `setup.json` into one immutable
 //!   [`config::RuntimeConfig`] and turns it into a `HarnessAssembly`.
-//! - **`session.rs`** runs one chat's turns. Each turn assembles a fresh
-//!   harness and carries the model-facing context forward in memory.
+//! - **`session.rs`** runs one chat's turns. Main turns assemble a fresh
+//!   harness and carry the model-facing context forward (persisted per chat);
+//!   addressed turns drive ACP instances; `@all` runs them concurrently.
 //! - **`agent.rs`** serializes prompts per chat and filters traffic the
 //!   agent should not answer (echoes, broadcasts, channels, reactions).
 //! - **`access.rs`** owns the authorization policy (`setup.json` →
@@ -56,7 +68,18 @@
 //!
 //! # Commands
 //!
-//! `/help` lists the surface; `/mode <mode>` switches the harness mode.
+//! `/help` lists the surface; `/mode <mode>` switches the harness mode;
+//! `/agent` selects the external ACP agents for the chat (`/agent` and
+//! `/agent ls` list, `/agent ls all` includes not-installed agents,
+//! `/agent off` clears the roster, `/agent reset <name>` ends one session and
+//! `/agent model <name> <model>` picks its model); `/stop` cancels the turns
+//! running in this chat.
+//!
+//! A message with no prefix always goes to the main agent. An external agent
+//! is reached only with `@name` (or `@name#k` for an instance); `@all` runs
+//! every selected instance. External replies are labeled, so an unlabeled
+//! reply is always the main agent's. An unknown `@name` is ordinary text for
+//! the main agent, never a guess.
 //! TUI-only commands (`theme`, `spinner`, …) are deliberately not
 //! published. Detection is conservative: a message is a command only when it
 //! starts with `/`, names a **registered** command, and that name is a bare
@@ -65,15 +88,22 @@
 //! # Tools that need approval
 //!
 //! The TUI answers permission requests with a dialog. WhatsApp has no such
-//! surface, so the session denies them and tells the user in the reply.
-//! `/mode yolo` is the explicit opt-in to run tools unattended.
+//! surface, so both the main harness and every ACP agent deny them and tell
+//! the user in the reply. `/mode yolo` is the explicit opt-in to run tools
+//! unattended; outside it, an ACP permission request is always rejected and
+//! `permission_rx: None` is never used.
 
 mod access;
 mod agent;
 mod commands;
 mod config;
+mod control;
+mod executor;
 mod mode;
+mod reply;
+mod selection;
 mod session;
+mod state;
 
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
@@ -273,28 +303,28 @@ pub async fn run() -> i32 {
                     let link = whatsapp.clone();
                     tasks.spawn(async move {
                         let _permit = permit;
-                        let Some(reply) = agent.handle(&message).await else {
-                            return;
-                        };
-                        if reply.trim().is_empty() {
-                            return;
-                        }
-                        log::info!(
-                            "morpheus whatsapp: sending reply to {} ({} chars)",
-                            message.chat,
-                            reply.len()
-                        );
-                        match link.send_text(&message.chat, reply).await {
-                            Ok(sent) => log::info!(
-                                "morpheus whatsapp: send_text ok id={} to={}",
-                                sent.id,
-                                sent.to
-                            ),
-                            Err(error) => {
-                                log::warn!(
-                                    "morpheus whatsapp: reply to {} failed: {error}",
-                                    message.chat
-                                )
+                        let replies = agent.handle(&message).await;
+                        for reply in replies {
+                            if reply.trim().is_empty() {
+                                continue;
+                            }
+                            log::info!(
+                                "morpheus whatsapp: sending reply to {} ({} chars)",
+                                message.chat,
+                                reply.len()
+                            );
+                            match link.send_text(&message.chat, reply).await {
+                                Ok(sent) => log::info!(
+                                    "morpheus whatsapp: send_text ok id={} to={}",
+                                    sent.id,
+                                    sent.to
+                                ),
+                                Err(error) => {
+                                    log::warn!(
+                                        "morpheus whatsapp: reply to {} failed: {error}",
+                                        message.chat
+                                    )
+                                }
                             }
                         }
                     });

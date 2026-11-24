@@ -52,6 +52,16 @@ pub const COMMANDS: &[CommandSpec] = &[
         summary: "Switch the harness mode",
         usage: "/mode <build|ask|yolo|command|manager>",
     },
+    CommandSpec {
+        name: "agent",
+        summary: "Select the external ACP agents for this chat",
+        usage: "/agent [ls|ls all|off|reset <name>|model <name> <model>|<name>[,<name>...]]",
+    },
+    CommandSpec {
+        name: "stop",
+        summary: "Stop the turns running in this chat",
+        usage: "/stop",
+    },
 ];
 
 /// Commands that exist in the TUI but have no meaning in a remote chat:
@@ -77,8 +87,32 @@ pub enum Action {
     Help,
     /// Switch the harness mode.
     SetMode(Mode),
+    /// Inspect or change the external-agent roster.
+    Agent(AgentCommand),
+    /// Cancel the turns currently running in this chat.
+    Stop,
     /// The arguments were missing or malformed: send this usage message
     /// back to the user instead of executing anything.
+    Usage(String),
+}
+
+/// What `/agent` asks the chat controller to do.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum AgentCommand {
+    /// `/agent` or `/agent ls`: the main agent, roster and installed agents.
+    List,
+    /// `/agent ls all`: also show registered but not-installed agents.
+    ListAll,
+    /// `/agent off`: clear the roster and end external sessions.
+    Off,
+    /// `/agent reset <name>`: drop one agent's (or instance's) session.
+    Reset(String),
+    /// `/agent model <name> <model>`: persist the model for one agent.
+    Model { name: String, model: String },
+    /// `/agent a,b`: replace the roster with the (still unvalidated)
+    /// comma-separated expression.
+    Set(String),
+    /// A malformed `/agent` spelling: send this usage message back.
     Usage(String),
 }
 
@@ -117,6 +151,46 @@ pub fn parse(text: &str) -> Option<IncomingCommand> {
 }
 
 impl IncomingCommand {
+    /// Resolve `/agent`'s arguments.
+    ///
+    /// The roster expression is kept raw here: validating names needs the
+    /// installed set, which is runtime state, not grammar. Only the fixed
+    /// subcommands are resolved at parse time so a misspelled one (`/agent ls
+    /// foo`) gets a usage message instead of an "unknown agent" error.
+    fn agent_command(&self) -> AgentCommand {
+        let words: Vec<String> = self
+            .args
+            .split_whitespace()
+            .map(str::to_ascii_lowercase)
+            .collect();
+        match words.as_slice() {
+            [] => AgentCommand::List,
+            [word] if word == "ls" => AgentCommand::List,
+            [ls, all] if ls == "ls" && all == "all" => AgentCommand::ListAll,
+            [off] if off == "off" => AgentCommand::Off,
+            [reset, name] if reset == "reset" => AgentCommand::Reset(name.clone()),
+            [model, name, model_id] if model == "model" => AgentCommand::Model {
+                name: name.clone(),
+                model: model_id.clone(),
+            },
+            [ls, ..] if ls == "ls" => AgentCommand::Usage(
+                "`/agent ls` lists the agents; `/agent ls all` also shows the ones that are not \
+                 installed."
+                    .to_string(),
+            ),
+            [off, ..] if off == "off" => {
+                AgentCommand::Usage("`/agent off` takes no arguments.".to_string())
+            }
+            [reset, ..] if reset == "reset" => {
+                AgentCommand::Usage("`/agent reset <name>` drops one agent's session.".to_string())
+            }
+            [model, ..] if model == "model" => AgentCommand::Usage(
+                "`/agent model <name> <model>` sets the model for one agent.".to_string(),
+            ),
+            _ => AgentCommand::Set(self.args.clone()),
+        }
+    }
+
     /// Validate the arguments and resolve what to run.
     #[must_use]
     pub fn action(&self) -> Action {
@@ -126,6 +200,14 @@ impl IncomingCommand {
                     Action::Help
                 } else {
                     Action::Usage("`/help` takes no arguments.".to_string())
+                }
+            }
+            "agent" => Action::Agent(self.agent_command()),
+            "stop" => {
+                if self.args.is_empty() {
+                    Action::Stop
+                } else {
+                    Action::Usage("`/stop` takes no arguments.".to_string())
                 }
             }
             "mode" => {
@@ -169,7 +251,12 @@ pub fn help_text() -> String {
         text.push_str(&format!("• {name} — {description}\n"));
     }
     text.push_str(
-        "\nSend any other message to talk to the agent. A message that only \
+        "\nExternal agents:\n• Select ACP agents with `/agent claude,codex` (up to 4).\n\
+         • Address one explicitly: `@claude fix the build`; add `#2` for an instance.\n\
+         • `@all` reaches every selected instance.\n\
+         • No prefix means the main agent (`morpheus`), always.\n\
+         • External replies are labeled; an unlabeled reply is the main agent's.\n\n\
+         Send any other message to talk to the agent. A message that only \
          looks like a path (e.g. /usr/bin/env) is treated as normal text.",
     );
     text
@@ -194,6 +281,11 @@ mod tests {
             "a bare command is still a command"
         );
         assert_eq!(parse("/mode build"), Some(cmd("mode", "build")));
+        assert_eq!(parse("/agent"), Some(cmd("agent", "")));
+        assert_eq!(
+            parse("/agent claude, codex"),
+            Some(cmd("agent", "claude, codex"))
+        );
         assert_eq!(
             parse("   /mode   yolo   "),
             Some(cmd("mode", "yolo")),
@@ -233,6 +325,9 @@ mod tests {
             "/mode:build",
             "/mod build",
             "/mode.build",
+            "/agentx",
+            "/agent.foo",
+            "/agent:build",
         ] {
             assert_eq!(parse(text), None, "{text:?} must stay a normal message");
         }
@@ -263,6 +358,85 @@ mod tests {
             Action::Usage(message) => assert!(message.contains("exactly one"), "{message}"),
             other => panic!("expected usage, got {other:?}"),
         }
+    }
+
+    #[test]
+    fn stop_takes_no_arguments() {
+        assert_eq!(cmd("stop", "").action(), Action::Stop);
+        assert!(matches!(cmd("stop", "now").action(), Action::Usage(_)));
+        assert_eq!(parse("/STOP"), Some(cmd("stop", "")));
+    }
+
+    #[test]
+    fn agent_reset_and_model_are_resolved_at_parse_time() {
+        assert_eq!(
+            cmd("agent", "reset claude#2").action(),
+            Action::Agent(AgentCommand::Reset("claude#2".to_string()))
+        );
+        assert_eq!(
+            cmd("agent", "model claude sonnet-4").action(),
+            Action::Agent(AgentCommand::Model {
+                name: "claude".to_string(),
+                model: "sonnet-4".to_string()
+            })
+        );
+    }
+
+    #[test]
+    fn agent_lists_and_off_are_resolved_at_parse_time() {
+        assert_eq!(cmd("agent", "").action(), Action::Agent(AgentCommand::List));
+        assert_eq!(
+            cmd("agent", "LS").action(),
+            Action::Agent(AgentCommand::List),
+            "subcommands are case-insensitive"
+        );
+        assert_eq!(
+            cmd("agent", "ls all").action(),
+            Action::Agent(AgentCommand::ListAll)
+        );
+        assert_eq!(
+            cmd("agent", "off").action(),
+            Action::Agent(AgentCommand::Off)
+        );
+    }
+
+    #[test]
+    fn agent_keeps_the_roster_expression_raw_for_runtime_validation() {
+        assert_eq!(
+            cmd("agent", " Claude , codex ").action(),
+            Action::Agent(AgentCommand::Set(" Claude , codex ".to_string())),
+            "canonicalization and installation are runtime checks"
+        );
+    }
+
+    #[test]
+    fn malformed_agent_spellings_get_usage_not_a_roster_change() {
+        for args in [
+            "ls foo",
+            "ls all extra",
+            "off extra",
+            "reset",
+            "reset a b",
+            "model claude",
+            "model a b c",
+        ] {
+            match cmd("agent", args).action() {
+                Action::Agent(AgentCommand::Usage(message)) => {
+                    assert!(message.contains("/agent"), "{args}: {message}");
+                }
+                other => panic!("{args}: expected usage, got {other:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn help_mentions_external_agents_and_the_no_prefix_rule() {
+        let help = help_text();
+        assert!(help.contains("/agent"), "{help}");
+        assert!(help.contains("No prefix means the main agent"), "{help}");
+        assert!(help.contains("@all"), "{help}");
+        assert!(help.contains("#2"), "{help}");
+        assert!(help.contains("labeled"), "{help}");
     }
 
     #[test]

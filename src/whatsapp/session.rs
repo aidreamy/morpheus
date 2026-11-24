@@ -1,37 +1,37 @@
-//! One WhatsApp conversation's agent session.
+//! One WhatsApp chat's turn worker: the main harness, ACP instances and
+//! fan-out.
 //!
 //! Each chat gets its own worker (see [`super::agent`]) and therefore its own
-//! [`ChatSession`]. The session owns exactly three pieces of state:
+//! [`ChatSession`]. The worker owns the live ACP handles for that chat; the
+//! durable mode, roster, session ids and main-agent context live in the shared
+//! [`ChatControl`], because slash commands change them immediately while a
+//! turn may still be running.
 //!
-//! - the harness **mode** (`/mode`), initially the user's global selection;
-//! - the model-facing **context** ([`ContextManagerState`]), carried from
-//!   one turn to the next in memory (the WhatsApp transcript is never fed
-//!   back to the model);
-//! - the immutable [`RuntimeConfig`] resolved at startup.
-//!
-//! A turn assembles a fresh harness (the ONE assembly in `crate::assembly`),
-//! runs it while draining its events, and stores the returned context. This
-//! is the same per-turn contract the TUI follows, and it is why a mode
-//! change is a plain field write: the next turn assembles with the new mode.
+//! A main-agent turn assembles a fresh harness (the ONE assembly in
+//! `crate::assembly`), runs it while draining its events, and stores the
+//! returned context. An external turn drives one ACP instance through
+//! [`super::executor`]. `@all` runs one turn per instance concurrently and
+//! labels every reply with the agent (and instance) that produced it.
 
+use std::collections::HashMap;
+use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
-use tokio::sync::mpsc;
+use tokio::sync::{Mutex, mpsc};
+use tokio::task::JoinSet;
 
 use morpheus_tools::question::types::AnswerItem;
+use morpheus_tools::subagent::model_picks::ModelPicks;
 
 use crate::harness::{ContextManagerState, Harness, HarnessEvent, Mode, PermissionAction};
-use crate::setup::Setup;
+use crate::setup::data_dir_override;
 
-use super::commands::{self, Action, IncomingCommand};
 use super::config::RuntimeConfig;
-use super::mode;
-
-/// Upper bound on one outbound message. WhatsApp accepts long texts, but a
-/// runaway shell output or model answer must not flood the phone; the tail
-/// says how much was cut.
-const MAX_REPLY_CHARS: usize = 16_000;
+use super::control::ChatControl;
+use super::executor::{self, AcpSession};
+use super::reply::{self, truncate};
+use super::selection::{self, Route};
 
 /// How the agent loop of one turn ended.
 #[derive(Default)]
@@ -135,80 +135,65 @@ impl Turn {
     }
 }
 
-/// The state of one WhatsApp chat.
+/// The state of one WhatsApp chat's worker.
 pub struct ChatSession {
     config: Arc<RuntimeConfig>,
     chat_key: String,
-    mode: Mode,
-    context: Option<ContextManagerState>,
+    /// Mode, roster, durable sessions and context, shared with the router.
+    control: Arc<Mutex<ChatControl>>,
+    /// Live ACP instances keyed by `agent#index`.
+    acp: HashMap<String, AcpSession>,
 }
 
 impl ChatSession {
     /// Start a chat worker in the user's persisted mode, with no history.
     #[must_use]
-    pub fn new(config: Arc<RuntimeConfig>, chat_key: String) -> Self {
-        let mode = config.initial_mode;
+    pub fn new(
+        config: Arc<RuntimeConfig>,
+        chat_key: String,
+        control: Arc<Mutex<ChatControl>>,
+    ) -> Self {
         Self {
             config,
             chat_key,
-            mode,
-            context: None,
+            control,
+            acp: HashMap::new(),
         }
     }
 
-    /// The current harness mode, asserted by the command tests.
-    #[cfg(test)]
-    #[must_use]
-    pub fn mode(&self) -> Mode {
-        self.mode
-    }
-
-    /// Handle one inbound message: a slash command, a shell command
-    /// (Command mode) or a normal agent turn.
-    pub async fn handle(&mut self, text: &str) -> String {
-        if let Some(command) = commands::parse(text) {
-            return self.execute(command);
+    /// Execute one routed message and return the replies to send, in order.
+    pub async fn handle_route(&mut self, route: Route) -> Vec<String> {
+        // Command mode never consults routing: every message is a shell
+        // command. The router queues Main for it (see `agent.rs`).
+        if self.control.lock().await.mode() == Mode::Command
+            && let Route::Main { body } | Route::Passthrough(body) = route
+        {
+            return vec![self.run_shell(&body).await];
         }
-        if self.mode == Mode::Command {
-            return self.run_shell(text).await;
-        }
-        self.run_turn(text).await
-    }
-
-    /// Run a slash command. Commands never reach the model.
-    fn execute(&mut self, command: IncomingCommand) -> String {
-        match command.action() {
-            Action::Help => commands::help_text(),
-            Action::SetMode(mode) => {
-                self.mode = mode;
-                // The selection is a global preference, like the TUI's Tab
-                // cycle: restore it on the next run instead of starting at
-                // Build. Reading the file fresh (and letting `save` merge)
-                // avoids clobbering another process's settings.
-                let mut setup = Setup::load();
-                setup.set_mode_selection(mode);
-                if mode == Mode::Command {
-                    "Mode set to *command*. Send a shell command as your next message; \
-                     no LLM call is made. Use `/mode build` to return to the agent."
-                        .to_string()
-                } else {
-                    format!(
-                        "Mode set to *{}*.\n{}",
-                        mode::name(mode),
-                        mode::description(mode)
-                    )
-                }
-            }
-            Action::Usage(message) => message,
+        match route {
+            Route::Main { body } | Route::Passthrough(body) => vec![self.run_turn(&body).await],
+            Route::Agent {
+                agent,
+                index,
+                total,
+                body,
+            } => vec![self.agent_turn(&agent, index, total, &body).await],
+            Route::Fanout { body } => self.fanout(&body).await,
+            Route::Hint(text) => vec![text],
         }
     }
 
     /// Assemble the harness for this turn and run the agent loop, answering
     /// the loop's UI requests and waiting for it to finish.
     async fn run_turn(&mut self, input: &str) -> String {
+        let (mode, context, stop_signal) = {
+            let mut control = self.control.lock().await;
+            control.begin_turn();
+            (control.mode(), control.context(), control.stop_signal())
+        };
         let assembly = self.config.assembly(
-            self.mode,
-            self.context.clone(),
+            mode,
+            context,
             Some(crate::assembly::session_affinity_id(&format!(
                 "whatsapp:{}",
                 self.chat_key
@@ -218,13 +203,13 @@ impl ChatSession {
         let mut harness = match crate::assembly::assemble(assembly, &event_tx).await {
             Ok(harness) => harness,
             Err(error) => {
+                self.control.lock().await.end_turn();
                 return format!("Could not start the agent for this chat: {error}");
             }
         };
 
         let (answer_tx, answer_rx) = mpsc::unbounded_channel();
         let (perm_tx, perm_rx) = mpsc::unbounded_channel();
-        let stop_signal = Arc::new(AtomicBool::new(false));
         let mut turn = Turn::default();
 
         {
@@ -252,10 +237,238 @@ impl ChatSession {
             turn.absorb(event, &answer_tx, &perm_tx);
         }
 
+        // A turn that never reached the context manager keeps the previous
+        // snapshot instead of erasing the conversation history.
         if let Some(context) = turn.context.take() {
-            self.context = Some(context);
+            let mut control = self.control.lock().await;
+            if let Err(error) = control.set_context(Some(context)).await {
+                log::warn!("morpheus whatsapp: could not persist the chat context: {error}");
+            }
+            control.end_turn();
+        } else {
+            self.control.lock().await.end_turn();
         }
         turn.reply(&harness)
+    }
+
+    /// Run one ACP instance and format its labeled reply.
+    async fn agent_turn(&mut self, agent: &str, index: usize, total: usize, input: &str) -> String {
+        let (mode, stop_signal, yolo) = {
+            let mut control = self.control.lock().await;
+            control.begin_turn();
+            let mode = control.mode();
+            (mode, control.stop_signal(), mode == Mode::Yolo)
+        };
+        let reply = match self
+            .acp_turn(agent, index, total, input, mode, stop_signal, yolo)
+            .await
+        {
+            Ok(text) => text,
+            Err(error) => reply::format_agent_error(agent, index, total, &error),
+        };
+        self.control.lock().await.end_turn();
+        reply
+    }
+
+    /// Drive one instance, reusing or reopening its live session.
+    async fn acp_turn(
+        &mut self,
+        agent: &str,
+        index: usize,
+        total: usize,
+        input: &str,
+        mode: Mode,
+        stop_signal: Arc<AtomicBool>,
+        yolo: bool,
+    ) -> Result<String, String> {
+        let key = selection::instance_key(agent, index);
+        let cwd = executor::session_cwd(&self.config.cwd);
+        self.ensure_session(agent, &key, &cwd).await?;
+
+        let model = ModelPicks::new(&data_dir_override().join("agents"))
+            .get(agent)
+            .map(str::to_string);
+        let (handle, modes, options) = {
+            let session = self.acp.get(&key).ok_or("the ACP session vanished")?;
+            (
+                session.handle(),
+                session.modes.clone(),
+                session.config_options.clone(),
+            )
+        };
+
+        let result = executor::run(
+            handle,
+            input.to_string(),
+            modes,
+            options,
+            mode,
+            model,
+            yolo,
+            stop_signal,
+        )
+        .await;
+
+        log::debug!(
+            "morpheus whatsapp: {} turn ended ({})",
+            key,
+            result.stop_reason
+        );
+        if let Some(session) = self.acp.get_mut(&key) {
+            session.absorb(&result);
+        }
+        if result.failed {
+            if let Some(session) = self.acp.remove(&key) {
+                session.shutdown();
+            }
+            return Err(result.output);
+        }
+        if let Some(id) = result.session_id {
+            if let Err(error) = self.control.lock().await.record_session(&key, id).await {
+                log::warn!("morpheus whatsapp: could not persist the ACP session id: {error}");
+            }
+        }
+
+        let mut body = result.output;
+        if let Some(note) = reply::denial_note(&result.denied_tools) {
+            body.push_str(&note);
+        }
+        Ok(reply::format_agent_reply(agent, index, total, body))
+    }
+
+    /// One concurrent turn per selected instance; replies in completion order.
+    async fn fanout(&mut self, input: &str) -> Vec<String> {
+        let roster = self.control.lock().await.roster().to_vec();
+        let targets = selection::entries(&roster);
+        if targets.is_empty() {
+            return vec![
+                "No external agents are selected. Send `/agent <name>` first.".to_string(),
+            ];
+        }
+
+        let (mode, stop_signal, yolo) = {
+            let mut control = self.control.lock().await;
+            control.begin_turn();
+            let mode = control.mode();
+            (mode, control.stop_signal(), mode == Mode::Yolo)
+        };
+        let cwd = executor::session_cwd(&self.config.cwd);
+
+        // Open the sessions first (sequential, cheap) so the turns can then
+        // run concurrently without borrowing `self`.
+        let mut prepared = Vec::new();
+        for entry in &targets {
+            let key = selection::instance_key(&entry.agent, entry.index);
+            if let Err(error) = self.ensure_session(&entry.agent, &key, &cwd).await {
+                prepared.push(Err((entry.clone(), error)));
+                continue;
+            }
+            let session = self.acp.get(&key).expect("the session was just ensured");
+            prepared.push(Ok((
+                entry.clone(),
+                key,
+                session.handle(),
+                session.modes.clone(),
+                session.config_options.clone(),
+            )));
+        }
+
+        let input = input.to_string();
+        let mut turns = JoinSet::new();
+        let mut immediate = Vec::new();
+        for item in prepared {
+            match item {
+                Err((entry, error)) => immediate.push(reply::format_agent_error(
+                    &entry.agent,
+                    entry.index,
+                    entry.total,
+                    &error,
+                )),
+                Ok((entry, key, handle, modes, options)) => {
+                    let model = ModelPicks::new(&data_dir_override().join("agents"))
+                        .get(&entry.agent)
+                        .map(str::to_string);
+                    let stop = Arc::clone(&stop_signal);
+                    let turn_input = input.clone();
+                    turns.spawn(async move {
+                        let result = executor::run(
+                            handle, turn_input, modes, options, mode, model, yolo, stop,
+                        )
+                        .await;
+                        (entry, key, result)
+                    });
+                }
+            }
+        }
+
+        let mut replies = immediate;
+        while let Some(joined) = turns.join_next().await {
+            let Ok((entry, key, result)) = joined else {
+                log::error!("morpheus whatsapp: an @all turn panicked");
+                continue;
+            };
+            if let Some(session) = self.acp.get_mut(&key) {
+                session.absorb(&result);
+            }
+            if result.failed {
+                if let Some(session) = self.acp.remove(&key) {
+                    session.shutdown();
+                }
+                replies.push(reply::format_agent_error(
+                    &entry.agent,
+                    entry.index,
+                    entry.total,
+                    &result.output,
+                ));
+                continue;
+            }
+            if let Some(id) = result.session_id {
+                if let Err(error) = self.control.lock().await.record_session(&key, id).await {
+                    log::warn!("morpheus whatsapp: could not persist the ACP session id: {error}");
+                }
+            }
+            let mut body = result.output;
+            if let Some(note) = reply::denial_note(&result.denied_tools) {
+                body.push_str(&note);
+            }
+            replies.push(reply::format_agent_reply(
+                &entry.agent,
+                entry.index,
+                entry.total,
+                body,
+            ));
+        }
+        self.control.lock().await.end_turn();
+        replies
+    }
+
+    /// Reuse a live session when it is usable; otherwise open (and resume)
+    /// a new one. The router's persisted id survives a restart.
+    async fn ensure_session(
+        &mut self,
+        agent: &str,
+        key: &str,
+        cwd: &PathBuf,
+    ) -> Result<(), String> {
+        let reusable = self
+            .acp
+            .get(key)
+            .is_some_and(|session| session.is_usable(cwd));
+        if reusable {
+            return Ok(());
+        }
+        if let Some(stale) = self.acp.remove(key) {
+            stale.shutdown();
+        }
+        let resume = self.control.lock().await.session_id(key);
+        let session = AcpSession::open(agent, resume, cwd)?;
+        let handle = session.handle();
+        self.control
+            .lock()
+            .await
+            .register_handle(key.to_string(), handle);
+        self.acp.insert(key.to_string(), session);
+        Ok(())
     }
 
     /// Command mode: the message IS a shell command. No LLM call, no
@@ -284,70 +497,5 @@ impl ChatSession {
             Ok(output) => truncate(output),
             Err(error) => format!("Command failed: {error}"),
         }
-    }
-}
-
-/// Keep an outbound message under [`MAX_REPLY_CHARS`], saying what was cut.
-fn truncate(text: String) -> String {
-    let total = text.chars().count();
-    if total <= MAX_REPLY_CHARS {
-        return text;
-    }
-    let kept: String = text.chars().take(MAX_REPLY_CHARS).collect();
-    format!("{kept}\n\n… truncated: {total} characters total.")
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::setup::Setup;
-
-    fn session(setup: &Setup) -> ChatSession {
-        ChatSession::new(
-            Arc::new(RuntimeConfig::from_setup(setup, "/tmp/project")),
-            "chat".to_string(),
-        )
-    }
-
-    #[test]
-    fn mode_command_changes_the_session_mode() {
-        let mut session = session(&Setup::default());
-        assert_eq!(session.mode(), Mode::Build);
-
-        let reply = session.execute(commands::parse("/MODE yolo").unwrap());
-        assert!(reply.contains("*yolo*"), "{reply}");
-        assert_eq!(session.mode(), Mode::Yolo);
-    }
-
-    #[test]
-    fn mode_command_requires_an_explicit_valid_argument() {
-        let mut session = session(&Setup::default());
-        let usage = session.execute(commands::parse("/mode").unwrap());
-        assert!(usage.contains("Name the mode"), "{usage}");
-
-        let unknown = session.execute(commands::parse("/mode turbo").unwrap());
-        assert!(unknown.contains("Unknown mode"), "{unknown}");
-        assert_eq!(
-            session.mode(),
-            Mode::Build,
-            "a bad argument changes nothing"
-        );
-    }
-
-    #[test]
-    fn help_command_lists_the_modes() {
-        let mut session = session(&Setup::default());
-        let help = session.execute(commands::parse("/help").unwrap());
-        assert!(help.contains("/mode"), "{help}");
-        assert!(help.contains("manager"), "{help}");
-    }
-
-    #[test]
-    fn truncation_is_bounded_and_explains_itself() {
-        let long = "x".repeat(MAX_REPLY_CHARS + 10);
-        let cut = truncate(long);
-        assert!(cut.chars().count() <= MAX_REPLY_CHARS + 60);
-        assert!(cut.contains("truncated"));
-        assert_eq!(truncate("short".to_string()), "short");
     }
 }

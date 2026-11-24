@@ -226,6 +226,11 @@ const WHATSAPP_PAGE: Page = Page {
                     "/mode <mode>",
                     "Switch between build, ask, yolo, command and manager",
                 ),
+                Row::Item(
+                    "/agent [ls|ls all|off|reset <name>|model <name> <model>|<name>[,<name>...]]",
+                    "Select external ACP agents, or reset one session / set its model",
+                ),
+                Row::Item("/stop", "Stop the turns running in this chat"),
             ],
         },
         Section {
@@ -233,6 +238,12 @@ const WHATSAPP_PAGE: Page = Page {
             rows: &[
                 Row::Note(
                     "Commands are case-insensitive and must name a registered command; a path such as /usr/bin stays normal text.",
+                ),
+                Row::Note(
+                    "A message without a prefix always goes to the main agent. Address an external agent explicitly with @name (or @name#2 for an instance); @all reaches every selected instance.",
+                ),
+                Row::Note(
+                    "External replies are labeled with the agent's name; an unlabeled reply is always the main agent's. An unknown @name is kept as ordinary text.",
                 ),
                 Row::Note(
                     "With no approval dialog, tools that need permission are denied in build/ask mode. Use `/mode yolo` to allow them.",

@@ -287,6 +287,11 @@ pub struct Appearance {
     /// `/spinner` pick: which agent-loop spinner animation plays above the
     /// prompt. Decorative only — see [`SpinnerStyle`].
     pub spinner: SpinnerStyle,
+    /// `/wallpaper` choice persisted across sessions. Empty or `"default"`
+    /// uses the embedded artwork; `"off"` removes the wallpaper; any other
+    /// value is a path to an image file.
+    #[serde(default)]
+    pub wallpaper: String,
 }
 
 impl Default for Appearance {
@@ -296,6 +301,7 @@ impl Default for Appearance {
             bell_enabled: true,
             transparent_background: false,
             spinner: SpinnerStyle::default(),
+            wallpaper: String::new(),
         }
     }
 }

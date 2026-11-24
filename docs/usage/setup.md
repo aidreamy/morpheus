@@ -16,7 +16,7 @@ screen. Type these commands in the chat input and press Enter:
 | `/router` | Model fallback and prompt-correction chains |
 | `/providers` | Local provider endpoints |
 | `/tools` | Enable or disable internal tools |
-| `/themes`, `/background`, `/bell`, `/anim`, `/toolcall` | Direct toggles |
+| `/themes`, `/background`, `/bell`, `/anim`, `/toolcall`, `/wallpaper` | Direct toggles / appearance |
 
 Changes made in the TUI are saved to `setup.json`. Navigate with the arrow
 keys, press Enter to edit, and Esc to go back.
@@ -36,7 +36,7 @@ sessions and caches; it does not change the location of `setup.json`.
 
 | JSON section | Main TUI location | Purpose |
 |---|---|---|
-| `appearance` | `/themes`, `/background`, `/bell`, `/anim` | Theme and visual behavior |
+| `appearance` | `/themes`, `/background`, `/bell`, `/anim`, `/wallpaper` | Theme and visual behavior |
 | `tools` | `/toolcall`, `/tools` | Tool-call format and disabled tools |
 | `routing` | `/router`; `/settings` → Automation | Fallback and summarization chains |
 | `hooks` | `/settings` → Automation | Commands before/after tool calls |
@@ -60,9 +60,12 @@ sessions and caches; it does not change the location of `setup.json`.
 | `bell_enabled` | `true` | Rings the terminal bell when the agent loop finishes. |
 | `transparent_background` | `false` | Uses the terminal's own background color for the TUI base. Panels keep their theme colors. |
 | `anim_enabled` | `false` | Shows the animated chat logo on an empty session. |
+| `wallpaper` | `""` | `/wallpaper` choice. Empty/`"default"` uses the embedded artwork; `"off"` removes it; any other value is an image path. |
 
 The TUI commands `/background`, `/bell`, and `/anim` edit the corresponding
-boolean fields.
+boolean fields. `/wallpaper` accepts `default` (embedded art), `rm`/`off`
+(remove it), or an image path with an optional `x,y` cell offset, and
+persists the choice to `wallpaper`.
 
 ## `tools`
 

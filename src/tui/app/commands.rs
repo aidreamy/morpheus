@@ -1342,6 +1342,8 @@ impl App {
             Ok(Request::Default) => match Wallpaper::embedded() {
                 Ok(wallpaper) => {
                     self.wallpaper = Some(wallpaper);
+                    self.setup.appearance.wallpaper = String::new();
+                    self.setup.save();
                     (
                         "Default wallpaper restored.".to_string(),
                         ToastVariant::Info,
@@ -1351,12 +1353,16 @@ impl App {
             },
             Ok(Request::Off) => {
                 self.wallpaper = None;
+                self.setup.appearance.wallpaper = "off".to_string();
+                self.setup.save();
                 ("Wallpaper removed.".to_string(), ToastVariant::Info)
             }
             Ok(Request::Load { path, offset }) => match Wallpaper::from_path(&path) {
                 Ok(wallpaper) => {
                     let offset = offset.unwrap_or((0, 0));
                     self.wallpaper = Some(wallpaper.with_offset(offset));
+                    self.setup.appearance.wallpaper = path.display().to_string();
+                    self.setup.save();
                     let placement = if offset == (0, 0) {
                         "centered".to_string()
                     } else {

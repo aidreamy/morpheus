@@ -342,7 +342,7 @@ pub fn parse_request(tail: &str, base: &Path) -> Result<Request, String> {
     if tail.is_empty() || matches!(tail.to_ascii_lowercase().as_str(), "default" | "reset") {
         return Ok(Request::Default);
     }
-    if matches!(tail.to_ascii_lowercase().as_str(), "off" | "none" | "clear") {
+    if matches!(tail.to_ascii_lowercase().as_str(), "off" | "none" | "clear" | "rm") {
         return Ok(Request::Off);
     }
     let (raw_path, rest) = split_path(tail)?;

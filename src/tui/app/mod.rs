@@ -856,9 +856,15 @@ impl App {
             theme,
             transparent_background,
             session_view: SessionView::new(),
-            // The "ajinho" artwork is the default background; a decode
-            // failure only costs the wallpaper, never the session.
-            wallpaper: crate::wallpaper::Wallpaper::embedded().ok(),
+            // Restore the persisted wallpaper choice (path in setup.json).
+            // Missing/invalid file falls back to the embedded default.
+            wallpaper: match setup.appearance.wallpaper.as_str() {
+                "off" => None,
+                "" => crate::wallpaper::Wallpaper::embedded().ok(),
+                path => crate::wallpaper::Wallpaper::from_path(std::path::Path::new(path))
+                    .ok()
+                    .or_else(|| crate::wallpaper::Wallpaper::embedded().ok()),
+            },
             sparkle: SparkleState::new(),
             main_mirror_bridge: main_mirror::MirrorBridge::default(),
             pending_worktree_confirmation: None,

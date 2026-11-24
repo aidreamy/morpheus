@@ -14,6 +14,12 @@ use super::*;
 /// Rows are skipped (not partially copied) when the destination row falls
 /// outside `buf`'s area, matching the old per-cell `cell_mut(..) == None`
 /// behavior; `count` cells are copied from the start of each source row.
+///
+/// A source cell carrying [`KEEP_GLYPH`] is a TRANSPARENT cell: a widget
+/// painted only its background (or never touched it), so compositing keeps
+/// the glyph and foreground already on the destination (the wallpaper) and
+/// applies only the background. This is what lets the render cache stay free
+/// of the wallpaper while boxes still show the art through them.
 #[allow(clippy::too_many_arguments)]
 pub(super) fn blit_cell_rows(
     buf: &mut Buffer,
@@ -44,7 +50,30 @@ pub(super) fn blit_cell_rows(
         let Some(dst) = buf.content.get_mut(dst_base..dst_base + count) else {
             break;
         };
-        dst.clone_from_slice(src);
+        if src.iter().any(|cell| cell.symbol().starts_with(KEEP_GLYPH)) {
+            for (dst_cell, src_cell) in dst.iter_mut().zip(src) {
+                if src_cell.symbol().starts_with(KEEP_GLYPH) {
+                    dst_cell.set_bg(src_cell.bg);
+                } else {
+                    *dst_cell = src_cell.clone();
+                }
+            }
+        } else {
+            dst.clone_from_slice(src);
+        }
+    }
+}
+
+/// Clear `buf` for a transcript render that will later be blitted over the
+/// wallpaper: every cell gets the chat background style and [`KEEP_GLYPH`],
+/// so cells a widget fills with only a background (or leaves alone) stay
+/// transparent and the compositing blit keeps the wallpaper glyph beneath.
+pub(super) fn prepare_transcript_scratch(buf: &mut Buffer, bg: Color) {
+    buf.reset();
+    let style = Style::default().bg(bg);
+    for cell in &mut buf.content {
+        cell.set_style(style);
+        cell.set_char(KEEP_GLYPH);
     }
 }
 

@@ -5716,7 +5716,7 @@ dependencies = [
 
 [[package]]
 name = "morpheus"
-version = "1.0.1"
+version = "1.0.2"
 dependencies = [
  "aiface 0.3.0",
  "arboard",

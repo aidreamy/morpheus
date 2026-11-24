@@ -293,14 +293,12 @@ impl SessionView {
                         if *temp.area() != full_area {
                             temp.resize(full_area);
                         }
-                        // `Buffer::resize` keeps existing cell content, so clear it
-                        // before rendering: un-written cells would otherwise show
-                        // glyphs from the previous message rendered into this buffer.
-                        temp.reset();
-                        temp.set_style(
-                            full_area,
-                            Style::default().bg(rgba_color(theme.background)),
-                        );
+                        // `Buffer::resize` keeps existing cell content, so reset the
+                        // scratch before rendering: `prepare_transcript_scratch`
+                        // clears it and marks untouched cells transparent, so the
+                        // blit below keeps the wallpaper glyph instead of baking it
+                        // into the cached cells.
+                        prepare_transcript_scratch(temp, rgba_color(theme.background));
 
                         let mut actual_h = Self::render_assistant_message(
                             temp,
@@ -410,14 +408,10 @@ impl SessionView {
                         if *temp.area() != full_area {
                             temp.resize(full_area);
                         }
-                        // `Buffer::resize` keeps existing cell content, so clear it
-                        // before rendering: un-written cells would otherwise show
-                        // glyphs from the previous message rendered into this buffer.
-                        temp.reset();
-                        temp.set_style(
-                            full_area,
-                            Style::default().bg(rgba_color(theme.background)),
-                        );
+                        // `Buffer::resize` keeps existing cell content, so reset the
+                        // scratch first; untouched/background-only cells stay
+                        // transparent and the blit keeps the wallpaper glyph.
+                        prepare_transcript_scratch(temp, rgba_color(theme.background));
 
                         match msg.role {
                             MessageRole::User => {
@@ -523,10 +517,14 @@ impl SessionView {
                                     self.msg_cache_text_regions[idx] = Some(regions);
                                 }
                             }
-                        } else {
+                        } else if is_streaming_msg {
+                            // A streaming message that cannot use the
+                            // incremental cache (e.g. its last part is a running
+                            // tool) is never cached, so paint it straight onto
+                            // the frame buffer as before: nothing is stored and
+                            // the wallpaper can't be frozen into a cache entry.
                             let msg_area =
                                 Rect::new(inner_area.x, visible_top, inner_area.width, visible_h);
-
                             let actual_h = Self::render_assistant_message(
                                 buf,
                                 msg_area,
@@ -539,64 +537,79 @@ impl SessionView {
                                 &self.part_heights_cache[idx],
                                 streaming,
                             ) as i32;
-
                             render_actual_h = actual_h.max(1);
+                        } else {
+                            // Finalized cache miss: render into a wallpaper-free
+                            // scratch and composite it onto the frame. Background-
+                            // only and untouched cells stay transparent, so the
+                            // wallpaper glyph underneath is kept (never baked into
+                            // the cache), while the cache itself stays wallpaper-
+                            // free and can be blitted at any scroll offset.
+                            let w = inner_area.width as usize;
+                            let total_stride = w;
+                            let full_area = Rect::new(0, 0, inner_area.width, visible_h.max(1));
+                            let temp = scratch.get_or_insert_with(|| Buffer::empty(full_area));
+                            if *temp.area() != full_area {
+                                temp.resize(full_area);
+                            }
+                            prepare_transcript_scratch(temp, rgba_color(theme.background));
 
-                            // Save non-streaming messages to cache (cells + text regions)
-                            if !is_streaming_msg {
-                                let full_ah = render_actual_h as u16;
-                                let w = inner_area.width as usize;
-                                let buf_w = buf.area.width as usize;
-                                let buf_h = buf.area.height as usize;
-                                let buf_x = inner_area.x as usize;
-                                // Rows must fit inside the buffer: a render clipped
-                                // at the viewport bottom can leave
-                                // `visible_top + dy` past the last buffer row, and
-                                // `buf.content[base..base + w]` would panic. Clamp
-                                // to the rows that actually fit — mirroring the
-                                // guards in `blit_cell_rows` — instead of indexing
-                                // past the end.
-                                let fit_rows = if buf_x.saturating_add(w) <= buf_w {
-                                    buf_h.saturating_sub(usize::from(visible_top))
-                                } else {
-                                    0
-                                };
-                                let ah = full_ah.min(fit_rows as u16);
-                                // Cache only complete renders: a clamp here means
-                                // the render was clipped at the buffer bottom, so
-                                // fewer rows exist in `buf` than the logical height.
-                                // Caching the clamped count would make cache-hit
-                                // frames advance the layout by less than this fill
-                                // frame did (render_actual_h divergence → scroll
-                                // jitter), so skip caching instead; `msg_cache_h`
-                                // stays stale, and the token check in `cache_hit`
-                                // makes the next frame re-render.
-                                if ah == full_ah {
-                                    // Row-slice read: the saved rows are fully
-                                    // inside the buffer's area (they were just
-                                    // painted there), so one bounds-checked slice
-                                    // per row replaces a per-cell `buf.cell(..)`.
-                                    let mut cells = Vec::with_capacity(w * ah as usize);
-                                    for dy in 0..ah {
-                                        let base = (visible_top + dy) as usize * buf_w + buf_x;
-                                        cells.extend_from_slice(&buf.content[base..base + w]);
-                                    }
+                            // `render_parts` advances by `scanned.max(est_h)` per
+                            // part, so the returned height is unclamped: a stale
+                            // small estimate makes it exceed the area actually
+                            // painted into the scratch. Such a render is only
+                            // partial — caching it would store a truncated message
+                            // and poison later frames.
+                            let rendered_h = Self::render_assistant_message(
+                                temp,
+                                full_area,
+                                msg,
+                                theme,
+                                &mut self.tool_state,
+                                config,
+                                false,
+                                false,
+                                &self.part_heights_cache[idx],
+                                streaming,
+                            ) as i32;
+                            let truncated = rendered_h > i32::from(full_area.height);
+                            render_actual_h = rendered_h.max(1);
+
+                            let ah = rendered_h.clamp(0, i32::from(full_area.height)) as u16;
+                            if ah > 0 {
+                                let temp_cells = temp.content();
+                                blit_cell_rows(
+                                    buf,
+                                    inner_area.x,
+                                    visible_top,
+                                    temp_cells,
+                                    total_stride,
+                                    0,
+                                    ah as usize,
+                                    total_stride,
+                                );
+
+                                if !is_streaming_msg && !truncated {
+                                    let x_off_text = inner_area.x + 3;
+                                    let msg_content_top = msg_top - vp_top + self.scroll_y;
                                     // Region text is content-only (x1 = inner_area.x + 3):
                                     // the border/margin columns are stripped by
                                     // regions_from_full_width_cells, so they never enter
-                                    // the text as ghost leading columns (they would
-                                    // shift the copy 3 chars left of the painted
-                                    // selection and drop the last 3 chars).
-                                    let x_off_text = inner_area.x + 3;
-                                    let msg_content_top = msg_top - vp_top + self.scroll_y;
+                                    // the text as ghost leading columns.
                                     let regions = regions_from_full_width_cells(
-                                        &cells,
-                                        w,
+                                        temp_cells,
+                                        total_stride,
                                         3,
                                         x_off_text,
                                         x_off_text + max_w,
                                         (0..ah as usize).zip(msg_content_top..),
                                     );
+                                    // Row-slice read of the full-width scratch rows.
+                                    let mut cells = Vec::with_capacity(w * ah as usize);
+                                    for dy in 0..ah {
+                                        let base = dy as usize * total_stride;
+                                        cells.extend_from_slice(&temp_cells[base..base + w]);
+                                    }
                                     self.msg_cache_bytes = self.msg_cache_bytes.saturating_sub(
                                         Self::cache_entry_bytes_of(
                                             &self.msg_cache_cells[idx],
@@ -664,17 +677,16 @@ impl SessionView {
                                     let cached_cells = self.msg_cache_cells[idx].as_ref().unwrap();
                                     let cached_h = self.msg_cache_h[idx];
                                     let cached_w = self.msg_cache_w[idx] as usize;
-                                    for dy in 0..visible_h.min(cached_h) {
-                                        let base = dy as usize * cached_w;
-                                        for dx in 0..cached_w {
-                                            if let Some(cell) = buf.cell_mut((
-                                                inner_area.x + dx as u16,
-                                                visible_top + dy,
-                                            )) {
-                                                *cell = cached_cells[base + dx].clone();
-                                            }
-                                        }
-                                    }
+                                    blit_cell_rows(
+                                        buf,
+                                        inner_area.x,
+                                        visible_top,
+                                        cached_cells,
+                                        cached_w,
+                                        0,
+                                        usize::from(visible_h.min(cached_h)),
+                                        cached_w,
+                                    );
                                     render_actual_h = cached_h as i32;
                                 } else if msg.id.starts_with("msg-err-") {
                                     // Error messages: render directly to buf.
@@ -709,14 +721,10 @@ impl SessionView {
                                     if *temp.area() != full_area {
                                         temp.resize(full_area);
                                     }
-                                    // `Buffer::resize` keeps existing cell content, so clear it
-                                    // before rendering: un-written cells would otherwise show
-                                    // glyphs from the previous message rendered into this buffer.
-                                    temp.reset();
-                                    temp.set_style(
-                                        full_area,
-                                        Style::default().bg(rgba_color(theme.background)),
-                                    );
+                                    // Reset the reusable scratch: untouched cells become
+                                    // transparent, so the blit keeps the wallpaper glyph
+                                    // instead of storing it in the render cache.
+                                    prepare_transcript_scratch(temp, rgba_color(theme.background));
 
                                     let mut actual_h = Self::render_assistant_message(
                                         temp,

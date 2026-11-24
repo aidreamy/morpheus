@@ -5,20 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [1.0.0] - 2026-11-18
+## [1.0.2] - 2026-11-23
 
-### Changed
+### Fixed
 
-- **Breaking:** the project was renamed to Morpheus. The application
-  binaries (`morpheus`, `morpheus-uninstall`, `morpheus-decisiond`), release
-  assets (`morpheus-v<version>-…`), installers, self-update pipeline, help
-  pages, environment variables (`MORPHEUS_*`), project-local files and the
-  session store all use the new name.
+- Scrolling the transcript no longer leaves a frozen copy of the wallpaper
+  under background-only blocks. When the cell cache missed, assistant
+  messages were rendered straight into the frame, so the art glyphs under a
+  box (such as a bash tool) were cached with it and replayed as the message
+  scrolled up. Cache misses now render into a transparent scratch and the
+  composite keeps the current frame's glyph under transparent cells, so the
+  wallpaper stays live while the cache remains free of it; streaming
+  messages that cannot be cached still render directly, with no added work.
 
-- The library crates use the `morpheus-*` names (`morpheus-onnx`,
-  `morpheus-recall`, `morpheus-sdk`, `morpheus-tools`, `morpheus-tui`,
-  `morpheus-whatsapp`). Code that depended on the old crate names or on
-  their crate paths must switch to `morpheus-*` / `morpheus_*`.
 
 ## [1.0.1] - 2026-11-23
 
@@ -49,6 +48,21 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   "the ACP session closed before answering the turn"; the supervisor now
   records the first real reason and answers every queued turn with it,
   including one that arrived after the connection failed.
+
+## [1.0.0] - 2026-11-18
+
+### Changed
+
+- **Breaking:** the project was renamed to Morpheus. The application
+  binaries (`morpheus`, `morpheus-uninstall`, `morpheus-decisiond`), release
+  assets (`morpheus-v<version>-…`), installers, self-update pipeline, help
+  pages, environment variables (`MORPHEUS_*`), project-local files and the
+  session store all use the new name.
+
+- The library crates use the `morpheus-*` names (`morpheus-onnx`,
+  `morpheus-recall`, `morpheus-sdk`, `morpheus-tools`, `morpheus-tui`,
+  `morpheus-whatsapp`). Code that depended on the old crate names or on
+  their crate paths must switch to `morpheus-*` / `morpheus_*`.
 
 ## [0.3.0]
 

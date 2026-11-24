@@ -64,19 +64,25 @@ impl TextRegion {
     }
 }
 
+/// Glyph a transparent cell layer stores when a widget painted only its
+/// background (or left the cell untouched): compositing must keep the glyph
+/// already on the destination (the wallpaper, for instance) and apply the
+/// background. It is never sent to the terminal and never copied as text.
+pub const KEEP_GLYPH: char = '\0';
+
 /// Read the first `w` cells of a row slice into trimmed line text: one char
 /// per cell (wide glyphs contribute their base cell; spacer cells carry
 /// `' '`), trailing whitespace trimmed. The shared inner loop of every
-/// cell-sampling builder.
+/// cell-sampling builder. [`KEEP_GLYPH`] is transparent, so it reads as a
+/// blank.
 pub fn text_from_cell_row(cells: &[Cell], w: usize) -> String {
     let mut line_text = String::with_capacity(w);
     for dx in 0..w {
-        line_text.push(
-            cells
-                .get(dx)
-                .and_then(|cell| cell.symbol().chars().next())
-                .unwrap_or(' '),
-        );
+        let ch = cells
+            .get(dx)
+            .and_then(|cell| cell.symbol().chars().next())
+            .unwrap_or(' ');
+        line_text.push(if ch == KEEP_GLYPH { ' ' } else { ch });
     }
     line_text.trim_end().to_string()
 }

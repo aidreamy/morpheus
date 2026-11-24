@@ -9,7 +9,9 @@ impl SessionView {
         for check_y in y..y + h {
             for cx in x..x + w {
                 if let Some(cell) = buf.cell((cx, check_y))
-                    && cell.symbol().chars().next().unwrap_or(' ') != ' '
+                    && let Some(ch) = cell.symbol().chars().next()
+                    && ch != ' '
+                    && ch != KEEP_GLYPH
                 {
                     last_row = Some(check_y);
                     break;
@@ -292,8 +294,7 @@ impl SessionView {
             if *temp.area() != full_area {
                 temp.resize(full_area);
             }
-            temp.reset();
-            temp.set_style(full_area, Style::default().bg(rgba_color(theme.background)));
+            prepare_transcript_scratch(temp, rgba_color(theme.background));
             Self::render_assistant_message(
                 temp,
                 full_area,

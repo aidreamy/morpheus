@@ -15,5 +15,6 @@
 //! it is re-exported here once its call sites migrate.
 
 pub use morpheus_tui::core::text_region::{
-    TextRegion, extract_text_in_region, regions_from_full_width_cells, text_from_cell_row,
+    KEEP_GLYPH, TextRegion, extract_text_in_region, regions_from_full_width_cells,
+    text_from_cell_row,
 };

@@ -42,7 +42,10 @@ use part_lines::{
     SUMMARIZING_COLLAPSED_LINES, SUMMARIZING_PAD_V, compaction_color, compaction_line,
     install_line, summarizing_height, summarizing_id,
 };
-use text::{blit_cell_rows, conceal_text, draw_hint_button, hash_parts, sanitize_text};
+use text::{
+    blit_cell_rows, conceal_text, draw_hint_button, hash_parts, prepare_transcript_scratch,
+    sanitize_text,
+};
 
 use ratatui::buffer::{Buffer, Cell, CellDiffOption};
 use ratatui::layout::Rect;
@@ -75,7 +78,8 @@ use std::time::Instant;
 
 use crate::util::draw::draw_text_line;
 use crate::util::text_region::{
-    TextRegion, extract_text_in_region, regions_from_full_width_cells, text_from_cell_row,
+    KEEP_GLYPH, TextRegion, extract_text_in_region, regions_from_full_width_cells,
+    text_from_cell_row,
 };
 
 /// Cached heights per message (avoids duplicate pulldown_cmark parses).

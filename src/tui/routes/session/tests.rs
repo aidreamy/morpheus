@@ -2690,6 +2690,10 @@ fn test_scratch_reuse_does_not_leak_previous_message() {
 
     // Render A (populates the scratch via the bottom-clipped fallback).
     view.render(&mut buf, area, &state_a, &theme, &config, 0.016);
+    // Swap the frame buffer like `Terminal::swap_buffers` does between frames:
+    // transparent cells intentionally keep whatever the frame already holds
+    // (the wallpaper), so the next frame's base must be clean.
+    buf.reset();
     // Switch to B: the session change forces a cache rebuild, so B's first
     // render reuses the scratch with a different message.
     view.render(&mut buf, area, &state_b, &theme, &config, 0.016);
@@ -9934,4 +9938,85 @@ fn tool_completion_inside_the_streaming_message_is_remeasured() {
         view.part_heights_cache[0], expected,
         "the completed tool's new height must be re-measured, not frozen"
     );
+}
+
+/// Regression: the session render cache must never store the wallpaper glyphs
+/// it was composited over. When a background-only widget (a bash box, for
+/// instance) is rendered on top of the wallpaper, only its background is
+/// painted; the art glyph stays on the frame. Caching the composed cells baked
+/// those art rows into the message, so scrolling the box up carried a frozen
+/// copy of the wallpaper with it. The cache now stores transparent markers and
+/// the blit keeps the *current* frame's art instead.
+#[test]
+fn cached_messages_do_not_freeze_the_wallpaper() {
+    use crate::util::text_region::KEEP_GLYPH;
+    use ratatui::style::Color;
+
+    let area = Rect::new(0, 0, 80, 40);
+    let theme = test_theme();
+    let config = test_config();
+    let mut state = test_state(Message {
+        id: "msg-bash".into(),
+        role: MessageRole::Assistant,
+        parts: vec![bash_part("call-1", 5, ToolStatus::Completed)],
+        created_at: 0,
+        agent: None,
+        model: None,
+    });
+    // Not working: the last message is finalized, so the render-cache path
+    // (the one that used to bake the art) is exercised.
+    state.status = SessionStatus::Idle;
+
+    let mut view = SessionView::new();
+    let mut buf = Buffer::empty(area);
+
+    // Fake wallpaper layer: a glyph everywhere plus a distinct ink, exactly
+    // how `Wallpaper::render` writes only glyphs and foreground.
+    for cell in &mut buf.content {
+        cell.set_char('W');
+        cell.set_fg(Color::Rgb(9, 9, 9));
+    }
+
+    view.render(&mut buf, area, &state, &theme, &config, 0.016);
+
+    let cached = view.msg_cache_cells[0]
+        .as_ref()
+        .expect("the finalized message must be cached");
+    let w = view.msg_cache_w[0] as usize;
+    let sentinel = cached
+        .iter()
+        .position(|cell| cell.symbol().starts_with(KEEP_GLYPH))
+        .expect("a background-only box must leave transparent cells in the cache");
+    assert!(
+        !cached.iter().any(|cell| cell.symbol() == "W"),
+        "the wallpaper must never be baked into the render cache"
+    );
+    let sx = ushort(sentinel % w) + 2;
+    let sy = ushort(sentinel / w);
+    assert_eq!(
+        buf.cell((sx, sy)).map(ratatui::buffer::Cell::symbol),
+        Some("W"),
+        "the composited frame must keep showing the wallpaper through the box"
+    );
+
+    // Repaint the wallpaper with a different pattern (as if it had scrolled /
+    // the art moved) and render again. A cache hit must reuse the message but
+    // keep the NEW art, never the frozen copy.
+    for cell in &mut buf.content {
+        cell.set_char('X');
+    }
+    view.render(&mut buf, area, &state, &theme, &config, 0.016);
+
+    assert!(
+        !buf.content.iter().any(|cell| cell.symbol() == "W"),
+        "a cached message must not carry a frozen wallpaper"
+    );
+    assert!(
+        buf.content.iter().any(|cell| cell.symbol() == "X"),
+        "the new wallpaper must still show through the box"
+    );
+}
+
+fn ushort(value: usize) -> u16 {
+    u16::try_from(value).expect("test coordinates fit in a cell")
 }

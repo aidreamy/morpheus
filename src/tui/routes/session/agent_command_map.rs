@@ -109,75 +109,9 @@ pub const AGENT_BLOCKED_OVERRIDES: &[(&str, &[&str])] = &[
     ("claude", &["agents"]),
 ];
 
-/// The client's harness mode mapped onto an agent's advertised session
-/// mode: `id` (what `session/set_mode` selects) plus the stems its
-/// `name`/`description` are matched against (lowercase, `-`/space folded
-/// to `_` — the same normalization the blocklists use).
-///
-/// Matching is SIMILARITY, not equality — the ACP contract fixes no mode
-/// spellings (claude publishes `code`/`plan`, opencode `build`/`plan`, …),
-/// so a mode whose label carries one of the stems counts as the
-/// equivalent. The first entry whose stems match the agent's mode wins, in
-/// this list order; a morpheus mode with no entry binds nothing (the agent
-/// keeps its own current mode — the same omission the Command mode in the
-/// split rides).
-struct ModeMatch {
-    mode: morpheus::harness::Mode,
-    /// Substring stems matched against the agent's normalized mode label.
-    stems: &'static [&'static str],
-}
-
-const MODE_MATCHES: &[ModeMatch] = &[
-    // Build: the working mode — write/edit tools at full effect.
-    ModeMatch {
-        mode: morpheus::harness::Mode::Build,
-        stems: &["build", "code", "write", "edit", "agent", "work"],
-    },
-    // Ask: read-and-reason, no modifications — most harnesses call this
-    // "plan" (plan mode is exactly read-only analysis before the work).
-    ModeMatch {
-        mode: morpheus::harness::Mode::Ask,
-        stems: &["plan", "ask", "read", "discuss", "chat"],
-    },
-    // Yolo: NOT mapped, deliberately. The split already runs every pane
-    // YOLO by contract (the client auto-approves all permission requests),
-    // so the permission-widening modes some harnesses publish
-    // (`bypassPermissions`, `acceptEdits`) are things the split does for
-    // FREE — mapping onto them would only flip the agent's own internal
-    // behavior while adding nothing the client doesn't already do.
-];
-
-/// Map the client's harness mode onto one of the agent's ADVERTISED session
-/// modes: the first advertised mode whose normalized `name` (falling back
-/// to its `description`) carries a stem of the mode's match entry. Returns
-/// the ACP `SessionModeId` string to bind through `session/set_mode`, or
-/// `None` when nothing matches (unmapped mode, or an agent that advertises
-/// no modes at all) — the caller then binds nothing, exactly like the
-/// Command mode's omission inside the split.
-#[must_use]
-pub fn map_mode_to_agent(
-    mode: morpheus::harness::Mode,
-    modes: &[morpheus_tools::subagent::events::AgentSessionMode],
-) -> Option<String> {
-    let entry = MODE_MATCHES.iter().find(|m| m.mode == mode)?;
-    let normalize =
-        |text: &str| -> String { text.trim().to_lowercase().replace(['-', ' ', '.'], "_") };
-    modes
-        .iter()
-        .find(|agent_mode| {
-            let name = normalize(&agent_mode.name);
-            let desc = agent_mode
-                .description
-                .as_deref()
-                .map(normalize)
-                .unwrap_or_default();
-            entry
-                .stems
-                .iter()
-                .any(|stem| name.contains(stem) || desc.contains(stem))
-        })
-        .map(|agent_mode| agent_mode.id.clone())
-}
+// Mode mapping lives in the headless harness layer so the WhatsApp surface
+// and the split share one rule; re-exported here for existing call sites.
+pub use morpheus::harness::agent_mode::map_mode_to_agent;
 
 /// The ONE-LINE description a slash-menu row shows for an agent command.
 ///

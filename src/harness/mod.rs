@@ -4,6 +4,7 @@
 //! internal harness tools, local morpheus-tools, and external MCP servers.
 
 pub mod agent_coworkers;
+pub mod agent_mode;
 pub mod background;
 pub mod checkup;
 pub mod context;

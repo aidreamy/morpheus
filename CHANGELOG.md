@@ -5,6 +5,42 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+
+### Added
+
+- WhatsApp messages can now reach external ACP agents. `/agent claude,codex`
+  selects up to four installed agents (`claude,claude` creates two
+  instances), `@claude` and `@claude#2` address one instance, `@all` reaches
+  every selected instance, and a message without a prefix still goes to the
+  main agent. Unknown names stay ordinary text, and every external reply is
+  labeled.
+
+- `/agent off`, `/agent reset <name>` and `/agent model <name> <model>`
+  manage the selected roster, its ACP sessions and per-agent models, while
+  `/stop` cancels the turns running in the chat. Commands are answered
+  immediately, without waiting for the turn queue, and rosters, sessions and
+  the main context survive restarts per chat. Outside `yolo`, permission
+  requests are denied and the reply names the blocked tools.
+
+- Ctrl+V now attaches an image from the clipboard as `clipboard.png` when the
+  clipboard holds pixels instead of text.
+
+- The TUI asks for telemetry consent on first run, explaining what is
+  collected and linking the implementation and policy. The answer is saved in
+  `setup.json` and can be changed later in Settings; dismissing the prompt
+  counts as declining.
+
+### Fixed
+
+- Opening the main-agent mirror with Ctrl+P from `/agents` now shows the right
+  panel even when it had been hidden earlier in normal chat.
+
+### Documentation
+
+- New usage guide covering installation, the CLI, the TUI and the WhatsApp
+  bridge, with its pairing, allowlist, commands and permission limits.
+
 ## [1.0.2] - 2026-11-23
 
 ### Fixed

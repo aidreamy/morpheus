@@ -113,8 +113,17 @@ pub(crate) fn subagent_theme_key(theme: &Theme) -> u64 {
 /// Determine whether the right panel should be visible based on terminal width and content.
 pub fn should_show_right_panel(terminal_width: u16, state: &RightPanelState) -> bool {
     // Manual override first (Ctrl+P): the user's explicit hide wins over
-    // content and terminal size.
-    if state.user_hidden {
+    // content and terminal size — EXCEPT while the `/agents` main-agent
+    // mirror is open. Opening that mirror IS an explicit request to see the
+    // panel (Ctrl+P inside the mode), so a `user_hidden` left behind by an
+    // earlier Ctrl+P in normal chat must not keep suppressing it (under the
+    // old rule the panel was impossible to reopen from `/agents` until the
+    // user went back to the chat and pressed Ctrl+P there).
+    //
+    // The flag itself is NOT touched: leaving the mode still shows the panel
+    // exactly as normal mode left it, and a second Ctrl+P inside the mode
+    // closes the mirror, which drops back to this normal-mode rule.
+    if state.user_hidden && !state.main_mirror_open() {
         return false;
     }
     if terminal_width < 100 {

@@ -405,6 +405,70 @@ async fn ctrl_p_toggles_right_panel_visibility() {
     assert!(should_show_right_panel(120, &app.state.right_panel));
 }
 
+/// Regression: a panel hidden with Ctrl+P in normal chat must be openable
+/// again from `/agents`. The old rule let `user_hidden` win over the
+/// explicitly opened main-agent mirror, so Ctrl+P inside the mode toggled an
+/// INVISIBLE mirror and the panel only came back after leaving the mode.
+/// The flag itself must stay untouched, so returning to chat restores the
+/// normal-mode panel state verbatim.
+#[tokio::test]
+async fn ctrl_p_in_agents_mode_reopens_a_panel_hidden_in_normal_chat() {
+    let _home = HOME_LOCK.lock();
+    let mut app = App::new("/tmp".to_string());
+    app.state.add_empty_session("t".into(), "t".into(), 0);
+    app.state.current_session_id = Some("t".into());
+    let mut panel = crate::routes::session::right_panel::types::RightPanelState::new();
+    panel.start_pty("echo hi".to_string(), None);
+    panel.complete_last_pty("hi\n".to_string());
+    app.state.right_panel = panel;
+
+    // Normal chat: hide the panel (the reported state before entering the
+    // mode).
+    app.process_key_event(mod_key(KeyCode::Char('p'), KeyModifiers::CONTROL))
+        .unwrap();
+    assert!(app.state.right_panel.user_hidden);
+
+    // Enter `/agents` (the ACP panes split): no auto-open, the panel stays
+    // hidden until Ctrl+P.
+    app.agents_split = Some(crate::routes::session::agents_split::AgentsSplitState::new(
+        vec![crate::types::AgentPaneRef::Name("claude".into())],
+    ));
+    assert!(!app.right_panel_visible(120));
+
+    // Ctrl+P inside the mode: the explicitly opened mirror must SHOW the
+    // panel instead of being swallowed by the stale `user_hidden` flag.
+    app.process_key_event(mod_key(KeyCode::Char('p'), KeyModifiers::CONTROL))
+        .unwrap();
+    assert!(app.main_mirror_open());
+    assert!(
+        app.right_panel_visible(120),
+        "an explicitly opened mirror must show the panel even from a hidden one"
+    );
+    assert!(
+        app.state.right_panel.user_hidden,
+        "the override must not flip the normal-mode user flag"
+    );
+
+    // A second press closes the mirror, which hides the panel again.
+    app.process_key_event(mod_key(KeyCode::Char('p'), KeyModifiers::CONTROL))
+        .unwrap();
+    assert!(!app.main_mirror_open());
+    assert!(!app.right_panel_visible(120));
+
+    // A third press reopens it — the toggle keeps working both ways.
+    app.process_key_event(mod_key(KeyCode::Char('p'), KeyModifiers::CONTROL))
+        .unwrap();
+    assert!(app.right_panel_visible(120));
+
+    // Leaving the mode (the real park path, which closes the mirror)
+    // restores normal-mode state verbatim: still hidden until the user
+    // presses Ctrl+P in chat again.
+    app.park_agents_split();
+    assert!(!app.main_mirror_open());
+    assert!(app.state.right_panel.user_hidden);
+    assert!(!app.right_panel_visible(120));
+}
+
 /// Regression: `is_in_right_panel` is also visibility-aware — after Ctrl+P
 /// the panel's old screen band belongs to the chat, so scroll/click events
 /// there must never be routed to the (hidden) panel.

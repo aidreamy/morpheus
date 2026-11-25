@@ -1878,6 +1878,10 @@ impl App {
     ///   agent mode, and while the mirror is open it is the panel's SOLE
     ///   OWNER: `count_sections` hides every normal-mode section (todo,
     ///   bash) and the Subagent section renders exactly the mirror window.
+    ///   Because opening the mirror IS an explicit "show the panel", it also
+    ///   overrides a `user_hidden` flag set by an earlier Ctrl+P in normal
+    ///   chat (the flag is left untouched, so leaving the mode restores the
+    ///   normal-mode panel state verbatim).
     ///   Closing the mirror (Ctrl+P again, or the mode parking/closing)
     ///   removes the mirror and restores the panel exactly as it is today.
     ///

@@ -16,7 +16,7 @@ screen. Type these commands in the chat input and press Enter:
 | `/router` | Model fallback and prompt-correction chains |
 | `/providers` | Local provider endpoints |
 | `/tools` | Enable or disable internal tools |
-| `/themes`, `/background`, `/bell`, `/anim`, `/toolcall`, `/wallpaper` | Direct toggles / appearance |
+| `/themes`, `/background`, `/bell`, `/spinner`, `/toolcall`, `/wallpaper`, `/voice` | Direct toggles / appearance |
 
 Changes made in the TUI are saved to `setup.json`. Navigate with the arrow
 keys, press Enter to edit, and Esc to go back.
@@ -36,11 +36,15 @@ sessions and caches; it does not change the location of `setup.json`.
 
 | JSON section | Main TUI location | Purpose |
 |---|---|---|
-| `appearance` | `/themes`, `/background`, `/bell`, `/anim`, `/wallpaper` | Theme and visual behavior |
+| `appearance` | `/themes`, `/background`, `/bell`, `/spinner`, `/wallpaper` | Theme, spinner and visual behavior |
 | `tools` | `/toolcall`, `/tools` | Tool-call format and disabled tools |
 | `routing` | `/router`; `/settings` → Automation | Fallback and summarization chains |
 | `hooks` | `/settings` → Automation | Commands before/after tool calls |
 | `providers` | `/providers` | Local model-server URLs |
+| `custom_providers` | `/settings` → Integrations | OpenAI-compatible endpoints registered by URL |
+| `acp_agents` | `/settings` → Integrations | Custom ACP sub-agent harnesses |
+| `voice` | `/settings` → Voice, voice builds only | Automatic speech output |
+| `effective_context` | `/settings` → Models & caching | Reduced context budget instead of the full window |
 | `model` | `/models` | Last selected provider/model |
 | `mode` | Session mode cycle | Last selected agent mode |
 | `cache` | `/settings` → Models & caching | Prompt-cache retention |
@@ -58,14 +62,14 @@ sessions and caches; it does not change the location of `setup.json`.
 |---|---:|---|
 | `theme` | `""` | Theme name. Empty uses the registry default. Use `/themes`. |
 | `bell_enabled` | `true` | Rings the terminal bell when the agent loop finishes. |
+| `spinner` | `bass` | Agent-loop spinner animation. `/spinner` picks another style; it is purely decorative. |
 | `transparent_background` | `false` | Uses the terminal's own background color for the TUI base. Panels keep their theme colors. |
-| `anim_enabled` | `false` | Shows the animated chat logo on an empty session. |
 | `wallpaper` | `""` | `/wallpaper` choice. Empty/`"default"` uses the embedded artwork; `"off"` removes it; any other value is an image path. |
 
-The TUI commands `/background`, `/bell`, and `/anim` edit the corresponding
-boolean fields. `/wallpaper` accepts `default` (embedded art), `rm`/`off`
-(remove it), or an image path with an optional `x,y` cell offset, and
-persists the choice to `wallpaper`.
+The TUI commands `/background` and `/bell` edit the corresponding boolean
+fields, and `/spinner` writes `spinner`. `/wallpaper` accepts `default`
+(embedded art), `rm`/`off` (remove it), or an image path with an optional `x,y`
+cell offset, and persists the choice to `wallpaper`.
 
 ## `tools`
 
@@ -73,6 +77,7 @@ persists the choice to `wallpaper`.
 |---|---:|---|
 | `tool_call_mode` | `"native"` | `native` sends structured tool calls; `inline` sends JSON text that Morpheus parses. Change with `/toolcall`. |
 | `disabled` | `[]` | Tool names hidden from the model. Manage them with `/tools` → Internal Tools. |
+| `scope` | `"project"` | Where `disabled` is stored: `project` keeps it in `.morpheus-tools.json` in the working directory, `global` shares one list across every project. |
 
 ## `routing`
 
@@ -161,6 +166,34 @@ Example:
 API keys for regular providers are not `setup.json` settings: Morpheus obtains
 them from the OS keyring and/or provider-specific environment variables.
 
+`custom_providers` registers endpoints that are not in the built-in list
+(`/settings` → Integrations → Custom providers). Each entry is a name, the base
+URL and the wire family; only `openai-compatible` is accepted today:
+
+```json
+{
+  "custom_providers": [
+    {
+      "name": "company",
+      "base_url": "https://api.company.com/v1",
+      "family": "openai-compatible"
+    }
+  ]
+}
+```
+
+`acp_agents` registers external sub-agent harnesses that speak the Agent Client
+Protocol, which then appear in `/agents`. Each entry is a single-word name and
+the launch command with its arguments:
+
+```json
+{
+  "acp_agents": [
+    { "name": "my-agent", "command": "my-agent --acp" }
+  ]
+}
+```
+
 ## `model` and `mode`
 
 These sections persist the last choice for **new sessions**; they do not
@@ -171,7 +204,7 @@ rewrite existing session history.
 | `model.provider` | `""` | Provider of the last selected model. |
 | `model.model` | `""` | Model ID of the last selected model. |
 | `model.reasoning` | `null` | Model-specific reasoning effort; `null` uses the model default. |
-| `mode.mode` | `""` | Last agent mode: `build`, `ask`, `yolo`, or `command`. Empty/unknown uses `build`. |
+| `mode.mode` | `""` | Last agent mode: `build`, `ask`, `yolo`, `command`, or `manager`. Empty/unknown uses `build`. |
 
 Use `/models` for `model.*`. Cycle the agent mode with the session's mode
 shortcut (Tab); the selected mode is saved automatically.
@@ -203,6 +236,20 @@ first source wins when names collide. A path beginning with `~` is expanded.
 
 `recursive`, `ignore`, and `include` currently have no TUI control; edit them
 directly in `setup.json` when needed.
+
+## `voice` (voice builds only)
+
+Only binaries built with the `speak` feature use this section; the shipped
+`slim-speak` variant is the one that has it. The keys are kept in the file even
+in builds without it, so switching builds never loses the choice.
+
+| Field | Default | What it controls |
+|---|---:|---|
+| `auto_generate` | `true` | Speak every final answer automatically. The **Speak** button on an answer works either way. |
+| `speaker` | `0` | Speaker id inside the loaded Kokoro bundle (`/settings` → Voice → Speaker). |
+| `speed` | `1.0` | Speech pace; `1.0` is natural. A zero or invalid value falls back to `1.0`. |
+| `language` | `""` | espeak-ng language for the external phonemizer, such as `pt-br`. Empty uses the model's own lexicon (English and Chinese). |
+| `model_dir` | `""` | Kokoro bundle directory. Empty uses `MORPHEUS_KOKORO_MODEL_DIR` or the default cache directory. |
 
 ## `model_decision` (ONNX builds only)
 

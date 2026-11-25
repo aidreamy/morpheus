@@ -187,15 +187,18 @@ code, so the project must publish the server-side retention policy separately.
 
 ## Consent and disabling telemetry
 
-Telemetry is enabled by default, but it is opt-out. The effective decision
-follows this order:
+Telemetry is enabled by default, but it is opt-out. On the first run, the TUI
+shows a one-time consent box that explains what is collected and links to this
+directory and to the client source for auditing. The answer is saved to
+`setup.json` (`telemetry` plus the `telemetry_prompted` marker), so the box is
+never shown again. The effective decision follows this order:
 
 1. `CI` permanently disables telemetry for that process;
 2. `MORPHEUS_TELEMETRY=off`, `0`, or `false` disables it;
 3. `MORPHEUS_TELEMETRY=on`, `1`, or `true` enables it;
 4. without an override, the persisted user preference applies.
 
-The TUI exposes this preference at `/settings` → **General** → **Telemetry**.
+The TUI also exposes this preference at `/settings` → **General** → **Telemetry**.
 When disabled, the application records no new events and does not send an
 old queue. The complete configuration reference is in
 [docs/usage/setup.md](../usage/setup.md).

@@ -418,6 +418,20 @@ fn confirm_dialog_w(message: &str, area_width: u16) -> u16 {
     30u16.max(needed).min(area_width.saturating_sub(4)).max(16)
 }
 
+/// Height of a Confirm box: the classic 7 rows for one/two message lines,
+/// growing with the message when a caller supplies a longer explanation
+/// (telemetry consent), so no line is dropped. Options sit on the row three
+/// from the bottom border — the same position the 7-row box always used.
+fn confirm_dialog_h(message: &str) -> u16 {
+    let lines = message.lines().count().max(1) as u16;
+    lines.saturating_add(5).max(7)
+}
+
+/// Row of the Yes/No options inside a Confirm box of height `dialog_h`.
+fn confirm_options_y(dialog_y: u16, dialog_h: u16) -> u16 {
+    dialog_y + dialog_h.saturating_sub(3)
+}
+
 /// Content-derived width for the agent config box (the `confirm_dialog_w`
 /// convention): the longest value name — or the title — plus room for the
 /// ● indicator and padding, floored at the compact-picker minimum and
@@ -1088,6 +1102,22 @@ impl std::fmt::Debug for DialogType {
     }
 }
 
+/// What a [`DialogType::Confirm`] box resolves when the user says "Yes".
+///
+/// The box itself is shared (quit, session/RAG delete, telemetry consent); the
+/// caller needs this marker to route the answer without guessing from the
+/// message text. Every other Confirm construction keeps the default
+/// [`ConfirmAction::Generic`] behavior.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]
+pub enum ConfirmAction {
+    /// The classic destructive-action confirm (quit/delete/forget).
+    #[default]
+    Generic,
+    /// First-run telemetry consent: persist the answer to `setup.json` and
+    /// apply it to the live facade instead of quitting or deleting anything.
+    TelemetryConsent,
+}
+
 #[derive(Debug, Clone)]
 pub struct DialogInstance {
     pub dialog_type: DialogType,
@@ -1101,6 +1131,10 @@ pub struct DialogInstance {
     /// same one-frame-muted→text swap the footer's update button uses).
     /// Render reads it; the mouse handler stores it.
     pub login_hover: bool,
+    /// How a Confirm answer must be resolved (see [`ConfirmAction`]). Only
+    /// meaningful when `dialog_type` is a Confirm; defaults to the generic
+    /// destructive-action path.
+    pub confirm_action: ConfirmAction,
 }
 
 pub struct DialogState {
@@ -1140,7 +1174,19 @@ impl DialogState {
             cursor: Cursor::new(),
             spinner: SpinnerState::new(),
             login_hover: false,
+            confirm_action: ConfirmAction::Generic,
         });
+    }
+
+    /// Show a Confirm box whose "Yes" answer is routed through [`action`]
+    /// instead of the generic destructive-action path.
+    pub fn show_confirm(&mut self, message: impl Into<String>, action: ConfirmAction) {
+        self.show(DialogType::Confirm {
+            message: message.into(),
+        });
+        if let Some(instance) = self.stack.last_mut() {
+            instance.confirm_action = action;
+        }
     }
 
     pub fn replace(&mut self, dialog_type: DialogType) {
@@ -1190,7 +1236,7 @@ impl DialogState {
             DialogType::Confirm { message } => {
                 let dialog_w = confirm_dialog_w(message, area.width);
                 let dialog_x = area.x + area.width.saturating_sub(dialog_w) / 2;
-                let dialog_h = 7;
+                let dialog_h = confirm_dialog_h(message);
                 let dialog_y = area.y + area.height.saturating_sub(dialog_h) / 2;
 
                 let opt_yes = "Yes";
@@ -1198,7 +1244,7 @@ impl DialogState {
                 let gap: u16 = 4;
                 let total_w = opt_yes.len() as u16 + gap + opt_no.len() as u16;
                 let opts_x = dialog_x + dialog_w.saturating_sub(total_w) / 2;
-                let opts_y = dialog_y + 4;
+                let opts_y = confirm_options_y(dialog_y, dialog_h);
 
                 // Check within dialog bounds
                 if x < dialog_x
@@ -2081,10 +2127,10 @@ impl DialogState {
             DialogType::Confirm { message } => {
                 // Box dimensions: border OUTER edge. Minimum is the classic
                 // hardcoded 30; grows to fit the message so long confirms
-                // (e.g. provider key forget) are not truncated.
+                // (e.g. telemetry consent) are not truncated.
                 let dialog_w = confirm_dialog_w(message, area.width);
                 let dialog_x = area.x + area.width.saturating_sub(dialog_w) / 2;
-                let dialog_h = 7;
+                let dialog_h = confirm_dialog_h(message);
                 let dialog_y = area.y + area.height.saturating_sub(dialog_h) / 2;
 
                 // Fill interior with theme background
@@ -2119,13 +2165,13 @@ impl DialogState {
                     );
                 }
 
-                // Yes / No side by side, centered at row dialog_y + 4
+                // Yes / No side by side, centered on the options row.
                 let opt_yes = "Yes";
                 let opt_no = "No";
                 let gap: u16 = 4;
                 let total_w = opt_yes.len() as u16 + gap + opt_no.len() as u16;
                 let opts_x = dialog_x + dialog_w.saturating_sub(total_w) / 2;
-                let opts_y = dialog_y + 4;
+                let opts_y = confirm_options_y(dialog_y, dialog_h);
 
                 let yes_style = if instance.selected == 0 {
                     Style::default()
@@ -4812,11 +4858,29 @@ fn render_form_panel(
 
 #[cfg(test)]
 mod confirm_width_tests {
-    use super::confirm_dialog_w;
+    use super::{confirm_dialog_h, confirm_dialog_w, confirm_options_y};
 
     #[test]
     fn confirm_width_stays_at_classic_minimum_for_short_messages() {
         assert_eq!(confirm_dialog_w("Delete session?", 120), 30);
+    }
+
+    #[test]
+    fn confirm_height_keeps_the_classic_box_for_short_messages() {
+        assert_eq!(confirm_dialog_h("Delete session?"), 7);
+        assert_eq!(confirm_dialog_h("Line one\nLine two"), 7);
+        assert_eq!(confirm_options_y(8, 7), 12);
+    }
+
+    #[test]
+    fn confirm_height_grows_with_a_multi_line_explanation() {
+        let message = "One\nTwo\nThree\nFour";
+        let height = confirm_dialog_h(message);
+        assert_eq!(height, 9);
+        // The options row sits below every message line (no overlap).
+        let options_y = confirm_options_y(0, height);
+        assert_eq!(options_y, 6);
+        assert!(options_y >= 2 + 3);
     }
 
     #[test]

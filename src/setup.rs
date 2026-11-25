@@ -78,6 +78,10 @@ pub struct Setup {
     /// This flag is only the USER's choice — the effective consent still
     /// goes through `Telemetry::resolve` (env override + CI hard-off).
     pub telemetry: bool,
+    /// Whether the one-time first-run telemetry consent box has already been
+    /// answered. Persisted so the question is shown once and never again;
+    /// the answer itself is stored in [`Self::telemetry`].
+    pub telemetry_prompted: bool,
     /// Whether discovered model windows are resized to the reduced
     /// sweet-spot budget (`effective_context_window`). DEFAULT OFF: the
     /// full discovered window is used as-is.
@@ -120,6 +124,7 @@ impl Default for Setup {
             custom_providers: Vec::new(),
             editor: String::new(),
             telemetry: true,
+            telemetry_prompted: false,
             effective_context: false,
             disk_snapshot: None,
             lock_wait: Duration::from_millis(250),
@@ -1339,6 +1344,9 @@ impl Setup {
         if self.telemetry != baseline.telemetry {
             merged.telemetry = self.telemetry;
         }
+        if self.telemetry_prompted != baseline.telemetry_prompted {
+            merged.telemetry_prompted = self.telemetry_prompted;
+        }
         if self.effective_context != baseline.effective_context {
             merged.effective_context = self.effective_context;
         }
@@ -1628,6 +1636,23 @@ mod tests {
         // A legacy file that never mentioned telemetry loads ON (opt-out).
         let legacy: Setup = serde_json::from_str(r#"{"appearance": {}}"#).unwrap();
         assert!(legacy.telemetry);
+    }
+
+    /// The first-run prompt marker starts unset (so a fresh install is asked)
+    /// and round-trips once answered. It is independent from the consent flag
+    /// itself: `telemetry_prompted` records that the box was shown, while
+    /// `telemetry` records the answer.
+    #[test]
+    fn telemetry_prompt_marker_starts_unset_and_roundtrips() {
+        let mut setup = Setup::default();
+        assert!(
+            !setup.telemetry_prompted,
+            "a new install must still show the consent box"
+        );
+        setup.telemetry_prompted = true;
+        let json = serde_json::to_string(&setup).unwrap();
+        let loaded: Setup = serde_json::from_str(&json).unwrap();
+        assert!(loaded.telemetry_prompted);
     }
 
     /// The effective-context toggle round-trips and stays default-off: a

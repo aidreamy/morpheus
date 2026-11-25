@@ -11,7 +11,7 @@ use crate::left_panel::{MIN_WIDTH_FOR_LEFT_PANEL, Mode};
 use crate::routes::router::FocusTarget;
 use crate::routes::session::agents_split::AgentsSplitState;
 use crate::routes::session::queue_choice::QueueTarget;
-use crate::ui::dialogs::DialogType;
+use crate::ui::dialogs::{ConfirmAction, DialogType};
 use crate::util::edit_history::{RedoOutcome, UndoOutcome};
 use crate::util::selection;
 
@@ -1502,6 +1502,13 @@ impl App {
                     if let Some(dialog) = self.dialog.current()
                         && matches!(dialog.dialog_type, DialogType::Confirm { .. })
                     {
+                        // First-run consent: keep this legacy Confirm path
+                        // from routing "Yes" into the quit/delete fallback.
+                        if dialog.confirm_action == ConfirmAction::TelemetryConsent {
+                            let allowed = dialog.selected == 0;
+                            self.resolve_telemetry_consent(allowed);
+                            return Ok(false);
+                        }
                         if dialog.selected == 0 {
                             match self.pending_delete.take() {
                                 Some(PendingSessionDelete::One(session_id)) => {

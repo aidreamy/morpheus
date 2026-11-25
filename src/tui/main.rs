@@ -110,6 +110,7 @@ async fn run_tui(options: cli::LaunchOptions) {
         );
     }
     app.show_welcome_toast();
+    app.show_telemetry_consent_prompt();
     if let Err(e) = app.run() {
         eprintln!("Error: {e}");
     }

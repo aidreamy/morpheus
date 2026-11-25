@@ -16,7 +16,7 @@ use crate::left_panel::sessions::SessionsAction;
 use crate::left_panel::{LEFT_PANEL_WIDTH, MIN_WIDTH_FOR_LEFT_PANEL, Mode};
 use crate::routes::router::FocusTarget;
 use crate::routes::session::queue_choice::QueueTarget;
-use crate::ui::dialogs::{DialogAction, DialogType};
+use crate::ui::dialogs::{ConfirmAction, DialogAction, DialogType};
 use crate::ui::toast::{ToastOptions, ToastVariant};
 use crate::util::selection;
 
@@ -1466,6 +1466,11 @@ impl App {
             match self.dialog.handle_mouse(&mouse, area, &self.theme) {
                 DialogAction::Confirmed if self.is_confirm_dialog_visible() => {
                     if let Some(d) = self.dialog.current() {
+                        if d.confirm_action == ConfirmAction::TelemetryConsent {
+                            let allowed = d.selected == 0;
+                            self.resolve_telemetry_consent(allowed);
+                            return Ok(true);
+                        }
                         if d.selected == 0 {
                             // Confirm stacked over the provider-key picker:
                             // "forget key" resolves (and pops) itself.
@@ -1667,6 +1672,13 @@ impl App {
                         }
                     }
                     self.dialog.pop();
+                    return Ok(true);
+                }
+                DialogAction::Dismissed if self.is_telemetry_consent_visible() => {
+                    // A click outside the consent box dismisses it; like Esc,
+                    // that is a "No" — the box asks permission, so an
+                    // accidental dismissal must never leave collection on.
+                    self.resolve_telemetry_consent(false);
                     return Ok(true);
                 }
                 DialogAction::Dismissed => {

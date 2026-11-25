@@ -49,7 +49,7 @@ sessions and caches; it does not change the location of `setup.json`.
 | `lsp` | `/settings` → Environment | Language-server integration |
 | `mcp` | `/settings` → Integrations | External MCP servers |
 | `editor` | `/settings` → Environment | Editor opened by the file explorer |
-| `telemetry` | `/settings` → General | Anonymous usage telemetry |
+| `telemetry` | `/settings` → General | Usage telemetry (one-time consent box on first run) |
 | `whatsapp` | `/settings` → WhatsApp | Who may use the agent over `morpheus whatsapp` |
 
 ## `appearance`
@@ -242,6 +242,7 @@ name `checkup` is still accepted when reading, but Morpheus writes
 | `lsp` | `true` | `/settings` → Environment → Language servers. `MORPHEUS_LSP=off`, `0`, or `false` disables it for the process. |
 | `editor` | `""` | `/settings` → Environment → Editor. Empty auto-detects `nvim`, then `vim`, then `nano`; otherwise use a command such as `nvim -u NONE` or `code -w`. |
 | `telemetry` | `true` | `/settings` → General → Telemetry. This is opt-out and applies on the next launch; `MORPHEUS_TELEMETRY=off` disables it. CI is always off. |
+| `telemetry_prompted` | `false` | Records that the one-time first-run telemetry consent box was answered. The box asks once; the answer is stored in `telemetry`. |
 
 ### `mcp`
 

@@ -248,3 +248,116 @@ async fn confirm_quit_swallows_other_keys() {
     );
     assert!(app.is_confirm_dialog_visible());
 }
+
+/// First-run consent: answering "No" persists BOTH the answer and the
+/// prompted marker, so the box is never shown again. The live facade is
+/// re-resolved immediately instead of waiting for the next launch.
+#[tokio::test]
+async fn telemetry_prompt_persists_decline_and_never_reappears() {
+    let _guard = HOME_LOCK.lock();
+    isolate_home();
+    use crossterm::event::{KeyCode as K, KeyEvent, KeyModifiers};
+
+    let mut app = App::new("/tmp".to_string());
+    assert!(
+        !app.setup.telemetry_prompted,
+        "fresh install starts unasked"
+    );
+
+    app.show_telemetry_consent_prompt();
+    assert!(app.is_telemetry_consent_visible());
+    // The preselection mirrors the persisted choice (default-on -> "Yes").
+    assert_eq!(app.dialog.current().unwrap().selected, 0);
+
+    app.process_key_event(KeyEvent::new(K::Right, KeyModifiers::NONE))
+        .unwrap();
+    app.process_key_event(KeyEvent::new(K::Enter, KeyModifiers::NONE))
+        .unwrap();
+
+    assert!(!app.dialog.visible(), "the answer closes the box");
+    assert!(!app.setup.telemetry, "No must turn telemetry off");
+    assert!(app.setup.telemetry_prompted);
+
+    let saved = morpheus::setup::Setup::load();
+    assert!(!saved.telemetry, "the answer is persisted");
+    assert!(saved.telemetry_prompted, "the prompt marker is persisted");
+
+    app.show_telemetry_consent_prompt();
+    assert!(
+        !app.dialog.visible(),
+        "an answered install must never be asked again"
+    );
+}
+
+/// The preselection follows the saved setting: a user who had already opted
+/// out sees "No" preselected and choosing "Yes" persists the opt-in.
+#[tokio::test]
+async fn telemetry_prompt_preselects_saved_choice_and_persists_accept() {
+    let _guard = HOME_LOCK.lock();
+    isolate_home();
+    use crossterm::event::{KeyCode as K, KeyEvent, KeyModifiers};
+
+    let mut app = App::new("/tmp".to_string());
+    app.setup.telemetry = false;
+    app.setup.telemetry_prompted = false;
+
+    app.show_telemetry_consent_prompt();
+    assert_eq!(
+        app.dialog.current().unwrap().selected,
+        1,
+        "an opted-out config keeps No preselected"
+    );
+
+    app.process_key_event(KeyEvent::new(K::Left, KeyModifiers::NONE))
+        .unwrap();
+    app.process_key_event(KeyEvent::new(K::Enter, KeyModifiers::NONE))
+        .unwrap();
+
+    assert!(app.setup.telemetry, "Yes must turn telemetry on");
+    assert!(app.setup.telemetry_prompted);
+    let saved = morpheus::setup::Setup::load();
+    assert!(saved.telemetry);
+    assert!(saved.telemetry_prompted);
+}
+
+/// Esc dismisses the box, which is read as declining: the box asks
+/// permission, so an accidental dismissal must not leave collection on.
+#[tokio::test]
+async fn telemetry_prompt_escape_declines() {
+    let _guard = HOME_LOCK.lock();
+    isolate_home();
+    use crossterm::event::{KeyCode as K, KeyEvent, KeyModifiers};
+
+    let mut app = App::new("/tmp".to_string());
+    app.show_telemetry_consent_prompt();
+    app.process_key_event(KeyEvent::new(K::Esc, KeyModifiers::NONE))
+        .unwrap();
+
+    assert!(!app.dialog.visible());
+    assert!(!app.setup.telemetry);
+    assert!(app.setup.telemetry_prompted);
+}
+
+/// Clicking "Yes" on the consent box must persist the opt-in and dismiss the
+/// box — never fall through to the generic Confirm path (which would quit the
+/// app). The click also pins the dynamic multi-line geometry: the options row
+/// moves down with the explanation.
+#[tokio::test]
+async fn telemetry_prompt_yes_click_persists_and_does_not_quit() {
+    let _guard = HOME_LOCK.lock();
+    isolate_home();
+    let mut app = App::new("/tmp".to_string());
+    app.set_test_size(80, 24);
+    app.show_telemetry_consent_prompt();
+
+    // 80x24, box 65x18 centered: options row = 18, "Yes" spans x=35..37.
+    click(&mut app, 36, 18);
+
+    assert!(!app.should_quit, "consent Yes must never quit the app");
+    assert!(!app.dialog.visible());
+    assert!(app.setup.telemetry);
+    assert!(app.setup.telemetry_prompted);
+    let saved = morpheus::setup::Setup::load();
+    assert!(saved.telemetry);
+    assert!(saved.telemetry_prompted);
+}

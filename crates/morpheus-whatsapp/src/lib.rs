@@ -12,8 +12,9 @@
 //!
 //! * [`Config`] — device store location, push name and pairing mode.
 //! * [`WhatsApp`] — the live link: [`connect`](WhatsApp::connect) starts it,
-//!   [`send_text`](WhatsApp::send_text) talks, [`close`](WhatsApp::close)
-//!   stops it.
+//!   [`send_text`](WhatsApp::send_text) talks,
+//!   [`set_typing`](WhatsApp::set_typing) shows presence, and
+//!   [`close`](WhatsApp::close) stops it.
 //! * [`Event`] — a bounded [`tokio::sync::mpsc`] stream of pairing,
 //!   connection, failure and message events. It never blocks the protocol
 //!   engine: message events are dropped (with a warning) if the consumer

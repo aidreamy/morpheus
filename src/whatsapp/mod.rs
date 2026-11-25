@@ -62,6 +62,9 @@
 //!   addressed turns drive ACP instances; `@all` runs them concurrently.
 //! - **`agent.rs`** serializes prompts per chat and filters traffic the
 //!   agent should not answer (echoes, broadcasts, channels, reactions).
+//! - **`delivery.rs`** is the one outbound path: it drops empty replies,
+//!   optionally shows the simulated typing state, sends, and logs failures.
+//!   **`typing.rs`** owns the pure, bounded delay calculation behind it.
 //! - **`access.rs`** owns the authorization policy (`setup.json` →
 //!   `whatsapp`): which chats and which one-to-one contacts may reach the
 //!   agent at all.
@@ -71,9 +74,10 @@
 //! `/help` lists the surface; `/mode <mode>` switches the harness mode;
 //! `/agent` selects the external ACP agents for the chat (`/agent` and
 //! `/agent ls` list, `/agent ls all` includes not-installed agents,
-//! `/agent off` clears the roster, `/agent reset <name>` ends one session and
-//! `/agent model <name> <model>` picks its model); `/stop` cancels the turns
-//! running in this chat.
+//! `/agent off` clears the roster, `/agent reset <name>` ends one session,
+//! `/agent model <name>` reports one model and `/agent model <name> <model>`
+//! picks it); `/human [on|off]` turns the simulated typing state on or off for
+//! the chat (off by default); `/stop` cancels the turns running in this chat.
 //!
 //! A message with no prefix always goes to the main agent. An external agent
 //! is reached only with `@name` (or `@name#k` for an instance); `@all` runs
@@ -98,12 +102,14 @@ mod agent;
 mod commands;
 mod config;
 mod control;
+mod delivery;
 mod executor;
 mod mode;
 mod reply;
 mod selection;
 mod session;
 mod state;
+mod typing;
 
 use std::io::Write as _;
 use std::path::{Path, PathBuf};
@@ -303,30 +309,8 @@ pub async fn run() -> i32 {
                     let link = whatsapp.clone();
                     tasks.spawn(async move {
                         let _permit = permit;
-                        let replies = agent.handle(&message).await;
-                        for reply in replies {
-                            if reply.trim().is_empty() {
-                                continue;
-                            }
-                            log::info!(
-                                "morpheus whatsapp: sending reply to {} ({} chars)",
-                                message.chat,
-                                reply.len()
-                            );
-                            match link.send_text(&message.chat, reply).await {
-                                Ok(sent) => log::info!(
-                                    "morpheus whatsapp: send_text ok id={} to={}",
-                                    sent.id,
-                                    sent.to
-                                ),
-                                Err(error) => {
-                                    log::warn!(
-                                        "morpheus whatsapp: reply to {} failed: {error}",
-                                        message.chat
-                                    )
-                                }
-                            }
-                        }
+                        let batch = agent.handle(&message).await;
+                        delivery::send(&link, &message.chat, batch).await;
                     });
                 }
                 // `Event` is `#[non_exhaustive]`: a future variant this build

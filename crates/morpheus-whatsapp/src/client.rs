@@ -258,6 +258,27 @@ impl WhatsApp {
         })
     }
 
+    /// Show or hide the "typing…" chat state in `chat`.
+    ///
+    /// This is presence, not a message: the server expires a composing state
+    /// after a few seconds and nothing is persisted, so callers must treat it
+    /// as a hint and never as durable state. `true` sends `composing`, `false`
+    /// sends `paused`.
+    ///
+    /// Not every client renders it for every chat kind (a group or the self
+    /// chat may hide it), and a failure here is never fatal to a reply — the
+    /// message can still be sent.
+    pub async fn set_typing(&self, chat: &ChatId, typing: bool) -> Result<()> {
+        let jid = chat.to_jid()?;
+        let chatstate = self.inner.client.chatstate();
+        let result = if typing {
+            chatstate.send_composing(&jid).await
+        } else {
+            chatstate.send_paused(&jid).await
+        };
+        result.map_err(Error::chat_state)
+    }
+
     /// Whether `message` is a prompt the agent should answer.
     ///
     /// This is the one routing rule consumers share, and it differs from

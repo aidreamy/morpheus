@@ -25,13 +25,23 @@ agent. No contact and no group is answered until it is listed.
 | Field | Default | Meaning |
 | --- | --- | --- |
 | `self_chat` | `true` | Answer messages the account sends to its own chat. |
+| `humanize` | `false` | Default simulated typing for chats with no `/human` choice. |
 | `contacts` | `[]` | One-to-one contacts allowed to use the agent. |
 | `groups` | `[]` | Groups allowed to use the agent. |
 
+`self_chat` is independent of both lists: adding or removing a contact or a
+group never changes it, so allowing someone new cannot lock the account out of
+its own chat.
+
 Each entry is `{ "id": …, "enabled": … }`. Disabling keeps the entry in the file
-but grants nothing; removing deletes it. The same three knobs are editable in
-`/settings` → WhatsApp, where each list shows toggle rows: Enter flips an entry,
-the 🗑 glyph removes it, and the **+ Add** row appends comma-separated entries.
+but grants nothing; removing deletes it. The same knobs are editable in
+`/settings` → WhatsApp: `self_chat` and `humanize` are switches flipped in
+place, and each list shows toggle rows — Enter flips an entry, the 🗑 glyph
+removes it, and the **+ Add** row appends comma-separated entries.
+
+The self-chat is never paced: a typing state in a chat with yourself has
+nothing to simulate, so `humanize` and `/human` apply only to replies in other
+chats, and `/human` in the self-chat says so instead of saving a choice.
 
 A contact id is a phone number in international format or an account id
 (`@lid` included); `+`, spaces, punctuation and the `@server` suffix are
@@ -51,7 +61,8 @@ command, so a path such as `/usr/bin` stays normal text.
 | --- | --- |
 | `/help` | List the commands available over WhatsApp. |
 | `/mode <mode>` | Switch between `build`, `ask`, `yolo`, `command` and `manager`. |
-| `/agent [ls \| ls all \| off \| reset <name> \| model <name> <model> \| <name>[,<name>…]]` | Select external ACP agents, reset one session, or set its model. |
+| `/agent [ls \| ls all \| off \| reset <name> \| model <name> [<model>] \| <name>[,<name>…]]` | Select external ACP agents, reset one session, read or set a model. |
+| `/human [on \| off]` | Turn simulated typing on or off for this chat (off by default; not used in the self-chat). |
 | `/stop` | Stop the turns running in this chat. |
 
 Modes mean the same as in the TUI (see [Terminal UI](tui.md#modes)). There is no
@@ -66,9 +77,29 @@ reaches every selected instance. External replies are labeled with the agent's
 name, so an unlabeled reply is always the main agent's. An unknown `@name` is
 kept as ordinary text.
 
-Mode, selected agents, their ACP sessions and the main agent's context are
-persisted per chat: reconnecting to WhatsApp resumes each conversation where it
-stopped.
+`/agent ls` shows each selected instance with its model (`model <name>` or
+`default model`) and whether it already has an ACP session (`session saved`) or
+will start a new one (`new session`). `/agent model <name>` reports the same
+pick without changing it.
+
+Mode, selected agents, their ACP sessions, the `/human` setting and the main
+agent's context are persisted per chat: reconnecting to WhatsApp resumes each
+conversation where it stopped.
+
+## Humanized replies
+
+`/human on` makes the bot show WhatsApp's “typing…” state for about one to 2.5
+seconds before each reply, scaled by the reply length. It is a pacing effect
+only: the answer, its model and its text do not change, and the wait is bounded
+so one `composing` stanza covers it. Commands (`/help`, `/mode`, `/agent`,
+`/human`, `/stop`) are never delayed, `@all` shows a single window for the whole
+batch, and a failed presence call never blocks or loses a reply. The setting is
+per chat: `/human` records a choice for one chat, while the **Humanized
+replies** switch in `/settings` → WhatsApp is the default a chat inherits
+until it chooses (off by default).
+
+Some clients do not render presence for groups or the self chat; the message is
+still delivered normally.
 
 ## Notes
 

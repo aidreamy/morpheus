@@ -97,6 +97,9 @@ enum SwitchAction {
     /// Flip `setup.whatsapp.self_chat`, the default-on origin of the
     /// WhatsApp allowlist.
     WhatsAppSelfChat,
+    /// Flip `setup.whatsapp.humanize`, the simulated-typing default for
+    /// chats that have not chosen with `/human`.
+    WhatsAppHumanize,
     /// Flip `setup.voice.auto_generate` (automatic generation at the end of
     /// a turn); the caller also syncs the app's `SpeechState`.
     VoiceAuto,
@@ -294,17 +297,17 @@ const INTEGRATIONS: SettingsSection = SettingsSection {
     ],
 };
 
-// Who may reach the agent over the `morpheus whatsapp` channel. Kept in its own
-// box because the three knobs are one policy (`setup.json` → `whatsapp`):
-// the self-chat switch plus the two allowlists, all of which only matter to
-// that channel.
+// The `morpheus whatsapp` channel's knobs, in one box because they all live
+// under `setup.json` → `whatsapp`: who may reach the agent (the self-chat
+// switch plus the two allowlists) and how replies are paced (the simulated
+// typing default, which a chat's `/human` overrides).
 const WHATSAPP: SettingsSection = SettingsSection {
     title: "WhatsApp",
     items: &[
         SettingsItem {
             id: "whatsapp_self_chat",
             label: "Self-chat",
-            description: "Answer messages the account sends to its own chat (on by default)",
+            description: "Answer messages the account sends to its own chat; independent of the lists below (on by default)",
             kind: SettingKind::Switch(SwitchAction::WhatsAppSelfChat),
         },
         SettingsItem {
@@ -318,6 +321,15 @@ const WHATSAPP: SettingsSection = SettingsSection {
             label: "Allowed groups",
             description: "Groups that may use the agent (comma-separated ids)",
             kind: SettingKind::Choice(ChoiceInput::WhatsAppAllowlist(WhatsAppList::Groups)),
+        },
+        // Pacing, not access: the default simulated typing state. A chat's
+        // own `/human on|off` outranks it, so the switch is what a fresh
+        // chat inherits.
+        SettingsItem {
+            id: "whatsapp_humanize",
+            label: "Humanized replies",
+            description: "Simulated “typing…” for about 1–2.5s before each reply (/human overrides per chat)",
+            kind: SettingKind::Switch(SwitchAction::WhatsAppHumanize),
         },
     ],
 };
@@ -449,6 +461,7 @@ fn is_enabled(item: &SettingsItem, setup: &Setup) -> bool {
         SettingKind::Switch(SwitchAction::Persist) => setup.decision.termination.enabled,
         SettingKind::Switch(SwitchAction::EffectiveContext) => setup.effective_context,
         SettingKind::Switch(SwitchAction::WhatsAppSelfChat) => setup.whatsapp.self_chat,
+        SettingKind::Switch(SwitchAction::WhatsAppHumanize) => setup.whatsapp.humanize,
         SettingKind::Switch(SwitchAction::VoiceAuto) => setup.voice.auto_generate,
         _ => false,
     }
@@ -1378,6 +1391,11 @@ impl SettingsView {
                     }
                     SettingKind::Switch(SwitchAction::WhatsAppSelfChat) => {
                         setup.whatsapp.self_chat = !setup.whatsapp.self_chat;
+                        self.selection.clamp(selectable_rows(setup).len());
+                        return Some(SettingsAction::ToggleSaved);
+                    }
+                    SettingKind::Switch(SwitchAction::WhatsAppHumanize) => {
+                        setup.whatsapp.humanize = !setup.whatsapp.humanize;
                         self.selection.clamp(selectable_rows(setup).len());
                         return Some(SettingsAction::ToggleSaved);
                     }
@@ -2537,6 +2555,7 @@ mod tests {
                 SettingsRow::AddWhatsAppEntry {
                     list: WhatsAppList::Groups
                 },
+                cat("whatsapp_humanize"),
                 cat("telemetry"),
             ])
         );
@@ -2584,6 +2603,7 @@ mod tests {
                 SettingsRow::AddWhatsAppEntry {
                     list: WhatsAppList::Groups
                 },
+                cat("whatsapp_humanize"),
                 cat("telemetry"),
             ])
         );
@@ -2991,6 +3011,23 @@ mod tests {
         assert!(!setup.whatsapp.self_chat);
         assert!(!is_enabled(
             item_at(catalog_index("whatsapp_self_chat")),
+            &setup
+        ));
+
+        // Simulated typing is the off-by-default pacing switch, and it
+        // persists through the same `ToggleSaved` contract.
+        assert!(!is_enabled(
+            item_at(catalog_index("whatsapp_humanize")),
+            &setup
+        ));
+        view.selection.selected_index = row(&setup, "whatsapp_humanize");
+        assert_eq!(
+            view.activate_selected(&mut setup),
+            Some(SettingsAction::ToggleSaved)
+        );
+        assert!(setup.whatsapp.humanize);
+        assert!(is_enabled(
+            item_at(catalog_index("whatsapp_humanize")),
             &setup
         ));
 

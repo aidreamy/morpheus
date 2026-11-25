@@ -725,6 +725,11 @@ pub struct SkillsConfig {
 pub struct WhatsAppConfig {
     /// Answer messages the account sends to its own chat (the self-chat).
     pub self_chat: bool,
+    /// Default for simulated typing (`/human`): precede every reply with a
+    /// “typing…” state in chats that never chose their own value. Off by
+    /// default; a chat's `/human on|off` wins over this. The self-chat is
+    /// never paced.
+    pub humanize: bool,
     /// Direct-chat contacts allowed to use the agent. An entry is a phone
     /// number in international format or an account id (LID included); the
     /// `@server` suffix, spaces, `+` and punctuation are ignored, so
@@ -803,6 +808,7 @@ impl Default for WhatsAppConfig {
     fn default() -> Self {
         Self {
             self_chat: true,
+            humanize: false,
             contacts: Vec::new(),
             groups: Vec::new(),
         }
@@ -1917,6 +1923,10 @@ mod tests {
             vec![WhatsAppEntry::new("+55 11 91234-5678")]
         );
         assert!(legacy.whatsapp.contacts[0].enabled);
+        // A partial section written before the self-chat switch existed must
+        // not read as "self-chat off": adding a contact is not a way to deny
+        // the account's own chat.
+        assert!(legacy.whatsapp.self_chat);
     }
 
     /// The global model selection is a single overwritten slot that

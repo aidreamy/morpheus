@@ -157,7 +157,7 @@ files.
 | Models & caching | Anthropic and OpenAI cache retention, effective context budget. |
 | Environment | Editor, skill directories, language servers. |
 | Integrations | MCP servers, ACP agents, custom providers. |
-| WhatsApp | Self-chat, allowed contacts, allowed groups. |
+| WhatsApp | Self-chat, allowed contacts, allowed groups, humanized replies. |
 | General | Telemetry. |
 
 Navigate with the arrow keys, press Enter to edit and Esc to go back. Every

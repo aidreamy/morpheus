@@ -107,6 +107,7 @@ mod tests {
     fn policy(contacts: &[&str], groups: &[&str]) -> Access {
         Access::new(WhatsAppConfig {
             self_chat: true,
+            humanize: false,
             contacts: contacts.iter().map(|s| WhatsAppEntry::new(*s)).collect(),
             groups: groups.iter().map(|s| WhatsAppEntry::new(*s)).collect(),
         })

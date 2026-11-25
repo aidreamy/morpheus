@@ -37,6 +37,11 @@ pub struct ChatControl {
     registered: Vec<String>,
     sessions: BTreeMap<String, String>,
     context: Option<ContextManagerState>,
+    /// The `setup.json` default for simulated typing, used until the chat
+    /// makes its own `/human` choice.
+    humanize_default: bool,
+    /// The chat's own `/human` choice, persisted; `None` until it is used.
+    humanize_choice: Option<bool>,
     /// Where `/agent model` writes its picks (injected by tests).
     model_dir: PathBuf,
     /// Live handles, for `/agent off` and `/agent reset`. The worker also
@@ -50,7 +55,12 @@ pub struct ChatControl {
 
 impl ChatControl {
     /// Load a chat's persisted state, resolving the installed agents now.
-    pub async fn load(store: ChatStore, chat_key: String, initial_mode: Mode) -> Self {
+    pub async fn load(
+        store: ChatStore,
+        chat_key: String,
+        initial_mode: Mode,
+        humanize_default: bool,
+    ) -> Self {
         let installed = acp::installed_agents_snapshot()
             .into_iter()
             .map(str::to_string)
@@ -66,12 +76,13 @@ impl ChatControl {
             installed,
             registered,
             data_dir_override().join("agents"),
+            humanize_default,
         )
         .await
     }
 
-    /// [`Self::load`] with the agent registry and model-pick directory
-    /// injected: the testable core.
+    /// [`Self::load`] with the agent registry, model-pick directory and the
+    /// simulated-typing default injected: the testable core.
     pub async fn with_agents_at(
         store: ChatStore,
         chat_key: String,
@@ -79,6 +90,7 @@ impl ChatControl {
         installed: Vec<String>,
         registered: Vec<String>,
         model_dir: PathBuf,
+        humanize_default: bool,
     ) -> Self {
         let state = store.load(&chat_key).await;
         Self {
@@ -90,6 +102,8 @@ impl ChatControl {
             registered,
             sessions: state.sessions,
             context: state.context,
+            humanize_default,
+            humanize_choice: state.humanize,
             model_dir,
             handles: HashMap::new(),
             stop: Arc::new(AtomicBool::new(false)),
@@ -107,6 +121,13 @@ impl ChatControl {
     #[must_use]
     pub fn roster(&self) -> &[String] {
         &self.roster
+    }
+
+    /// Whether replies in this chat are preceded by a simulated typing state:
+    /// the chat's own `/human` choice, else the `setup.json` default.
+    #[must_use]
+    pub fn humanize(&self) -> bool {
+        self.humanize_choice.unwrap_or(self.humanize_default)
     }
 
     /// Installed and registered agents, snapshotted at chat creation.
@@ -187,6 +208,7 @@ impl ChatControl {
             Action::Help => commands::help_text(),
             Action::SetMode(mode) => self.set_mode(mode),
             Action::Agent(command) => self.agent_command(command).await,
+            Action::Humanize(enabled) => self.human_command(enabled).await,
             Action::Stop => self.stop_running(),
             Action::Usage(message) => message,
         }
@@ -211,11 +233,75 @@ impl ChatControl {
         }
     }
 
+    /// `/human`: report or persist the simulated-typing choice.
+    async fn human_command(&mut self, enabled: Option<bool>) -> String {
+        let current = self.humanize();
+        let Some(enabled) = enabled else {
+            return format!(
+                "Simulated typing is *{}*. Send `/human on` or `/human off` to change it.",
+                if current { "on" } else { "off" }
+            );
+        };
+        if enabled == current {
+            return format!(
+                "Simulated typing is already *{}*.",
+                if enabled { "on" } else { "off" }
+            );
+        }
+
+        let previous = self.humanize_choice;
+        self.humanize_choice = Some(enabled);
+        match self.persist().await {
+            Ok(()) => {
+                if enabled {
+                    "Simulated typing is *on* for this chat. Replies will show a “typing…” \
+                     state for about 1–2.5 seconds first; commands stay immediate. The text \
+                     and timing of the answer are unchanged."
+                        .to_string()
+                } else {
+                    "Simulated typing is *off* for this chat. Replies are sent immediately."
+                        .to_string()
+                }
+            }
+            Err(error) => {
+                self.humanize_choice = previous;
+                format!("Could not save the typing setting: {error}")
+            }
+        }
+    }
+
+    /// The selected instances, with the model and session state `/agent ls`
+    /// shows. Resolved here because rendering must not touch the disk.
+    fn summaries(&self) -> Vec<selection::AgentSummary> {
+        selection::entries(&self.roster)
+            .into_iter()
+            .map(|entry| selection::AgentSummary {
+                model: self.model_pick(&entry.agent),
+                session: self
+                    .sessions
+                    .contains_key(&selection::instance_key(&entry.agent, entry.index)),
+                agent: entry.agent,
+                index: entry.index,
+                total: entry.total,
+            })
+            .collect()
+    }
+
+    /// The persisted model pick for `agent`, without creating the store.
+    fn model_pick(&self, agent: &str) -> Option<String> {
+        if !self.model_dir.exists() {
+            return None;
+        }
+        ModelPicks::new(&self.model_dir)
+            .get(agent)
+            .map(str::to_string)
+    }
+
     async fn agent_command(&mut self, command: AgentCommand) -> String {
         match command {
-            AgentCommand::List => selection::render_list(&self.roster, &self.installed),
+            AgentCommand::List => selection::render_list(&self.summaries(), &self.installed),
             AgentCommand::ListAll => {
-                selection::render_all(&self.roster, &self.installed, &self.registered)
+                selection::render_all(&self.summaries(), &self.installed, &self.registered)
             }
             AgentCommand::Off => {
                 for handle in self.handles.values() {
@@ -233,6 +319,7 @@ impl ChatControl {
             }
             AgentCommand::Reset(target) => self.reset_session(&target).await,
             AgentCommand::Model { name, model } => self.set_model(&name, &model),
+            AgentCommand::ModelStatus(name) => self.model_status(&name),
             AgentCommand::Set(expression) => {
                 match selection::parse_roster(&expression, &self.installed) {
                     Ok(roster) => {
@@ -330,6 +417,18 @@ impl ChatControl {
         }
     }
 
+    /// `/agent model <name>`: report the current pick, or the default.
+    fn model_status(&self, name: &str) -> String {
+        let name = name.trim().to_ascii_lowercase();
+        if !self.roster.iter().any(|agent| agent == &name) {
+            return format!("`{name}` is not selected. Send `/agent ls` to see the roster.");
+        }
+        match self.model_pick(&name) {
+            Some(model) => format!("Model for *{name}*: `{model}`."),
+            None => format!("Model for *{name}*: uses the agent default."),
+        }
+    }
+
     /// `/agent model <name> <model>`: the same store the TUI writes.
     fn set_model(&mut self, name: &str, model: &str) -> String {
         let name = name.trim().to_ascii_lowercase();
@@ -353,6 +452,7 @@ impl ChatControl {
                     roster: self.roster.clone(),
                     sessions: self.sessions.clone(),
                     context: self.context.clone(),
+                    humanize: self.humanize_choice,
                 },
             )
             .await
@@ -376,6 +476,7 @@ mod tests {
             installed(&["claude", "codex"]),
             installed(&["claude", "codex", "gemini"]),
             dir.join("agents"),
+            false,
         )
         .await
     }
@@ -520,6 +621,140 @@ mod tests {
             .await
             .expect("ignored");
         assert_eq!(chat.session_id("claude#1"), None);
+    }
+
+    #[tokio::test]
+    async fn simulated_typing_is_off_by_default_and_persists_per_chat() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let mut chat = control(dir.path()).await;
+
+        let status = command(&mut chat, "/human").await;
+        assert!(status.contains("*off*"), "{status}");
+        assert!(!chat.humanize());
+
+        let on = command(&mut chat, "/human on").await;
+        assert!(on.contains("*on*"), "{on}");
+        assert!(chat.humanize());
+        assert!(control(dir.path()).await.humanize(), "survives a reload");
+
+        // Another chat keeps the default.
+        let other = ChatControl::with_agents_at(
+            ChatStore::at(dir.path()),
+            "120363012345678901@g.us".to_string(),
+            Mode::Build,
+            installed(&["claude"]),
+            installed(&["claude"]),
+            dir.path().join("agents"),
+            false,
+        )
+        .await;
+        assert!(!other.humanize(), "the setting is per chat");
+
+        let off = command(&mut chat, "/human off").await;
+        assert!(off.contains("*off*"), "{off}");
+        assert!(!control(dir.path()).await.humanize());
+    }
+
+    #[tokio::test]
+    async fn the_settings_default_applies_until_the_chat_chooses() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let mut chat = ChatControl::with_agents_at(
+            ChatStore::at(dir.path()),
+            "5511912345678@s.whatsapp.net".to_string(),
+            Mode::Build,
+            installed(&["claude"]),
+            installed(&["claude"]),
+            dir.path().join("agents"),
+            true,
+        )
+        .await;
+
+        // Settings → WhatsApp → Humanized replies, for a chat that has not
+        // chosen for itself yet.
+        assert!(chat.humanize());
+        let status = command(&mut chat, "/human").await;
+        assert!(status.contains("*on*"), "{status}");
+
+        // The chat's own choice wins over the default, and survives a
+        // reload while the default is still on.
+        command(&mut chat, "/human off").await;
+        assert!(!chat.humanize());
+        let reloaded = ChatControl::with_agents_at(
+            ChatStore::at(dir.path()),
+            "5511912345678@s.whatsapp.net".to_string(),
+            Mode::Build,
+            installed(&["claude"]),
+            installed(&["claude"]),
+            dir.path().join("agents"),
+            true,
+        )
+        .await;
+        assert!(
+            !reloaded.humanize(),
+            "the chat's explicit choice outranks the settings default"
+        );
+    }
+
+    #[tokio::test]
+    async fn a_failed_human_write_keeps_the_old_value() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        // A file where the store expects a directory: every write fails.
+        let blocked = dir.path().join("blocked");
+        std::fs::write(&blocked, b"not a directory").expect("write blocker");
+        let mut chat = ChatControl::with_agents_at(
+            ChatStore::at(&blocked),
+            "5511912345678@s.whatsapp.net".to_string(),
+            Mode::Build,
+            installed(&["claude"]),
+            installed(&["claude"]),
+            dir.path().join("agents"),
+            false,
+        )
+        .await;
+
+        let reply = command(&mut chat, "/human on").await;
+        assert!(reply.contains("Could not save"), "{reply}");
+        assert!(!chat.humanize(), "a failed write must not flip the setting");
+    }
+
+    #[tokio::test]
+    async fn model_status_reports_the_pick_without_writing() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let mut chat = control(dir.path()).await;
+
+        let unselected = command(&mut chat, "/agent model claude").await;
+        assert!(unselected.contains("not selected"), "{unselected}");
+
+        command(&mut chat, "/agent claude").await;
+        let default = command(&mut chat, "/agent model claude").await;
+        assert!(default.contains("uses the agent default"), "{default}");
+        assert!(
+            !dir.path().join("agents").exists(),
+            "reading the pick must not create the store"
+        );
+
+        command(&mut chat, "/agent model claude sonnet-4").await;
+        let picked = command(&mut chat, "/agent model claude").await;
+        assert!(picked.contains("`sonnet-4`"), "{picked}");
+    }
+
+    #[tokio::test]
+    async fn ls_shows_the_model_and_session_suffixes() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let mut chat = control(dir.path()).await;
+        command(&mut chat, "/agent claude,claude").await;
+        chat.sessions.insert("claude#1".into(), "session-1".into());
+        command(&mut chat, "/agent model claude sonnet-4").await;
+
+        let reply = command(&mut chat, "/agent ls").await;
+        assert!(
+            reply.contains("• *claude #1* — model `sonnet-4`, session saved"),
+            "{reply}"
+        );
+        assert!(
+            reply.contains("• *claude #2* — model `sonnet-4`, new session"),
+            "{reply}"
+        );
     }
 
     #[tokio::test]

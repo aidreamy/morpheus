@@ -355,6 +355,7 @@ agent. No contact and no group is answered until it is listed here.
 | Field | Default | What it controls |
 |---|---:|---|
 | `self_chat` | `true` | Answer messages the account sends to its own chat. |
+| `humanize` | `false` | Simulated typing default for chats with no `/human` choice; the self-chat is never paced. |
 | `contacts` | `[]` | One-to-one contacts allowed to use the agent. |
 | `groups` | `[]` | Groups allowed to use the agent. |
 
@@ -362,6 +363,7 @@ agent. No contact and no group is answered until it is listed here.
 {
   "whatsapp": {
     "self_chat": true,
+    "humanize": false,
     "contacts": [{ "id": "5511912345678", "enabled": true }],
     "groups": [
       { "id": "120363012345678901@g.us", "enabled": true },
@@ -371,17 +373,25 @@ agent. No contact and no group is answered until it is listed here.
 }
 ```
 
+`self_chat` is independent of both lists: adding or removing a contact or a
+group never changes it, so allowing someone new cannot lock the account out of
+its own chat.
+
 Each entry is `{ "id": …, "enabled": … }`. An entry with `enabled: false`
 stays in the file but grants nothing — disabling is separate from removing.
 Older files that list bare strings (the pre-toggle shape) still load, with
 every string treated as enabled.
 
-The same three knobs are editable from `/settings` → WhatsApp. Each list
-shows its configured entries as toggle rows: Enter flips the entry on or
+The same knobs are editable from `/settings` → WhatsApp: `self_chat` and
+`humanize` are switches flipped in place, and each list shows its configured
+entries as toggle rows: Enter flips the entry on or
 off, the 🗑 glyph removes it, and the "+ Add" row opens an empty box where
 comma-separated entries are appended as enabled items. The box is cleared
 after each confirmation, so the list is the only view of what is configured
 and a confirm never overwrites it.
+
+`humanize` applies only to replies in other chats: the self-chat is never
+paced, and `/human` there says so instead of saving a choice.
 
 Each `contacts` id is a phone number in international format or an account
 id (`@lid` included); the `+`, spaces, punctuation and `@server` suffix are

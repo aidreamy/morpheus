@@ -29,6 +29,7 @@ use crate::setup::data_dir_override;
 
 use super::config::RuntimeConfig;
 use super::control::ChatControl;
+use super::delivery::ReplyBatch;
 use super::executor::{self, AcpSession};
 use super::reply::{self, truncate};
 use super::selection::{self, Route};
@@ -162,24 +163,33 @@ impl ChatSession {
     }
 
     /// Execute one routed message and return the replies to send, in order.
-    pub async fn handle_route(&mut self, route: Route) -> Vec<String> {
+    ///
+    /// `humanize` was captured when the message was admitted, so a `/human`
+    /// change never affects a message already in the queue.
+    pub async fn handle_route(&mut self, route: Route, humanize: bool) -> ReplyBatch {
         // Command mode never consults routing: every message is a shell
         // command. The router queues Main for it (see `agent.rs`).
         if self.control.lock().await.mode() == Mode::Command
             && let Route::Main { body } | Route::Passthrough(body) = route
         {
-            return vec![self.run_shell(&body).await];
+            return ReplyBatch::new(vec![self.run_shell(&body).await], humanize);
         }
         match route {
-            Route::Main { body } | Route::Passthrough(body) => vec![self.run_turn(&body).await],
+            Route::Main { body } | Route::Passthrough(body) => {
+                ReplyBatch::new(vec![self.run_turn(&body).await], humanize)
+            }
             Route::Agent {
                 agent,
                 index,
                 total,
                 body,
-            } => vec![self.agent_turn(&agent, index, total, &body).await],
-            Route::Fanout { body } => self.fanout(&body).await,
-            Route::Hint(text) => vec![text],
+            } => ReplyBatch::new(
+                vec![self.agent_turn(&agent, index, total, &body).await],
+                humanize,
+            ),
+            Route::Fanout { body } => ReplyBatch::new(self.fanout(&body).await, humanize),
+            // Routing hints are control-plane answers, like commands.
+            Route::Hint(text) => ReplyBatch::plain(vec![text]),
         }
     }
 

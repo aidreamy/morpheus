@@ -43,6 +43,10 @@ pub enum Error {
     #[error("the WhatsApp message could not be sent")]
     Send(#[source] BoxError),
 
+    /// The chat state (typing indicator) could not be sent.
+    #[error("the WhatsApp chat state could not be sent")]
+    ChatState(#[source] BoxError),
+
     /// The pairing payload could not be encoded as a QR code.
     ///
     /// The underlying `qrcode` error is kept as the source, not as a public
@@ -78,6 +82,10 @@ impl Error {
 
     pub(crate) fn send(err: impl Into<BoxError>) -> Self {
         Self::Send(err.into())
+    }
+
+    pub(crate) fn chat_state(err: impl Into<BoxError>) -> Self {
+        Self::ChatState(err.into())
     }
 
     pub(crate) fn qr(err: impl Into<BoxError>) -> Self {

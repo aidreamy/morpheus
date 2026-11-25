@@ -43,6 +43,9 @@ pub struct RuntimeConfig {
     pub initial_mode: Mode,
     /// Who may reach the agent (`setup.json` → `whatsapp`).
     pub access: Access,
+    /// Simulated typing for chats that never ran `/human`
+    /// (`setup.json` → `whatsapp.humanize`).
+    pub humanize_default: bool,
     #[cfg(feature = "onnx")]
     pub decision: crate::setup::DecisionConfig,
 }
@@ -140,6 +143,7 @@ impl RuntimeConfig {
             disabled_tools: load_disabled_tools(setup, cwd),
             initial_mode: setup.persisted_mode().unwrap_or(Mode::Build),
             access: Access::new(setup.whatsapp.clone()),
+            humanize_default: setup.whatsapp.humanize,
             #[cfg(feature = "onnx")]
             decision: setup.decision.clone(),
         }

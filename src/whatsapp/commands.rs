@@ -58,6 +58,11 @@ pub const COMMANDS: &[CommandSpec] = &[
         usage: "/agent [ls|ls all|off|reset <name>|model <name> <model>|<name>[,<name>...]]",
     },
     CommandSpec {
+        name: "human",
+        summary: "Simulate typing before replying",
+        usage: "/human [on|off]",
+    },
+    CommandSpec {
         name: "stop",
         summary: "Stop the turns running in this chat",
         usage: "/stop",
@@ -89,6 +94,8 @@ pub enum Action {
     SetMode(Mode),
     /// Inspect or change the external-agent roster.
     Agent(AgentCommand),
+    /// Inspect (`None`) or change the simulated-typing setting.
+    Humanize(Option<bool>),
     /// Cancel the turns currently running in this chat.
     Stop,
     /// The arguments were missing or malformed: send this usage message
@@ -109,6 +116,9 @@ pub enum AgentCommand {
     Reset(String),
     /// `/agent model <name> <model>`: persist the model for one agent.
     Model { name: String, model: String },
+    /// `/agent model <name>`: report the model currently picked for one
+    /// agent, without changing anything.
+    ModelStatus(String),
     /// `/agent a,b`: replace the roster with the (still unvalidated)
     /// comma-separated expression.
     Set(String),
@@ -173,6 +183,7 @@ impl IncomingCommand {
                 name: name.clone(),
                 model: model_id.clone(),
             },
+            [model, name] if model == "model" => AgentCommand::ModelStatus(name.clone()),
             [ls, ..] if ls == "ls" => AgentCommand::Usage(
                 "`/agent ls` lists the agents; `/agent ls all` also shows the ones that are not \
                  installed."
@@ -185,7 +196,9 @@ impl IncomingCommand {
                 AgentCommand::Usage("`/agent reset <name>` drops one agent's session.".to_string())
             }
             [model, ..] if model == "model" => AgentCommand::Usage(
-                "`/agent model <name> <model>` sets the model for one agent.".to_string(),
+                "`/agent model <name>` shows the model for one agent; \
+                 `/agent model <name> <model>` sets it."
+                    .to_string(),
             ),
             _ => AgentCommand::Set(self.args.clone()),
         }
@@ -203,6 +216,22 @@ impl IncomingCommand {
                 }
             }
             "agent" => Action::Agent(self.agent_command()),
+            "human" => {
+                let mut words = self.args.split_whitespace();
+                match (words.next(), words.next()) {
+                    (None, _) => Action::Humanize(None),
+                    (Some(word), None) => match word.to_ascii_lowercase().as_str() {
+                        "on" => Action::Humanize(Some(true)),
+                        "off" => Action::Humanize(Some(false)),
+                        _ => Action::Usage(
+                            "`/human` takes `on` or `off` (e.g. `/human on`).".to_string(),
+                        ),
+                    },
+                    (Some(_), Some(_)) => {
+                        Action::Usage("`/human` takes one argument: `on` or `off`.".to_string())
+                    }
+                }
+            }
             "stop" => {
                 if self.args.is_empty() {
                     Action::Stop
@@ -256,6 +285,10 @@ pub fn help_text() -> String {
          • `@all` reaches every selected instance.\n\
          • No prefix means the main agent (`morpheus`), always.\n\
          • External replies are labeled; an unlabeled reply is the main agent's.\n\n\
+         Humanized replies:\n\
+         • `/human on` shows a simulated “typing…” for about 1–2.5 seconds before \
+         each reply. It is off by default and does not change the answer.\n\
+         • Commands and the self-chat are never delayed.\n\n\
          Send any other message to talk to the agent. A message that only \
          looks like a path (e.g. /usr/bin/env) is treated as normal text.",
     );
@@ -411,15 +444,7 @@ mod tests {
 
     #[test]
     fn malformed_agent_spellings_get_usage_not_a_roster_change() {
-        for args in [
-            "ls foo",
-            "ls all extra",
-            "off extra",
-            "reset",
-            "reset a b",
-            "model claude",
-            "model a b c",
-        ] {
+        for args in ["ls foo", "ls all extra", "off extra", "reset", "reset a b"] {
             match cmd("agent", args).action() {
                 Action::Agent(AgentCommand::Usage(message)) => {
                     assert!(message.contains("/agent"), "{args}: {message}");
@@ -427,6 +452,41 @@ mod tests {
                 other => panic!("{args}: expected usage, got {other:?}"),
             }
         }
+    }
+
+    #[test]
+    fn agent_model_without_a_model_reports_the_current_pick() {
+        assert_eq!(
+            cmd("agent", "model claude").action(),
+            Action::Agent(AgentCommand::ModelStatus("claude".to_string()))
+        );
+        assert_eq!(
+            cmd("agent", "MODEL Claude").action(),
+            Action::Agent(AgentCommand::ModelStatus("claude".to_string()))
+        );
+    }
+
+    #[test]
+    fn human_toggles_and_reports() {
+        assert_eq!(cmd("human", "").action(), Action::Humanize(None));
+        assert_eq!(cmd("human", "on").action(), Action::Humanize(Some(true)));
+        assert_eq!(cmd("human", "OFF").action(), Action::Humanize(Some(false)));
+        assert_eq!(parse("/HUMAN On"), Some(cmd("human", "On")));
+
+        for args in ["maybe", "on off", "on extra"] {
+            match cmd("human", args).action() {
+                Action::Usage(message) => assert!(message.contains("/human"), "{args}: {message}"),
+                other => panic!("{args}: expected usage, got {other:?}"),
+            }
+        }
+    }
+
+    #[test]
+    fn help_mentions_the_simulated_typing_setting() {
+        let help = help_text();
+        assert!(help.contains("/human on"), "{help}");
+        assert!(help.contains("off by default"), "{help}");
+        assert!(help.contains("self-chat are never delayed"), "{help}");
     }
 
     #[test]

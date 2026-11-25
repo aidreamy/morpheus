@@ -144,15 +144,33 @@ pub fn sanitize_roster(roster: Vec<String>) -> Vec<String> {
     clean
 }
 
+/// One selected instance as `/agent ls` renders it.
+///
+/// A read-only snapshot: the formatter below never touches the disk, so the
+/// caller (which owns the model picks and the session store) resolves the
+/// values first.
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct AgentSummary {
+    pub agent: String,
+    pub index: usize,
+    pub total: usize,
+    /// The persisted model pick, when the user set one with
+    /// `/agent model <name> <model>`.
+    pub model: Option<String>,
+    /// Whether an ACP session id is stored for this instance.
+    pub session: bool,
+}
+
 /// The `/agent` and `/agent ls` body.
 ///
 /// Short lines, no tables: this is read on a phone. The example uses the first
 /// installed agent so a new user can copy it verbatim.
 #[must_use]
-pub fn render_list(roster: &[String], installed: &[String]) -> String {
+pub fn render_list(summaries: &[AgentSummary], installed: &[String]) -> String {
     let mut text = String::from("*External agents*\n\n");
     text.push_str("Main: *morpheus* — always available, no prefix.\n\n");
-    text.push_str(&format!("Selected: {}.\n", render_roster(roster)));
+    text.push_str(&render_summaries(summaries));
+    text.push('\n');
 
     if installed.is_empty() {
         text.push_str("\nInstalled: none. Install an ACP agent and send `/agent ls` again.");
@@ -170,11 +188,40 @@ pub fn render_list(roster: &[String], installed: &[String]) -> String {
     text
 }
 
+/// The selected instances, one per line, with model and session state.
+#[must_use]
+pub fn render_summaries(summaries: &[AgentSummary]) -> String {
+    if summaries.is_empty() {
+        return "Selected: none.".to_string();
+    }
+    let mut text = String::from("Selected:\n");
+    for summary in summaries {
+        let model = match summary.model.as_deref() {
+            Some(model) => format!("model `{model}`"),
+            None => "default model".to_string(),
+        };
+        let session = if summary.session {
+            "session saved"
+        } else {
+            "new session"
+        };
+        text.push_str(&format!(
+            "• *{}* — {model}, {session}\n",
+            instance_label(&summary.agent, summary.index, summary.total)
+        ));
+    }
+    text.trim_end().to_string()
+}
+
 /// The `/agent ls all` body: the roster plus every registered agent, marking
 /// which ones are installed. Not-installed agents cannot be selected.
 #[must_use]
-pub fn render_all(roster: &[String], installed: &[String], registered: &[String]) -> String {
-    let mut text = render_list(roster, installed);
+pub fn render_all(
+    summaries: &[AgentSummary],
+    installed: &[String],
+    registered: &[String],
+) -> String {
+    let mut text = render_list(summaries, installed);
     text.push_str("\n\nRegistered agents:\n");
     if registered.is_empty() {
         text.push_str("• none (the registry is empty)");
@@ -513,11 +560,21 @@ mod tests {
         );
     }
 
+    fn summary(agent: &str, index: usize, total: usize) -> AgentSummary {
+        AgentSummary {
+            agent: agent.to_string(),
+            index,
+            total,
+            model: None,
+            session: false,
+        }
+    }
+
     #[test]
     fn the_list_shows_the_main_agent_roster_and_installed_names() {
-        let text = render_list(&["claude".to_string()], &installed(&["claude", "codex"]));
+        let text = render_list(&[summary("claude", 1, 1)], &installed(&["claude", "codex"]));
         assert!(text.contains("morpheus"), "{text}");
-        assert!(text.contains("Selected: *claude*"), "{text}");
+        assert!(text.contains("• *claude*"), "{text}");
         assert!(text.contains("Installed: claude, codex"), "{text}");
         assert!(text.contains("`/agent claude`"), "{text}");
         assert!(text.contains("`/agent off`"), "{text}");
@@ -526,11 +583,29 @@ mod tests {
     #[test]
     fn the_list_names_instances() {
         let text = render_list(
-            &["claude".to_string(), "claude".to_string()],
+            &[summary("claude", 1, 2), summary("claude", 2, 2)],
             &installed(&["claude"]),
         );
+        assert!(text.contains("• *claude #1*"), "{text}");
+        assert!(text.contains("• *claude #2*"), "{text}");
+    }
+
+    #[test]
+    fn the_list_shows_the_model_and_session_state() {
+        let mut picked = summary("claude", 1, 1);
+        picked.model = Some("sonnet-4".to_string());
+        picked.session = true;
+        let text = render_list(
+            &[picked, summary("codex", 1, 1)],
+            &installed(&["claude", "codex"]),
+        );
+
         assert!(
-            text.contains("Selected: *claude #1*, *claude #2*"),
+            text.contains("• *claude* — model `sonnet-4`, session saved"),
+            "{text}"
+        );
+        assert!(
+            text.contains("• *codex* — default model, new session"),
             "{text}"
         );
     }
@@ -546,13 +621,13 @@ mod tests {
     #[test]
     fn ls_all_marks_installation_but_keeps_registered_agents() {
         let text = render_all(
-            &["claude".to_string()],
+            &[summary("claude", 1, 1)],
             &installed(&["claude"]),
             &installed(&["claude", "gemini"]),
         );
         assert!(text.contains("• claude — installed"), "{text}");
         assert!(text.contains("• gemini — not installed"), "{text}");
-        assert!(text.contains("Selected: *claude*"), "{text}");
+        assert!(text.contains("• *claude*"), "{text}");
     }
 
     #[test]

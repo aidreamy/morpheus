@@ -227,8 +227,12 @@ const WHATSAPP_PAGE: Page = Page {
                     "Switch between build, ask, yolo, command and manager",
                 ),
                 Row::Item(
-                    "/agent [ls|ls all|off|reset <name>|model <name> <model>|<name>[,<name>...]]",
-                    "Select external ACP agents, or reset one session / set its model",
+                    "/agent [ls|ls all|off|reset <name>|model <name> [<model>]|<name>[,<name>...]]",
+                    "Select external ACP agents, reset one session, read or set a model",
+                ),
+                Row::Item(
+                    "/human [on|off]",
+                    "Simulate typing before replies (off by default)",
                 ),
                 Row::Item("/stop", "Stop the turns running in this chat"),
             ],
@@ -247,6 +251,9 @@ const WHATSAPP_PAGE: Page = Page {
                 ),
                 Row::Note(
                     "With no approval dialog, tools that need permission are denied in build/ask mode. Use `/mode yolo` to allow them.",
+                ),
+                Row::Note(
+                    "`/human on` shows a simulated typing state for about 1–2.5 seconds before each reply; it is per chat, off by default, and commands are never delayed.",
                 ),
                 Row::Note("TUI-only commands (theme, spinner) are not available over WhatsApp."),
             ],

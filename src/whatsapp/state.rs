@@ -44,6 +44,12 @@ pub struct StoredChat {
     /// conversation instead of starting from nothing.
     #[serde(default)]
     pub context: Option<ContextManagerState>,
+    /// The chat's own simulated-typing choice (`/human`), or `None` when it
+    /// has never chosen — the `whatsapp.humanize` default from `setup.json`
+    /// applies until then. Absent means "no choice", which is the old
+    /// behavior, so no schema bump is needed.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub humanize: Option<bool>,
 }
 
 impl Default for StoredChat {
@@ -53,6 +59,7 @@ impl Default for StoredChat {
             roster: Vec::new(),
             sessions: BTreeMap::new(),
             context: None,
+            humanize: None,
         }
     }
 }
@@ -227,6 +234,46 @@ mod tests {
                 .roster
                 .is_empty()
         );
+    }
+
+    #[tokio::test]
+    async fn humanize_choice_round_trips_and_absent_means_no_choice() {
+        let dir = tempfile::tempdir().expect("temp dir");
+        let store = ChatStore::at(dir.path());
+        let key = "5511912345678@s.whatsapp.net";
+
+        assert_eq!(
+            store.load(key).await.humanize,
+            None,
+            "a fresh chat has no choice"
+        );
+
+        store
+            .save(
+                key,
+                &StoredChat {
+                    humanize: Some(true),
+                    ..StoredChat::default()
+                },
+            )
+            .await
+            .expect("save");
+        assert_eq!(store.load(key).await.humanize, Some(true));
+
+        // State written before the field existed (or by hand without it) is
+        // the old behavior, not an error.
+        let legacy = serde_json::json!({
+            "version": STATE_VERSION,
+            "roster": ["claude"],
+            "sessions": {},
+        });
+        tokio::fs::write(
+            store.path("legacy"),
+            serde_json::to_vec(&legacy).expect("json"),
+        )
+        .await
+        .expect("write legacy state");
+        assert_eq!(store.load("legacy").await.humanize, None);
     }
 
     #[tokio::test]

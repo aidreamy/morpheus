@@ -9,6 +9,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- WhatsApp replies can be humanized with `/human on`: the chat shows a
+  simulated “typing…” state for about 1–2.5 seconds before each answer. It is
+  per chat, off by default, and commands stay immediate. The default for chats
+  that have not chosen is the **Humanized replies** switch in `/settings` →
+  WhatsApp (`whatsapp.humanize`). The self-chat is never paced.
+
+- `/agent model <name>` now reports the model picked for that agent, and
+  `/agent ls` shows each selected instance's model and ACP session state.
+
+## [1.0.3] - 2026-11-25
+
+### Added
+
 - WhatsApp messages can now reach external ACP agents. `/agent claude,codex`
   selects up to four installed agents (`claude,claude` creates two
   instances), `@claude` and `@claude#2` address one instance, `@all` reaches

@@ -3,8 +3,8 @@ mod input;
 use std::ops::Range;
 
 use gpui::{
-    Bounds, CursorStyle, ElementInputHandler, FocusHandle, MouseButton, Pixels, Point, ShapedLine,
-    TextRun, Window, canvas, div, fill, point, prelude::*, px, rgb, size,
+    Bounds, BoxShadow, CursorStyle, ElementInputHandler, FocusHandle, MouseButton, Pixels, Point,
+    ShapedLine, TextRun, Window, canvas, div, fill, point, prelude::*, px, rgb, rgba, size,
 };
 
 use crate::theme;
@@ -149,19 +149,25 @@ impl Render for Prompt {
         .w_full()
         .h(px(22.));
 
-        div()
+        let input = div()
             .id("prompt")
             .track_focus(&self.focus)
             .cursor(CursorStyle::IBeam)
             .flex()
             .items_center()
             .w_full()
-            .h(px(60.))
+            .h(px(80.))
             .px(px(16.))
-            .rounded(px(12.))
+            .rounded(px(16.))
             .border_1()
-            .border_color(rgb(if focused { theme::FOCUS } else { theme::BORDER }))
+            .border_color(rgba(if focused { 0xffffff22 } else { 0xffffff16 }))
             .bg(rgb(theme::SURFACE))
+            .shadow(vec![BoxShadow {
+                color: rgba(0x00000033).into(),
+                offset: point(px(0.), px(2.)),
+                blur_radius: px(8.),
+                spread_radius: px(0.),
+            }])
             .text_size(px(15.))
             .text_color(rgb(theme::TEXT))
             .on_key_down(cx.listener(Self::key_down))
@@ -169,6 +175,24 @@ impl Render for Prompt {
             .on_mouse_up(MouseButton::Left, cx.listener(Self::mouse_up))
             .on_mouse_up_out(MouseButton::Left, cx.listener(Self::mouse_up))
             .on_mouse_move(cx.listener(Self::mouse_move))
-            .child(div().w_full().min_w_0().overflow_hidden().child(line))
+            .child(div().w_full().min_w_0().overflow_hidden().child(line));
+
+        div()
+            .relative()
+            .w_full()
+            .pt(px(28.))
+            .child(
+                div()
+                    .absolute()
+                    .top_0()
+                    .left(px(16.))
+                    .right(px(16.))
+                    .h(px(52.))
+                    .rounded(px(16.))
+                    .border_1()
+                    .border_color(rgb(theme::BORDER))
+                    .bg(rgb(theme::CHROME)),
+            )
+            .child(input)
     }
 }

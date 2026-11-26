@@ -306,3 +306,8 @@ lsp-types = "0.97"
 # fallback in `src/tui/app/paste_burst.rs`.
 [patch.crates-io]
 crossterm = { git = "https://github.com/eitsupi/crossterm", rev = "94ed7154e35d24a2f643c61760e1eb05b8ca9e63" }
+
+# GPUI 0.2.2's XIM client uses xim-ctext 0.3.0, which rejects unescaped
+# Latin-1 COMPOUND_TEXT from X11 input methods. Use Zed's corrected decoder
+# until GPUI pulls in the fix through its published dependencies.
+xim-ctext = { git = "https://github.com/zed-industries/xim-rs", rev = "16f35a2c881b815a2b6cdfd6687988e84f8447d8" }

@@ -1155,6 +1155,7 @@ pub async fn call(
     // difference.
     if super::opencode::is_native(agent) {
         return super::opencode::call(
+            agent,
             input,
             resume,
             picks,
@@ -1551,7 +1552,7 @@ pub fn open_session(
     cwd: PathBuf,
 ) -> Result<SessionHandle, String> {
     if super::opencode::is_native(agent) {
-        return super::opencode::open_session(resume, cwd);
+        return super::opencode::open_session(agent, resume, cwd);
     }
     validate_agent(agent)?;
     let entry = find_agent(agent).ok_or_else(|| format!("unknown agent '{agent}'"))?;
@@ -2324,7 +2325,7 @@ pub async fn replay(
     chunk_tx: tokio::sync::mpsc::UnboundedSender<SubagentEvent>,
 ) -> Result<(), String> {
     if super::opencode::is_native(agent) {
-        return super::opencode::replay(session_id, cwd, chunk_tx).await;
+        return super::opencode::replay(agent, session_id, cwd, chunk_tx).await;
     }
     validate_agent(agent)?;
     let entry = find_agent(agent).ok_or_else(|| format!("unknown agent '{agent}'"))?;
@@ -2546,7 +2547,7 @@ pub async fn session_snapshot(
     cwd: PathBuf,
 ) -> Result<SessionSnapshot, String> {
     if super::opencode::is_native(agent) {
-        return super::opencode::snapshot(session_id, cwd).await;
+        return super::opencode::snapshot(agent, session_id, cwd).await;
     }
     validate_agent(agent)?;
     let entry = find_agent(agent).ok_or_else(|| format!("unknown agent '{agent}'"))?;

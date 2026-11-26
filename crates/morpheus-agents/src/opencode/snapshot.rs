@@ -36,9 +36,13 @@ const INTERNAL_AGENTS: &[&str] = &["compaction", "summary", "title"];
 /// Returns an error when the server cannot start or the catalog endpoints
 /// fail. Individual endpoints that fail are logged and left empty, so a
 /// server version without one of them still yields a usable snapshot.
-pub async fn snapshot(session_id: Option<String>, cwd: PathBuf) -> Result<SessionSnapshot, String> {
+pub async fn snapshot(
+    backend: super::Backend,
+    session_id: Option<String>,
+    cwd: PathBuf,
+) -> Result<SessionSnapshot, String> {
     let cwd = prepare_session_cwd(&cwd, CwdStrictness::Substitute);
-    let server = Server::start(&cwd)?;
+    let server = Server::start(&cwd, backend)?;
     let result = snapshot_from(&server, session_id.as_deref()).await;
     server.shutdown();
     result
@@ -227,12 +231,13 @@ async fn model_option(
 /// Returns an error when the server cannot start, the session is gone, or
 /// the message list cannot be read.
 pub async fn replay(
+    backend: super::Backend,
     session_id: &str,
     cwd: PathBuf,
     chunk_tx: tokio::sync::mpsc::UnboundedSender<SubagentEvent>,
 ) -> Result<(), String> {
     let cwd = prepare_session_cwd(&cwd, CwdStrictness::Substitute);
-    let server = Server::start(&cwd)?;
+    let server = Server::start(&cwd, backend)?;
     let result = replay_from(&server, session_id, &chunk_tx).await;
     server.shutdown();
     result

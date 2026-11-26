@@ -66,8 +66,85 @@ use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 use crate::acp::{CwdStrictness, SessionHandle, SessionSnapshot, prepare_session_cwd};
 use crate::events::{PanePermissionAnswer, SubagentEvent};
 
-/// The registered agent name this backend owns.
+/// The registered agent name this backend owns (OpenCode).
 pub const AGENT: &str = "opencode";
+
+/// Which native server backend a pane is driving.
+///
+/// Kilo is a fork of OpenCode and keeps the same HTTP/SSE server, so the
+/// two backends share every byte of protocol code; only the operational
+/// details (binary name, auth env vars, default username, instance routing
+/// header and the transport override env var) differ. Keeping them as one
+/// enum (rather than two modules) avoids duplicating the protocol layer.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Backend {
+    OpenCode,
+    Kilo,
+}
+
+impl Backend {
+    /// Map an agent name to its backend, if it is one of the native ones.
+    #[must_use]
+    pub(crate) fn from_agent(agent: &str) -> Option<Self> {
+        match agent.to_ascii_lowercase().as_str() {
+            "opencode" => Some(Self::OpenCode),
+            "kilo" => Some(Self::Kilo),
+            _ => None,
+        }
+    }
+
+    /// The agent/binary name (`opencode` or `kilo`).
+    #[must_use]
+    pub(crate) fn name(self) -> &'static str {
+        match self {
+            Self::OpenCode => "opencode",
+            Self::Kilo => "kilo",
+        }
+    }
+
+    /// Environment variable holding the server password.
+    #[must_use]
+    pub(crate) fn password_env(self) -> &'static str {
+        match self {
+            Self::OpenCode => "OPENCODE_SERVER_PASSWORD",
+            Self::Kilo => "KILO_SERVER_PASSWORD",
+        }
+    }
+
+    /// Environment variable holding the server username.
+    #[must_use]
+    pub(crate) fn username_env(self) -> &'static str {
+        match self {
+            Self::OpenCode => "OPENCODE_SERVER_USERNAME",
+            Self::Kilo => "KILO_SERVER_USERNAME",
+        }
+    }
+
+    /// Default username when no env override is set.
+    #[must_use]
+    pub(crate) fn default_username(self) -> &'static str {
+        self.name()
+    }
+
+    /// Environment variable that forces the generic ACP transport.
+    #[must_use]
+    pub(crate) fn transport_env(self) -> &'static str {
+        match self {
+            Self::OpenCode => "MORPHEUS_OPENCODE_TRANSPORT",
+            Self::Kilo => "MORPHEUS_KILO_TRANSPORT",
+        }
+    }
+
+    /// HTTP header Kilo uses for instance routing (`None` for OpenCode,
+    /// whose server binds to a single directory).
+    #[must_use]
+    pub(crate) fn instance_header(self) -> Option<&'static str> {
+        match self {
+            Self::OpenCode => None,
+            Self::Kilo => Some("x-kilo-directory"),
+        }
+    }
+}
 
 /// Whether `agent` must be driven through the native server.
 ///
@@ -77,16 +154,16 @@ pub const AGENT: &str = "opencode";
 /// `MORPHEUS_OPENCODE_TRANSPORT=acp` restores the generic transport.
 #[must_use]
 pub fn is_native(agent: &str) -> bool {
-    if !agent.eq_ignore_ascii_case(AGENT) {
+    let Some(backend) = Backend::from_agent(agent) else {
         return false;
-    }
-    if std::env::var("MORPHEUS_OPENCODE_TRANSPORT")
+    };
+    if std::env::var(backend.transport_env())
         .map(|value| value.eq_ignore_ascii_case("acp"))
         .unwrap_or(false)
     {
         return false;
     }
-    crate::acp::detect_installed().contains(&AGENT)
+    crate::acp::detect_installed().contains(&backend.name())
 }
 
 /// One native turn with the same contract as [`crate::acp::call`].
@@ -97,6 +174,7 @@ pub fn is_native(agent: &str) -> bool {
 /// session cannot be opened, or the turn fails without producing output.
 #[allow(clippy::too_many_arguments)]
 pub async fn call(
+    agent: &str,
     input: &str,
     resume: Option<String>,
     picks: &[(String, String)],
@@ -108,8 +186,9 @@ pub async fn call(
 ) -> Result<(String, String, Option<String>), String> {
     // STRICT, like the ACP path: a live turn never silently relocates a
     // vanished workspace.
+    let backend = Backend::from_agent(agent).expect("is_native validated the agent");
     let cwd = prepare_session_cwd(&cwd, CwdStrictness::Strict);
-    let server = server::Server::start(&cwd)?;
+    let server = server::Server::start(&cwd, backend)?;
     let outcome = async {
         server.ensure_ready().await?;
         let session = turn::ensure_session(&server, resume.as_deref()).await?;
@@ -136,9 +215,14 @@ pub async fn call(
 /// # Errors
 ///
 /// Returns an error when the `opencode` server process cannot be spawned.
-pub fn open_session(resume: Option<String>, cwd: PathBuf) -> Result<SessionHandle, String> {
+pub fn open_session(
+    agent: &str,
+    resume: Option<String>,
+    cwd: PathBuf,
+) -> Result<SessionHandle, String> {
+    let backend = Backend::from_agent(agent).expect("is_native validated the agent");
     let cwd = prepare_session_cwd(&cwd, CwdStrictness::Strict);
-    let session = session::Session::start(&cwd, resume)?;
+    let session = session::Session::start(&cwd, resume, backend)?;
     Ok(SessionHandle::from_native(Arc::new(session), cwd))
 }
 
@@ -148,8 +232,13 @@ pub fn open_session(resume: Option<String>, cwd: PathBuf) -> Result<SessionHandl
 /// # Errors
 ///
 /// Returns an error when the throwaway server cannot start or be reached.
-pub async fn snapshot(session_id: Option<String>, cwd: PathBuf) -> Result<SessionSnapshot, String> {
-    snapshot::snapshot(session_id, cwd).await
+pub async fn snapshot(
+    agent: &str,
+    session_id: Option<String>,
+    cwd: PathBuf,
+) -> Result<SessionSnapshot, String> {
+    let backend = Backend::from_agent(agent).expect("is_native validated the agent");
+    snapshot::snapshot(backend, session_id, cwd).await
 }
 
 /// Replay a session's retained conversation into `chunk_tx`.
@@ -159,9 +248,11 @@ pub async fn snapshot(session_id: Option<String>, cwd: PathBuf) -> Result<Sessio
 /// Returns an error when the throwaway server cannot start, the session is
 /// gone, or its messages cannot be read.
 pub async fn replay(
+    agent: &str,
     session_id: String,
     cwd: PathBuf,
     chunk_tx: UnboundedSender<SubagentEvent>,
 ) -> Result<(), String> {
-    snapshot::replay(&session_id, cwd, chunk_tx).await
+    let backend = Backend::from_agent(agent).expect("is_native validated the agent");
+    snapshot::replay(backend, &session_id, cwd, chunk_tx).await
 }

@@ -22,6 +22,9 @@ pub struct Http {
     client: reqwest::Client,
     base: String,
     auth: Option<(String, String)>,
+    /// Extra header sent on every request (Kilo's `x-kilo-directory` instance
+    /// routing). `None` for OpenCode, whose server binds to one directory.
+    instance_header: Option<(String, String)>,
 }
 
 impl Http {
@@ -32,7 +35,11 @@ impl Http {
     /// Panics only if the TLS backend cannot be initialized, which is a
     /// process-wide setup failure.
     #[must_use]
-    pub fn new(base: impl Into<String>, auth: Option<(String, String)>) -> Self {
+    pub fn new(
+        base: impl Into<String>,
+        auth: Option<(String, String)>,
+        instance_header: Option<(String, String)>,
+    ) -> Self {
         let client = reqwest::Client::builder()
             .connect_timeout(CONNECT_TIMEOUT)
             .build()
@@ -44,6 +51,7 @@ impl Http {
             client,
             base: base.into().trim_end_matches('/').to_string(),
             auth,
+            instance_header,
         }
     }
 
@@ -54,11 +62,14 @@ impl Http {
 
     fn request(&self, method: reqwest::Method, path: &str) -> reqwest::RequestBuilder {
         let url = format!("{}{path}", self.base);
-        let request = self.client.request(method, url);
-        match &self.auth {
-            Some((user, password)) => request.basic_auth(user, Some(password)),
-            None => request,
+        let mut request = self.client.request(method, url);
+        if let Some((user, password)) = &self.auth {
+            request = request.basic_auth(user, Some(password));
         }
+        if let Some((name, value)) = &self.instance_header {
+            request = request.header(name, value);
+        }
+        request
     }
 
     /// `GET path` → typed JSON.

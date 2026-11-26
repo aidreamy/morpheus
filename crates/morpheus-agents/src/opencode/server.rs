@@ -34,6 +34,7 @@ const STDERR_TAIL: usize = 40;
 
 /// A running OpenCode server.
 pub struct Server {
+    backend: super::Backend,
     http: Http,
     child: Mutex<Option<Child>>,
     stderr: Arc<Mutex<VecDeque<String>>>,
@@ -44,6 +45,7 @@ pub struct Server {
 impl std::fmt::Debug for Server {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("opencode::Server")
+            .field("backend", &self.backend)
             .field("base", &self.http.base())
             .field("cwd", &self.cwd)
             .field("ready", &self.ready.load(Ordering::Relaxed))
@@ -62,11 +64,14 @@ impl Server {
     ///
     /// Returns an error when the `opencode` binary cannot be spawned or no
     /// loopback port can be reserved.
-    pub fn start(cwd: &Path) -> Result<Arc<Self>, String> {
+    pub fn start(cwd: &Path, backend: super::Backend) -> Result<Arc<Self>, String> {
         let port = free_loopback_port()?;
-        let auth = server_auth();
+        let auth = server_auth(backend);
+        let instance_header = backend
+            .instance_header()
+            .map(|name| (name.to_string(), cwd.display().to_string()));
         let mut words: Vec<String> = vec![
-            "opencode".to_string(),
+            backend.name().to_string(),
             "serve".to_string(),
             "--hostname".to_string(),
             "127.0.0.1".to_string(),
@@ -92,9 +97,11 @@ impl Server {
             .spawn()
             .map_err(|error| {
                 format!(
-                    "failed to start `opencode serve` in '{}': {error}. \
-                     Is the OpenCode CLI installed and on PATH?",
-                    cwd.display()
+                    "failed to start `{} serve` in '{}': {error}. \
+                     Is the {} CLI installed and on PATH?",
+                    backend.name(),
+                    cwd.display(),
+                    backend.name(),
                 )
             })?;
         let stderr = Arc::new(Mutex::new(VecDeque::new()));
@@ -106,11 +113,13 @@ impl Server {
         }
 
         log::debug!(
-            "opencode: server spawned on http://127.0.0.1:{port} (cwd '{}')",
+            "{}: server spawned on http://127.0.0.1:{port} (cwd '{}')",
+            backend.name(),
             cwd.display()
         );
         Ok(Arc::new(Self {
-            http: Http::new(format!("http://127.0.0.1:{port}"), auth),
+            backend,
+            http: Http::new(format!("http://127.0.0.1:{port}"), auth, instance_header),
             child: Mutex::new(Some(child)),
             stderr,
             cwd: cwd.to_path_buf(),
@@ -146,7 +155,8 @@ impl Server {
         loop {
             if let Some(error) = self.exit_status() {
                 return Err(format!(
-                    "`opencode serve` exited before becoming ready: {error}{}",
+                    "`{} serve` exited before becoming ready: {error}{}",
+                    self.backend.name(),
                     self.stderr_tail()
                 ));
             }
@@ -159,7 +169,8 @@ impl Server {
                 && health.healthy
             {
                 log::info!(
-                    "opencode: server ready on {} (version {})",
+                    "{}: server ready on {} (version {})",
+                    self.backend.name(),
                     self.http.base(),
                     health.version.as_deref().unwrap_or("unknown")
                 );
@@ -168,7 +179,8 @@ impl Server {
             }
             if started.elapsed() >= START_TIMEOUT {
                 return Err(format!(
-                    "`opencode serve` did not become healthy within {}s{}",
+                    "`{} serve` did not become healthy within {}s{}",
+                    self.backend.name(),
                     START_TIMEOUT.as_secs(),
                     self.stderr_tail()
                 ));
@@ -189,7 +201,7 @@ impl Server {
         let mut slot = self.child.lock().unwrap_or_else(PoisonError::into_inner);
         if let Some(child) = slot.take() {
             kill_tree(child);
-            log::debug!("opencode: server stopped");
+            log::debug!("{}: server stopped", self.backend.name());
         }
     }
 
@@ -278,15 +290,15 @@ fn free_loopback_port() -> Result<u16, String> {
 }
 
 /// Basic-auth credentials for the server, read from the variables the
-/// OpenCode CLI itself documents. `None` when no password is configured.
-fn server_auth() -> Option<(String, String)> {
-    let password = std::env::var("OPENCODE_SERVER_PASSWORD")
+/// backend's CLI itself documents. `None` when no password is configured.
+fn server_auth(backend: super::Backend) -> Option<(String, String)> {
+    let password = std::env::var(backend.password_env())
         .ok()
         .filter(|value| !value.is_empty())?;
-    let user = std::env::var("OPENCODE_SERVER_USERNAME")
+    let user = std::env::var(backend.username_env())
         .ok()
         .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| "opencode".to_string());
+        .unwrap_or_else(|| backend.default_username().to_string());
     Some((user, password))
 }
 
@@ -307,7 +319,7 @@ mod tests {
     fn server_auth_requires_a_password() {
         // The environment is process-global; assert the documented shape
         // only when it is actually configured.
-        if let Some((user, password)) = server_auth() {
+        if let Some((user, password)) = server_auth(crate::opencode::Backend::OpenCode) {
             assert!(!user.is_empty());
             assert!(!password.is_empty());
         }

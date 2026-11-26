@@ -44,8 +44,12 @@ impl Session {
     ///
     /// Returns an error when the server process cannot be spawned. Protocol
     /// failures surface on the first turn, like the ACP path.
-    pub fn start(cwd: &Path, resume: Option<String>) -> Result<Self, String> {
-        let server = Server::start(cwd)?;
+    pub fn start(
+        cwd: &Path,
+        resume: Option<String>,
+        backend: super::Backend,
+    ) -> Result<Self, String> {
+        let server = Server::start(cwd, backend)?;
         Ok(Self {
             server,
             cwd: cwd.to_path_buf(),

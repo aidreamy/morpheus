@@ -8,6 +8,7 @@ members = ["crates/morpheus-onnx",
 ]
 
 [features]
+gui = ["dep:gpui", "dep:unicode-segmentation"]
 embed = ["morpheus-tools/embed", "fastembed"]
 lancedb = ["morpheus-recall/lancedb"]
 fastembed = ["morpheus-recall/fastembed", "dep:fastembed"]
@@ -82,6 +83,11 @@ name = "morpheus"
 path = "src/tui/main.rs"
 
 [[bin]]
+name = "morpheus-gui"
+path = "src/gui/main.rs"
+required-features = ["gui"]
+
+[[bin]]
 name = "morpheus-uninstall"
 path = "src/bin/morpheus_uninstall.rs"
 
@@ -114,6 +120,8 @@ required-features = ["speak"]
 
 # ---
 [dependencies]
+gpui = { version = "0.2.2", optional = true }
+unicode-segmentation = { version = "1", optional = true }
 serde_json = "1.0"
 aiface = "0.3.0"
 morpheus-sdk = { path = "crates/morpheus-sdk", version = "0.1.6" }

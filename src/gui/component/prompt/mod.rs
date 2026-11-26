@@ -6,11 +6,11 @@ mod send_button;
 use std::ops::Range;
 
 use gpui::{
-    BoxShadow, CursorStyle, EventEmitter, FocusHandle, MouseButton, Window, div, point, prelude::*,
-    px, rgb, rgba,
+    BoxShadow, CursorStyle, Div, EventEmitter, FocusHandle, MouseButton, Stateful, Window, div,
+    point, prelude::*, px, rgb, rgba,
 };
 
-use layout::{Editor, Layout};
+use layout::{Editor, LINE_HEIGHT, Layout};
 use models::Draft;
 pub(crate) use models::ModelSelected;
 
@@ -140,44 +140,14 @@ impl Prompt {
             .as_ref()
             .filter(|layout| layout.text.as_ref() == self.text)
     }
-}
 
-impl Render for Prompt {
-    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let focused = self.focus.is_focused(window);
-        let searching = self.model_draft.is_some();
-        let can_send = !searching && !self.text.trim().is_empty() && !self.busy;
-        let horizontal_padding = if searching { 11. } else { 16. };
-        let vertical_padding = px(if searching { 9. } else { 28. });
-        let min_input_height = layout::LINE_HEIGHT + vertical_padding * 2. + px(2.);
-        let frame_top = px(28.);
-
-        let input = div()
-            .id("prompt")
+    fn render_input(&self, id: &'static str, cx: &mut Context<Self>) -> Stateful<Div> {
+        div()
+            .id(id)
             .track_focus(&self.focus)
             .cursor(CursorStyle::IBeam)
             .flex()
             .flex_col()
-            .when(searching, |input| input.flex_shrink_0())
-            .relative()
-            .w_full()
-            .min_h(min_input_height)
-            .min_w_0()
-            .px(px(horizontal_padding))
-            .pr(px(if can_send { 64. } else { horizontal_padding }))
-            .py(vertical_padding)
-            .rounded(px(if searching { 8. } else { 16. }))
-            .border_1()
-            .border_color(rgba(if focused { 0xffffff22 } else { 0xffffff16 }))
-            .bg(rgb(theme::SURFACE))
-            .when(!searching, |input| {
-                input.shadow(vec![BoxShadow {
-                    color: rgba(0x00000033).into(),
-                    offset: point(px(0.), px(2.)),
-                    blur_radius: px(8.),
-                    spread_radius: px(0.),
-                }])
-            })
             .text_size(px(15.))
             .text_color(rgb(theme::TEXT))
             .on_key_down(cx.listener(Self::key_down))
@@ -187,18 +157,39 @@ impl Render for Prompt {
             .on_mouse_move(cx.listener(Self::mouse_move))
             .on_scroll_wheel(cx.listener(Self::scroll))
             .child(Editor(cx.entity()))
-            .when(searching && self.text.is_empty(), |input| {
-                input.child(
-                    div()
-                        .absolute()
-                        .left(px(18.))
-                        .top(px(9.))
-                        .text_size(px(13.))
-                        .line_height(layout::LINE_HEIGHT)
-                        .text_color(rgb(theme::MUTED))
-                        .child("Search by model or provider"),
-                )
-            })
+    }
+
+    fn render_composer(&self, window: &Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let searching = self.model_draft.is_some();
+        let focused = !searching && self.focus.is_focused(window);
+        let can_send = !searching && !self.text.trim().is_empty() && !self.busy;
+        let vertical_padding = px(28.);
+        let min_input_height = LINE_HEIGHT + vertical_padding * 2. + px(2.);
+        let frame_top = px(28.);
+
+        let input = if let Some(draft) = &self.model_draft {
+            self.render_draft(draft, cx)
+        } else {
+            self.render_input("prompt", cx)
+        };
+        let input = input
+            .relative()
+            .w_full()
+            .min_h(min_input_height)
+            .min_w_0()
+            .px(px(16.))
+            .pr(px(if can_send { 64. } else { 16. }))
+            .py(vertical_padding)
+            .rounded(px(16.))
+            .border_1()
+            .border_color(rgba(if focused { 0xffffff22 } else { 0xffffff16 }))
+            .bg(rgb(theme::SURFACE))
+            .shadow(vec![BoxShadow {
+                color: rgba(0x00000033).into(),
+                offset: point(px(0.), px(2.)),
+                blur_radius: px(8.),
+                spread_radius: px(0.),
+            }])
             .when(can_send, |input| {
                 input.child(div().absolute().right(px(16.)).bottom(px(21.)).child(
                     send_button::render(
@@ -207,59 +198,51 @@ impl Render for Prompt {
                 ))
             });
 
-        if searching {
-            let prompt = cx.entity().downgrade();
-            return self
-                .model_picker
-                .render(
-                    &self.text,
-                    input,
-                    (window.viewport_size().height - px(220.)).clamp(px(66.), px(300.)),
-                    move |model, _, window, cx| {
-                        let _ =
-                            prompt.update(cx, |prompt, cx| prompt.pick_model(model, window, cx));
-                    },
-                )
-                .into_any_element();
-        }
-
         div()
+            .relative()
+            .flex()
+            .flex_col()
+            .min_h(min_input_height + frame_top)
+            .w_full()
+            .pt(frame_top)
+            .child(
+                div()
+                    .absolute()
+                    .top_0()
+                    .left(px(16.))
+                    .right(px(16.))
+                    .h(px(52.))
+                    .rounded(px(16.))
+                    .border_1()
+                    .border_color(rgb(theme::BORDER))
+                    .bg(rgb(theme::CHROME)),
+            )
+            .child(input)
+    }
+}
+
+impl Render for Prompt {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let searching = self.model_draft.is_some();
+        div()
+            .relative()
             .flex()
             .flex_col()
             .min_h_0()
             .min_w_0()
-            .children(self.menu.render(
-                &self.text,
-                (window.viewport_size().height - px(218.)).min(px(294.)),
-                {
-                    let prompt = cx.entity().downgrade();
+            .when(!searching, |prompt| {
+                let view = cx.entity().downgrade();
+                prompt.children(self.menu.render(
+                    &self.text,
+                    (window.viewport_size().height - px(218.)).min(px(294.)),
                     move |command, _, window, cx| {
-                        let _ = prompt.update(cx, |prompt, cx| prompt.pick(command, window, cx));
-                    }
-                },
-            ))
-            .child(
-                div()
-                    .relative()
-                    .flex()
-                    .flex_col()
-                    .min_h(min_input_height + frame_top)
-                    .w_full()
-                    .pt(frame_top)
-                    .child(
-                        div()
-                            .absolute()
-                            .top_0()
-                            .left(px(16.))
-                            .right(px(16.))
-                            .h(px(52.))
-                            .rounded(px(16.))
-                            .border_1()
-                            .border_color(rgb(theme::BORDER))
-                            .bg(rgb(theme::CHROME)),
-                    )
-                    .child(input),
-            )
-            .into_any_element()
+                        let _ = view.update(cx, |prompt, cx| prompt.pick(command, window, cx));
+                    },
+                ))
+            })
+            .child(self.render_composer(window, cx))
+            .when(searching, |prompt| {
+                prompt.child(self.render_models(window, cx))
+            })
     }
 }

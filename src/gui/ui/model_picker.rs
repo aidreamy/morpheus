@@ -6,6 +6,8 @@ use morpheus::{ModelEntry, models::matches_filter};
 
 use crate::theme;
 
+const ROW_HEIGHT: Pixels = px(44.);
+
 pub(crate) struct ModelPicker {
     models: Vec<ModelEntry>,
     current: Option<ModelEntry>,
@@ -107,9 +109,10 @@ impl ModelPicker {
         } else {
             "↑ ↓ to navigate · Enter to select"
         };
-        let list_height = (px(44.) * choices.len()).min(height);
+        let list_height = (ROW_HEIGHT * choices.len()).min(height.max(ROW_HEIGHT));
 
         div()
+            .id("model-picker")
             .flex()
             .flex_col()
             .w_full()
@@ -121,6 +124,7 @@ impl ModelPicker {
             .border_1()
             .border_color(rgb(theme::HOVER))
             .shadow_md()
+            .block_mouse_except_scroll()
             .child(
                 div()
                     .flex()
@@ -159,7 +163,7 @@ impl ModelPicker {
                                 div()
                                     .id(index)
                                     .w_full()
-                                    .h(px(44.))
+                                    .h(ROW_HEIGHT)
                                     .px(px(9.))
                                     .flex()
                                     .items_center()
@@ -206,7 +210,7 @@ impl ModelPicker {
                     })
                     .mt(px(6.))
                     .w_full()
-                    .min_h(px(44.))
+                    .min_h(ROW_HEIGHT)
                     .h(list_height)
                     .track_scroll(self.scroll.clone()),
                 )

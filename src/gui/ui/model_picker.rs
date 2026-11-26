@@ -110,7 +110,10 @@ impl ModelPicker {
         let list_height = (px(44.) * choices.len()).min(height);
 
         div()
+            .flex()
+            .flex_col()
             .w_full()
+            .min_h_0()
             .min_w_0()
             .p(px(10.))
             .rounded(px(14.))
@@ -121,6 +124,7 @@ impl ModelPicker {
             .child(
                 div()
                     .flex()
+                    .flex_shrink_0()
                     .justify_between()
                     .items_center()
                     .px(px(3.))
@@ -202,12 +206,14 @@ impl ModelPicker {
                     })
                     .mt(px(6.))
                     .w_full()
+                    .min_h(px(44.))
                     .h(list_height)
                     .track_scroll(self.scroll.clone()),
                 )
             })
             .child(
                 div()
+                    .flex_shrink_0()
                     .pt(px(8.))
                     .px(px(3.))
                     .text_size(px(11.))

@@ -5,7 +5,7 @@ mod transcript;
 
 use std::sync::Arc;
 
-use gpui::{App, Entity, ScrollHandle, Subscription, Window, div, prelude::*, px};
+use gpui::{App, Entity, ScrollHandle, Subscription, Window, div, prelude::*, px, relative};
 use morpheus::types::{Message, MessageRole, Part, TextPart, now_ms};
 use morpheus::{
     ModelEntry, assembly::config::AgentConfig, harness::ContextManagerState,
@@ -115,6 +115,7 @@ impl Chat {
 
         self.notice = None;
         self.push_text(MessageRole::User, text.clone());
+        self.transcript_scroll.scroll_to_bottom();
         self.run_turn(text, cx);
     }
 
@@ -166,7 +167,6 @@ impl Chat {
             role,
             text,
         ));
-        self.transcript_scroll.scroll_to_bottom();
     }
 
     fn error(&mut self, error: String) {
@@ -175,7 +175,6 @@ impl Chat {
             MessageRole::Assistant,
             format!("Error: {error}"),
         ));
-        self.transcript_scroll.scroll_to_bottom();
     }
 }
 
@@ -222,10 +221,14 @@ impl Render for Chat {
                 div()
                     .flex()
                     .justify_center()
+                    .max_h(relative(1.))
                     .px(px(CONTENT_PADDING))
                     .pb(px(CONTENT_PADDING))
                     .child(
                         div()
+                            .flex()
+                            .flex_col()
+                            .min_h_0()
                             .w_full()
                             .min_w_0()
                             .max_w(px(CONTENT_WIDTH))
@@ -239,7 +242,9 @@ impl Render for Chat {
                             }))
                             .children(status.map(|status| {
                                 div()
+                                    .flex_shrink_0()
                                     .mb(px(8.))
+                                    .line_height(px(16.))
                                     .text_size(px(12.))
                                     .text_color(gpui::rgb(theme::MUTED))
                                     .child(status)

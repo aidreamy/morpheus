@@ -148,19 +148,24 @@ impl Render for Prompt {
         let searching = self.model_draft.is_some();
         let can_send = !searching && !self.text.trim().is_empty() && !self.busy;
         let horizontal_padding = if searching { 11. } else { 16. };
+        let vertical_padding = px(if searching { 9. } else { 28. });
+        let min_input_height = layout::LINE_HEIGHT + vertical_padding * 2. + px(2.);
+        let frame_top = px(28.);
 
         let input = div()
             .id("prompt")
             .track_focus(&self.focus)
             .cursor(CursorStyle::IBeam)
             .flex()
-            .items_center()
+            .flex_col()
+            .when(searching, |input| input.flex_shrink_0())
             .relative()
             .w_full()
+            .min_h(min_input_height)
             .min_w_0()
             .px(px(horizontal_padding))
             .pr(px(if can_send { 64. } else { horizontal_padding }))
-            .py(px(if searching { 9. } else { 28. }))
+            .py(vertical_padding)
             .rounded(px(if searching { 8. } else { 16. }))
             .border_1()
             .border_color(rgba(if focused { 0xffffff22 } else { 0xffffff16 }))
@@ -181,7 +186,7 @@ impl Render for Prompt {
             .on_mouse_up_out(MouseButton::Left, cx.listener(Self::mouse_up))
             .on_mouse_move(cx.listener(Self::mouse_move))
             .on_scroll_wheel(cx.listener(Self::scroll))
-            .child(div().flex_1().min_w_0().child(Editor(cx.entity())))
+            .child(Editor(cx.entity()))
             .when(searching && self.text.is_empty(), |input| {
                 input.child(
                     div()
@@ -219,6 +224,9 @@ impl Render for Prompt {
         }
 
         div()
+            .flex()
+            .flex_col()
+            .min_h_0()
             .min_w_0()
             .children(self.menu.render(
                 &self.text,
@@ -233,8 +241,11 @@ impl Render for Prompt {
             .child(
                 div()
                     .relative()
+                    .flex()
+                    .flex_col()
+                    .min_h(min_input_height + frame_top)
                     .w_full()
-                    .pt(px(28.))
+                    .pt(frame_top)
                     .child(
                         div()
                             .absolute()

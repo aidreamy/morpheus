@@ -210,6 +210,7 @@ impl Element for Editor {
         let measure_style = text_style.clone();
         let mut style = Style::default();
         style.size.width = relative(1.).into();
+        style.min_size.height = LINE_HEIGHT.into();
         let id = window.request_measured_layout(style, move |known, available, window, _| {
             let width = known.width.unwrap_or(match available.width {
                 AvailableSpace::Definite(width) => width,
@@ -218,9 +219,13 @@ impl Element for Editor {
             });
             let bounds = Bounds::new(Point::default(), size(width, px(0.)));
             let layout = Layout::shape(text.clone(), bounds, &measure_style, window);
+            let available_height = known.height.unwrap_or(match available.height {
+                AvailableSpace::Definite(height) => height,
+                AvailableSpace::MinContent | AvailableSpace::MaxContent => max_height,
+            });
             Size {
                 width,
-                height: layout.height.min(max_height),
+                height: layout.height.min(max_height).min(available_height),
             }
         });
         (id, text_style)

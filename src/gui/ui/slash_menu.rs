@@ -150,6 +150,9 @@ impl Menu {
         Some(
             div()
                 .id("slash-menu")
+                .flex()
+                .flex_col()
+                .min_h_0()
                 .w_full()
                 .mb(px(8.))
                 .rounded(px(14.))
@@ -161,6 +164,7 @@ impl Menu {
                 .child(
                     div()
                         .id("command-options")
+                        .min_h_0()
                         .max_h(height)
                         .p(px(5.))
                         .overflow_y_scroll()

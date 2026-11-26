@@ -5,6 +5,12 @@ use super::{CONTENT_PADDING, CONTENT_WIDTH};
 use crate::{theme, util::markdown};
 
 pub(super) fn render(messages: &[Message], scroll: &ScrollHandle) -> impl IntoElement {
+    // Use the previous layout to tell whether the reader is following the end.
+    // GPUI then resolves the new bottom after laying out the text and footer.
+    if scroll.offset().y + scroll.max_offset().height <= px(1.) {
+        scroll.scroll_to_bottom();
+    }
+
     div()
         .id("transcript")
         .flex_1()

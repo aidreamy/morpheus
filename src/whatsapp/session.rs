@@ -292,7 +292,7 @@ impl ChatSession {
         yolo: bool,
     ) -> Result<String, String> {
         let key = selection::instance_key(agent, index);
-        let cwd = executor::session_cwd(&self.config.cwd);
+        let cwd = executor::session_cwd(&self.config.agent.cwd);
         self.ensure_session(agent, &key, &cwd).await?;
 
         let model = ModelPicks::new(&data_dir_override().join("agents"))
@@ -362,7 +362,7 @@ impl ChatSession {
             let mode = control.mode();
             (mode, control.stop_signal(), mode == Mode::Yolo)
         };
-        let cwd = executor::session_cwd(&self.config.cwd);
+        let cwd = executor::session_cwd(&self.config.agent.cwd);
 
         // Open the sessions first (sequential, cheap) so the turns can then
         // run concurrently without borrowing `self`.
@@ -490,13 +490,13 @@ impl ChatSession {
             return "Send a shell command, or `/mode build` to return to the agent.".to_string();
         }
 
-        if self.config.disabled_tools.contains("bash_run") {
+        if self.config.agent.disabled_tools.contains("bash_run") {
             return "Shell commands are disabled in your tool settings (`bash_run` is off). \
                     Re-enable it in `.morpheus-tools.json` or `setup.json` to use command mode."
                 .to_string();
         }
 
-        let tools = crate::harness::MorpheusTools::new(&self.config.cwd);
+        let tools = crate::harness::MorpheusTools::new(&self.config.agent.cwd);
         match tools
             .dispatch("bash_run", serde_json::json!({ "command": command }))
             .await

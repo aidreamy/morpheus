@@ -21,6 +21,8 @@
 //! NOT assembled here: they are different use cases with their own
 //! contracts, not subsets of this assembly.
 
+pub mod config;
+
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;

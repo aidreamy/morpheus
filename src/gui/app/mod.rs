@@ -1,41 +1,38 @@
 mod render;
 
-use gpui::{
-    App, AppContext as _, Context, Entity, EntityId, KeyBinding, ScrollHandle, Window, actions,
-};
+use std::sync::Arc;
+
+use gpui::{AppContext as _, Context, Entity, EntityId, ScrollHandle, Window};
+use morpheus::assembly::config::AgentConfig;
 
 use crate::routes::session::Chat;
 
-actions!(desktop, [NewTab, CloseTab, NextTab, PreviousTab]);
-
-pub(crate) fn bind_keys(cx: &mut App) {
-    cx.bind_keys([
-        KeyBinding::new("secondary-t", NewTab, Some("Desktop")),
-        KeyBinding::new("secondary-w", CloseTab, Some("Desktop")),
-        KeyBinding::new("ctrl-tab", NextTab, Some("Desktop")),
-        KeyBinding::new("ctrl-shift-tab", PreviousTab, Some("Desktop")),
-    ]);
-}
-
 pub(crate) struct Desktop {
+    config: Arc<AgentConfig>,
     chats: Vec<Entity<Chat>>,
     active: usize,
     tab_scroll: ScrollHandle,
+    sidebar_visible: bool,
 }
 
 impl Desktop {
     pub(crate) fn new(window: &mut Window, cx: &mut Context<Self>) -> Self {
-        let chat = cx.new(Chat::new);
+        let cwd = std::env::current_dir().unwrap_or_else(|_| ".".into());
+        let config = Arc::new(AgentConfig::load(&cwd.to_string_lossy()));
+        let chat = cx.new(|cx| Chat::new(config.clone(), cx));
         chat.read(cx).focus_prompt(window, cx);
         Self {
+            config,
             chats: vec![chat],
             active: 0,
             tab_scroll: ScrollHandle::new(),
+            sidebar_visible: true,
         }
     }
 
     fn open_chat(&mut self, window: &mut Window, cx: &mut Context<Self>) {
-        self.chats.push(cx.new(Chat::new));
+        self.chats
+            .push(cx.new(|cx| Chat::new(self.config.clone(), cx)));
         self.activate(self.chats.len() - 1, window, cx);
     }
 

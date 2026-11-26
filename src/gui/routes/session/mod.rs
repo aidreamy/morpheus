@@ -1,10 +1,23 @@
+mod agent_loop;
+mod permission;
 mod right_panel;
 mod transcript;
 
+use std::sync::Arc;
+
 use gpui::{App, Entity, ScrollHandle, Subscription, Window, div, prelude::*, px};
 use morpheus::types::{Message, MessageRole, Part, TextPart, now_ms};
+use morpheus::{
+    assembly::config::AgentConfig, harness::ContextManagerState,
+    session::store::generate_session_id,
+};
 
-use crate::component::prompt::{Prompt, Submitted};
+use crate::{
+    component::prompt::{Prompt, Submitted},
+    theme,
+};
+
+use self::agent_loop::Turn;
 
 const CONTENT_WIDTH: f32 = 760.;
 const CONTENT_PADDING: f32 = 24.;
@@ -13,16 +26,19 @@ const CONTENT_PADDING: f32 = 24.;
 pub(crate) struct Chat {
     prompt: Entity<Prompt>,
     _prompt_submission: Subscription,
+    config: Arc<AgentConfig>,
+    session_id: String,
     messages: Vec<Message>,
+    context: Option<ContextManagerState>,
     transcript_scroll: ScrollHandle,
+    right_panel_visible: bool,
+    turn: Option<Turn>,
+    next_approval: u64,
+    notice: Option<String>,
 }
 
 impl Chat {
-    pub(crate) fn new(cx: &mut Context<Self>) -> Self {
-        Self::with_messages(Vec::new(), cx)
-    }
-
-    pub(crate) fn with_messages(messages: Vec<Message>, cx: &mut Context<Self>) -> Self {
+    pub(crate) fn new(config: Arc<AgentConfig>, cx: &mut Context<Self>) -> Self {
         let prompt = cx.new(Prompt::new);
         let prompt_submission = cx.subscribe(&prompt, |chat, _, Submitted(text), cx| {
             chat.submit(text.clone(), cx);
@@ -30,8 +46,15 @@ impl Chat {
         Self {
             prompt,
             _prompt_submission: prompt_submission,
-            messages,
+            config,
+            session_id: generate_session_id(),
+            messages: Vec::new(),
+            context: None,
             transcript_scroll: ScrollHandle::new(),
+            right_panel_visible: true,
+            turn: None,
+            next_approval: 0,
+            notice: None,
         }
     }
 
@@ -39,29 +62,89 @@ impl Chat {
         self.prompt.read(cx).focus(window);
     }
 
-    fn submit(&mut self, text: String, cx: &mut Context<Self>) {
-        let created_at = now_ms();
-        let turn_id = format!("{created_at}-{}", self.messages.len());
-        self.messages.extend([
-            text_message(
-                format!("msg-gui-{turn_id}"),
-                MessageRole::User,
-                text,
-                created_at,
-            ),
-            text_message(
-                format!("msg-err-gui-{turn_id}"),
-                MessageRole::Assistant,
-                "Error: This chat is not connected to an agent yet.".into(),
-                created_at,
-            ),
-        ]);
-        self.transcript_scroll.scroll_to_bottom();
+    pub(crate) fn toggle_right_panel(&mut self, cx: &mut Context<Self>) {
+        self.right_panel_visible = !self.right_panel_visible;
         cx.notify();
+    }
+
+    pub(crate) fn toggle_commands(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.prompt
+            .update(cx, |prompt, cx| prompt.toggle_commands(window, cx));
+    }
+
+    pub(crate) fn cancel(&mut self, cx: &mut Context<Self>) {
+        if !self
+            .prompt
+            .update(cx, |prompt, cx| prompt.dismiss_commands(cx))
+        {
+            self.stop(cx);
+        }
+    }
+
+    fn submit(&mut self, text: String, cx: &mut Context<Self>) {
+        if self.turn.is_some() {
+            return;
+        }
+        let mut words = text.split_whitespace();
+        if words.next() == Some("/models") {
+            self.select_model(words.next(), words.next(), words.next());
+            cx.notify();
+            return;
+        }
+
+        self.notice = None;
+        self.push_text(MessageRole::User, text.clone());
+        self.run_turn(text, cx);
+    }
+
+    fn select_model(&mut self, provider: Option<&str>, model: Option<&str>, extra: Option<&str>) {
+        let config = Arc::make_mut(&mut self.config);
+        match (provider, model, extra) {
+            (Some("auto"), None, None) => {
+                config.model = Some("auto".into());
+                config.reasoning = None;
+                self.notice = Some("Model set to auto for this chat.".into());
+            }
+            (Some(provider), Some(model), None) if model != "auto" => {
+                let provider = provider.to_ascii_lowercase();
+                let known = aiface::connector::known_providers().any(|name| name == provider);
+                if !known {
+                    self.error(format!("Unknown provider: {provider}"));
+                    return;
+                }
+                config.base_url = config.local_base_urls.get(&provider).cloned();
+                config.provider = provider;
+                config.model = Some(model.into());
+                config.reasoning = None;
+                self.notice = Some(format!(
+                    "Model set to {} / {model} for this chat.",
+                    config.provider
+                ));
+            }
+            _ => self.error("Usage: /models <provider> <model> or /models auto".into()),
+        }
+    }
+
+    fn push_text(&mut self, role: MessageRole, text: String) {
+        self.messages.push(text_message(
+            format!("msg-gui-{}", self.messages.len()),
+            role,
+            text,
+        ));
+        self.transcript_scroll.scroll_to_bottom();
+    }
+
+    fn error(&mut self, error: String) {
+        self.messages.push(text_message(
+            format!("msg-err-gui-{}", self.messages.len()),
+            MessageRole::Assistant,
+            format!("Error: {error}"),
+        ));
+        self.transcript_scroll.scroll_to_bottom();
     }
 }
 
-fn text_message(id: String, role: MessageRole, text: String, created_at: u64) -> Message {
+fn text_message(id: String, role: MessageRole, text: String) -> Message {
     Message {
         id,
         role,
@@ -69,14 +152,30 @@ fn text_message(id: String, role: MessageRole, text: String, created_at: u64) ->
             text,
             synthetic: false,
         })],
-        created_at,
+        created_at: now_ms(),
         agent: None,
         model: None,
     }
 }
 
 impl Render for Chat {
-    fn render(&mut self, window: &mut Window, _cx: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let approval = self.turn.as_ref().and_then(|turn| turn.approval.as_ref());
+        let status = self
+            .turn
+            .as_ref()
+            .map(|turn| {
+                if turn.stopping {
+                    "Stopping…".into()
+                } else if turn.approval.is_some() {
+                    "Waiting for approval".into()
+                } else if let Some(tool) = &turn.tool {
+                    format!("Running {tool}…")
+                } else {
+                    "Working…".into()
+                }
+            })
+            .or_else(|| self.notice.clone());
         let column = div()
             .flex()
             .flex_col()
@@ -94,6 +193,21 @@ impl Render for Chat {
                         div()
                             .w_full()
                             .max_w(px(CONTENT_WIDTH))
+                            .children(approval.map(|approval| {
+                                let id = approval.id;
+                                let view = cx.entity().downgrade();
+                                permission::render(approval, move |action, _, _, cx| {
+                                    let _ =
+                                        view.update(cx, |chat, cx| chat.approve(id, action, cx));
+                                })
+                            }))
+                            .children(status.map(|status| {
+                                div()
+                                    .mb(px(8.))
+                                    .text_size(px(12.))
+                                    .text_color(gpui::rgb(theme::MUTED))
+                                    .child(status)
+                            }))
                             .child(self.prompt.clone()),
                     ),
             );
@@ -104,8 +218,9 @@ impl Render for Chat {
             .min_w_0()
             .min_h_0()
             .child(column)
-            .when(right_panel::fits(window), |chat| {
-                chat.child(right_panel::render())
-            })
+            .when(
+                self.right_panel_visible && right_panel::fits(window),
+                |chat| chat.child(right_panel::render()),
+            )
     }
 }

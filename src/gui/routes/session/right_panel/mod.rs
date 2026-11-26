@@ -10,7 +10,7 @@ pub(super) fn fits(window: &Window) -> bool {
 
 pub(super) fn render() -> Div {
     div()
-        .w(px(224.))
+        .w(px(240.))
         .flex_shrink_0()
         .border_l_1()
         .border_color(rgb(theme::BORDER))

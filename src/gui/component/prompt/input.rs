@@ -12,14 +12,23 @@ impl Prompt {
     pub(super) fn key_down(
         &mut self,
         event: &KeyDownEvent,
-        _: &mut Window,
+        window: &mut Window,
         cx: &mut Context<Self>,
     ) {
         let key = &event.keystroke;
         let modifiers = key.modifiers;
+        if modifiers == Modifiers::none()
+            && matches!(key.key.as_str(), "up" | "down")
+            && self.marked.is_none()
+            && self.menu.move_selection(&self.text, key.key == "down")
+        {
+            cx.stop_propagation();
+            cx.notify();
+            return;
+        }
         if key.key == "enter" && modifiers == Modifiers::none() && self.marked.is_none() {
             if !event.is_held {
-                self.submit(cx);
+                self.submit(window, cx);
             }
             cx.stop_propagation();
             return;
@@ -152,6 +161,7 @@ impl Prompt {
         let text = text.replace(['\r', '\n'], " ");
         let end = range.start + text.len();
         self.text.replace_range(range, &text);
+        self.menu.input_changed();
         self.marked = None;
         self.move_caret(end, false);
     }

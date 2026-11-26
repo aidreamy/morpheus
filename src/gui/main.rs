@@ -1,15 +1,21 @@
 mod app;
 mod component;
+mod keymap;
 mod left_panel;
 mod routes;
 mod theme;
+mod ui;
 mod util;
 
 use gpui::{Application, Bounds, WindowBounds, WindowOptions, prelude::*, px, size};
 
 fn main() {
+    dotenvy::dotenv().ok();
+    if let Err(error) = morpheus::util::logger::try_init("gui_main") {
+        eprintln!("morpheus-gui: logging disabled: {error}");
+    }
     Application::new().run(|cx| {
-        app::bind_keys(cx);
+        keymap::bind(cx);
         cx.on_window_closed(|cx| {
             // GPUI's X11 backend still holds its platform state here.
             cx.spawn(async |cx| {

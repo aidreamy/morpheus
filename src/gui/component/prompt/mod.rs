@@ -9,7 +9,10 @@ use gpui::{
     rgba, size,
 };
 
-use crate::theme;
+use crate::{
+    theme,
+    ui::slash_menu::{Command, Menu},
+};
 
 pub(crate) struct Prompt {
     focus: FocusHandle,
@@ -19,6 +22,8 @@ pub(crate) struct Prompt {
     marked: Option<Range<usize>>,
     layout: Option<Line>,
     selecting: bool,
+    busy: bool,
+    menu: Menu,
 }
 
 pub(crate) struct Submitted(pub(crate) String);
@@ -35,6 +40,8 @@ impl Prompt {
             marked: None,
             layout: None,
             selecting: false,
+            busy: false,
+            menu: Menu::default(),
         }
     }
 
@@ -42,18 +49,73 @@ impl Prompt {
         self.focus.focus(window);
     }
 
-    fn submit(&mut self, cx: &mut Context<Self>) {
-        if self.text.trim().is_empty() || self.marked.is_some() {
+    pub(crate) fn set_busy(&mut self, busy: bool, cx: &mut Context<Self>) {
+        self.busy = busy;
+        cx.notify();
+    }
+
+    pub(crate) fn toggle_commands(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        self.focus(window);
+        self.menu.toggle(&self.text);
+        cx.notify();
+    }
+
+    pub(crate) fn dismiss_commands(&mut self, cx: &mut Context<Self>) -> bool {
+        let dismissed = self.menu.dismiss(&self.text);
+        if dismissed {
+            cx.notify();
+        }
+        dismissed
+    }
+
+    fn submit(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if self.marked.is_some() {
+            return;
+        }
+
+        if let Some(command) = self
+            .menu
+            .selected(&self.text)
+            .or_else(|| Command::exact(&self.text))
+        {
+            self.pick(command, window, cx);
+            return;
+        }
+        if self.busy || self.text.trim().is_empty() {
             return;
         }
 
         let text = std::mem::take(&mut self.text);
-        self.anchor = 0;
-        self.caret = 0;
-        self.layout = None;
-        self.selecting = false;
+        self.reset_editing();
         cx.emit(Submitted(text));
         cx.notify();
+    }
+
+    fn pick(&mut self, command: Command, window: &mut Window, cx: &mut Context<Self>) {
+        if command == Command::Models {
+            self.text = "/models ".into();
+            self.reset_editing();
+            self.anchor = self.text.len();
+            self.caret = self.anchor;
+            self.focus(window);
+        } else {
+            if self.text.trim_start().starts_with('/') {
+                self.text.clear();
+                self.reset_editing();
+            }
+            self.menu.dismiss(&self.text);
+            command.dispatch(window, cx);
+        }
+        cx.notify();
+    }
+
+    fn reset_editing(&mut self) {
+        self.anchor = 0;
+        self.caret = 0;
+        self.marked = None;
+        self.layout = None;
+        self.selecting = false;
+        self.menu.input_changed();
     }
 
     fn selection(&self) -> Range<usize> {
@@ -197,28 +259,41 @@ impl Render for Prompt {
             .on_mouse_up_out(MouseButton::Left, cx.listener(Self::mouse_up))
             .on_mouse_move(cx.listener(Self::mouse_move))
             .child(div().flex_1().min_w_0().overflow_hidden().child(line))
-            .when(!self.text.trim().is_empty(), |input| {
+            .when(!self.text.trim().is_empty() && !self.busy, |input| {
                 input.child(send_button::render(
-                    cx.listener(|prompt, _, _, cx| prompt.submit(cx)),
+                    cx.listener(|prompt, _, window, cx| prompt.submit(window, cx)),
                 ))
             });
 
         div()
-            .relative()
-            .w_full()
-            .pt(px(28.))
+            .children(self.menu.render(
+                &self.text,
+                (window.viewport_size().height - px(218.)).min(px(294.)),
+                {
+                    let prompt = cx.entity().downgrade();
+                    move |command, _, window, cx| {
+                        let _ = prompt.update(cx, |prompt, cx| prompt.pick(command, window, cx));
+                    }
+                },
+            ))
             .child(
                 div()
-                    .absolute()
-                    .top_0()
-                    .left(px(16.))
-                    .right(px(16.))
-                    .h(px(52.))
-                    .rounded(px(16.))
-                    .border_1()
-                    .border_color(rgb(theme::BORDER))
-                    .bg(rgb(theme::CHROME)),
+                    .relative()
+                    .w_full()
+                    .pt(px(28.))
+                    .child(
+                        div()
+                            .absolute()
+                            .top_0()
+                            .left(px(16.))
+                            .right(px(16.))
+                            .h(px(52.))
+                            .rounded(px(16.))
+                            .border_1()
+                            .border_color(rgb(theme::BORDER))
+                            .bg(rgb(theme::CHROME)),
+                    )
+                    .child(input),
             )
-            .child(input)
     }
 }

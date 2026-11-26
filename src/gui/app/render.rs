@@ -1,7 +1,7 @@
 use gpui::{Window, div, prelude::*, rgb};
 
-use super::{CloseTab, Desktop, NewTab, NextTab, PreviousTab};
-use crate::{component::tabs, left_panel, theme};
+use super::Desktop;
+use crate::{component::tabs, keymap::*, left_panel, theme};
 
 impl Render for Desktop {
     fn render(&mut self, _window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
@@ -47,6 +47,22 @@ impl Render for Desktop {
                     cx,
                 );
             }))
+            .on_action(cx.listener(|this, _: &ToggleSidebar, _, cx| {
+                this.sidebar_visible = !this.sidebar_visible;
+                cx.notify();
+            }))
+            .on_action(cx.listener(|this, _: &ToggleRightPanel, _, cx| {
+                this.chats[this.active].update(cx, |chat, cx| chat.toggle_right_panel(cx));
+            }))
+            .on_action(cx.listener(|this, _: &ToggleCommands, window, cx| {
+                this.chats[this.active].update(cx, |chat, cx| chat.toggle_commands(window, cx));
+            }))
+            .on_action(cx.listener(|this, _: &Cancel, _, cx| {
+                this.chats[this.active].update(cx, |chat, cx| chat.cancel(cx));
+            }))
+            .on_action(cx.listener(|this, _: &StopTurn, _, cx| {
+                this.chats[this.active].update(cx, |chat, cx| chat.stop(cx));
+            }))
             .child(
                 tabs::bar().child(strip).child(
                     tabs::new_button()
@@ -58,7 +74,9 @@ impl Render for Desktop {
                     .flex()
                     .flex_1()
                     .min_h_0()
-                    .child(left_panel::render())
+                    .when(self.sidebar_visible, |body| {
+                        body.child(left_panel::render())
+                    })
                     .child(self.chats[self.active].clone()),
             )
     }

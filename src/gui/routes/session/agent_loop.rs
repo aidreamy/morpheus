@@ -12,7 +12,7 @@ use morpheus::types::{Message, MessageRole, Part};
 use morpheus_tools::question::types::AnswerItem;
 use tokio::sync::{Notify, mpsc};
 
-use super::{Chat, text_message};
+use super::{Chat, UNAVAILABLE_TOOLS, text_message};
 
 pub(super) struct Turn {
     stop: Arc<AtomicBool>,
@@ -145,15 +145,9 @@ impl Chat {
                 mode => mode,
             };
             let mut assembly = config.assembly(mode, context, Some(cache_key));
-            assembly.disabled_tools.extend(
-                [
-                    "ask_questions",
-                    "agents_call",
-                    "agents_compact",
-                    "agents_worktree",
-                ]
-                .map(String::from),
-            );
+            assembly
+                .disabled_tools
+                .extend(UNAVAILABLE_TOOLS.iter().map(ToString::to_string));
 
             let assembled = tokio::select! {
                 biased;
@@ -205,6 +199,9 @@ impl Chat {
     }
 
     pub(crate) fn stop(&mut self, cx: &mut Context<Self>) {
+        if let Some(compaction) = &self.compaction {
+            compaction.cancel.notify_one();
+        }
         if let Some(turn) = &mut self.turn {
             turn.stopping = true;
             turn.approval = None;

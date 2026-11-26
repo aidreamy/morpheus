@@ -1,5 +1,4 @@
 use std::collections::HashSet;
-use std::path::PathBuf;
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
@@ -11,78 +10,17 @@ use crate::theme::{Theme, rgba_color};
 use crate::util::draw::draw_text_line;
 use crate::util::list_selection::ListSelection;
 
-/// Per-project tool-blocklist file, stored in the directory morpheus was started
-/// from. Keeps one project's blocklist from leaking into another's — the
-/// global scope (`setup.json`) is opt-in via the Global toggle.
-const PROJECT_TOOLS_FILE: &str = ".morpheus-tools.json";
+use morpheus::tools_config::internal_tools;
+pub use morpheus::tools_config::load_disabled_tools;
 
-#[derive(Debug, Default, serde::Deserialize, serde::Serialize)]
-struct ProjectTools {
-    #[serde(default)]
-    disabled: Vec<String>,
-}
-
-fn project_tools_path(cwd: &str) -> PathBuf {
-    PathBuf::from(cwd).join(PROJECT_TOOLS_FILE)
-}
-
-/// Load the disabled-tool set for the selected scope.
-///
-/// - Global: the `setup.json` blocklist, shared by every project.
-/// - Project: `<cwd>/.morpheus-tools.json`. While that file does not exist yet,
-///   a non-empty global blocklist keeps applying (migration: users who had
-///   tools disabled before the scope existed do not silently lose them);
-///   the first project-scope save takes over from there. A corrupt file
-///   fails open (nothing disabled) rather than blocking the session.
-#[must_use]
-pub fn load_disabled_tools(
-    setup: &morpheus::setup::Setup,
-    cwd: &str,
-    global: bool,
-) -> HashSet<String> {
-    if global {
-        return setup.tools.disabled.iter().cloned().collect();
-    }
-    match std::fs::read_to_string(project_tools_path(cwd)) {
-        Ok(text) => serde_json::from_str::<ProjectTools>(&text)
-            .map(|project| project.disabled.into_iter().collect())
-            .unwrap_or_default(),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            if setup.tools.disabled.is_empty() {
-                HashSet::new()
-            } else {
-                // Pre-scope global blocklist still applies until this
-                // project saves a list of its own.
-                setup.tools.disabled.iter().cloned().collect()
-            }
-        }
-        Err(_) => HashSet::new(),
-    }
-}
-
-/// Persist the disabled set to the scope's storage: `setup.json` for the
-/// global scope, `<cwd>/.morpheus-tools.json` for the project scope (the global
-/// `setup.json` is left untouched so a project list never clobbers it).
 pub fn save_disabled_tools(
     setup: &mut morpheus::setup::Setup,
     disabled: &HashSet<String>,
     cwd: &str,
     global: bool,
 ) {
-    if global {
-        setup.tools.disabled = disabled.iter().cloned().collect();
-        setup.save();
-        return;
-    }
-    let mut names: Vec<String> = disabled.iter().cloned().collect();
-    names.sort();
-    let payload = ProjectTools { disabled: names };
-    if let Ok(text) = serde_json::to_string_pretty(&payload) {
-        // A silent failure would leave the toggle looking applied while the
-        // blocklist dies with the session; the user needs to know.
-        if let Err(error) = std::fs::write(project_tools_path(cwd), text) {
-            log::warn!("could not persist the project tool blocklist in {cwd}: {error}");
-        }
+    if let Err(error) = morpheus::tools_config::save_disabled_tools(setup, disabled, cwd, global) {
+        log::warn!("could not persist the tool blocklist in {cwd}: {error}");
     }
 }
 
@@ -128,79 +66,6 @@ pub fn save_tool_call_mode(
         aiface::connector::ToolCallMode::Inline => "inline".to_string(),
     };
     setup.save();
-}
-
-fn internal_tools() -> &'static [(&'static str, &'static str)] {
-    &[
-        ("bash_run", "Execute shell commands"),
-        ("fs_read", "Read file contents"),
-        ("fs_write", "Write file contents"),
-        ("fs_edit", "Edit file contents (exact string replacement)"),
-        ("fs_edit_lines", "Edit file lines (line/block operations)"),
-        ("fs_ast_edit", "Edit file contents (structural AST rewrite)"),
-        ("fs_rollback", "Rollback file changes"),
-        ("find_glob", "Find files by glob pattern"),
-        ("find_grep", "Search file contents"),
-        ("web_fetch", "Fetch web page content"),
-        ("web_search", "Search the web"),
-        ("plan_todo_write", "Write todo items"),
-        ("ask_questions", "Ask the user questions"),
-        #[cfg(feature = "embed")]
-        (
-            "recall_search",
-            "Search knowledge bases for semantically similar entries",
-        ),
-        ("skills_list", "List available skills"),
-        ("skills_read", "Read a skill"),
-        ("skills_read_asset", "Read a skill asset"),
-        ("skills_match_skills", "Match skills to task"),
-        ("subagent_call", "Run a sub-agent for a delegated task"),
-        (
-            "subagent_status",
-            "Check background sub-agent task status (read-only)",
-        ),
-        (
-            "agents_call",
-            "Send a message to a /agents coworker pane (block or background)",
-        ),
-        (
-            "agents_worktree",
-            "Move a /agents coworker into/out of a git worktree (User-bound: needs approval)",
-        ),
-        (
-            "agents_compact",
-            "Compact a /agents coworker's context ahead of the automatic trigger",
-        ),
-        (
-            "computer_apps",
-            "List desktop apps with PIDs (accessibility tree)",
-        ),
-        ("computer_snapshot", "Capture an app's accessibility tree"),
-        (
-            "computer_wait",
-            "Block until an element reaches a state (visible/enabled/detached/...); read-only",
-        ),
-        (
-            "computer_screenshot",
-            "Capture screen as an image; annotate=true for boxes + selector legend (Build-safe)",
-        ),
-        (
-            "computer_windows",
-            "List one app's open windows, or minimize/maximize/close/move/resize one (action = needs approval)",
-        ),
-        (
-            "computer_act",
-            "Act AND type as one pipeline: semantic action on an element, then keyboard/wait via `then`",
-        ),
-        (
-            "computer_control",
-            "Pointer AND keyboard as one pipeline: click an element, then type/press via `then`",
-        ),
-        (
-            "lsp",
-            "Language server tools (diagnostics, definitions, references, rename, ...)",
-        ),
-    ]
 }
 
 pub struct InternalToolsView {

@@ -13,6 +13,15 @@ pub(super) const LINE_HEIGHT: Pixels = px(22.);
 
 pub(super) struct Editor(pub(super) Entity<Prompt>);
 
+fn display_text(prompt: &Prompt) -> SharedString {
+    if prompt.masked() {
+        // Password fields accept ASCII, so masking preserves byte offsets.
+        "*".repeat(prompt.text.len()).into()
+    } else {
+        prompt.text.clone().into()
+    }
+}
+
 pub(super) struct Layout {
     pub(super) text: SharedString,
     pub(super) bounds: Bounds<Pixels>,
@@ -199,8 +208,8 @@ impl Element for Editor {
         cx: &mut App,
     ) -> (LayoutId, Self::RequestLayoutState) {
         let prompt = self.0.read(cx);
-        let text = SharedString::from(prompt.text.clone());
-        let max_height = if prompt.model_draft.is_some() {
+        let text = display_text(prompt);
+        let max_height = if prompt.single_line() {
             LINE_HEIGHT
         } else {
             let height = window.viewport_size().height - px(250.);
@@ -241,14 +250,13 @@ impl Element for Editor {
         cx: &mut App,
     ) -> Self::PrepaintState {
         let prompt = self.0.read(cx);
-        let mut layout = Layout::shape(prompt.text.clone().into(), bounds, style, window);
+        let text = display_text(prompt);
+        let mut layout = Layout::shape(text.clone(), bounds, style, window);
         layout.caret = prompt.caret;
         let previous = prompt.layout.as_ref();
         let scroll = previous.map_or(px(0.), |layout| layout.scroll);
         let reveal = previous.is_none_or(|layout| {
-            layout.text.as_ref() != prompt.text
-                || layout.caret != prompt.caret
-                || layout.bounds.size != bounds.size
+            layout.text != text || layout.caret != prompt.caret || layout.bounds.size != bounds.size
         });
         let scroll = if reveal {
             let caret_y = layout.position_at(prompt.caret).y - bounds.top();

@@ -1,7 +1,6 @@
 //! Shared session settings for surfaces using the harness assembly.
 
 use std::collections::{HashMap, HashSet};
-use std::path::Path;
 
 use aiface::connector::{ToolCallMode, normalize_local_base_url};
 
@@ -129,7 +128,11 @@ impl AgentConfig {
             effective_context: setup.effective_context,
             anthropic_ttl_1h: setup.anthropic_cache_ttl_1h(),
             openai_cache_retention: setup.openai_cache_retention().map(String::from),
-            disabled_tools: load_disabled_tools(setup, cwd),
+            disabled_tools: crate::tools_config::load_disabled_tools(
+                setup,
+                cwd,
+                setup.tools.is_global(),
+            ),
             initial_mode: setup.persisted_mode().unwrap_or(Mode::Build),
             #[cfg(feature = "onnx")]
             decision: setup.decision.clone(),
@@ -179,49 +182,5 @@ impl AgentConfig {
             as_manager: false,
             own_coworker_id: None,
         }
-    }
-}
-
-/// The disabled-tool set for this project, with the same scope semantics as
-/// the TUI: `setup.json` when the user chose the global scope, otherwise
-/// `<cwd>/.morpheus-tools.json` (falling back to the legacy global list until
-/// the project saves one of its own).
-fn load_disabled_tools(setup: &Setup, cwd: &str) -> HashSet<String> {
-    if setup.tools.is_global() {
-        return setup.tools.disabled.iter().cloned().collect();
-    }
-    match std::fs::read_to_string(Path::new(cwd).join(".morpheus-tools.json")) {
-        Ok(text) => parse_project_tools(&text),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
-            setup.tools.disabled.iter().cloned().collect()
-        }
-        Err(_) => HashSet::new(),
-    }
-}
-
-#[derive(Default, serde::Deserialize)]
-struct ProjectTools {
-    #[serde(default)]
-    disabled: Vec<String>,
-}
-
-fn parse_project_tools(text: &str) -> HashSet<String> {
-    serde_json::from_str::<ProjectTools>(text)
-        .map(|project| project.disabled.into_iter().collect())
-        .unwrap_or_default()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn project_tool_files_are_parsed_and_corruption_fails_open() {
-        assert_eq!(
-            parse_project_tools(r#"{"disabled":["bash_run","fs_write"]}"#),
-            HashSet::from(["bash_run".to_string(), "fs_write".to_string()])
-        );
-        assert!(parse_project_tools("not json").is_empty());
-        assert!(parse_project_tools("{}").is_empty());
     }
 }

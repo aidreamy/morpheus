@@ -21,6 +21,8 @@
 //! NOT assembled here: they are different use cases with their own
 //! contracts, not subsets of this assembly.
 
+mod compact;
+pub use compact::build_manual_compaction_harness;
 pub mod config;
 
 use std::collections::HashSet;
@@ -159,7 +161,9 @@ fn build_connector(a: &HarnessAssembly) -> Result<(Connector, Vec<(String, Strin
     if a.model.as_deref() == Some("auto") {
         let mut last_err = String::new();
         for (i, (fb_provider, fb_model)) in a.fallbacks.iter().enumerate() {
-            match Connector::new(fb_provider).map(|c| c.with_service_keyring(crate::KEYRING_SERVICE)) {
+            match Connector::new(fb_provider)
+                .map(|c| c.with_service_keyring(crate::KEYRING_SERVICE))
+            {
                 Ok(c) => {
                     let mut c = c.with_model(fb_model).with_tool_call_mode(a.tool_call_mode);
                     // Honor a configured local server URL for this

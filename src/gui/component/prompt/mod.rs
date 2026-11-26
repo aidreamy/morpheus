@@ -15,10 +15,11 @@ use models::Draft;
 pub(crate) use models::ModelSelected;
 
 use crate::{
+    keymap::RunCommand,
     theme,
     ui::{
         model_picker::ModelPicker,
-        slash_menu::{Command, Menu},
+        slash_menu::{self, Command, Menu},
     },
 };
 
@@ -34,6 +35,12 @@ pub(crate) struct Prompt {
     menu: Menu,
     model_picker: ModelPicker,
     model_draft: Option<Draft>,
+    field: Option<Field>,
+}
+
+struct Field {
+    placeholder: &'static str,
+    masked: bool,
 }
 
 pub(crate) struct Submitted(pub(crate) String);
@@ -54,7 +61,43 @@ impl Prompt {
             menu: Menu::default(),
             model_picker: ModelPicker::default(),
             model_draft: None,
+            field: None,
         }
+    }
+
+    pub(crate) fn field(
+        placeholder: &'static str,
+        text: String,
+        masked: bool,
+        cx: &mut Context<Self>,
+    ) -> Self {
+        let mut input = Self::new(cx);
+        input.field = Some(Field {
+            placeholder,
+            masked,
+        });
+        input.text = text;
+        input.caret = input.text.len();
+        input.anchor = input.caret;
+        input
+    }
+
+    pub(crate) fn value(&self) -> &str {
+        &self.text
+    }
+
+    pub(crate) fn clear_field(&mut self, cx: &mut Context<Self>) {
+        self.text.clear();
+        self.reset_editing();
+        cx.notify();
+    }
+
+    fn masked(&self) -> bool {
+        self.field.as_ref().is_some_and(|field| field.masked)
+    }
+
+    fn single_line(&self) -> bool {
+        self.field.is_some() || self.model_draft.is_some()
     }
 
     pub(crate) fn focus(&self, window: &mut Window) {
@@ -87,6 +130,11 @@ impl Prompt {
             return;
         }
 
+        if self.field.is_some() {
+            cx.emit(Submitted(self.text.clone()));
+            return;
+        }
+
         if self.model_draft.is_some() {
             if let Some(model) = self.model_picker.selected(&self.text).cloned() {
                 self.pick_model(model, window, cx);
@@ -97,7 +145,7 @@ impl Prompt {
         if let Some(command) = self
             .menu
             .selected(&self.text)
-            .or_else(|| Command::exact(&self.text))
+            .or_else(|| slash_menu::exact(&self.text))
         {
             self.pick(command, window, cx);
             return;
@@ -118,7 +166,7 @@ impl Prompt {
             self.reset_editing();
         }
         self.menu.dismiss(&self.text);
-        command.dispatch(window, cx);
+        window.dispatch_action(Box::new(RunCommand(command)), cx);
         cx.notify();
     }
 
@@ -136,9 +184,13 @@ impl Prompt {
     }
 
     fn current_layout(&self) -> Option<&Layout> {
-        self.layout
-            .as_ref()
-            .filter(|layout| layout.text.as_ref() == self.text)
+        self.layout.as_ref().filter(|layout| {
+            if self.masked() {
+                layout.text.len() == self.text.len()
+            } else {
+                layout.text.as_ref() == self.text
+            }
+        })
     }
 
     fn render_input(&self, id: &'static str, cx: &mut Context<Self>) -> Stateful<Div> {
@@ -223,6 +275,35 @@ impl Prompt {
 
 impl Render for Prompt {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        if let Some(field) = &self.field {
+            return self
+                .render_input("route-input", cx)
+                .min_w_0()
+                .relative()
+                .px(px(12.))
+                .py(px(8.))
+                .rounded(px(8.))
+                .bg(rgb(theme::SURFACE))
+                .border_1()
+                .border_color(rgb(if self.focus.is_focused(window) {
+                    theme::FOCUS
+                } else {
+                    theme::BORDER
+                }))
+                .when(self.text.is_empty(), |input| {
+                    input.child(
+                        div()
+                            .absolute()
+                            .top(px(8.))
+                            .left(px(13.))
+                            .text_size(px(14.))
+                            .line_height(LINE_HEIGHT)
+                            .text_color(rgb(theme::MUTED))
+                            .child(field.placeholder),
+                    )
+                })
+                .into_any_element();
+        }
         let searching = self.model_draft.is_some();
         div()
             .relative()
@@ -244,5 +325,6 @@ impl Render for Prompt {
             .when(searching, |prompt| {
                 prompt.child(self.render_models(window, cx))
             })
+            .into_any_element()
     }
 }

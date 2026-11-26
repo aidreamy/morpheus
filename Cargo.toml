@@ -237,12 +237,14 @@ version = "4"
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem"] }
 
+[dependencies.tempfile]
+version = "3"
+
 [dependencies.lru]
 version = "0.18"
 
 # ---
 [dev-dependencies]
-tempfile = "3"
 parking_lot = "0.12"
 
 # The MCP integration tests stand up in-process rmcp servers

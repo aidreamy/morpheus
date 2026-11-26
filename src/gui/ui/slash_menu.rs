@@ -1,72 +1,28 @@
 use gpui::{App, ClickEvent, FontWeight, Pixels, ScrollHandle, Window, div, prelude::*, px, rgb};
 
-use crate::{keymap, theme};
+pub(crate) use morpheus::commands::Command;
 
-#[derive(Clone, Copy, PartialEq, Eq)]
-pub(crate) enum Command {
-    New,
-    Close,
-    Stop,
-    Models,
-    Sidebar,
-    RightPanel,
-}
+use crate::theme;
 
-const COMMANDS: &[Command] = &[
-    Command::New,
-    Command::Close,
-    Command::Stop,
+pub(crate) const COMMANDS: &[Command] = &[
     Command::Models,
-    Command::Sidebar,
-    Command::RightPanel,
+    Command::Router,
+    Command::Providers,
+    Command::Settings,
+    Command::Tools,
+    Command::ToolCall,
+    Command::Compact,
+    Command::Export,
+    Command::New,
+    Command::Rename,
 ];
 
-impl Command {
-    fn info(self) -> (&'static str, &'static str, &'static str) {
-        match self {
-            Self::New => (
-                "new",
-                "Open a new chat",
-                if cfg!(target_os = "macos") {
-                    "⌘T"
-                } else {
-                    "Ctrl+T"
-                },
-            ),
-            Self::Close => (
-                "close",
-                "Close this chat tab",
-                if cfg!(target_os = "macos") {
-                    "⌘W"
-                } else {
-                    "Ctrl+W"
-                },
-            ),
-            Self::Stop => ("stop", "Interrupt the current turn", "Esc"),
-            Self::Models => ("models", "Browse and choose a model for this chat", ""),
-            Self::Sidebar => ("sidebar", "Toggle the left panel", "Ctrl+B"),
-            Self::RightPanel => ("right-panel", "Toggle the session panel", "Ctrl+P"),
-        }
-    }
-
-    pub(crate) fn exact(text: &str) -> Option<Self> {
-        let name = text.trim().strip_prefix('/')?;
-        COMMANDS
-            .iter()
-            .copied()
-            .find(|command| command.info().0 == name)
-    }
-
-    pub(crate) fn dispatch(self, window: &mut Window, cx: &mut App) {
-        match self {
-            Self::New => window.dispatch_action(Box::new(keymap::NewTab), cx),
-            Self::Close => window.dispatch_action(Box::new(keymap::CloseTab), cx),
-            Self::Stop => window.dispatch_action(Box::new(keymap::StopTurn), cx),
-            Self::Sidebar => window.dispatch_action(Box::new(keymap::ToggleSidebar), cx),
-            Self::RightPanel => window.dispatch_action(Box::new(keymap::ToggleRightPanel), cx),
-            Self::Models => window.dispatch_action(Box::new(keymap::ChooseModel), cx),
-        }
-    }
+pub(crate) fn exact(text: &str) -> Option<Command> {
+    let name = text.trim().strip_prefix('/')?;
+    COMMANDS
+        .iter()
+        .copied()
+        .find(|command| command.metadata().0 == name)
 }
 
 #[derive(Default)]
@@ -115,7 +71,7 @@ impl Menu {
         COMMANDS
             .iter()
             .copied()
-            .filter(|command| command.info().0.starts_with(query))
+            .filter(|command| command.metadata().0.starts_with(query))
             .collect()
     }
 
@@ -170,7 +126,13 @@ impl Menu {
                         .overflow_y_scroll()
                         .track_scroll(&self.scroll)
                         .children(options.into_iter().enumerate().map(|(index, command)| {
-                            let (name, description, shortcut) = command.info();
+                            let (name, description, _) = command.metadata();
+                            let shortcut =
+                                (command == Command::New).then_some(if cfg!(target_os = "macos") {
+                                    "⌘T"
+                                } else {
+                                    "Ctrl+T"
+                                });
                             let on_pick = on_pick.clone();
                             div()
                                 .id(("slash-command", index))
@@ -203,25 +165,43 @@ impl Menu {
                                                 .child(description),
                                         ),
                                 )
-                                .when(!shortcut.is_empty(), |row| {
-                                    row.child(
-                                        div()
-                                            .flex_shrink_0()
-                                            .px(px(6.))
-                                            .py(px(2.))
-                                            .rounded(px(5.))
-                                            .border_1()
-                                            .border_color(rgb(theme::FOCUS))
-                                            .text_size(px(11.))
-                                            .text_color(rgb(theme::TEXT))
-                                            .child(shortcut),
-                                    )
-                                })
+                                .children(shortcut.map(|shortcut| {
+                                    div()
+                                        .flex_shrink_0()
+                                        .px(px(6.))
+                                        .py(px(2.))
+                                        .rounded(px(5.))
+                                        .border_1()
+                                        .border_color(rgb(theme::FOCUS))
+                                        .text_size(px(11.))
+                                        .text_color(rgb(theme::TEXT))
+                                        .child(shortcut)
+                                }))
                                 .on_click(move |event, window, cx| {
                                     on_pick(command, event, window, cx)
                                 })
                         })),
                 ),
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn desktop_menu_offers_terminal_commands_with_desktop_handlers() {
+        assert!(
+            COMMANDS
+                .iter()
+                .all(|command| Command::ALL.contains(command))
+        );
+        assert_eq!(exact("/router"), Some(Command::Router));
+        assert_eq!(exact("/rename"), Some(Command::Rename));
+        for text in ["/close", "/stop", "/sidebar", "/right-panel", "/wallpaper"] {
+            assert_eq!(exact(text), None);
+            assert!(Menu::default().options(text).is_empty());
+        }
     }
 }

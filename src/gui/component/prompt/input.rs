@@ -31,6 +31,7 @@ impl Prompt {
         if modifiers == Modifiers::none()
             && matches!(key.key.as_str(), "up" | "down")
             && self.marked.is_none()
+            && self.field.is_none()
             && self.menu.move_selection(&self.text, key.key == "down")
         {
             cx.stop_propagation();
@@ -65,9 +66,11 @@ impl Prompt {
                 }
                 "c" | "x" => {
                     if !selection.is_empty() {
-                        cx.write_to_clipboard(ClipboardItem::new_string(
-                            self.text[selection.clone()].into(),
-                        ));
+                        if !self.masked() {
+                            cx.write_to_clipboard(ClipboardItem::new_string(
+                                self.text[selection.clone()].into(),
+                            ));
+                        }
                         if key.key == "x" {
                             self.replace(selection, "");
                         }
@@ -82,9 +85,7 @@ impl Prompt {
             }
         } else if !modifiers.control && !modifiers.platform && !modifiers.alt {
             match key.key.as_str() {
-                "enter"
-                    if modifiers.shift && self.marked.is_none() && self.model_draft.is_none() =>
-                {
+                "enter" if modifiers.shift && self.marked.is_none() && !self.single_line() => {
                     self.replace(selection, "\n");
                 }
                 "backspace" | "delete" => {
@@ -213,7 +214,11 @@ impl Prompt {
 
     fn replace(&mut self, range: Range<usize>, text: &str) {
         let text = text.replace("\r\n", "\n").replace('\r', "\n");
-        let text = if self.model_draft.is_some() {
+        let text = if self.masked() {
+            text.chars()
+                .filter(|character| character.is_ascii_graphic())
+                .collect()
+        } else if self.single_line() {
             text.replace('\n', " ")
         } else {
             text
@@ -259,7 +264,11 @@ impl EntityInputHandler for Prompt {
     ) -> Option<String> {
         let range = utf16_to_bytes(&self.text, range);
         *adjusted = Some(bytes_to_utf16(&self.text, range.clone()));
-        Some(self.text[range].into())
+        Some(if self.masked() {
+            "•".repeat(range.len())
+        } else {
+            self.text[range].into()
+        })
     }
 
     fn selected_text_range(

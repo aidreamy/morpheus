@@ -1,10 +1,12 @@
 mod agent_loop;
+mod commands;
 mod permission;
 mod right_panel;
 mod transcript;
 
 use std::sync::Arc;
 
+use aiface::connector::ToolCallMode;
 use gpui::{App, Entity, ScrollHandle, Subscription, Window, div, prelude::*, px, relative};
 use morpheus::types::{Message, MessageRole, Part, TextPart, now_ms};
 use morpheus::{
@@ -18,9 +20,19 @@ use crate::{
 };
 
 use self::agent_loop::Turn;
+use self::commands::Compaction;
 
 const CONTENT_WIDTH: f32 = 760.;
 const CONTENT_PADDING: f32 = 24.;
+
+pub(super) const UNAVAILABLE_TOOLS: &[&str] = &[
+    "ask_questions",
+    "agents_call",
+    "agents_compact",
+    "agents_worktree",
+    #[cfg(feature = "embed")]
+    "recall_search",
+];
 
 /// A tab owns its chat state for the lifetime of the tab.
 pub(crate) struct Chat {
@@ -29,11 +41,13 @@ pub(crate) struct Chat {
     _model_selection: Subscription,
     config: Arc<AgentConfig>,
     session_id: String,
+    title: String,
     messages: Vec<Message>,
     context: Option<ContextManagerState>,
     transcript_scroll: ScrollHandle,
     right_panel_visible: bool,
     turn: Option<Turn>,
+    compaction: Option<Compaction>,
     next_approval: u64,
     notice: Option<String>,
 }
@@ -54,11 +68,13 @@ impl Chat {
             _model_selection: model_selection,
             config,
             session_id: generate_session_id(),
+            title: String::new(),
             messages: Vec::new(),
             context: None,
             transcript_scroll: ScrollHandle::new(),
             right_panel_visible: true,
             turn: None,
+            compaction: None,
             next_approval: 0,
             notice: None,
         }
@@ -103,7 +119,7 @@ impl Chat {
     }
 
     fn submit(&mut self, text: String, cx: &mut Context<Self>) {
-        if self.turn.is_some() {
+        if self.turn.is_some() || self.compaction.is_some() {
             return;
         }
         let mut words = text.split_whitespace();
@@ -117,6 +133,43 @@ impl Chat {
         self.push_text(MessageRole::User, text.clone());
         self.transcript_scroll.scroll_to_bottom();
         self.run_turn(text, cx);
+    }
+
+    pub(crate) fn title(&self) -> &str {
+        &self.title
+    }
+
+    pub(crate) fn rename(&mut self, title: String, cx: &mut Context<Self>) {
+        self.title = title;
+        cx.notify();
+    }
+
+    pub(crate) fn tool_call_mode(&self) -> ToolCallMode {
+        self.config.tool_call_mode
+    }
+
+    pub(crate) fn set_tool_call_mode(&mut self, mode: ToolCallMode, cx: &mut Context<Self>) {
+        Arc::make_mut(&mut self.config).tool_call_mode = mode;
+        self.notice = Some(
+            match mode {
+                ToolCallMode::Native => "Native tool calls selected.",
+                ToolCallMode::Inline => "Inline tool calls selected.",
+            }
+            .into(),
+        );
+        cx.notify();
+    }
+
+    pub(crate) fn refresh_config(&mut self, shared: &AgentConfig) {
+        let config = &self.config;
+        self.config = Arc::new(AgentConfig {
+            provider: config.provider.clone(),
+            model: config.model.clone(),
+            reasoning: config.reasoning.clone(),
+            tool_call_mode: config.tool_call_mode,
+            base_url: shared.local_base_urls.get(&config.provider).cloned(),
+            ..shared.clone()
+        });
     }
 
     fn select_model(&mut self, provider: Option<&str>, model: Option<&str>, extra: Option<&str>) {
@@ -208,6 +261,11 @@ impl Render for Chat {
                 } else {
                     "Working…".into()
                 }
+            })
+            .or_else(|| {
+                self.compaction
+                    .as_ref()
+                    .map(|_| "Compacting context…".into())
             })
             .or_else(|| self.notice.clone());
         let column = div()

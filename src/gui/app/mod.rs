@@ -1,3 +1,4 @@
+mod commands;
 mod render;
 
 use std::sync::Arc;
@@ -13,6 +14,7 @@ pub(crate) struct Desktop {
     active: usize,
     tab_scroll: ScrollHandle,
     sidebar_visible: bool,
+    route: Option<commands::Route>,
 }
 
 impl Desktop {
@@ -27,6 +29,7 @@ impl Desktop {
             active: 0,
             tab_scroll: ScrollHandle::new(),
             sidebar_visible: true,
+            route: None,
         }
     }
 
@@ -38,6 +41,7 @@ impl Desktop {
 
     fn activate(&mut self, index: usize, window: &mut Window, cx: &mut Context<Self>) {
         self.active = index;
+        self.route = None;
         self.tab_scroll.scroll_to_item(index);
         self.chats[index].read(cx).focus_prompt(window, cx);
         cx.notify();

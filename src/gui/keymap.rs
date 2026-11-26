@@ -1,4 +1,5 @@
-use gpui::{App, KeyBinding, actions};
+use gpui::{Action, App, KeyBinding, actions};
+use morpheus::commands::Command;
 
 actions!(
     desktop,
@@ -10,11 +11,13 @@ actions!(
         ToggleSidebar,
         ToggleRightPanel,
         ToggleCommands,
-        ChooseModel,
-        Cancel,
-        StopTurn
+        Cancel
     ]
 );
+
+#[derive(Clone, PartialEq, Action)]
+#[action(namespace = desktop, no_json)]
+pub(crate) struct RunCommand(pub(crate) Command);
 
 pub(crate) fn bind(cx: &mut App) {
     cx.bind_keys([

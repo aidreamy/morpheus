@@ -31,6 +31,7 @@ pub(crate) fn strip(scroll: &ScrollHandle) -> Stateful<Div> {
 
 pub(crate) fn tab(
     id: EntityId,
+    title: String,
     active: bool,
     select: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
     close: impl Fn(&ClickEvent, &mut Window, &mut App) + 'static,
@@ -40,7 +41,7 @@ pub(crate) fn tab(
         .flex()
         .flex_shrink_0()
         .items_center()
-        .w(px(120.))
+        .w(px(if title.is_empty() { 120. } else { 164. }))
         .h(px(34.))
         .pr(px(4.))
         .rounded(px(7.))
@@ -53,7 +54,9 @@ pub(crate) fn tab(
                 .id("select-tab")
                 .flex()
                 .items_center()
+                .gap(px(6.))
                 .flex_1()
+                .min_w_0()
                 .h_full()
                 .pl(px(12.))
                 .cursor_pointer()
@@ -61,6 +64,18 @@ pub(crate) fn tab(
                     Icon::Chat,
                     if active { theme::TEXT } else { theme::MUTED },
                 ))
+                .when(!title.is_empty(), |tab| {
+                    tab.child(
+                        div()
+                            .min_w_0()
+                            .flex_1()
+                            .truncate()
+                            .line_height(px(18.))
+                            .text_size(px(12.))
+                            .text_color(rgb(if active { theme::TEXT } else { theme::MUTED }))
+                            .child(title),
+                    )
+                })
                 .on_click(select),
         )
         .child(

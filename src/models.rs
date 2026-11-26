@@ -42,11 +42,11 @@ pub fn active_providers(base_urls: &HashMap<String, String>) -> Vec<&'static str
     active
 }
 
-/// Fetch real provider catalogs in parallel. An unavailable endpoint does not
-/// delay the picker beyond the deadline for a single provider.
+/// Fetch real provider catalogs in parallel, with an optional picker deadline.
 pub async fn list_models(
     providers: Vec<&'static str>,
     base_urls: &HashMap<String, String>,
+    deadline: Option<Duration>,
 ) -> Vec<ModelEntry> {
     let mut pending = JoinSet::new();
     for provider in providers {
@@ -58,10 +58,12 @@ pub async fn list_models(
             if let Some(url) = base_url {
                 connector = connector.with_base_url(url);
             }
-            let output = tokio::time::timeout(Duration::from_secs(6), connector.list_models())
-                .await
-                .ok()?
-                .ok()?;
+            let request = connector.list_models();
+            let output = match deadline {
+                Some(deadline) => tokio::time::timeout(deadline, request).await.ok()?,
+                None => request.await,
+            }
+            .ok()?;
             Some(
                 output
                     .models()

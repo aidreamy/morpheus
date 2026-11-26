@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::time::Duration;
 
 use gpui::{Context, EventEmitter, Window};
 use morpheus::{ModelEntry, assembly::agent_runtime, models};
@@ -38,7 +39,7 @@ impl Prompt {
         if self.model_picker.open(current) {
             let worker = agent_runtime().spawn(async move {
                 let providers = models::active_providers(&base_urls);
-                models::list_models(providers, &base_urls).await
+                models::list_models(providers, &base_urls, Some(Duration::from_secs(6))).await
             });
             cx.spawn(async move |prompt, cx| {
                 let models = worker.await.unwrap_or_default();

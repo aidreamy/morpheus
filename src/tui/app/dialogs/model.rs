@@ -181,7 +181,8 @@ impl App {
             let base_urls = self.configured_local_base_urls();
 
             self.tokio_handle.spawn(async move {
-                let all_models = morpheus::models::list_models(providers_to_check, &base_urls).await;
+                let all_models =
+                    morpheus::models::list_models(providers_to_check, &base_urls, None).await;
 
                 let _ = dialog_tx_clone.send(HarnessEvent::ModelsLoaded {
                     models: all_models,

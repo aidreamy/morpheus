@@ -185,7 +185,7 @@ impl App {
                             if let Some(split) = self.agents_split.as_mut() {
                                 split.answer_pending_permission(
                                     index,
-                                    morpheus_tools::subagent::events::PanePermissionAnswer::Selected(
+                                    morpheus_agents::events::PanePermissionAnswer::Selected(
                                         id,
                                     ),
                                 );

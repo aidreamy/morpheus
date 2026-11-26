@@ -22,7 +22,7 @@ use tokio::sync::{Mutex, mpsc};
 use tokio::task::JoinSet;
 
 use morpheus_tools::question::types::AnswerItem;
-use morpheus_tools::subagent::model_picks::ModelPicks;
+use morpheus_agents::model_picks::ModelPicks;
 
 use crate::harness::{ContextManagerState, Harness, HarnessEvent, Mode, PermissionAction};
 use crate::setup::data_dir_override;

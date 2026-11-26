@@ -3,7 +3,7 @@
 
 use std::time::Duration;
 
-use morpheus_tools::subagent::types::SubAgentCallInput;
+use morpheus_agents::types::SubAgentCallInput;
 
 use super::{Harness, Mode, background, wait_for_stop_signal};
 use crate::harness::tools::{Tools, is_tool_disabled};
@@ -104,7 +104,7 @@ impl Harness {
                 // decision is kept for the report side: the internal turn's
                 // final report gets the header ENFORCED in
                 // `run_internal_subagent`.
-                let is_review = morpheus_tools::subagent::severity::is_review_task(
+                let is_review = morpheus_agents::severity::is_review_task(
                     &call_input,
                     input.code_review,
                 );
@@ -121,7 +121,7 @@ impl Harness {
                     // silently dropped.
                     tools.resolve_subagent_description(input.description.clone(), is_review)?;
                 }
-                let call_input = morpheus_tools::subagent::severity::with_severity_contract(
+                let call_input = morpheus_agents::severity::with_severity_contract(
                     &call_input,
                     input.code_review,
                 );

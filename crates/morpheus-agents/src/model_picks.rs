@@ -14,8 +14,8 @@
 //! integration, sibling of `palette` and `events`. The crate must stay
 //! embeddable independent of morpheus, so NO directory is hardcoded here — the
 //! caller injects the storage directory (morpheus passes its data-dir override
-//! resolution; tests pass a temp dir), the same separation
-//! [`crate::session::store::SessionStore`] uses with its `with_dir`.
+//! resolution; tests pass a temp dir), the same separation the harness's own
+//! `SessionStore` uses with its `with_dir`.
 //!
 //! Single-file, atomically replaced: every write serializes the WHOLE map to a
 //! sibling temp file (fsync'd) and renames it over the target — rename

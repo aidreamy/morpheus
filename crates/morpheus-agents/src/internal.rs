@@ -3,7 +3,7 @@
 //! The external ACP harnesses emit their activity natively: the `session/update`
 //! stream is mapped into [`SubagentEvent`]s by [`super::events`]. The internal
 //! sub-agent is a nested morpheus harness and speaks no ACP — its loop emits plain
-//! [`crate::harness`-level] events (tool calls, results, context info). This
+//! harness-level events (tool calls, results, context info). This
 //! module bridges that gap: it turns the nested loop's event stream into the
 //! SAME typed events the TUI sub-agent box already renders, so both sub-agent
 //! flavors look and behave identically (same tool rows, same spinner lifecycle,

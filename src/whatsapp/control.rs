@@ -16,8 +16,8 @@ use std::path::PathBuf;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 
-use morpheus_tools::subagent::acp::{self, SessionHandle};
-use morpheus_tools::subagent::model_picks::ModelPicks;
+use morpheus_agents::acp::{self, SessionHandle};
+use morpheus_agents::model_picks::ModelPicks;
 
 use crate::harness::{ContextManagerState, Mode};
 use crate::setup::{Setup, data_dir_override};

@@ -204,7 +204,7 @@ impl AgentCoworkerTurnEnd {
     ///
     /// Accepts BOTH vocabularies that reach this type: the morpheus-coworker one
     /// ([`Self::as_str`]) and the ACP `StopReason` one the external agents
-    /// report (`crates/morpheus-tools/src/subagent/acp.rs`, `stop_reason_str`).
+    /// report (`crates/morpheus-agents/src/acp.rs`, `stop_reason_str`).
     /// The ACP side matters as much as the local one — external coworkers are
     /// the majority — and its truncation shapes are NOT `end_turn`:
     ///

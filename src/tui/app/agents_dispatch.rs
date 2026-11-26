@@ -1,7 +1,7 @@
 //! Dispatch for the `/agents` split-pane mode: one submitted prompt goes to
 //! the FOCUSED pane — or, when `Alt+0` left NO pane focused, to the MAIN
 //! agent itself (the normal-mode loop, unchanged). External agent CLIs each
-//! get an independent ACP turn (`morpheus_tools::subagent::acp::call` — the
+//! get an independent ACP turn (`morpheus_agents::acp::call` — the
 //! same one-shot contract the prompt corrector uses); each morpheus pane (at
 //! any split position) runs the MAIN agent itself on its own real morpheus
 //! session — persisted in the session store (visible in the history panel)
@@ -18,7 +18,7 @@ use morpheus::coordinator::turn::{
     TerminalCause, TerminalKind, assemble_turn_input, close_pane_turn,
 };
 use morpheus::harness::events::HarnessEvent;
-use morpheus_tools::subagent::events::{SubagentEvent, ToolCallStatus, ToolOutputBlock};
+use morpheus_agents::events::{SubagentEvent, ToolCallStatus, ToolOutputBlock};
 use std::collections::HashSet;
 use std::path::PathBuf;
 use std::sync::Arc;
@@ -986,7 +986,7 @@ pub(super) fn ensure_pane_snapshot(app: &mut App, pane: usize) {
     let event_tx = app.event_tx.clone();
     let epoch = app.agents_pane_epoch;
     app.tokio_handle.spawn(async move {
-        let result = morpheus_tools::subagent::acp::session_snapshot(&agent, session_id, cwd).await;
+        let result = morpheus_agents::acp::session_snapshot(&agent, session_id, cwd).await;
         let (commands, options, modes, mode_current) = match result {
             Ok(snapshot) => (
                 snapshot.commands,
@@ -1279,7 +1279,7 @@ impl App {
                     Some(id) => {
                         split.answer_pending_permission(
                             focused,
-                            morpheus_tools::subagent::events::PanePermissionAnswer::Selected(id),
+                            morpheus_agents::events::PanePermissionAnswer::Selected(id),
                         );
                     }
                     None => {
@@ -1287,7 +1287,7 @@ impl App {
                         // cancellation.
                         split.answer_pending_permission(
                             focused,
-                            morpheus_tools::subagent::events::PanePermissionAnswer::Cancel,
+                            morpheus_agents::events::PanePermissionAnswer::Cancel,
                         );
                     }
                 }
@@ -1297,7 +1297,7 @@ impl App {
                 if let Some(split) = self.agents_split.as_mut() {
                     split.answer_pending_permission(
                         focused,
-                        morpheus_tools::subagent::events::PanePermissionAnswer::Cancel,
+                        morpheus_agents::events::PanePermissionAnswer::Cancel,
                     );
                 }
                 true
@@ -1958,7 +1958,7 @@ impl App {
                 {
                     stale.shutdown();
                 }
-                match morpheus_tools::subagent::acp::open_session(
+                match morpheus_agents::acp::open_session(
                     &agent,
                     resume.clone(),
                     cwd.clone(),
@@ -3101,7 +3101,7 @@ impl App {
         #[cfg(not(test))]
         tokio_handle.spawn(async move {
             let (chunk_tx, mut chunk_rx) = tokio::sync::mpsc::unbounded_channel::<SubagentEvent>();
-            let pass = morpheus_tools::subagent::acp::replay(&agent, session_id, cwd, chunk_tx);
+            let pass = morpheus_agents::acp::replay(&agent, session_id, cwd, chunk_tx);
             tokio::pin!(pass);
             let mut chunks_open = true;
             let result = loop {
@@ -3237,7 +3237,7 @@ fn run_manager_turn(
     input: String,
     permission_rx: Option<
         tokio::sync::mpsc::UnboundedReceiver<
-            morpheus_tools::subagent::events::PanePermissionAnswer,
+            morpheus_agents::events::PanePermissionAnswer,
         >,
     >,
     stop_signal: Arc<AtomicBool>,
@@ -3329,7 +3329,7 @@ fn run_manager_turn(
                         // option this build didn't offer has no trustworthy
                         // allow semantics.
                         let action = match answer {
-                            morpheus_tools::subagent::events::PanePermissionAnswer::Selected(
+                            morpheus_agents::events::PanePermissionAnswer::Selected(
                                 id,
                             ) => {
                                 match id.as_str() {
@@ -3342,7 +3342,7 @@ fn run_manager_turn(
                                     _ => morpheus::harness::PermissionAction::AllowOnce,
                                 }
                             }
-                            morpheus_tools::subagent::events::PanePermissionAnswer::Cancel => {
+                            morpheus_agents::events::PanePermissionAnswer::Cancel => {
                                 morpheus::harness::PermissionAction::Deny
                             }
                         };
@@ -3370,7 +3370,7 @@ fn run_manager_turn(
             let cause_sink = terminal_cause.clone();
             let bridge_tx = event_tx.clone();
             let bridge = tokio::spawn(async move {
-                use morpheus_tools::subagent::internal::InternalEventBridge;
+                use morpheus_agents::internal::InternalEventBridge;
                 let mut internal = InternalEventBridge::new();
                 while let Some(event) = loop_rx.recv().await {
                     // The terminal event: record WHY the loop ended, then let
@@ -3450,20 +3450,20 @@ fn run_manager_turn(
                             vec![SubagentEvent::PermissionRequest {
                                 call_id,
                                 title: description,
-                                kind: morpheus_tools::subagent::events::ToolKind::Execute,
+                                kind: morpheus_agents::events::ToolKind::Execute,
                                 raw_input: serde_json::json!({ "tool": tool, "args": args }).into(),
                                 options: vec![
-                                    morpheus_tools::subagent::events::AgentPermissionOption {
+                                    morpheus_agents::events::AgentPermissionOption {
                                         id: "allow".to_string(),
                                         name: "Allow".to_string(),
                                         kind: "allow_always".to_string(),
                                     },
-                                    morpheus_tools::subagent::events::AgentPermissionOption {
+                                    morpheus_agents::events::AgentPermissionOption {
                                         id: "allow_once".to_string(),
                                         name: "Allow Once".to_string(),
                                         kind: "allow_once".to_string(),
                                     },
-                                    morpheus_tools::subagent::events::AgentPermissionOption {
+                                    morpheus_agents::events::AgentPermissionOption {
                                         id: "deny".to_string(),
                                         name: "Deny".to_string(),
                                         kind: "reject_once".to_string(),
@@ -3675,7 +3675,7 @@ pub(in crate::app) fn manager_context_replay_events(
                 events.push(SubagentEvent::ToolCall {
                     id: call_id.clone(),
                     title: name.clone(),
-                    kind: morpheus_tools::subagent::internal::tool_kind(name),
+                    kind: morpheus_agents::internal::tool_kind(name),
                     status: ToolCallStatus::InProgress,
                     raw_input: Some(input),
                     tool: Some(name.clone()),
@@ -3697,9 +3697,9 @@ pub(in crate::app) fn manager_context_replay_events(
                     title: None,
                     raw_output: None,
                     content: ToolOutputBlock {
-                        text: morpheus_tools::subagent::internal::output_tail(content),
+                        text: morpheus_agents::internal::output_tail(content),
                         skipped: 0,
-                        diff: morpheus_tools::subagent::internal::diff_summary_from_result(
+                        diff: morpheus_agents::internal::diff_summary_from_result(
                             tool, content,
                         ),
                     },
@@ -3912,9 +3912,9 @@ mod tests {
             crate::routes::session::right_panel::types::SubagentToolCall {
                 id: "t1".into(),
                 title: title.to_string(),
-                kind: morpheus_tools::subagent::events::ToolKind::Read,
+                kind: morpheus_agents::events::ToolKind::Read,
                 tool: None,
-                status: morpheus_tools::subagent::events::ToolCallStatus::Completed,
+                status: morpheus_agents::events::ToolCallStatus::Completed,
                 output_tail: None,
                 diff: None,
                 detail: detail.map(str::to_string),

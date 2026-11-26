@@ -22,7 +22,7 @@
 //! so a mirror opened after prior dialog shows that dialog too.
 
 use morpheus::harness::events::HarnessEvent;
-use morpheus_tools::subagent::events::{SubagentEvent, ToolCallStatus, ToolOutputBlock};
+use morpheus_agents::events::{SubagentEvent, ToolCallStatus, ToolOutputBlock};
 
 use super::App;
 
@@ -46,7 +46,7 @@ impl MirrorBridge {
         SubagentEvent::ToolCall {
             id,
             title: tool.to_string(),
-            kind: morpheus_tools::subagent::internal::tool_kind(tool),
+            kind: morpheus_agents::internal::tool_kind(tool),
             status: ToolCallStatus::InProgress,
             raw_input: Some(input.clone()),
             tool: Some(tool.to_string()),
@@ -60,10 +60,10 @@ impl MirrorBridge {
             status: Some(status),
             title: None,
             raw_output: None,
-            content: morpheus_tools::subagent::events::ToolOutputBlock {
-                text: morpheus_tools::subagent::internal::output_tail(&tail),
+            content: morpheus_agents::events::ToolOutputBlock {
+                text: morpheus_agents::internal::output_tail(&tail),
                 skipped: 0,
-                diff: morpheus_tools::subagent::internal::diff_summary_from_result(tool, &tail),
+                diff: morpheus_agents::internal::diff_summary_from_result(tool, &tail),
             },
         })
     }
@@ -84,7 +84,7 @@ fn mirror_events(bridge: &mut MirrorBridge, event: &HarnessEvent) -> Vec<Subagen
             let mut events = vec![bridge.tool_call(tool, input)];
             if tool == "plan_todo_write"
                 && let Some(plan) =
-                    morpheus_tools::subagent::internal::InternalEventBridge::plan_from_todo_write(
+                    morpheus_agents::internal::InternalEventBridge::plan_from_todo_write(
                         input,
                     )
             {
@@ -102,7 +102,7 @@ fn mirror_events(bridge: &mut MirrorBridge, event: &HarnessEvent) -> Vec<Subagen
             .collect(),
         HarnessEvent::ContextInfo { info } => {
             vec![
-                morpheus_tools::subagent::internal::InternalEventBridge::usage(
+                morpheus_agents::internal::InternalEventBridge::usage(
                     info.total_tokens,
                     info.max_tokens,
                 ),
@@ -153,9 +153,9 @@ fn backfill_from_transcript(session: &crate::types::Session) -> Vec<SubagentEven
                                 crate::types::ToolStatus::Failed(_) => ToolCallStatus::Failed,
                             };
                             let output_block = tool.output.as_ref().map(|tail| ToolOutputBlock {
-                                text: morpheus_tools::subagent::internal::output_tail(tail),
+                                text: morpheus_agents::internal::output_tail(tail),
                                 skipped: 0,
-                                diff: morpheus_tools::subagent::internal::diff_summary_from_result(
+                                diff: morpheus_agents::internal::diff_summary_from_result(
                                     tool.tool.clone(),
                                     tail,
                                 ),
@@ -171,7 +171,7 @@ fn backfill_from_transcript(session: &crate::types::Session) -> Vec<SubagentEven
                             events.push(SubagentEvent::ToolCall {
                                 id: id.clone(),
                                 title: tool.tool.clone(),
-                                kind: morpheus_tools::subagent::internal::tool_kind(&tool.tool),
+                                kind: morpheus_agents::internal::tool_kind(&tool.tool),
                                 status,
                                 raw_input: Some(tool.input.clone()),
                                 tool: Some(tool.tool.clone()),

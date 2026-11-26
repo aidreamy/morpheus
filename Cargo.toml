@@ -1,5 +1,6 @@
 [workspace]
-members = ["crates/morpheus-onnx",
+members = ["crates/morpheus-agents",
+  "crates/morpheus-onnx",
   "crates/morpheus-recall",
   "crates/morpheus-sdk",
   "crates/morpheus-tools",
@@ -46,6 +47,10 @@ version = "0.1.5"
 [dependencies.morpheus-tools]
 path = "crates/morpheus-tools"
 version = "0.1.6"
+
+[dependencies.morpheus-agents]
+path = "crates/morpheus-agents"
+version = "0.1.0"
 
 [dependencies.morpheus-onnx]
 path = "crates/morpheus-onnx"

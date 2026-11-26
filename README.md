@@ -75,6 +75,7 @@ After installing, run `morpheus` in your terminal. If the install directory is n
 
 | Crate                                                       | Description                                                                                     |
 | ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| [`morpheus-agents`](./crates/morpheus-agents/README.md)     | Sub-agent integration: ACP client harnesses, session state and typed event streams              |
 | [`morpheus-tools`](./crates/morpheus-tools/README.md)       | Development tools and computer tools                                                            |
 | [`morpheus-tui`](./crates/morpheus-tui/README.md)           | TUI widget library: markdown/diff rendering and layout, the components behind the terminal UI   |
 | [`morpheus-sdk`](./crates/morpheus-sdk/README.md)           | Reusable agent primitives: patch engine, tool-call parsing, LSP client and AST intelligence     |

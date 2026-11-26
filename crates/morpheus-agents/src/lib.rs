@@ -1,4 +1,10 @@
-//! Tool for calling sub-agents.
+//! Sub-agent integration: the ACP client, session state and event streams.
+//!
+//! This crate owns everything the Morpheus agent panel needs to drive
+//! sub-agents: the `subagent_call` tool schema ([`SubAgent`]), the ACP client
+//! that runs an external harness turn ([`acp`]), the typed event stream both
+//! sub-agent flavors emit ([`events`], [`internal`]), the review severity DSL
+//! ([`severity`]) and the persisted per-agent model picks ([`model_picks`]).
 //!
 //! The model sees a single `subagent_call` tool, but the harness dispatches
 //! it to two implementations (see [`SubAgent`]): an external agent harness —
@@ -72,8 +78,15 @@ pub mod types;
 use std::collections::{HashMap, HashSet};
 use std::sync::{Arc, Mutex};
 
-use crate::ToolDescription;
 pub use types::{SubAgentCallInput, SubAgentCallOutput};
+
+/// MCP Tool description: name, description, and inputSchema as a JSON value.
+///
+/// Structural twin of `morpheus_tools::ToolDescription`: this crate stays
+/// independent of the tools crate, and both crates describe tools with the
+/// same [MCP Tool schema](https://modelcontextprotocol.io/specification/2025-11-25/server/tools)
+/// shape so a caller can pass either straight to an rmcp server.
+pub type ToolDescription = serde_json::Value;
 
 /// Tool for calling sub-agents.
 ///
@@ -438,7 +451,7 @@ impl SubAgent {
         self.last_session.lock().unwrap().get(agent).cloned()
     }
 
-    /// The `resume` argument for [`acp::call`](crate::subagent::acp::call):
+    /// The `resume` argument for [`acp::call`](crate::acp::call):
     /// the stored session id when `continue_session` is requested
     /// (resume-by-default), `None` for the opt-out (`continue_session:
     /// false`) or when nothing is stored yet. Keeping the flag→id decision

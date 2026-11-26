@@ -1,6 +1,6 @@
 # `subagent` data types
 
-The module has exactly two data types: the call's input and its output. Both
+The crate has exactly two data types: the call's input and its output. Both
 derive `Serialize` + `Deserialize`, so they round-trip through the tool-call
 JSON directly.
 

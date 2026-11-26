@@ -10,7 +10,7 @@
 //! This lives outside the TUI so every surface (the `/agents` split and the
 //! WhatsApp interface) maps modes with the SAME rule.
 
-use morpheus_tools::subagent::events::AgentSessionMode;
+use morpheus_agents::events::AgentSessionMode;
 
 use super::Mode;
 

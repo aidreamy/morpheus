@@ -17,7 +17,7 @@ use crate::routes::session::footer::FooterView;
 use crate::routes::session::right_panel::render_right_panel;
 use crate::state::PendingQueues;
 use crate::theme::rgba_color;
-use morpheus_tools::subagent::palette::display_name;
+use morpheus_agents::palette::display_name;
 
 /// Re-exported so the geometry, hit-testing and tests keep naming the row
 /// type through this module (the renderer itself lives in the shared

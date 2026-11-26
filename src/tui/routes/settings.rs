@@ -630,7 +630,7 @@ pub fn validate_acp_agent(
     if name.split_whitespace().count() != 1 {
         return Err("Name must be a single word (it is the agent id the model calls).".into());
     }
-    if morpheus_tools::subagent::acp::ACP_AGENTS
+    if morpheus_agents::acp::ACP_AGENTS
         .iter()
         .any(|agent| agent.name.eq_ignore_ascii_case(name))
     {
@@ -1907,7 +1907,7 @@ impl SettingsView {
                     // ✔/✗ toggles above. The name keeps the sub-row indent
                     // (+4) shared with the other lists and "+ Add agent".
                     let installed =
-                        morpheus_tools::subagent::acp::custom_agent_installed(&entry.name);
+                        morpheus_agents::acp::custom_agent_installed(&entry.name);
                     let name_color = if installed { fg } else { muted };
                     // 🗑 remove glyph hugs the box's right inner edge (the
                     // summarizer rows' controls slot); name and preview are

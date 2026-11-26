@@ -60,6 +60,7 @@ irm https://raw.githubusercontent.com/aidreamy/morpheus/main/download.ps1 | iex
 
 | Crate                                                           | 説明                                                                 |
 | --------------------------------------------------------------- | ------------------------------------------------------------------ |
+| [`morpheus-agents`](../../crates/morpheus-agents/README.md)     | サブエージェント統合：ACP クライアントハーネス、セッション状態、型付きイベントストリーム |
 | [`morpheus-tools`](../../crates/morpheus-tools/README.md)       | 開発ツールと computer tools                                              |
 | [`morpheus-tui`](../../crates/morpheus-tui/README.md)           | TUI ウィジェットライブラリ：markdown/diff のレンダリングとレイアウト、ターミナル UI を構成するコンポーネント群 |
 | [`morpheus-sdk`](../../crates/morpheus-sdk/README.md)           | エージェント向けの再利用可能な基盤：パッチエンジン、ツールコール解析、LSP クライアント、AST インテリジェンス         |

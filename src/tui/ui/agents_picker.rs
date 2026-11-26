@@ -110,7 +110,7 @@ pub enum AgentsPickerAction {
 ///
 /// The first entry is always the synthetic `morpheus` manager — the top-level
 /// agent that delegates to the ACP harnesses below it. The remaining entries
-/// mirror [`morpheus_tools::subagent::acp::ACP_AGENTS`] in registry order.
+/// mirror [`morpheus_agents::acp::ACP_AGENTS`] in registry order.
 ///
 /// Layout parity with `/models`: the box rows are title / Search input / gap
 /// / listing (dialog height = visible rows + 4) and the listing height
@@ -149,12 +149,12 @@ impl AgentsPicker {
     /// Build the picker from the crate's agent registry: the synthetic `morpheus`
     /// manager entry on top, then every registered ACP harness with its
     /// installation status. Built-in availability comes from the cached
-    /// [`morpheus_tools::subagent::acp::detect_installed`] snapshot; user-
+    /// [`morpheus_agents::acp::detect_installed`] snapshot; user-
     /// registered harnesses are probed on demand, so an entry added in
     /// Settings while the app runs shows up here without a restart.
     #[must_use]
     pub fn new() -> Self {
-        let installed = morpheus_tools::subagent::acp::detect_installed();
+        let installed = morpheus_agents::acp::detect_installed();
         let mut entries = vec![AgentEntry {
             name: "morpheus".to_string(),
             installed: true,
@@ -162,12 +162,12 @@ impl AgentsPicker {
             instances: String::new(),
         }];
         entries.extend(
-            morpheus_tools::subagent::acp::all_agent_names()
+            morpheus_agents::acp::all_agent_names()
                 .into_iter()
                 .map(|name| AgentEntry {
                     name: name.to_string(),
                     installed: installed.contains(&name)
-                        || morpheus_tools::subagent::acp::custom_agent_installed(name),
+                        || morpheus_agents::acp::custom_agent_installed(name),
                     selected: false,
                     instances: String::new(),
                 }),
@@ -1163,7 +1163,7 @@ mod tests {
             picker.entries[1..]
                 .iter()
                 .enumerate()
-                .all(|(i, entry)| entry.name == morpheus_tools::subagent::acp::ACP_AGENTS[i].name)
+                .all(|(i, entry)| entry.name == morpheus_agents::acp::ACP_AGENTS[i].name)
         );
     }
 

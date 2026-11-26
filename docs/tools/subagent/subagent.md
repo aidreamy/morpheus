@@ -1,4 +1,4 @@
-# The `subagent` module: calling sub-agents
+# The `subagent` crate: calling sub-agents
 
 `subagent` lets the agent delegate a task to another agent - either an
 **external ACP agent harness** (gemini, goose, opencode, kilo, claude, codex,
@@ -11,7 +11,7 @@ fresh, empty context). Both are reached through a *single* visible tool,
 |---|---|
 | [`subagent_call`](acp.md) | Delegate a task to a sub-agent. `agent` names the ACP harness to run; omitting it routes to the internal agent. |
 
-The module has three pieces:
+The crate has three pieces:
 
 - [`SubAgent`](#the-subagent-wrapper) - the wrapper. Owns the tool
   description (tailored to the harnesses actually installed) and the
@@ -26,7 +26,7 @@ The module has three pieces:
 ## The `SubAgent` wrapper
 
 ```rust,ignore
-use morpheus_tools::subagent::SubAgent;
+use morpheus_agents::SubAgent;
 
 let sub = SubAgent::new();
 sub.resolve_input(Some("review this PR".into()))?;   // stores + returns
@@ -115,7 +115,7 @@ indefinitely).
 
 ## The harness and permission model
 
-The harness wires the module together:
+The harness wires the crate together:
 
 - It calls `set_note(SUBAGENT_INTERNAL_NOTE)` at startup so the description
   naturally explains the internal-agent routing.

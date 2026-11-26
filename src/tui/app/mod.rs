@@ -504,7 +504,7 @@ pub struct App {
     /// directory resolves from the data-dir override; the store itself lives
     /// in the sub-agent domain (morpheus-tools), which takes the directory as an
     /// argument and owns nothing about morpheus's paths.
-    agents_model_picks: morpheus_tools::subagent::model_picks::ModelPicks,
+    agents_model_picks: morpheus_agents::model_picks::ModelPicks,
     /// Telemetry facade: consent-resolved state (setup.json flag + env
     /// override + CI hard-off) plus the local event queue.
     telemetry: morpheus::telemetry::Telemetry,
@@ -713,7 +713,7 @@ impl App {
         // working ones are still published (an all-or-nothing failure here
         // would disable every harness because one entry rotted).
         for error in
-            morpheus_tools::subagent::acp::register_custom_agents_lossy(&setup.acp_agent_pairs())
+            morpheus_agents::acp::register_custom_agents_lossy(&setup.acp_agent_pairs())
         {
             log::warn!("user-registered ACP agent skipped: {error}");
         }
@@ -929,7 +929,7 @@ impl App {
                 // portability stay one knob); the store itself lives in the
                 // sub-agent domain and takes the directory as an argument.
                 let dir = morpheus::setup::data_dir_override().join("agents");
-                morpheus_tools::subagent::model_picks::ModelPicks::new(&dir)
+                morpheus_agents::model_picks::ModelPicks::new(&dir)
             },
             setup,
             telemetry,

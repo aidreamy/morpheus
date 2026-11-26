@@ -224,7 +224,7 @@ pub fn resolve(name: &str) -> Option<&'static CommandGroup> {
 /// options; a boolean-only option mirrors with an empty value list) are
 /// omitted — a dead entry would only route into the "still loading" toast.
 pub fn synthesized_group_commands(
-    options: &[morpheus_tools::subagent::events::AgentConfigOption],
+    options: &[morpheus_agents::events::AgentConfigOption],
 ) -> Vec<crate::ui::slash_menu::SlashCommand> {
     COMMAND_GROUPS
         .iter()
@@ -302,7 +302,7 @@ mod tests {
 
     #[test]
     fn two_pass_category_match_wins_by_id_first() {
-        use morpheus_tools::subagent::events::AgentConfigOption;
+        use morpheus_agents::events::AgentConfigOption;
         // cline: BOTH options carry category "model"; the ids decide.
         let options = vec![
             AgentConfigOption {
@@ -382,15 +382,15 @@ mod tests {
         id: &str,
         category: Option<&str>,
         values: &[&str],
-    ) -> morpheus_tools::subagent::events::AgentConfigOption {
-        morpheus_tools::subagent::events::AgentConfigOption {
+    ) -> morpheus_agents::events::AgentConfigOption {
+        morpheus_agents::events::AgentConfigOption {
             id: id.to_string(),
             name: id.to_string(),
             description: None,
             category: category.map(str::to_string),
             values: values
                 .iter()
-                .map(|v| morpheus_tools::subagent::events::AgentConfigValue {
+                .map(|v| morpheus_agents::events::AgentConfigValue {
                     value: (*v).to_string(),
                     name: (*v).to_string(),
                 })

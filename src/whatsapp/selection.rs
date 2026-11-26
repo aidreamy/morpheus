@@ -11,7 +11,7 @@
 //! Repeating a name (`claude,claude`) creates instances: `claude#1` and
 //! `claude#2`, addressed with `@claude#2`.
 
-use morpheus_tools::subagent::palette::display_name;
+use morpheus_agents::palette::display_name;
 
 /// How many external agent instances one chat may select.
 pub const MAX_ROSTER: usize = 4;

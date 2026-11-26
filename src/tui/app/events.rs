@@ -16,7 +16,7 @@ use crate::types::{Part, Session, SessionStatus};
 use crate::ui::dialogs::DialogType;
 use morpheus::harness::HarnessEvent;
 use morpheus::harness::context::ContextManagerState;
-use morpheus_tools::subagent::events::SubagentEvent;
+use morpheus_agents::events::SubagentEvent;
 
 /// Process-wide sequence for live-created tool parts' `tool_call_id`s. The
 /// id is the identity per-box UI state (expand/collapse, LSP-notes toggle)

@@ -18,6 +18,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `/agent model <name>` now reports the model picked for that agent, and
   `/agent ls` shows each selected instance's model and ACP session state.
 
+### Changed
+
+- The sub-agent implementation moved out of `morpheus-tools` into its own
+  `morpheus-agents` crate, which now owns the ACP client harnesses, the ACP
+  session state, the typed event stream and the persisted per-agent model
+  picks. Paths change from `morpheus_tools::subagent` to `morpheus_agents`.
+
 ## [1.0.3] - 2026-11-25
 
 ### Added

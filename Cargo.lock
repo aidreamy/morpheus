@@ -5735,6 +5735,7 @@ dependencies = [
  "libc",
  "log",
  "lru",
+ "morpheus-agents",
  "morpheus-onnx",
  "morpheus-recall",
  "morpheus-sdk",
@@ -5766,6 +5767,20 @@ dependencies = [
  "webbrowser",
  "windows-sys 0.61.2",
  "xxhash-rust",
+]
+
+[[package]]
+name = "morpheus-agents"
+version = "0.1.0"
+dependencies = [
+ "agent-client-protocol",
+ "log",
+ "morpheus-sdk",
+ "rustix 1.1.6",
+ "serde",
+ "serde_json",
+ "tempfile",
+ "tokio",
 ]
 
 [[package]]
@@ -5898,7 +5913,6 @@ dependencies = [
 name = "morpheus-tools"
 version = "0.1.6"
 dependencies = [
- "agent-client-protocol",
  "aiface 0.3.0",
  "ast-grep-core",
  "async-stream",
@@ -5911,7 +5925,6 @@ dependencies = [
  "regex",
  "reqwest 0.13.5",
  "rs-trafilatura",
- "rustix 1.1.6",
  "schemars 1.2.3",
  "serde",
  "serde_json",

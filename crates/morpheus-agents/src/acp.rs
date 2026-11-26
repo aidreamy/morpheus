@@ -23,7 +23,7 @@
 //! 4. `session/prompt` — sends the task as the user prompt.
 //! 5. `session/update` notifications — mapped events stream live to the
 //!    TUI's sub-agent box, and message chunks feed the turn's closure
-//!    ([`TurnClosure`](crate::subagent::closure)): only the message written
+//!    ([`TurnClosure`](crate::closure)): only the message written
 //!    after the LAST tool call is the report returned to the caller.
 //! 6. The turn ends when the `session/prompt` response arrives with a
 //!    [`StopReason`](agent_client_protocol::schema::v1::StopReason).
@@ -928,7 +928,7 @@ pub fn prepare_session_cwd(cwd: &std::path::Path, strictness: CwdStrictness) -> 
     // The read-only passes substitute home when it resolves to a real
     // directory, and log the substitution — a silent path swap would be
     // indistinguishable from a bug in the harness.
-    if let Some(home) = crate::skills::home_dir()
+    if let Some(home) = home_dir()
         && let Ok(home) = std::fs::canonicalize(&home)
         && home.is_dir()
     {
@@ -957,6 +957,55 @@ pub enum CwdStrictness {
     /// The READ-ONLY passes (`replay`, `session_snapshot`): a missing
     /// workspace substitutes the home directory so the load/probe proceeds.
     Substitute,
+}
+
+/// The user's home directory, when it resolves to a real directory: `HOME`
+/// first (normalized, so a Git-Bash `/c/Users/...` spelling becomes a
+/// Windows path), then `USERPROFILE` on Windows. `None` when neither
+/// resolves — the caller degrades to passing the original path through.
+fn home_dir() -> Option<String> {
+    if let Some(h) = std::env::var_os("HOME") {
+        // Lossy on invalid UTF-8 (unpaired surrogates): the is_dir probe
+        // then fails and resolution degrades safely to USERPROFILE.
+        let h = normalize_shell_path(&h.to_string_lossy());
+        if std::path::Path::new(&h).is_dir() {
+            return Some(h);
+        }
+    }
+    if let Some(up) = std::env::var_os("USERPROFILE") {
+        let up = up.to_string_lossy().into_owned();
+        if std::path::Path::new(&up).is_dir() {
+            return Some(up);
+        }
+    }
+    None
+}
+
+/// Translate a POSIX-style absolute path (Git Bash/MSYS spelling) into the
+/// native Windows form, leaving native paths untouched.
+fn normalize_shell_path(path: &str) -> String {
+    #[cfg(not(windows))]
+    {
+        path.to_string()
+    }
+    #[cfg(windows)]
+    {
+        msys_to_windows(path).unwrap_or_else(|| path.to_string())
+    }
+}
+
+/// Map `/c/Users/me` (and `/cygdrive/c/Users/me`) to `C:/Users/me`.
+#[cfg(windows)]
+fn msys_to_windows(path: &str) -> Option<String> {
+    let rest = path
+        .strip_prefix("/cygdrive/")
+        .or_else(|| path.strip_prefix('/'))?;
+    let mut chars = rest.chars();
+    let drive = chars.next()?;
+    if !drive.is_ascii_alphabetic() || chars.next()? != '/' {
+        return None;
+    }
+    Some(format!("{}:/{}", drive.to_ascii_uppercase(), chars.as_str()))
 }
 
 #[cfg(test)]
@@ -1057,7 +1106,7 @@ mod cwd_preparation_tests {
 ///    sends `session/cancel` and the agent ends the turn itself.
 /// 3. Streams typed [`SubagentEvent`]s through `chunk_tx` (for the TUI)
 ///    while feeding the message text to the turn's closure
-///    ([`TurnClosure`](crate::subagent::closure::TurnClosure)).
+///    ([`TurnClosure`](crate::closure::TurnClosure)).
 /// 4. Permission handling is MODE-AWARE: `permission_rx: Some(rx)` makes
 ///    every `session/request_permission` surface as a
 ///    [`SubagentEvent::PermissionRequest`] and AWAIT the user's option pick

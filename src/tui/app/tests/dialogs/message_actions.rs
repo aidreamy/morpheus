@@ -573,14 +573,14 @@ fn app_with_morpheus_pane() -> App {
     split.echo_turn_input(0, "first prompt", true);
     split.apply_event(
         0,
-        &morpheus_tools::subagent::events::SubagentEvent::Message {
+        &morpheus_agents::events::SubagentEvent::Message {
             text: "first answer".into(),
         },
     );
     split.echo_turn_input(0, "second prompt", true);
     split.apply_event(
         0,
-        &morpheus_tools::subagent::events::SubagentEvent::Message {
+        &morpheus_agents::events::SubagentEvent::Message {
             text: "second answer".into(),
         },
     );
@@ -1192,7 +1192,7 @@ async fn pane_action_targets_the_clicked_prompt_across_agent_call_prompts() {
     split.echo_turn_input(0, "first prompt", true);
     split.apply_event(
         0,
-        &morpheus_tools::subagent::events::SubagentEvent::Message {
+        &morpheus_agents::events::SubagentEvent::Message {
             text: "first answer".into(),
         },
     );
@@ -1200,14 +1200,14 @@ async fn pane_action_targets_the_clicked_prompt_across_agent_call_prompts() {
     split.echo_turn_input(0, "inspect the parser", false);
     split.apply_event(
         0,
-        &morpheus_tools::subagent::events::SubagentEvent::Message {
+        &morpheus_agents::events::SubagentEvent::Message {
             text: "call answer".into(),
         },
     );
     split.echo_turn_input(0, "second prompt", true);
     split.apply_event(
         0,
-        &morpheus_tools::subagent::events::SubagentEvent::Message {
+        &morpheus_agents::events::SubagentEvent::Message {
             text: "second answer".into(),
         },
     );

@@ -17,8 +17,8 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
-use morpheus_tools::subagent::acp::{self, SessionHandle};
-use morpheus_tools::subagent::events::{
+use morpheus_agents::acp::{self, SessionHandle};
+use morpheus_agents::events::{
     AgentConfigOption, AgentPermissionOption, AgentSessionMode, PanePermissionAnswer, SubagentEvent,
 };
 use tokio::sync::mpsc;

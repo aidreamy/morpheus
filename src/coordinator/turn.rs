@@ -9,7 +9,7 @@
 
 use std::path::{Path, PathBuf};
 
-use morpheus_tools::subagent::events::AgentConfigOption;
+use morpheus_agents::events::AgentConfigOption;
 
 use crate::harness::agent_coworkers::AgentCoworkerTurnEnd;
 
@@ -345,7 +345,7 @@ mod tests {
     /// model-less so the registry default still applies.
     #[test]
     fn turn_picks_precedence() {
-        use morpheus_tools::subagent::events::AgentConfigOption;
+        use morpheus_agents::events::AgentConfigOption;
 
         let model = AgentConfigOption {
             id: "model".to_string(),
@@ -423,7 +423,7 @@ mod tests {
     /// overridden by the persisted record in `apply_session_picks`.
     #[test]
     fn turn_picks_seed_suppression_matches_the_option_id() {
-        use morpheus_tools::subagent::events::AgentConfigOption;
+        use morpheus_agents::events::AgentConfigOption;
 
         let renamed = AgentConfigOption {
             id: "session_model".to_string(),

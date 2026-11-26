@@ -95,8 +95,8 @@ mod tests {
         SubagentEvent::ToolCall {
             id: id.to_string(),
             title: "call".to_string(),
-            kind: crate::subagent::events::ToolKind::Read,
-            status: crate::subagent::events::ToolCallStatus::InProgress,
+            kind: crate::events::ToolKind::Read,
+            status: crate::events::ToolCallStatus::InProgress,
             raw_input: None,
             tool: None,
         }

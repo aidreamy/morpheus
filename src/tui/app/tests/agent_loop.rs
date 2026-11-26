@@ -860,7 +860,7 @@ async fn agents_mode_right_panel_shows_the_main_agent_not_a_list() {
             e,
             crate::routes::session::right_panel::types::SubagentTimelineEntry::Tool(c)
                 if c.tool.as_deref() == Some("bash_run")
-                    && c.status == morpheus_tools::subagent::events::ToolCallStatus::Completed
+                    && c.status == morpheus_agents::events::ToolCallStatus::Completed
         )),
         "the prior tool call is in the mirror, sealed Completed"
     );

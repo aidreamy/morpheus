@@ -44,7 +44,6 @@ pub mod question;
 #[cfg(feature = "embed")]
 pub mod recall;
 pub mod skills;
-pub mod subagent;
 pub mod util;
 pub mod web;
 

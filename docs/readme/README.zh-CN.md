@@ -60,6 +60,7 @@ irm https://raw.githubusercontent.com/aidreamy/morpheus/main/download.ps1 | iex
 
 | Crate                                                           | 描述                                        |
 | --------------------------------------------------------------- | ----------------------------------------- |
+| [`morpheus-agents`](../../crates/morpheus-agents/README.md)     | 子智能体集成：ACP 客户端 harness、会话状态和类型化事件流 |
 | [`morpheus-tools`](../../crates/morpheus-tools/README.md)       | 开发工具与 computer tools                      |
 | [`morpheus-tui`](../../crates/morpheus-tui/README.md)           | TUI 组件库：markdown/diff 渲染和布局，终端界面的组件层      |
 | [`morpheus-sdk`](../../crates/morpheus-sdk/README.md)           | 可复用的智能体基础组件：补丁引擎、工具调用解析、LSP 客户端和 AST 智能分析 |

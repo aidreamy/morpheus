@@ -5,7 +5,7 @@
 
 Tools crate for [Morpheus](https://github.com/aidreamy/morpheus), a coding agent for the terminal.
 
-`morpheus-tools` implements every tool the Morpheus agent harness exposes to the LLM: filesystem operations, bash execution, search, LSP, web, desktop control, skills, subagents, planning and structured user questions. Each tool is a self-contained async builder API plus an [MCP-schema](https://modelcontextprotocol.io/specification/2025-11-25/server/tools) tool description, so the crate can be used standalone in your own agent with the same tools the Morpheus app registers.
+`morpheus-tools` implements every tool the Morpheus agent harness exposes to the LLM: filesystem operations, bash execution, search, LSP, web, desktop control, skills, planning and structured user questions. Each tool is a self-contained async builder API plus an [MCP-schema](https://modelcontextprotocol.io/specification/2025-11-25/server/tools) tool description, so the crate can be used standalone in your own agent with the same tools the Morpheus app registers.
 
 ## Highlights
 
@@ -13,7 +13,6 @@ Tools crate for [Morpheus](https://github.com/aidreamy/morpheus), a coding agent
 - **Path guarding**: all paths are denied until the project root is set; write and read-only allow/blocklists, and kernel-pinned sandboxing (`openat` with `O_NOFOLLOW`) on Unix.
 - **Accessibility-tree-first computer tools**: observe and drive native desktop apps through the OS accessibility tree ([`xa11y`](https://crates.io/crates/xa11y)), with screenshots and synthetic input as support. Works on Windows (UIA), macOS, and Linux (X11 and Wayland).
 - **Streaming bash**: stdout/stderr streamed as chunks with exit codes, PTY mode, timeouts and pre-spawn security validation.
-- **ACP subagents**: dispatch to external agent harnesses (Gemini, Claude, Codex, Cline, Devin, Goose, OpenCode, Kilo) or an internal nested harness, with session resume and streamed turns.
 - **LSP integration**: definitions, references, renames, call hierarchy and passive diagnostics feedback on touched files.
 - **Skills system**: schema-driven `SKILL.md` capability packs with glob matching and sandboxed asset reads.
 - **Vector recall** (optional, `embed` feature): embedding-agnostic LanceDB similarity search.
@@ -29,7 +28,6 @@ Tools crate for [Morpheus](https://github.com/aidreamy/morpheus), a coding agent
 | `computer`         | `computer_apps`, `computer_snapshot`, `computer_act`, `computer_control`, `computer_screenshot`, `computer_wait`, `computer_windows` |
 | `web`              | `web_fetch`, `web_search`                                                                                                            |
 | `skills`           | `skills_list`, `skills_read`, `skills_read_asset`, `skills_match_skills`                                                             |
-| `subagent`         | `subagent_call`                                                                                                                      |
 | `plan`             | `plan_todo_write`                                                                                                                    |
 | `question`         | `ask_questions`                                                                                                                      |
 | `recall` (`embed`) | `recall_search`                                                                                                                      |
@@ -66,10 +64,10 @@ More examples in [`examples/`](https://github.com/aidreamy/morpheus/tree/main/cr
 
 - Rust 2024 edition (≥ 1.85)
 - The `computer` module needs an OS accessibility stack: Windows UIA, macOS AX, or Linux X11/Wayland
-- External agent CLIs only if dispatching to them via `subagent_call`
 
 ## Related crates
 
+- [`morpheus-agents`](https://crates.io/crates/morpheus-agents): ACP sub-agent integration
 - [`morpheus-sdk`](https://crates.io/crates/morpheus-sdk): agent harness SDK
 - [`morpheus-recall`](https://crates.io/crates/morpheus-recall): memory and context recall
 - [`morpheus-tui`](https://crates.io/crates/morpheus-tui): terminal interface

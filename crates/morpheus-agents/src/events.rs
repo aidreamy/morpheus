@@ -294,7 +294,7 @@ pub struct AgentPermissionOption {
 pub enum SubagentEvent {
     /// A chunk of the USER's own message text. Live v1 turns rarely echo
     /// the prompt back; history REPLAY (`session/load`, see
-    /// [`acp::replay`](crate::subagent::acp::replay)) streams the retained
+    /// [`acp::replay`](crate::acp::replay)) streams the retained
     /// user messages through the same chunk variant, so a rehydrated
     /// timeline shows both sides of the conversation instead of an
     /// agent-only monologue.
@@ -404,7 +404,7 @@ pub enum SubagentEvent {
     /// A tool call AWAITS the user's permission decision. Emitted by the
     /// ACP `session/request_permission` request when the client runs a
     /// non-Yolo mode (the split's Yolo contract auto-approves instead —
-    /// see [`crate::subagent::acp`]'s permission handler). The TUI shows
+    /// see [`crate::acp`]'s permission handler). The TUI shows
     /// its permission box for THIS pane; the user's answer flows back
     /// through the pane's permission channel and selects the response
     /// option. Timeline-visible like a tool call: the row shows the

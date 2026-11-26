@@ -283,6 +283,7 @@ jobs:
         shell: bash
         run: |
           for readme in \
+            crates/morpheus-agents/README.md \
             crates/morpheus-recall/README.md \
             crates/morpheus-sdk/README.md \
             crates/morpheus-tools/README.md \
@@ -295,7 +296,8 @@ jobs:
             fi
           done
 
-      # Publish in dependency order: sdk -> recall -> tools -> tui -> whatsapp.
+      # Publish in dependency order: sdk -> agents -> recall -> tools -> tui ->
+      # whatsapp.
       # Only the library crates are published; the root `morpheus` app package
       # is distributed via the GitHub Release binaries instead.
       - name: Publish crates
@@ -305,6 +307,7 @@ jobs:
         run: |
           crates="
             morpheus-sdk
+            morpheus-agents
             morpheus-recall
             morpheus-tools
             morpheus-tui

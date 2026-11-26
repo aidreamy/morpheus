@@ -1361,7 +1361,7 @@ impl Setup {
 
     /// The user-registered ACP agent harnesses (`setup.json` →
     /// `acp_agents`), as `(name, launch command)` pairs in registration
-    /// order — the exact shape [`morpheus_tools::subagent::acp
+    /// order — the exact shape [`morpheus_agents::acp
     /// ::register_custom_agents`] consumes.
     #[must_use]
     pub fn acp_agent_pairs(&self) -> Vec<(String, String)> {

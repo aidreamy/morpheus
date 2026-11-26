@@ -198,7 +198,7 @@ async fn acp_undo_removes_the_dropped_turn_from_the_painted_pane() {
     let split = app.agents_split.as_mut().unwrap();
     split.apply_event(
         0,
-        &morpheus_tools::subagent::events::SubagentEvent::Message {
+        &morpheus_agents::events::SubagentEvent::Message {
             text: "second answer".into(),
         },
     );

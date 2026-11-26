@@ -30,9 +30,9 @@ use crate::util::text_region::{TextRegion, extract_text_in_region};
 
 use crate::component::spinner::SpinnerState;
 
-use morpheus_tools::subagent::SubAgent;
+use morpheus_agents::SubAgent;
 
-use morpheus_tools::subagent::events::{
+use morpheus_agents::events::{
     PlanEntry, PlanEntryStatus, SubagentEvent, ToolCallStatus, ToolKind,
 };
 
@@ -117,7 +117,7 @@ pub(crate) enum SubagentActivityLine {
     Thought { index: usize, text: String },
     /// One markdown block of the USER's own message — the replay echo,
     /// rendered like any other message block. Only the history replay
-    /// produces these (see `morpheus_tools::subagent::acp::replay`): a live
+    /// produces these (see `morpheus_agents::acp::replay`): a live
     /// pane's prompt echoes through the pane input instead, so a live
     /// timeline never carries one.
     UserMessage { index: usize, text: String },
@@ -441,7 +441,7 @@ pub(crate) fn sanitize_subagent_text(text: &str) -> String {
 /// ([`RightPanelState::subagent_section_rows`]) and the renderer call this
 /// before sanitizing, so heights and display stay in lockstep.
 pub(crate) fn subagent_visible_body(body: &str) -> &str {
-    morpheus_tools::subagent::severity::extract_severity(body).1
+    morpheus_agents::severity::extract_severity(body).1
 }
 
 /// Convert the persisted ACP tool result into the text the live panel
@@ -515,7 +515,7 @@ fn classify_subagent_output(chunk: &str) -> SubagentOutputShape {
         // guess at the payload).
     }
     // Tool-result envelope (`SubAgentCallOutput`).
-    if let Ok(env) = serde_json::from_str::<morpheus_tools::subagent::SubAgentCallOutput>(chunk) {
+    if let Ok(env) = serde_json::from_str::<morpheus_agents::SubAgentCallOutput>(chunk) {
         if env.stop_reason == "spawned" {
             return SubagentOutputShape::Spawned(format!("⏳ {}", env.output));
         }
@@ -848,7 +848,7 @@ pub struct PtySession {
     /// reports without a header — the box keeps the section's default
     /// color. Consumed at completion (live) or rehydration (persisted);
     /// the header itself is stripped at render time, never shown.
-    pub(crate) severity: Option<morpheus_tools::subagent::severity::Severity>,
+    pub(crate) severity: Option<morpheus_agents::severity::Severity>,
     /// Task description for the subagent LIST entry (`<agent> <description>
     /// <tool> <spinner>`): the `description` the main agent passed to
     /// `subagent_call`, or the inferred `code-review-NN` label for a
@@ -1065,7 +1065,7 @@ pub(crate) struct SubagentToolCall {
     pub(crate) output_tail: Option<String>,
     /// Compact diff summary when the update carried a `ToolCallContent::Diff`
     /// (file edits): rendered as one `path +N −M` line under the call.
-    pub(crate) diff: Option<morpheus_tools::subagent::events::ToolDiffSummary>,
+    pub(crate) diff: Option<morpheus_agents::events::ToolDiffSummary>,
     /// The one input detail worth showing under the tool line (path, query,
     /// URL, command) — extracted from the announcement's raw input and NOT
     /// replaced by updates. Generic over CLIs; `None` when no common key
@@ -4212,7 +4212,7 @@ impl RightPanelState {
                 // BEFORE the tail-only truncation below, or a large report
                 // would lose its header.
                 let (severity, _) =
-                    morpheus_tools::subagent::severity::extract_severity(&final_output);
+                    morpheus_agents::severity::extract_severity(&final_output);
                 session.severity = severity;
             }
             // SEAL ON THE TRANSITION ONLY: one subagent call's completion
@@ -4602,7 +4602,7 @@ impl RightPanelState {
         // `complete_last_pty`; consume it so a restored window keeps its
         // box tint. Extracted BEFORE truncation (which keeps only the tail).
         if session.is_subagent() && !failed {
-            let (severity, _) = morpheus_tools::subagent::severity::extract_severity(&output);
+            let (severity, _) = morpheus_agents::severity::extract_severity(&output);
             session.severity = severity;
         }
         session.output.push_str(&output);
@@ -5570,7 +5570,7 @@ mod tests {
 
     // ── Sub-agent live activity (Phase 3a) ────────────────────────────
 
-    use morpheus_tools::subagent::events::{PlanEntryPriority, PlanEntryStatus, ToolOutputBlock};
+    use morpheus_agents::events::{PlanEntryPriority, PlanEntryStatus, ToolOutputBlock};
 
     fn tool_call_event(id: &str, title: &str) -> SubagentEvent {
         SubagentEvent::ToolCall {
@@ -6235,7 +6235,7 @@ mod tests {
         state.complete_last_pty("<!-- severity: red -->\n\n## Critical\n\nBug found.".to_string());
         assert_eq!(
             state.pty_sessions[0].severity,
-            Some(morpheus_tools::subagent::severity::Severity::Red)
+            Some(morpheus_agents::severity::Severity::Red)
         );
 
         // A non-review report without a header stays neutral.
@@ -6262,7 +6262,7 @@ mod tests {
         );
         assert_eq!(
             state.pty_sessions[0].severity,
-            Some(morpheus_tools::subagent::severity::Severity::Yellow)
+            Some(morpheus_agents::severity::Severity::Yellow)
         );
         assert_eq!(state.pty_sessions[0].input_echo.as_deref(), Some("review"));
 
@@ -6292,7 +6292,7 @@ mod tests {
         state.complete_last_pty(big_report);
         assert_eq!(
             state.pty_sessions[0].severity,
-            Some(morpheus_tools::subagent::severity::Severity::Green)
+            Some(morpheus_agents::severity::Severity::Green)
         );
         assert!(state.pty_sessions[0].output.len() <= MAX_PTY_OUTPUT_CHARS);
         assert!(!state.pty_sessions[0].output.contains("severity"));
@@ -6351,10 +6351,10 @@ mod tests {
             status: Some(ToolCallStatus::Completed),
             title: None,
             raw_output: None,
-            content: morpheus_tools::subagent::events::ToolOutputBlock {
+            content: morpheus_agents::events::ToolOutputBlock {
                 text: "contents".to_string(),
                 skipped: 0,
-                diff: Some(morpheus_tools::subagent::events::ToolDiffSummary {
+                diff: Some(morpheus_agents::events::ToolDiffSummary {
                     path: "src/main.rs".to_string(),
                     added: 12,
                     removed: 3,
@@ -6406,10 +6406,10 @@ mod tests {
             status: Some(ToolCallStatus::Completed),
             title: None,
             raw_output: None,
-            content: morpheus_tools::subagent::events::ToolOutputBlock {
+            content: morpheus_agents::events::ToolOutputBlock {
                 text: "edited".to_string(),
                 skipped: 0,
-                diff: Some(morpheus_tools::subagent::events::ToolDiffSummary {
+                diff: Some(morpheus_agents::events::ToolDiffSummary {
                     path: "src/main.rs".to_string(),
                     added: 1,
                     removed: 1,
@@ -6469,10 +6469,10 @@ mod tests {
             status: Some(ToolCallStatus::Completed),
             title: None,
             raw_output: None,
-            content: morpheus_tools::subagent::events::ToolOutputBlock {
+            content: morpheus_agents::events::ToolOutputBlock {
                 text: String::new(),
                 skipped: 0,
-                diff: Some(morpheus_tools::subagent::events::ToolDiffSummary {
+                diff: Some(morpheus_agents::events::ToolDiffSummary {
                     path: "f.rs".to_string(),
                     added: 2,
                     removed: 0,
@@ -6525,7 +6525,7 @@ mod tests {
 
     #[test]
     fn activity_lines_render_plan_glyphs_and_thought_tail() {
-        use morpheus_tools::subagent::events::{PlanEntryPriority, PlanEntryStatus};
+        use morpheus_agents::events::{PlanEntryPriority, PlanEntryStatus};
         let mut activity = SubagentActivity::default();
         activity.apply(&SubagentEvent::Plan {
             entries: vec![

@@ -15,8 +15,8 @@
 //! cargo run --example subagent
 //! ```
 
-use morpheus_tools::subagent::SubAgent;
-use morpheus_tools::subagent::acp::{ACP_AGENTS, detect_installed, validate_agent};
+use morpheus_agents::SubAgent;
+use morpheus_agents::acp::{ACP_AGENTS, detect_installed, validate_agent};
 
 fn main() {
     // ── 1. The tool schema ------------------------------------------------

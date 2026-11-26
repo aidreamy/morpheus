@@ -81,7 +81,12 @@ async fn picking_a_voice_from_another_installed_bundle_switches_the_bundle() {
     let bundle = |name: &str| {
         let dir = models.path().join(name);
         std::fs::create_dir_all(&dir).unwrap();
-        for file in ["model.onnx", "tokens.txt", "voices.bin"] {
+        for file in [
+            "model.onnx",
+            "tokens.txt",
+            "voices.bin",
+            "lexicon-us-en.txt",
+        ] {
             std::fs::write(dir.join(file), b"").unwrap();
         }
         dir

@@ -296,19 +296,23 @@ mod tests {
     fn a_process_is_alive_only_while_it_runs() {
         assert!(is_process_alive(std::process::id()));
 
+        // The child sleeps so the alive check cannot race its exit; it is
+        // killed and reaped before the dead check, which cannot race either.
         #[cfg(windows)]
         let mut child = std::process::Command::new("cmd")
-            .args(["/C", "exit"])
+            .args(["/C", "ping -n 60 127.0.0.1 > NUL"])
             .spawn()
-            .expect("spawn cmd");
+            .expect("spawn a sleeping child");
         #[cfg(unix)]
-        let mut child = std::process::Command::new("true")
+        let mut child = std::process::Command::new("sleep")
+            .arg("60")
             .spawn()
-            .expect("spawn true");
+            .expect("spawn a sleeping child");
 
         let pid = child.id();
-        assert!(is_process_alive(pid));
-        child.wait().expect("wait child");
-        assert!(!is_process_alive(pid));
+        assert!(is_process_alive(pid), "a sleeping child is alive");
+        child.kill().expect("kill the child");
+        child.wait().expect("reap the child");
+        assert!(!is_process_alive(pid), "a reaped child is dead");
     }
 }

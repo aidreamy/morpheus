@@ -117,5 +117,5 @@ pub use engine::{Speak, Speech};
 pub use player::Playback;
 pub use voice::{
     LANGUAGES, LanguageSupport, Voice, VoiceEntry, entries as voice_entries, entry as voice_entry,
-    espeak_language, find as find_voice, has_lexicon, installed_bundles,
+    espeak_language, find as find_voice, frontend, has_lexicon, installed_bundles,
 };

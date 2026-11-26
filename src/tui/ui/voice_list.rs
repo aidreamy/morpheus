@@ -85,14 +85,10 @@ pub fn rows(voices: &[&VoiceChoice], current: i32) -> Vec<ListRow> {
             // The frontend note explains why some voices need a build with
             // `speak-phonemize`: without it they fall back to a lexicon that
             // does not cover their language.
-            let frontend = if voice.needs_phonemize {
-                " · espeak-ng"
-            } else {
-                " · lexicon"
-            };
+            let frontend = morpheus::speak::frontend(&voice.language);
             rows.push(ListRow::item(
                 voice.name.clone(),
-                format!("  ·  {} · {}{frontend}", voice.speaker, voice.gender),
+                format!("  ·  {} · {} · {frontend}", voice.speaker, voice.gender),
                 voice.speaker == current && voice.model_dir.is_none(),
             ));
         }
@@ -173,6 +169,28 @@ mod tests {
         assert_eq!(filtered(&voices, "pt-br").len(), 3);
         assert_eq!(filtered(&voices, "unknown-voice").len(), 0);
         assert_eq!(filtered(&voices, "").len(), voices.len());
+    }
+
+    /// The row detail names the frontend per language: the bundle lexicon,
+    /// the Japanese dictionary or espeak-ng.
+    #[test]
+    fn rows_name_the_frontend_that_phonemizes_each_language() {
+        let voices = vec![
+            voice(3, "af_heart", "en-us", "English (US)", "female"),
+            voice(37, "jf_alpha", "ja", "Japanese", "female"),
+            voice(42, "pf_dora", "pt-br", "Portuguese (Brazil)", "female"),
+        ];
+        let rows = rows(&filtered(&voices, ""), 42);
+        let details: Vec<&str> = rows
+            .iter()
+            .filter(|row| !row.header)
+            .map(|row| row.detail.as_str())
+            .collect();
+        // Headers sort by language label: English, Japanese, Portuguese.
+        assert_eq!(details.len(), 3);
+        assert!(details[0].ends_with("lexicon"), "{details:?}");
+        assert!(details[1].ends_with("Japanese dictionary"), "{details:?}");
+        assert!(details[2].ends_with("espeak-ng"), "{details:?}");
     }
 
     #[test]

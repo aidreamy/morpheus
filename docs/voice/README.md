@@ -421,11 +421,11 @@ with `MORPHEUS_TTSD_IDLE_SECS`.
 The **Speaker** row lists the configured bundle plus every other complete
 bundle found beside it, grouped by language and bundle. The detail after each
 name is `id · gender · frontend`, where `frontend` is `lexicon` (English and
-Chinese) or `espeak-ng` (all other languages).
+Chinese), `Japanese dictionary` (Japanese) or `espeak-ng` (Spanish, French,
+Hindi, Italian and Brazilian Portuguese).
 
-
-The picker is searchable across name, id, language code/label, gender, bundle
-and frontend (`espeak-ng` / `lexicon`). `/voice` toggles automatic generation.
+The picker is searchable across name, id, language code/label, gender and
+bundle; `/voice` toggles automatic generation.
 `Ctrl+Y` (or the **speak** control after an answer) plays the last answer; older
 answers keep their own **speak** control, and the playing clip offers
 **pause**/**resume**/**rewind**.

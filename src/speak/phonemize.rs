@@ -86,11 +86,20 @@ mod japanese {
                 None => kana.push_str(&token.surface),
             }
         }
+        // One entry per sentence, the shape `piper_phonemize` returns.
         let phonemes = kana_to_phonemes(&kana);
-        if phonemes.trim().is_empty() {
+        let sentences: Vec<&str> = phonemes
+            .split_inclusive(['.', '!', '?'])
+            .map(str::trim)
+            .filter(|sentence| !sentence.is_empty())
+            .collect();
+        if sentences.is_empty() {
             return Err(SpeakError::NoAudio);
         }
-        Ok(vec![phonemes.chars().map(|c| c as i32).collect::<Vec<_>>()])
+        Ok(sentences
+            .into_iter()
+            .map(|sentence| sentence.chars().map(|c| c as i32).collect())
+            .collect())
     }
 
     /// Katakana to hiragana, the script the table is keyed by.
@@ -348,18 +357,23 @@ mod japanese {
 mod tests {
     use super::*;
 
-    fn phonemes(text: &str, lang: &str) -> String {
+    fn sentence(codepoints: Vec<i32>) -> String {
+        codepoints
+            .into_iter()
+            .filter_map(|cp| u32::try_from(cp).ok().and_then(char::from_u32))
+            .collect()
+    }
+
+    fn sentences(text: &str, lang: &str) -> Vec<String> {
         codepoints(text, lang)
             .unwrap_or_else(|error| panic!("{lang}: {error}"))
             .into_iter()
-            .map(|sentence| {
-                sentence
-                    .into_iter()
-                    .filter_map(|cp| u32::try_from(cp).ok().and_then(char::from_u32))
-                    .collect::<String>()
-            })
-            .collect::<Vec<_>>()
-            .concat()
+            .map(sentence)
+            .collect()
+    }
+
+    fn phonemes(text: &str, lang: &str) -> String {
+        sentences(text, lang).concat()
     }
 
     /// Kanji goes through the embedded Japanese dictionary, not espeak-ng.
@@ -379,23 +393,54 @@ mod tests {
         assert_eq!(tokyo, "toːkʲoːeikoɯ", "へ is the particle e");
     }
 
+    /// A Japanese sentence ends at its own terminator, so the model gets the
+    /// same one-sentence-per-entry shape `piper_phonemize` returns.
+    #[test]
+    fn japanese_splits_one_sentence_per_terminator() {
+        let split = sentences("今日はいい天気ですね。明日は雨です！", "ja");
+        assert_eq!(split.len(), 2, "two sentences, got {split:?}");
+        assert!(split[0].ends_with('.'), "got {split:?}");
+        assert!(split[1].ends_with('!'), "got {split:?}");
+        assert!(
+            split.iter().all(|sentence| !sentence.trim().is_empty()),
+            "got {split:?}"
+        );
+    }
+
+    /// One sample sentence per supported language. The table is checked
+    /// against [`crate::speak::voice::LANGUAGES`], so a new voice language
+    /// cannot ship without a frontend test.
+    const SAMPLES: &[(&str, &str)] = &[
+        ("en-us", "Hello, how are you?"),
+        ("en-gb", "Hello, how are you?"),
+        ("zh", "你好，你好吗？"),
+        ("es", "Hola, ¿cómo estás?"),
+        ("fr", "Bonjour, comment ça va ?"),
+        ("hi", "नमस्ते, आप कैसे हैं?"),
+        ("it", "Ciao, come stai?"),
+        ("ja", "今日はいい天気ですね。"),
+        ("pt-br", "Olá, tudo bem?"),
+    ];
+
     /// Every language the v1.0 bundle ships voices for must produce
     /// non-empty phonemes. The espeak-ng languages need the bundle's complete
-    /// data directory; skip them when the bundle is not installed, since CI
-    /// has no model.
+    /// data directory and the lexicon languages need the model, so each is
+    /// skipped when its data is not installed; CI has no model.
     #[test]
     fn every_supported_language_phonemizes() {
-        let cases = [
-            ("ja", "今日はいい天気ですね。"),
-            ("pt-br", "Olá, tudo bem?"),
-            ("es", "Hola, ¿cómo estás?"),
-            ("fr", "Bonjour, comment ça va ?"),
-            ("hi", "नमस्ते, आप कैसे हैं?"),
-            ("it", "Ciao, come stai?"),
-        ];
+        let mut declared: Vec<&str> = crate::speak::voice::LANGUAGES
+            .iter()
+            .map(|language| language.language)
+            .collect();
+        declared.sort_unstable();
+        let mut sampled: Vec<&str> = SAMPLES.iter().map(|(lang, _)| *lang).collect();
+        sampled.sort_unstable();
+        assert_eq!(declared, sampled, "every language needs a sample");
+
         let bundle = crate::speak::default_model_dir();
         let data = bundle.join("espeak-ng-data");
-        if data.join("phontab").is_file() {
+        let espeak_installed = data.join("phontab").is_file();
+        if espeak_installed {
             initialize(&data).expect("the bundle ships complete espeak-ng data");
         } else {
             eprintln!(
@@ -403,8 +448,18 @@ mod tests {
                 bundle.display()
             );
         }
-        for (lang, text) in cases {
-            if lang != "ja" && !data.join("phontab").is_file() {
+
+        for (lang, text) in SAMPLES {
+            let support = crate::speak::voice::LANGUAGES
+                .iter()
+                .find(|entry| entry.language == *lang)
+                .expect("the sample table and LANGUAGES agree");
+            if support.lexicon {
+                // English and Chinese run on the bundle lexicon inside the
+                // loaded model, which neither this build nor CI has.
+                continue;
+            }
+            if *lang != "ja" && !espeak_installed {
                 continue;
             }
             let out = phonemes(text, lang);

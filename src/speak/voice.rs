@@ -136,6 +136,19 @@ pub fn has_lexicon(language: &str) -> bool {
         .is_some_and(|entry| entry.lexicon)
 }
 
+/// Short name of the frontend that phonemizes `language`, for the picker's
+/// row detail: the bundle lexicon, the Japanese dictionary or espeak-ng.
+#[must_use]
+pub fn frontend(language: &str) -> &'static str {
+    if has_lexicon(language) {
+        "lexicon"
+    } else if language == "ja" {
+        "Japanese dictionary"
+    } else {
+        "espeak-ng"
+    }
+}
+
 /// Language and label for a Kokoro name prefix (`af_maple` → `af`).
 fn language(prefix: &str) -> Option<(&'static str, &'static str)> {
     Some(match prefix {
@@ -235,10 +248,10 @@ pub fn espeak_language(model_dir: &Path, speaker: i32) -> Option<&'static str> {
 ///
 /// A directory is listed only when its name identifies a known release and it
 /// contains the files the loader requires (`model.onnx` or
-/// `model.int8.onnx`, `tokens.txt`, `voices.bin`), so a half-extracted or
-/// unrelated directory is never offered as a usable bundle. Unknown names are
-/// ignored: their speakers still work through the raw id, only the names are
-/// unavailable.
+/// `model.int8.onnx`, `tokens.txt`, `voices.bin`) plus a `lexicon-*.txt` for
+/// the bundle-lexicon voices, so a half-extracted or unrelated directory is
+/// never offered as a usable bundle. Unknown names are ignored: their speakers
+/// still work through the raw id, only the names are unavailable.
 #[must_use]
 pub fn installed_bundles(root: &Path) -> Vec<PathBuf> {
     let Ok(entries) = std::fs::read_dir(root) else {
@@ -266,7 +279,25 @@ pub fn installed_bundles(root: &Path) -> Vec<PathBuf> {
 
 fn is_complete(dir: &Path) -> bool {
     let has_model = dir.join("model.onnx").is_file() || dir.join("model.int8.onnx").is_file();
-    has_model && dir.join("tokens.txt").is_file() && dir.join("voices.bin").is_file()
+    has_model
+        && dir.join("tokens.txt").is_file()
+        && dir.join("voices.bin").is_file()
+        && has_lexicon_files(dir)
+}
+
+/// Whether `dir` ships at least one `lexicon-*.txt`. English and Chinese
+/// voices run on these tables, so a bundle without any would list voices whose
+/// first synthesis fails.
+fn has_lexicon_files(dir: &Path) -> bool {
+    let Ok(entries) = std::fs::read_dir(dir) else {
+        return false;
+    };
+    entries.filter_map(Result::ok).any(|entry| {
+        entry
+            .file_name()
+            .to_str()
+            .is_some_and(|name| name.starts_with("lexicon-") && name.ends_with(".txt"))
+    })
 }
 
 /// `kokoro-multi-lang-v1_0`: 54 speakers, Chinese + English.
@@ -1132,11 +1163,12 @@ mod tests {
     }
 
     /// The models root lists only complete known bundles, newest first, so a
-    /// picker never offers a half-extracted directory.
+    /// picker never offers a half-extracted directory or one whose lexicon
+    /// voices could not run.
     #[test]
     fn installed_bundles_are_complete_and_ordered() {
         let root = tempfile::tempdir().unwrap();
-        let make = |name: &str, complete: bool| {
+        let make = |name: &str, complete: bool, lexicon: bool| {
             let dir = root.path().join(name);
             std::fs::create_dir_all(&dir).unwrap();
             std::fs::write(dir.join("tokens.txt"), b"").unwrap();
@@ -1144,12 +1176,16 @@ mod tests {
             if complete {
                 std::fs::write(dir.join("model.onnx"), b"").unwrap();
             }
+            if lexicon {
+                std::fs::write(dir.join("lexicon-us-en.txt"), b"").unwrap();
+            }
             dir
         };
-        let v10 = make("kokoro-multi-lang-v1_0", true);
-        let v11 = make("kokoro-int8-multi-lang-v1_1", true);
-        make("kokoro-multi-lang-v1_1-broken", false);
-        make("unrelated", true);
+        let v10 = make("kokoro-multi-lang-v1_0", true, true);
+        let v11 = make("kokoro-int8-multi-lang-v1_1", true, true);
+        make("kokoro-multi-lang-v1_1-broken", false, true);
+        make("kokoro-multi-lang-v1_1-no-lexicon", true, false);
+        make("unrelated", true, true);
 
         let found = installed_bundles(root.path());
         assert_eq!(found, vec![v11, v10], "newest first, only complete bundles");

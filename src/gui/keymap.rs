@@ -10,6 +10,7 @@ actions!(
         ToggleSidebar,
         ToggleRightPanel,
         ToggleCommands,
+        ChooseModel,
         Cancel,
         StopTurn
     ]

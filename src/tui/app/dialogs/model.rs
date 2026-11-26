@@ -91,7 +91,6 @@ impl App {
     /// background revalidation. `current` is whatever model this picker
     /// edits — the global config's, or the focused pane's own.
     fn open_model_dialog_with_current(&mut self, current: String) {
-        use aiface::connector::Connector;
         use morpheus::ModelEntry;
 
         // Collect providers and check if their API key is still configured.
@@ -182,25 +181,7 @@ impl App {
             let base_urls = self.configured_local_base_urls();
 
             self.tokio_handle.spawn(async move {
-                let mut all_models: Vec<ModelEntry> = Vec::new();
-
-                for provider in providers_to_check {
-                    if let Ok(mut connector) = Connector::new(provider)
-                        .map(|c| c.with_service_keyring(morpheus::KEYRING_SERVICE))
-                    {
-                        if let Some(url) = base_urls.get(provider) {
-                            connector = connector.with_base_url(url.clone());
-                        }
-                        if let Ok(output) = connector.list_models().await {
-                            for model_info in output.models() {
-                                all_models.push(ModelEntry {
-                                    provider: provider.to_string(),
-                                    model: model_info.id().to_string(),
-                                });
-                            }
-                        }
-                    }
-                }
+                let all_models = morpheus::models::list_models(providers_to_check, &base_urls).await;
 
                 let _ = dialog_tx_clone.send(HarnessEvent::ModelsLoaded {
                     models: all_models,

@@ -42,43 +42,7 @@ impl App {
     /// first provider (registry order) represents the shared endpoint.
     #[must_use]
     pub(super) fn active_providers(&self) -> Vec<&'static str> {
-        use aiface::connector::{
-            get_provider, is_local_provider, known_local_providers, known_providers_with_env,
-        };
-
-        let mut active: Vec<&'static str> = Vec::new();
-        for (provider, _) in known_providers_with_env() {
-            if !is_local_provider(provider)
-                && aiface::connector::has_api_key(provider, Some(morpheus::KEYRING_SERVICE))
-            {
-                active.push(provider);
-            }
-        }
-
-        // User-registered custom providers: same credential rule as the
-        // built-in cloud endpoints (keyring first, then `<NAME>_API_KEY`).
-        for provider in aiface::connector::custom_provider_names() {
-            if aiface::connector::has_api_key(provider, Some(morpheus::KEYRING_SERVICE))
-                && !active.contains(&provider)
-            {
-                active.push(provider);
-            }
-        }
-
-        // Local providers: configured URL wins; otherwise the registry's
-        // default endpoint. Probe each distinct endpoint only once.
-        let mut endpoints: std::collections::HashSet<String> = std::collections::HashSet::new();
-        for provider in known_local_providers() {
-            let endpoint = if let Some(cfg) = self.setup.local_base_url(provider) {
-                aiface::connector::normalize_local_base_url(provider, cfg)
-            } else {
-                get_provider(provider).map_or_else(String::new, |cfg| cfg.base_url.to_string())
-            };
-            if endpoints.insert(endpoint) {
-                active.push(provider);
-            }
-        }
-        active
+        morpheus::models::active_providers(&self.configured_local_base_urls())
     }
 
     /// Open the right credential dialog for a provider: local providers ask

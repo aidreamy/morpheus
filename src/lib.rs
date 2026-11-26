@@ -8,6 +8,7 @@ pub mod fallback;
 pub mod git;
 pub mod harness;
 pub mod mcp;
+pub mod models;
 pub mod notification;
 pub mod session;
 pub mod setup;

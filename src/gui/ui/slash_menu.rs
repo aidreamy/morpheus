@@ -43,7 +43,7 @@ impl Command {
                 },
             ),
             Self::Stop => ("stop", "Interrupt the current turn", "Esc"),
-            Self::Models => ("models", "Select a provider and model for this chat", ""),
+            Self::Models => ("models", "Browse and choose a model for this chat", ""),
             Self::Sidebar => ("sidebar", "Toggle the left panel", "Ctrl+B"),
             Self::RightPanel => ("right-panel", "Toggle the session panel", "Ctrl+P"),
         }
@@ -64,7 +64,7 @@ impl Command {
             Self::Stop => window.dispatch_action(Box::new(keymap::StopTurn), cx),
             Self::Sidebar => window.dispatch_action(Box::new(keymap::ToggleSidebar), cx),
             Self::RightPanel => window.dispatch_action(Box::new(keymap::ToggleRightPanel), cx),
-            Self::Models => unreachable!("model selection is edited in the prompt"),
+            Self::Models => window.dispatch_action(Box::new(keymap::ChooseModel), cx),
         }
     }
 }
@@ -93,7 +93,7 @@ impl Menu {
     }
 
     pub(crate) fn dismiss(&mut self, text: &str) -> bool {
-        let open = !self.options(text).is_empty() || self.show_model_hint(text);
+        let open = !self.options(text).is_empty();
         if open {
             self.dismissed = true;
             self.forced = false;
@@ -117,10 +117,6 @@ impl Menu {
             .copied()
             .filter(|command| command.info().0.starts_with(query))
             .collect()
-    }
-
-    pub(crate) fn show_model_hint(&self, text: &str) -> bool {
-        !self.dismissed && text.trim_start().starts_with("/models ") && !self.forced
     }
 
     pub(crate) fn selected(&self, text: &str) -> Option<Command> {
@@ -147,8 +143,7 @@ impl Menu {
         F: Fn(Command, &ClickEvent, &mut Window, &mut App) + Clone + 'static,
     {
         let options = self.options(text);
-        let hint = self.show_model_hint(text);
-        if options.is_empty() && !hint {
+        if options.is_empty() {
             return None;
         }
 
@@ -163,11 +158,7 @@ impl Menu {
                 .bg(rgb(theme::CHROME))
                 .shadow_md()
                 .block_mouse_except_scroll()
-                .child(if hint {
-                    div().px(px(14.)).py(px(10.)).text_size(px(13.)).text_color(rgb(theme::MUTED))
-                    .child("/models <provider> <model> · Use /models auto to select from fallbacks")
-                    .into_any_element()
-                } else {
+                .child(
                     div()
                         .id("command-options")
                         .max_h(height)
@@ -225,9 +216,8 @@ impl Menu {
                                 .on_click(move |event, window, cx| {
                                     on_pick(command, event, window, cx)
                                 })
-                        }))
-                        .into_any_element()
-                }),
+                        })),
+                ),
         )
     }
 }

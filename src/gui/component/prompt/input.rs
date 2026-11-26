@@ -2,11 +2,12 @@ use std::ops::Range;
 
 use gpui::{
     Bounds, ClipboardItem, Context, EntityInputHandler, KeyDownEvent, Modifiers, MouseButton,
-    MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Point, UTF16Selection, Window,
+    MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Point, ScrollWheelEvent, UTF16Selection,
+    Window,
 };
 use unicode_segmentation::UnicodeSegmentation;
 
-use super::Prompt;
+use super::{Prompt, layout::LINE_HEIGHT};
 
 impl Prompt {
     pub(super) fn key_down(
@@ -17,6 +18,16 @@ impl Prompt {
     ) {
         let key = &event.keystroke;
         let modifiers = key.modifiers;
+        if modifiers == Modifiers::none()
+            && matches!(key.key.as_str(), "up" | "down")
+            && self.marked.is_none()
+            && self.model_draft.is_some()
+        {
+            self.model_picker.navigate(&self.text, key.key == "down");
+            cx.stop_propagation();
+            cx.notify();
+            return;
+        }
         if modifiers == Modifiers::none()
             && matches!(key.key.as_str(), "up" | "down")
             && self.marked.is_none()
@@ -42,6 +53,16 @@ impl Prompt {
                     self.anchor = 0;
                     self.caret = self.text.len();
                 }
+                "home" | "end" => {
+                    self.move_caret(
+                        if key.key == "home" {
+                            0
+                        } else {
+                            self.text.len()
+                        },
+                        false,
+                    );
+                }
                 "c" | "x" => {
                     if !selection.is_empty() {
                         cx.write_to_clipboard(ClipboardItem::new_string(
@@ -54,13 +75,18 @@ impl Prompt {
                 }
                 "v" => {
                     if let Some(text) = cx.read_from_clipboard().and_then(|item| item.text()) {
-                        self.replace(self.replacement_range(None), &text.replace("\r\n", "\n"));
+                        self.replace(self.replacement_range(None), &text);
                     }
                 }
                 _ => return,
             }
         } else if !modifiers.control && !modifiers.platform && !modifiers.alt {
             match key.key.as_str() {
+                "enter"
+                    if modifiers.shift && self.marked.is_none() && self.model_draft.is_none() =>
+                {
+                    self.replace(selection, "\n");
+                }
                 "backspace" | "delete" => {
                     let range = if !selection.is_empty() {
                         selection
@@ -71,10 +97,21 @@ impl Prompt {
                     };
                     self.replace(range, "");
                 }
-                "left" | "right" | "home" | "end" => {
+                "left" | "right" | "up" | "down" | "home" | "end" => {
                     let next = match key.key.as_str() {
-                        "home" => 0,
-                        "end" => self.text.len(),
+                        "home" | "end" => self.current_layout().map_or_else(
+                            || {
+                                if key.key == "home" {
+                                    0
+                                } else {
+                                    self.text.len()
+                                }
+                            },
+                            |layout| layout.line_edge(self.caret, key.key == "end"),
+                        ),
+                        "up" | "down" => self.current_layout().map_or(self.caret, |layout| {
+                            layout.move_vertical(self.caret, key.key == "down")
+                        }),
                         "left" if modifiers.shift || selection.is_empty() => {
                             self.previous_boundary()
                         }
@@ -92,6 +129,23 @@ impl Prompt {
 
         cx.stop_propagation();
         cx.notify();
+    }
+
+    pub(super) fn scroll(
+        &mut self,
+        event: &ScrollWheelEvent,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if let Some(layout) = &mut self.layout {
+            let scroll = (layout.scroll - event.delta.pixel_delta(LINE_HEIGHT).y)
+                .clamp(gpui::px(0.), layout.max_scroll());
+            if scroll != layout.scroll {
+                layout.scroll = scroll;
+                cx.stop_propagation();
+                cx.notify();
+            }
+        }
     }
 
     pub(super) fn mouse_down(
@@ -158,10 +212,18 @@ impl Prompt {
     }
 
     fn replace(&mut self, range: Range<usize>, text: &str) {
-        let text = text.replace(['\r', '\n'], " ");
+        let text = text.replace("\r\n", "\n").replace('\r', "\n");
+        let text = if self.model_draft.is_some() {
+            text.replace('\n', " ")
+        } else {
+            text
+        };
         let end = range.start + text.len();
         self.text.replace_range(range, &text);
         self.menu.input_changed();
+        if self.model_draft.is_some() {
+            self.model_picker.select(0);
+        }
         self.marked = None;
         self.move_caret(end, false);
     }

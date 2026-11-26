@@ -8,12 +8,12 @@ use std::sync::Arc;
 use gpui::{App, Entity, ScrollHandle, Subscription, Window, div, prelude::*, px};
 use morpheus::types::{Message, MessageRole, Part, TextPart, now_ms};
 use morpheus::{
-    assembly::config::AgentConfig, harness::ContextManagerState,
+    ModelEntry, assembly::config::AgentConfig, harness::ContextManagerState,
     session::store::generate_session_id,
 };
 
 use crate::{
-    component::prompt::{Prompt, Submitted},
+    component::prompt::{ModelSelected, Prompt, Submitted},
     theme,
 };
 
@@ -26,6 +26,7 @@ const CONTENT_PADDING: f32 = 24.;
 pub(crate) struct Chat {
     prompt: Entity<Prompt>,
     _prompt_submission: Subscription,
+    _model_selection: Subscription,
     config: Arc<AgentConfig>,
     session_id: String,
     messages: Vec<Message>,
@@ -43,9 +44,14 @@ impl Chat {
         let prompt_submission = cx.subscribe(&prompt, |chat, _, Submitted(text), cx| {
             chat.submit(text.clone(), cx);
         });
+        let model_selection = cx.subscribe(&prompt, |chat, _, ModelSelected(model), cx| {
+            chat.apply_model(model);
+            cx.notify();
+        });
         Self {
             prompt,
             _prompt_submission: prompt_submission,
+            _model_selection: model_selection,
             config,
             session_id: generate_session_id(),
             messages: Vec::new(),
@@ -70,6 +76,21 @@ impl Chat {
     pub(crate) fn toggle_commands(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         self.prompt
             .update(cx, |prompt, cx| prompt.toggle_commands(window, cx));
+    }
+
+    pub(crate) fn open_models(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let current = self.config.model.as_ref().map(|model| ModelEntry {
+            provider: if model == "auto" {
+                String::new()
+            } else {
+                self.config.provider.clone()
+            },
+            model: model.clone(),
+        });
+        let base_urls = self.config.local_base_urls.clone();
+        self.prompt.update(cx, |prompt, cx| {
+            prompt.open_models(current, base_urls, window, cx)
+        });
     }
 
     pub(crate) fn cancel(&mut self, cx: &mut Context<Self>) {
@@ -98,13 +119,11 @@ impl Chat {
     }
 
     fn select_model(&mut self, provider: Option<&str>, model: Option<&str>, extra: Option<&str>) {
-        let config = Arc::make_mut(&mut self.config);
         match (provider, model, extra) {
-            (Some("auto"), None, None) => {
-                config.model = Some("auto".into());
-                config.reasoning = None;
-                self.notice = Some("Model set to auto for this chat.".into());
-            }
+            (Some("auto"), None, None) => self.apply_model(&ModelEntry {
+                provider: String::new(),
+                model: "auto".into(),
+            }),
             (Some(provider), Some(model), None) if model != "auto" => {
                 let provider = provider.to_ascii_lowercase();
                 let known = aiface::connector::known_providers().any(|name| name == provider);
@@ -112,16 +131,32 @@ impl Chat {
                     self.error(format!("Unknown provider: {provider}"));
                     return;
                 }
-                config.base_url = config.local_base_urls.get(&provider).cloned();
-                config.provider = provider;
-                config.model = Some(model.into());
-                config.reasoning = None;
-                self.notice = Some(format!(
-                    "Model set to {} / {model} for this chat.",
-                    config.provider
-                ));
+                self.apply_model(&ModelEntry {
+                    provider,
+                    model: model.into(),
+                });
             }
             _ => self.error("Usage: /models <provider> <model> or /models auto".into()),
+        }
+    }
+
+    fn apply_model(&mut self, model: &ModelEntry) {
+        let config = Arc::make_mut(&mut self.config);
+        let changed = config.model.as_ref() != Some(&model.model)
+            || (!model.provider.is_empty() && config.provider != model.provider);
+        config.model = Some(model.model.clone());
+        if changed {
+            config.reasoning = None;
+        }
+        if model.provider.is_empty() {
+            self.notice = Some("Model set to auto for this chat.".into());
+        } else {
+            config.base_url = config.local_base_urls.get(&model.provider).cloned();
+            config.provider.clone_from(&model.provider);
+            self.notice = Some(format!(
+                "Model set to {} / {} for this chat.",
+                model.provider, model.model
+            ));
         }
     }
 
@@ -192,6 +227,7 @@ impl Render for Chat {
                     .child(
                         div()
                             .w_full()
+                            .min_w_0()
                             .max_w(px(CONTENT_WIDTH))
                             .children(approval.map(|approval| {
                                 let id = approval.id;

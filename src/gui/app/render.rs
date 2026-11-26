@@ -57,6 +57,9 @@ impl Render for Desktop {
             .on_action(cx.listener(|this, _: &ToggleCommands, window, cx| {
                 this.chats[this.active].update(cx, |chat, cx| chat.toggle_commands(window, cx));
             }))
+            .on_action(cx.listener(|this, _: &ChooseModel, window, cx| {
+                this.chats[this.active].update(cx, |chat, cx| chat.open_models(window, cx));
+            }))
             .on_action(cx.listener(|this, _: &Cancel, _, cx| {
                 this.chats[this.active].update(cx, |chat, cx| chat.cancel(cx));
             }))

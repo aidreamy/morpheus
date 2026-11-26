@@ -21,6 +21,10 @@ The crate has three pieces:
   session/prompt).
 - [`types`](types.md) - the input and output structs.
 
+OpenCode is the one agent with a richer transport: it is driven through its
+own `opencode serve` HTTP/SSE server instead of ACP (see
+[opencode.md](opencode.md)), and the routing is invisible to every caller.
+
 ---
 
 ## The `SubAgent` wrapper

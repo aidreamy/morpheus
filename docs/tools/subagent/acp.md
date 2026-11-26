@@ -6,6 +6,11 @@ mode, drives a full [Agent Client Protocol](https://agentclientprotocol.com/)
 turn as a client, streams the agent's output in real time, and accumulates
 the result until the turn ends.
 
+This module is also the crate's public façade: OpenCode is routed to its
+native server before any ACP machinery runs (see
+[opencode.md](opencode.md)), so the signatures below cover both transports
+unchanged.
+
 There are two entry points over the same turn engine:
 
 ```rust,ignore

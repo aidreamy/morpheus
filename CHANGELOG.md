@@ -18,6 +18,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `/agent model <name>` now reports the model picked for that agent, and
   `/agent ls` shows each selected instance's model and ACP session state.
 
+- OpenCode is now driven through its own `opencode serve` server instead of
+  the generic ACP transport. Turns use the server's HTTP + SSE API, so the
+  agent panel gets real tool names and per-call status, file-edit diffs from
+  the tool metadata, the session todo list as its plan, token usage against
+  the model's context window, provider retries as a note, and the session
+  title. Pane slash commands go to the server's command endpoint instead of
+  being sent as literal text, and `session_snapshot` now reports the mode
+  and model the session actually runs with. Abort, permissions and session
+  resume go through documented endpoints. Callers keep the same API
+  (`acp::call`, `open_session`, `session_snapshot`, `replay`);
+  `MORPHEUS_OPENCODE_TRANSPORT=acp` restores the old transport.
+
 ### Changed
 
 - The sub-agent implementation moved out of `morpheus-tools` into its own

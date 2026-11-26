@@ -7,13 +7,17 @@
 //! ([`severity`]) and the persisted per-agent model picks ([`model_picks`]).
 //!
 //! The model sees a single `subagent_call` tool, but the harness dispatches
-//! it to two implementations (see [`SubAgent`]): an external agent harness —
-//! driven through the [Agent Client Protocol (ACP)](https://agentclientprotocol.com/)
-//! as a full client turn (initialize → `session/new` or `session/resume` →
-//! `session/prompt`), with agent message chunks streamed in real time —
-//! only the LAST message (post-tool-calls) becomes the returned report (see
-//! [`closure`]) — or, when `agent` is omitted/empty, an
-//! internal agent (a nested harness that reports only its final answer).
+//! it to two implementations (see [`SubAgent`]): an external agent harness,
+//! with agent message chunks streamed in real time — only the LAST message
+//! (post-tool-calls) becomes the returned report (see [`closure`]) — or,
+//! when `agent` is omitted/empty, an internal agent (a nested harness that
+//! reports only its final answer).
+//!
+//! External harnesses are driven through the
+//! [Agent Client Protocol (ACP)](https://agentclientprotocol.com/) as a full
+//! client turn (initialize → `session/new` or `session/resume` →
+//! `session/prompt`), except OpenCode, whose own server is used natively (see
+//! [`opencode`]) — the caller's API is identical either way.
 //!
 //! Two turn behaviors apply to the external path:
 //!
@@ -32,11 +36,17 @@
 //! fragile per-CLI flag scraping. See [`acp::ACP_AGENTS`] for the registry.
 //! Agents without ACP support are not registered.
 //!
+//! OpenCode is the exception: it also ships a documented HTTP server, and
+//! [`opencode`] drives it natively (real tool names and diffs, todo plan,
+//! token usage, command execution, model catalog, server-side abort and
+//! resume). The ACP entry stays registered as the transport used when the
+//! native path is disabled.
+//!
 //! | Name | ACP invocation |
 //! |------|----------------|
 //! | `gemini` | `gemini --experimental-acp` |
 //! | `goose` | `goose acp` |
-//! | `opencode` | `opencode acp` |
+//! | `opencode` | native `opencode serve` session (see [`opencode`]; falls back to `opencode acp` when native is disabled) |
 //! | `kilo` | `kilo acp` |
 //! | `cline` | `cline --acp` |
 //! | `devin` | `devin acp` |
@@ -60,6 +70,12 @@ pub mod events;
 /// sub-agent flavors render identically in the TUI box.
 pub mod internal;
 pub mod model_picks;
+/// Native OpenCode integration through `opencode serve` (its own documented
+/// HTTP + SSE API) instead of the generic ACP translation. [`acp::call`],
+/// [`acp::open_session`], [`acp::session_snapshot`] and [`acp::replay`]
+/// route to it transparently when the agent is OpenCode and its CLI is
+/// installed; see [`opencode`] for the layout and the escape hatch.
+pub mod opencode;
 /// Brand palettes of the supported ACP sub-agents, for the TUI to paint
 /// each agent with its own logo colors. Pure RGB triples, no TUI
 /// dependency — see [`palette`].

@@ -16,13 +16,13 @@ use ratatui::style::Style;
 use morpheus_tui::core::types::MouseEvent;
 
 use crate::theme::{Theme, rgba_color};
-use crate::util::draw::draw_text_line;
+use crate::util::draw::{draw_section_bottom, draw_section_top, draw_text_line};
 use crate::util::list_selection::ListSelection;
 
 /// Lines each row occupies: the model name and its description.
 const ROW_LINES: u16 = 2;
-/// Section title, rule and the blank row under it.
-const SECTION_TOP: u16 = 3;
+/// Top contour row of the bordered section.
+const SECTION_TOP: u16 = 1;
 /// A row never spans the whole terminal, so long descriptions stay readable.
 const CONTENT_WIDTH: u16 = 78;
 
@@ -189,10 +189,10 @@ impl DownloadView {
         (x, width, area.y + SECTION_TOP)
     }
 
-    /// Rows that fit above the progress footer.
+    /// Rows that fit above the progress footer and the bottom contour.
     fn visible_rows(&self, area: Rect) -> usize {
         area.height
-            .saturating_sub(SECTION_TOP + 1)
+            .saturating_sub(SECTION_TOP + 1 + 1)
             .saturating_div(ROW_LINES) as usize
     }
 
@@ -217,13 +217,13 @@ impl DownloadView {
         let primary = rgba_color(theme.primary);
         let installed = rgba_color(theme.success);
 
-        draw_text_line(buf, "Models", x, area.y, width, Style::default().fg(fg));
-        draw_text_line(
+        draw_section_top(
             buf,
-            &"─".repeat(width as usize),
             x,
-            area.y + 1,
+            area.y,
             width,
+            "Models",
+            Style::default().fg(fg),
             Style::default().fg(muted),
         );
 
@@ -288,6 +288,11 @@ impl DownloadView {
             );
         }
 
+        let bottom_y = top + (visible as u16 * ROW_LINES);
+        if bottom_y < area.bottom() {
+            draw_section_bottom(buf, x, bottom_y, width, Style::default().fg(muted));
+        }
+
         if let Some((done, total)) = self.progress {
             let pct = done
                 .min(total)
@@ -319,9 +324,9 @@ fn truncate(text: &str, width: usize) -> String {
 
 /// The rows this build supports, in section order.
 fn build_items(setup: &morpheus::setup::Setup) -> Vec<DownloadItem> {
+    let _ = setup;
     #[cfg(not(any(feature = "speak", feature = "onnx", feature = "embed")))]
     {
-        let _ = setup;
         return Vec::new();
     }
     #[cfg(any(feature = "speak", feature = "onnx", feature = "embed"))]

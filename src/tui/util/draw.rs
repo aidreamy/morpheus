@@ -1,6 +1,68 @@
 use ratatui::buffer::Buffer;
 use ratatui::style::Style;
 
+/// Paint the top contour of a settings-style section: `╭─ {title} ─…─╮`.
+///
+/// `title` pops in the foreground color; the contour glyphs use `muted`.
+/// Shared by every router that wants the settings look (e.g. `/download`).
+pub fn draw_section_top(
+    buf: &mut Buffer,
+    x: u16,
+    y: u16,
+    width: u16,
+    title: &str,
+    fg: Style,
+    muted: Style,
+) {
+    if width < 4 {
+        return;
+    }
+    let head = format!("╭─ {} ", title);
+    let dashes = width.saturating_sub(head.chars().count() as u16 + 1) as usize; // 1 = closing corner
+    let line = format!("{}{}╮", head, "─".repeat(dashes));
+    // Draw contour glyphs muted, then the title over them in fg.
+    for (i, ch) in line.chars().enumerate() {
+        if let Some(cx) = x.checked_add(i as u16) {
+            if cx >= x + width {
+                break;
+            }
+            if let Some(cell) = buf.cell_mut((cx, y)) {
+                cell.set_char(ch);
+                cell.set_style(muted);
+            }
+        }
+    }
+    for (i, ch) in title.chars().enumerate() {
+        let cx = x + 3 + i as u16;
+        if cx >= x + width {
+            break;
+        }
+        if let Some(cell) = buf.cell_mut((cx, y)) {
+            cell.set_char(ch);
+            cell.set_style(fg);
+        }
+    }
+}
+
+/// Paint the bottom contour of a settings-style section: `╰─…─╯`.
+pub fn draw_section_bottom(buf: &mut Buffer, x: u16, y: u16, width: u16, muted: Style) {
+    if width < 2 {
+        return;
+    }
+    let line = format!("╰{}╯", "─".repeat(width.saturating_sub(2) as usize));
+    for (i, ch) in line.chars().enumerate() {
+        if let Some(cx) = x.checked_add(i as u16) {
+            if cx >= x + width {
+                break;
+            }
+            if let Some(cell) = buf.cell_mut((cx, y)) {
+                cell.set_char(ch);
+                cell.set_style(muted);
+            }
+        }
+    }
+}
+
 /// Write `text` into `buf` starting at (`x`, `y`), clipped to `max_w` cells.
 ///
 /// Control characters are skipped: writing them into buffer cells makes

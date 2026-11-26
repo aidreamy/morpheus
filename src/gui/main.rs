@@ -3,6 +3,7 @@ mod component;
 mod left_panel;
 mod routes;
 mod theme;
+mod util;
 
 use gpui::{Application, Bounds, WindowBounds, WindowOptions, prelude::*, px, size};
 

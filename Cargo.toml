@@ -8,7 +8,7 @@ members = ["crates/morpheus-onnx",
 ]
 
 [features]
-gui = ["dep:gpui", "dep:unicode-segmentation"]
+gui = ["dep:gpui", "dep:pulldown-cmark", "dep:unicode-segmentation"]
 embed = ["morpheus-tools/embed", "fastembed"]
 lancedb = ["morpheus-recall/lancedb"]
 fastembed = ["morpheus-recall/fastembed", "dep:fastembed"]
@@ -121,6 +121,7 @@ required-features = ["speak"]
 # ---
 [dependencies]
 gpui = { version = "0.2.2", optional = true }
+pulldown-cmark = { version = "0.13", optional = true }
 unicode-segmentation = { version = "1", optional = true }
 serde_json = "1.0"
 aiface = "0.3.0"

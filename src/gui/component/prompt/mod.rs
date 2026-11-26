@@ -1,10 +1,12 @@
 mod input;
+mod send_button;
 
 use std::ops::Range;
 
 use gpui::{
-    Bounds, BoxShadow, CursorStyle, ElementInputHandler, FocusHandle, MouseButton, Pixels, Point,
-    ShapedLine, TextRun, Window, canvas, div, fill, point, prelude::*, px, rgb, rgba, size,
+    Bounds, BoxShadow, CursorStyle, ElementInputHandler, EventEmitter, FocusHandle, MouseButton,
+    Pixels, Point, ShapedLine, TextRun, Window, canvas, div, fill, point, prelude::*, px, rgb,
+    rgba, size,
 };
 
 use crate::theme;
@@ -18,6 +20,10 @@ pub(crate) struct Prompt {
     layout: Option<Line>,
     selecting: bool,
 }
+
+pub(crate) struct Submitted(pub(crate) String);
+
+impl EventEmitter<Submitted> for Prompt {}
 
 impl Prompt {
     pub(crate) fn new(cx: &mut Context<Self>) -> Self {
@@ -34,6 +40,20 @@ impl Prompt {
 
     pub(crate) fn focus(&self, window: &mut Window) {
         self.focus.focus(window);
+    }
+
+    fn submit(&mut self, cx: &mut Context<Self>) {
+        if self.text.trim().is_empty() || self.marked.is_some() {
+            return;
+        }
+
+        let text = std::mem::take(&mut self.text);
+        self.anchor = 0;
+        self.caret = 0;
+        self.layout = None;
+        self.selecting = false;
+        cx.emit(Submitted(text));
+        cx.notify();
     }
 
     fn selection(&self) -> Range<usize> {
@@ -155,6 +175,7 @@ impl Render for Prompt {
             .cursor(CursorStyle::IBeam)
             .flex()
             .items_center()
+            .gap(px(12.))
             .w_full()
             .h(px(80.))
             .px(px(16.))
@@ -175,7 +196,12 @@ impl Render for Prompt {
             .on_mouse_up(MouseButton::Left, cx.listener(Self::mouse_up))
             .on_mouse_up_out(MouseButton::Left, cx.listener(Self::mouse_up))
             .on_mouse_move(cx.listener(Self::mouse_move))
-            .child(div().w_full().min_w_0().overflow_hidden().child(line));
+            .child(div().flex_1().min_w_0().overflow_hidden().child(line))
+            .when(!self.text.trim().is_empty(), |input| {
+                input.child(send_button::render(
+                    cx.listener(|prompt, _, _, cx| prompt.submit(cx)),
+                ))
+            });
 
         div()
             .relative()

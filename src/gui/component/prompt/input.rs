@@ -1,8 +1,8 @@
 use std::ops::Range;
 
 use gpui::{
-    Bounds, ClipboardItem, Context, EntityInputHandler, KeyDownEvent, MouseButton, MouseDownEvent,
-    MouseMoveEvent, MouseUpEvent, Pixels, Point, UTF16Selection, Window,
+    Bounds, ClipboardItem, Context, EntityInputHandler, KeyDownEvent, Modifiers, MouseButton,
+    MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, Point, UTF16Selection, Window,
 };
 use unicode_segmentation::UnicodeSegmentation;
 
@@ -17,9 +17,17 @@ impl Prompt {
     ) {
         let key = &event.keystroke;
         let modifiers = key.modifiers;
+        if key.key == "enter" && modifiers == Modifiers::none() && self.marked.is_none() {
+            if !event.is_held {
+                self.submit(cx);
+            }
+            cx.stop_propagation();
+            return;
+        }
+
         let selection = self.selection();
 
-        if modifiers == gpui::Modifiers::secondary_key() {
+        if modifiers == Modifiers::secondary_key() {
             match key.key.as_str() {
                 "a" => {
                     self.anchor = 0;

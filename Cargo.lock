@@ -7174,6 +7174,7 @@ dependencies = [
  "open",
  "parking_lot 0.12.5",
  "piper-phonemize",
+ "pulldown-cmark",
  "ratatui",
  "rayon",
  "rcgen",

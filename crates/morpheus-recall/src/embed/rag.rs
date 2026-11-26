@@ -1,4 +1,6 @@
 #[cfg(feature = "fastembed")]
+use std::path::PathBuf;
+#[cfg(feature = "fastembed")]
 use std::sync::Mutex;
 
 use super::vec_db::{Entry, VecDb, VecDbError};
@@ -99,11 +101,33 @@ pub enum Embedder {
     },
 }
 
+/// Where local embedding models live: `<platform cache>/morpheus/models/fastembed`,
+/// beside the other local models instead of fastembed's CWD-relative
+/// `.fastembed_cache`. `HF_HOME` and `FASTEMBED_CACHE_DIR` still win, in that
+/// order, so an explicit override keeps working.
+#[cfg(feature = "fastembed")]
+#[must_use]
+pub fn local_model_cache() -> PathBuf {
+    for variable in ["HF_HOME", "FASTEMBED_CACHE_DIR"] {
+        if let Some(dir) = std::env::var_os(variable).filter(|dir| !dir.is_empty()) {
+            return PathBuf::from(dir);
+        }
+    }
+    directories::BaseDirs::new()
+        .map(|dirs| {
+            dirs.cache_dir()
+                .join("morpheus")
+                .join("models")
+                .join("fastembed")
+        })
+        .unwrap_or_else(|| PathBuf::from(".fastembed_cache"))
+}
+
 impl Embedder {
     /// Create a local ONNX embedder from a built-in model.
     ///
     /// Downloads the model files from `HuggingFace` on first use and caches
-    /// them under the platform cache directory.
+    /// them under [`local_model_cache`].
     ///
     /// Requires the `fastembed` feature.
     ///
@@ -119,6 +143,7 @@ impl Embedder {
         // Suppress fastembed's download progress bar to avoid breaking the TUI.
         let mut options = fastembed::TextInitOptions::new(model);
         options.show_download_progress = false;
+        options.cache_dir = local_model_cache();
         let text_embedding = fastembed::TextEmbedding::try_new(options)?;
         Ok(Self::Local {
             model: Box::new(Mutex::new(text_embedding)),

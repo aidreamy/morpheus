@@ -80,6 +80,7 @@ pub enum CommandScope {
 /// | `worktree`   | Agent  | the pane's cwd binding (`AgentPane.worktree`)   |
 /// | `agents`     | Global | the split itself (one split per session)        |
 /// | `router`     | Global | `router_view` fallbacks                         |
+/// | `download`   | Global | local model cache (`download_view`)             |
 /// | `providers`  | Global | `setup` provider list                           |
 /// | `settings`   | Global | `setup` (app configuration)                     |
 /// | `themes`     | Global | `setup.appearance` theme                        |
@@ -98,6 +99,7 @@ pub const COMMAND_INVENTORY: &[(&str, CommandScope)] = &[
     ("worktree", CommandScope::Agent),
     ("agents", CommandScope::Global),
     ("router", CommandScope::Global),
+    ("download", CommandScope::Global),
     ("providers", CommandScope::Global),
     ("settings", CommandScope::Global),
     ("themes", CommandScope::Global),
@@ -229,6 +231,10 @@ impl SlashMenu {
             SlashCommand {
                 name: "router".into(),
                 desc: "Open the fallback router".into(),
+            },
+            SlashCommand {
+                name: "download".into(),
+                desc: "Download local models".into(),
             },
             SlashCommand {
                 name: "providers".into(),
@@ -719,6 +725,7 @@ mod tests {
             "themes",
             "spinner",
             "router",
+            "download",
             "providers",
             "agents",
             "new",

@@ -14,6 +14,7 @@ screen. Type these commands in the chat input and press Enter:
 | `/settings` | All persistent settings, grouped by section |
 | `/models` | Provider, model, and reasoning selection |
 | `/router` | Model fallback and prompt-correction chains |
+| `/download` | Local models: voice bundles, decision checkpoint, embeddings |
 | `/providers` | Local provider endpoints |
 | `/tools` | Enable or disable internal tools |
 | `/themes`, `/background`, `/bell`, `/anim`, `/toolcall` | Direct toggles |
@@ -231,12 +232,15 @@ is file-only:
 
 `MORPHEUS_ONNX_HUB_REPO` overrides `model_decision.hub.repo`. The legacy top-level
 name `checkup` is still accepted when reading, but Morpheus writes
-`model_decision`.
+`model_decision`. The checkpoint itself is installed from `/download` →
+**Models**; a chat turn never fetches it, and an uncached checkpoint simply
+disables the audit until it is installed.
 
 ## `voice` (speak builds only)
 
-Speaks the agent's final answer with a local Kokoro model. The full reference —
-all speakers, their identifiers and the language matrix — is in
+Speaks the agent's final answer with a local Kokoro model. `/download` →
+**Models** installs the bundle without a manual `curl`/`tar`; the full reference
+— all speakers, their identifiers and the language matrix — is in
 [`docs/voice/README.md`](../voice/README.md).
 
 ```json

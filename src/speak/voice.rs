@@ -277,7 +277,12 @@ pub fn installed_bundles(root: &Path) -> Vec<PathBuf> {
     found
 }
 
-fn is_complete(dir: &Path) -> bool {
+/// Whether `dir` has everything the Kokoro loader needs: a graph, the token
+/// table, the speaker embeddings and at least one lexicon. Shared with the
+/// download router, which only reports a fresh bundle as installed when this
+/// passes.
+#[must_use]
+pub fn is_complete(dir: &Path) -> bool {
     let has_model = dir.join("model.onnx").is_file() || dir.join("model.int8.onnx").is_file();
     has_model
         && dir.join("tokens.txt").is_file()

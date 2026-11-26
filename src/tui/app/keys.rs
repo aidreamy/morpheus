@@ -891,6 +891,31 @@ impl App {
                 }
             }
 
+            // Download mode: move through the model rows, install with Enter
+            // and leave with Esc. Anything else falls through to the shared
+            // keymap, like the other routes.
+            if matches!(self.mode(), AppMode::Download) && !self.dialog.visible() {
+                match key.code {
+                    KeyCode::Up => {
+                        self.download_view.select_prev(20);
+                        return Ok(false);
+                    }
+                    KeyCode::Down => {
+                        self.download_view.select_next(20);
+                        return Ok(false);
+                    }
+                    KeyCode::Enter | KeyCode::Char(' ') => {
+                        self.activate_download_row();
+                        return Ok(false);
+                    }
+                    KeyCode::Esc => {
+                        self.show_download = false;
+                        return Ok(false);
+                    }
+                    _ => {}
+                }
+            }
+
             // Settings mode: navigation and activation keys
             // Each matched arm returns early so unmatched keys fall through
             // to the keymap action dispatch (e.g. Ctrl+B, Ctrl+K).
@@ -1839,6 +1864,8 @@ impl App {
                         self.show_add_provider = false;
                     } else if matches!(self.mode(), AppMode::Settings) {
                         self.show_settings = false;
+                    } else if matches!(self.mode(), AppMode::Download) {
+                        self.show_download = false;
                     } else if self.is_rag_mode() {
                         self.handle_rag_cancel_action();
                     }

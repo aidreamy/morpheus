@@ -25,6 +25,7 @@ use crate::left_panel::sessions::SessionsView;
 use crate::left_panel::{LEFT_PANEL_WIDTH, MIN_WIDTH_FOR_LEFT_PANEL, Mode};
 use crate::logo::LOGO_CHAT;
 use crate::routes::add_provider::AddProviderView;
+use crate::routes::download::DownloadView;
 use crate::routes::router::RouterView;
 use crate::routes::session::SessionView;
 use crate::routes::session::free_gateway_recommendation::FreeGatewayRecommendationDialog;
@@ -47,6 +48,7 @@ mod agents_dispatch;
 mod commands;
 mod compaction;
 mod dialogs;
+mod download;
 pub(crate) mod events;
 mod gateway_recommendation;
 mod keys;
@@ -137,6 +139,7 @@ enum AppMode {
     InternalTools,
     AddProvider,
     Settings,
+    Download,
     Router,
     #[cfg(feature = "embed")]
     Rag,
@@ -235,6 +238,9 @@ pub struct App {
     pub add_provider_view: AddProviderView,
     pub show_add_provider: bool,
     pub settings_view: SettingsView,
+    pub download_view: DownloadView,
+    /// The `download` router is open (`/download`).
+    pub show_download: bool,
     /// None: agent picker; Some(None): add summarizer; Some(Some(i)): edit.
     pub summarization_model_edit: Option<Option<usize>>,
     /// The focused pane whose per-pane model dialog is open: `Some(pane)`
@@ -869,6 +875,8 @@ impl App {
             add_provider_view: AddProviderView::new(),
             show_add_provider: false,
             settings_view: SettingsView::new(),
+            download_view: DownloadView::new(&setup),
+            show_download: false,
             summarization_model_edit: None,
             pane_model_edit: None,
             show_settings: false,
@@ -1093,6 +1101,8 @@ impl App {
             AppMode::AddProvider
         } else if self.show_settings {
             AppMode::Settings
+        } else if self.show_download {
+            AppMode::Download
         } else {
             AppMode::Session
         }
@@ -1468,6 +1478,7 @@ impl App {
             AppMode::InternalTools => Feature::Tools,
             AppMode::AddProvider => Feature::AddProvider,
             AppMode::Settings => Feature::Settings,
+            AppMode::Download => Feature::Other,
             AppMode::Router => Feature::Other,
             #[cfg(feature = "embed")]
             AppMode::Rag => Feature::Rag,

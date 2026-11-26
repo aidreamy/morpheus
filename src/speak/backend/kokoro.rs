@@ -62,6 +62,16 @@ pub fn default_model_dir() -> PathBuf {
     preferred
 }
 
+/// Root the download router installs bundles into: the parent of the bundle
+/// [`default_model_dir`] resolves, so an env override keeps its directory
+/// layout.
+#[must_use]
+pub fn models_dir() -> PathBuf {
+    default_model_dir()
+        .parent()
+        .map_or_else(default_model_dir, Path::to_path_buf)
+}
+
 /// Settings for the Kokoro backend.
 ///
 /// [`Default`] points at [`default_model_dir`] and discovers the lexicons and

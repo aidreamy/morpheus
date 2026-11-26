@@ -398,59 +398,6 @@ pub enum HarnessEvent {
         /// `None` for providers without a prepaid balance.
         remaining_credits: Option<f64>,
     },
-    /// The weights-installer lifecycle, emitted by the agent loop around the
-    /// first-use download of the decision-model mirror. The TUI streams the
-    /// explanation into the chat as a REAL assistant message (it enters the
-    /// agent context) and mirrors the download progress as a chat-line bar.
-    WeightsInstall {
-        /// Which stage of the install this event reports.
-        event: WeightsInstallEvent,
-    },
-}
-
-/// A stage of the weights installer ([`HarnessEvent::WeightsInstall`]).
-#[derive(Debug, Clone)]
-pub enum WeightsInstallEvent {
-    /// The OPENING chunk of the streamed explanation. The TUI opens a real
-    /// assistant message with it (`synthetic: false`): the harness adds
-    /// the FULL text to the agent context once the install succeeds, so
-    /// the model can explain/translate it to the user.
-    TextBegin(String),
-    /// A follow-up chunk of the streamed explanation: the TUI appends it
-    /// to the message [`WeightsInstallEvent::TextBegin`] opened. The
-    /// token-like pacing happens upstream — the sender sleeps between
-    /// chunks, so the text appears the way an LLM streams.
-    TextDelta(String),
-    /// Download progress: bytes received and bytes known so far (the total
-    /// grows as further files are announced). Throttled upstream. Carries
-    /// the model's display name — the progress line addresses the model
-    /// by it ("installing Laya ▓▓▓…").
-    Progress {
-        /// The model's user-facing name (`Laya`, `Laya-Multilingual`, …).
-        model: String,
-        /// Bytes received across every file of this install.
-        bytes_done: u64,
-        /// Total bytes announced so far.
-        bytes_total: u64,
-    },
-    /// The target was already cached — no download ran. Carries no payload:
-    /// the TUI uses it to freeze any orphaned running install line left by
-    /// a crashed session (a cache-hit turn emits nothing else).
-    Cached,
-    /// The install completed and verified; the model can load. Carries the
-    /// repo it installed from and the resolved commit SHA — the caller
-    /// (the TUI, which owns the setup file) records the SHA as the pin
-    /// when the repo is the effective mirror: one revision per mirror
-    /// checkpoint, every later load cache-probes exactly that snapshot.
-    Finished {
-        /// The repo the checkpoint was installed from.
-        repo: String,
-        /// The commit SHA the artifacts came from.
-        revision: String,
-    },
-    /// The install failed (network, digest mismatch). Fail-open: the turn
-    /// proceeds without the decision-model audit.
-    Failed(String),
 }
 
 /// Severity of a [`HarnessEvent::Toast`]. Kept in the harness (not the TUI)

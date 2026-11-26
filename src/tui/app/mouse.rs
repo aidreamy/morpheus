@@ -1119,6 +1119,8 @@ impl App {
                         self.add_provider_view.select_prev();
                     } else if matches!(self.mode(), AppMode::Settings) {
                         self.settings_view.select_prev(20, &self.setup);
+                    } else if matches!(self.mode(), AppMode::Download) {
+                        self.download_view.select_prev(20);
                     } else if self.try_rag_scroll_up() {
                     }
                     return Ok(true);
@@ -1211,6 +1213,8 @@ impl App {
                         self.add_provider_view.select_next();
                     } else if matches!(self.mode(), AppMode::Settings) {
                         self.settings_view.select_next(20, &self.setup);
+                    } else if matches!(self.mode(), AppMode::Download) {
+                        self.download_view.select_next(20);
                     } else if self.try_rag_scroll_down() {
                     }
                     return Ok(true);
@@ -2080,6 +2084,26 @@ impl App {
                     }
                     None => {}
                 }
+                return Ok(true);
+            }
+        }
+
+        // 8a-bis. Download view — click selects and installs the row under
+        // the pointer, the same contract the settings rows follow. The rect
+        // mirrors 8a for the same reason: it must match what the render arm
+        // draws or the hit-tested row drifts.
+        if matches!(self.mode(), AppMode::Download) && !self.dialog.visible() {
+            let area = self.terminal_size();
+            let main_area = self.main_content_area(area);
+            let download_area = Rect::new(
+                main_area.x,
+                area.y + 1,
+                main_area.width,
+                main_area.height.saturating_sub(4),
+            );
+            if let Some(clicked) = self.download_view.handle_mouse(&mouse, download_area) {
+                self.download_view.selection.selected_index = clicked;
+                self.activate_download_row();
                 return Ok(true);
             }
         }

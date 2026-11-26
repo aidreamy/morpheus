@@ -27,9 +27,9 @@
 //!
 //! # Model
 //!
-//! Download the multilingual Kokoro bundle once and extract it where
-//! [`default_model_dir`] looks (`<cache>/morpheus/models/kokoro-multi-lang-v1_1`,
-//! overridable with [`MODEL_DIR_ENV`]):
+//! Install the multilingual Kokoro bundle with `/download` (it lands where
+//! [`default_model_dir`] looks, `<cache>/morpheus/models/kokoro-multi-lang-v1_1`,
+//! overridable with [`MODEL_DIR_ENV`]). A manual install is equivalent:
 //!
 //! ```text
 //! curl -L -o kokoro.tar.bz2 \
@@ -103,13 +103,14 @@ mod backend;
 mod bass;
 mod config;
 mod engine;
+pub mod install;
 #[cfg(feature = "speak-phonemize")]
 mod phonemize;
 mod player;
 mod voice;
 
 pub use backend::{
-    Backend, DEFAULT_MODEL_DIR_NAME, KokoroConfig, MODEL_DIR_ENV, default_model_dir,
+    Backend, DEFAULT_MODEL_DIR_NAME, KokoroConfig, MODEL_DIR_ENV, default_model_dir, models_dir,
 };
 pub use bass::{BassEnvelope, bass_envelope};
 pub use config::{Phonemizer, SpeakConfig, SpeakError};
@@ -117,5 +118,5 @@ pub use engine::{Speak, Speech};
 pub use player::Playback;
 pub use voice::{
     LANGUAGES, LanguageSupport, Voice, VoiceEntry, entries as voice_entries, entry as voice_entry,
-    espeak_language, find as find_voice, frontend, has_lexicon, installed_bundles,
+    espeak_language, find as find_voice, frontend, has_lexicon, installed_bundles, is_complete,
 };

@@ -134,9 +134,7 @@ impl App {
         // The language comes from a catalog entry, but a build without the
         // external frontend cannot honor it. Say so instead of letting the
         // first synthesis fail to the lexicon without an explanation.
-        let (message, variant) = if voice.needs_phonemize
-            && !cfg!(feature = "speak-phonemize")
-        {
+        let (message, variant) = if voice.needs_phonemize && !cfg!(feature = "speak-phonemize") {
             (
                 format!(
                     "{} · {} · {} — this build has no external phonemizer; rebuild with \

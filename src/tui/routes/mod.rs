@@ -1,4 +1,5 @@
 pub mod add_provider;
+pub mod download;
 #[cfg(feature = "embed")]
 pub mod rag;
 pub mod router;

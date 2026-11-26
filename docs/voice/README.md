@@ -12,7 +12,7 @@ how to configure everything through `setup.json` without the TUI.
 ## Quick start
 
 1. Build with the voice feature (see [Build features](#build-features)).
-2. Download a Kokoro bundle into `<cache>/morpheus/models/`.
+2. Run `/download` and install a Kokoro bundle (see [Model bundles](#model-bundles)).
 3. Pick a voice in `/settings` → **Voice** → **Speaker**.
 
 The TUI writes `voice.speaker` and `voice.language` together, so you never have
@@ -50,8 +50,10 @@ published name table.
 | `kokoro-multi-lang-v1_1` (or `kokoro-int8-multi-lang-v1_1`) | 103 | Chinese (100), English US (2), English UK (1) | Recommended |
 | `kokoro-multi-lang-v1_0` | 54 | Chinese (8), English US (20), English UK (8), Spanish (3), French (1), Hindi (4), Italian (2), Japanese (5), **Portuguese (Brazil) (3)** | Required for non-English/Chinese voices |
 
-Download and extract a bundle (`~` is a shell abbreviation only — the config
-expects real paths):
+`/download` installs either release into `<cache>/morpheus/models/`, reports
+progress in place and verifies the unpacked directory before marking it
+installed. A manual install works too (`~` is a shell abbreviation only — the
+config expects real paths):
 
 ```bash
 curl -L -o kokoro.tar.bz2 \

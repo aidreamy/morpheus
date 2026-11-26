@@ -29,6 +29,10 @@ pub(crate) use crate::routes::session::pending_queue::PendingQueueRow;
 impl App {
     pub(super) fn render(&mut self, frame: &mut Frame<'_>, delta_time: f64) {
         self.telemetry_view();
+        // Background model installs finish here even when their router is
+        // closed, so a completion toast and the mirror pin never wait for the
+        // user to come back.
+        self.poll_download();
         // The draw loop can run at 60 fps, but frame-counted animations were
         // designed for 30 fps. Advance them by elapsed time so they keep the
         // same visual speed at either pacing rate.
@@ -88,6 +92,8 @@ impl App {
         live = live || agent_spinner_live;
         live = live || (self.prompt_correction_active && !agent_spinner_live);
         live = live || self.rag_spinner_active();
+        // An install keeps the frame loop live so its progress bar advances.
+        live = live || self.download_view.is_running();
         live = live || has_active_spinner;
         live = live || has_active_pane_spinner;
         // Free-gateway recommendation: its fake-streaming text advances per
@@ -706,6 +712,16 @@ impl App {
                     );
                     self.settings_view
                         .render(buf, settings_area, &self.theme, &self.setup);
+                }
+                AppMode::Download => {
+                    self.prompt_view.blur();
+                    let download_area = Rect::new(
+                        session_area.x,
+                        session_area.y,
+                        session_area.width,
+                        session_area.height.saturating_sub(1),
+                    );
+                    self.render_download_view(buf, download_area);
                 }
                 AppMode::Router => {
                     self.prompt_view.blur();

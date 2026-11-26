@@ -85,15 +85,33 @@ pub fn rows(voices: &[&VoiceChoice], current: i32) -> Vec<ListRow> {
             // The frontend note explains why some voices need a build with
             // `speak-phonemize`: without it they fall back to a lexicon that
             // does not cover their language.
-            let frontend = morpheus::speak::frontend(&voice.language);
+            let detail = match frontend_note(&voice.language) {
+                "" => format!("  ·  {} · {}", voice.speaker, voice.gender),
+                frontend => format!("  ·  {} · {} · {frontend}", voice.speaker, voice.gender),
+            };
             rows.push(ListRow::item(
                 voice.name.clone(),
-                format!("  ·  {} · {} · {frontend}", voice.speaker, voice.gender),
+                detail,
                 voice.speaker == current && voice.model_dir.is_none(),
             ));
         }
     }
     rows
+}
+
+/// The frontend that phonemizes `language`. Empty without the `speak`
+/// feature: the picker is only reachable in builds that can speak, and the
+/// notebook must still compile without the engine.
+fn frontend_note(language: &str) -> &'static str {
+    #[cfg(feature = "speak")]
+    {
+        morpheus::speak::frontend(language)
+    }
+    #[cfg(not(feature = "speak"))]
+    {
+        let _ = language;
+        ""
+    }
 }
 
 /// Visual row of the `selected`-th selectable (non-header) row.
@@ -173,6 +191,7 @@ mod tests {
 
     /// The row detail names the frontend per language: the bundle lexicon,
     /// the Japanese dictionary or espeak-ng.
+    #[cfg(feature = "speak")]
     #[test]
     fn rows_name_the_frontend_that_phonemizes_each_language() {
         let voices = vec![

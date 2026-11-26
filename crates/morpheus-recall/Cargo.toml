@@ -17,6 +17,9 @@ cloud = ["dep:aiface"]
 
 [dependencies]
 log = "0.4"
+# Platform cache root for the local embedding models, shared with the rest of
+# the app's local model cache (`<cache>/morpheus/models`).
+directories = "6"
 thiserror = "2"
 serde = { version = "1", features = ["derive"] }
 

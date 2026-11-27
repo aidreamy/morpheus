@@ -377,10 +377,10 @@ impl ChatControl {
                 let Some(profile) = find(&agent) else {
                     return "Choose a selected external agent by its ID. `/confidence` lists the targets.".into();
                 };
-                let old = self.confidence.get(profile);
+                let previous = self.confidence.clone();
                 self.confidence.set(profile, level);
                 if let Err(error) = self.persist().await {
-                    self.confidence.set(profile, old);
+                    self.confidence = previous;
                     return format!("Could not save confidence: {error}");
                 }
                 format!(
@@ -602,6 +602,40 @@ mod tests {
         command(&mut reloaded, "/agent model claude opus-4").await;
         let reply = command(&mut reloaded, "/confidence claude#2").await;
         assert!(reply.contains("opus-4 · confidence unrated"), "{reply}");
+    }
+
+    #[tokio::test]
+    async fn failed_confidence_persist_restores_all_preferences() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut chat = control(dir.path()).await;
+        command(&mut chat, "/agent claude").await;
+        command(&mut chat, "/agent model claude anthropic/sonnet").await;
+        chat.observations.insert(
+            "claude#1".into(),
+            AgentObservation {
+                model: Some("anthropic/sonnet".into()),
+                provider: Some("anthropic".into()),
+                ..Default::default()
+            },
+        );
+        let unresolved = AgentProfile {
+            id: "claude#1".into(),
+            agent: "claude".into(),
+            model: Some("sonnet".into()),
+            ..Default::default()
+        };
+        chat.confidence.set(&unresolved, Some(Confidence::High));
+        let previous = chat.confidence.clone();
+
+        // Replacing a file with a directory makes the final atomic rename fail.
+        let state_path = chat.store.path(&chat.chat_key);
+        std::fs::remove_file(&state_path).unwrap();
+        std::fs::create_dir(&state_path).unwrap();
+
+        let reply = command(&mut chat, "/confidence claude low").await;
+        assert!(reply.contains("Could not save confidence"), "{reply}");
+        assert_eq!(chat.confidence, previous);
+        assert_eq!(chat.confidence.get(&unresolved), Some(Confidence::High));
     }
 
     #[tokio::test]

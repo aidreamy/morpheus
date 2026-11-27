@@ -102,7 +102,7 @@ impl ConfidencePreferences {
                 profile
                     .model
                     .as_deref()
-                    .filter(|model| key.as_str() != *model)
+                    .filter(|model| key.as_str() != model.rsplit('/').next().unwrap_or(model))
                     .and_then(|model| model.rsplit('/').next())
                     .and_then(|model| models.get(model))
             })
@@ -207,10 +207,12 @@ impl AgentObservation {
     }
 
     pub fn merge_from(&mut self, observation: Self) {
-        if observation.model.is_some()
-            && (self.model != observation.model
-                || (observation.provider.is_some() && self.provider != observation.provider))
-        {
+        let provider_changed =
+            observation.provider.is_some() && self.provider != observation.provider;
+        if provider_changed {
+            self.tools.clear();
+        }
+        if observation.model.is_some() && (self.model != observation.model || provider_changed) {
             *self = observation;
             return;
         }
@@ -659,12 +661,14 @@ mod tests {
 
     #[test]
     fn confidence_set_before_provider_discovery_survives_qualification() {
-        let unresolved = profile("claude#1", "sonnet");
+        let mut unresolved = profile("claude#1", "sonnet");
+        unresolved.provider = None;
         let mut preferences = ConfidencePreferences::default();
         preferences.set(&unresolved, Some(Confidence::High));
 
         let mut resolved = unresolved.clone();
         resolved.provider = Some("anthropic".into());
+        resolved.model = Some("anthropic/sonnet".into());
         assert_eq!(preferences.get(&resolved), Some(Confidence::High));
 
         preferences.set(&resolved, Some(Confidence::Low));
@@ -688,6 +692,24 @@ mod tests {
             tools: ["new_tool".into()].into(),
             ..Default::default()
         });
+        assert_eq!(previous.tools, ["new_tool".into()].into());
+    }
+
+    #[test]
+    fn provider_change_without_model_clears_tools_and_keeps_model() {
+        let mut previous = AgentObservation {
+            model: Some("model-x".into()),
+            provider: Some("provider-a".into()),
+            tools: ["old_tool".into()].into(),
+            ..Default::default()
+        };
+        previous.merge_from(AgentObservation {
+            provider: Some("provider-b".into()),
+            tools: ["new_tool".into()].into(),
+            ..Default::default()
+        });
+        assert_eq!(previous.model.as_deref(), Some("model-x"));
+        assert_eq!(previous.provider.as_deref(), Some("provider-b"));
         assert_eq!(previous.tools, ["new_tool".into()].into());
     }
 

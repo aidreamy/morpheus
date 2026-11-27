@@ -1694,6 +1694,7 @@ impl App {
                     // like the model/theme pickers - nothing to revert).
                     if self.is_agent_config_dialog_visible() {
                         self.agent_config_edit = None;
+                        self.confidence_edit = None;
                         self.dialog.pop();
                         return Ok(true);
                     }

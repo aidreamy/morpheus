@@ -176,6 +176,8 @@ pub struct AgentPane {
     /// turn (or replay pass) reports it; every report replaces it, so a
     /// model/thought change shows on the next turn.
     pub session_info: Option<AgentSessionInfo>,
+    /// Tool categories reported during the pane's current model session.
+    pub observed_tools: std::collections::BTreeSet<String>,
     /// The agent's own slash commands, from `available_commands_update` (a
     /// live turn) or the on-demand snapshot probe. `None` = never fetched;
     /// `Some(vec![])` = fetched and the harness advertised none. Feeds the
@@ -385,6 +387,7 @@ impl AgentPane {
             session_id: None,
             acp_session: None,
             session_info: None,
+            observed_tools: Default::default(),
             model_selection: None,
             commands: None,
             config_options: None,
@@ -1260,6 +1263,12 @@ impl AgentsSplitState {
     /// are ignored, like [`Self::apply_event`].
     pub fn set_session_info(&mut self, pane: usize, info: AgentSessionInfo) {
         if let Some(p) = self.panes.get_mut(pane) {
+            if p.session_info
+                .as_ref()
+                .is_some_and(|old| old.model != info.model || old.provider != info.provider)
+            {
+                p.observed_tools.clear();
+            }
             p.session_info = Some(info);
         }
     }
@@ -1332,6 +1341,7 @@ impl AgentsSplitState {
         let mut entries: Vec<crate::ui::slash_menu::SlashCommand> = vec![
             worktree_command_entry(),
             crate::ui::slash_menu::undo_command_entry(),
+            crate::ui::slash_menu::confidence_command_entry(),
         ];
         entries.extend(
             pane.config_options

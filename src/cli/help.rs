@@ -240,6 +240,10 @@ const WHATSAPP_PAGE: Page = Page {
                     "Simulate typing before replies (off by default)",
                 ),
                 Row::Item("/stop", "Stop the turns running in this chat"),
+                Row::Item(
+                    "/confidence [agent [low|medium|high|max|reset]]",
+                    "Check or set confidence for a selected agent's model",
+                ),
             ],
         },
         Section {

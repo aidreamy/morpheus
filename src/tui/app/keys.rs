@@ -1933,6 +1933,7 @@ impl App {
                         // The cycled-to mode becomes the user's preference:
                         // future sessions start there instead of Build.
                         self.setup.set_mode_selection(self.state.mode);
+                        self.sync_agents_pane_registry();
                     }
                 }
                 Some(crate::keymap::Action::HistoryUp) => {

@@ -68,6 +68,7 @@ impl App {
     /// The search flag and the title come from the option shape
     /// ([`Self::option_uses_search`] / [`Self::option_title`]).
     fn show_agent_config_box(&mut self, pane: usize, agent: String, option: &AgentConfigOption) {
+        self.confidence_edit = None;
         // Open-time context: the split generation, pane index and agent
         // name the box was opened FOR. Confirm re-validates all three
         // against the live split, so a teardown-and-rebuild under an open
@@ -164,6 +165,7 @@ impl App {
             }
             KeyCode::Esc => {
                 self.agent_config_edit = None;
+                self.confidence_edit = None;
                 self.dialog.pop();
                 true
             }
@@ -197,11 +199,6 @@ impl App {
     /// only path the harnesses respect. Recording is synchronous - no
     /// background set whose slow response could race a newer pick.
     pub(in crate::app) fn confirm_agent_config_selection(&mut self) {
-        let Some(context) = self.agent_config_edit.take() else {
-            self.dialog.pop();
-            return;
-        };
-        let (open_epoch, pane, open_agent, config_id) = context;
         let selection = self
             .dialog
             .current()
@@ -228,6 +225,15 @@ impl App {
             // No row to apply (empty filtered list): close the box without
             // dispatching anything - the same no-op the mouse arm gives a
             // click on the header.
+            self.confidence_edit = None;
+            self.agent_config_edit = None;
+            return;
+        };
+        if let Some(edit) = self.confidence_edit.take() {
+            self.apply_confidence_selection(edit, &selection);
+            return;
+        }
+        let Some((open_epoch, pane, open_agent, config_id)) = self.agent_config_edit.take() else {
             return;
         };
 
@@ -286,6 +292,14 @@ impl App {
             }
             if Some(&config_id) == model_option_id.as_ref() {
                 let info = p.session_info.get_or_insert_with(Default::default);
+                if info.model.as_deref() != Some(selection.as_str()) {
+                    p.observed_tools.clear();
+                    if morpheus_agents::opencode::is_native(&p.agent) {
+                        info.provider = selection
+                            .split_once('/')
+                            .map(|(provider, _)| provider.to_owned());
+                    }
+                }
                 info.model = Some(selection.clone());
                 model_pick = true;
                 // CLI parity: the pane's pick is per-connection state, but the
@@ -310,6 +324,7 @@ impl App {
                     .map(|v| v.name.clone());
             }
         }
+        self.sync_agents_pane_registry();
         // The morpheus reasoning flow, replicated: AFTER the model pick, the
         // pane's own thought-level option (when the harness advertises one
         // with a real choice) opens as a SECOND box - the same UX as the

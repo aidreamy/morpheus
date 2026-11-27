@@ -126,7 +126,7 @@ required-features = ["speak"]
 # ---
 [dependencies]
 serde_json = "1.0"
-aiface = "0.3.0"
+aiface = "0.3.1"
 morpheus-sdk = { path = "crates/morpheus-sdk", version = "0.1.6" }
 # toml = "1.1"
 chrono = "0.4"

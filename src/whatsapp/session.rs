@@ -196,11 +196,23 @@ impl ChatSession {
     /// Assemble the harness for this turn and run the agent loop, answering
     /// the loop's UI requests and waiting for it to finish.
     async fn run_turn(&mut self, input: &str) -> String {
-        let (mode, context, stop_signal) = {
+        let (mode, context, stop_signal, profiles) = {
             let mut control = self.control.lock().await;
             control.begin_turn();
-            (control.mode(), control.context(), control.stop_signal())
+            (
+                control.mode(),
+                control.context(),
+                control.stop_signal(),
+                control.agent_profiles(&executor::session_cwd(&self.config.cwd)),
+            )
         };
+        if !cfg!(test) {
+            crate::agent_profiles::discover(&profiles, &tokio::runtime::Handle::current());
+        }
+        let cards = crate::agent_profiles::render_cards(&profiles).map(|mut cards| {
+            cards.push_str("These are this chat's selected agents. Recommend a suitable agent if useful. The user can send @agent or @agent#number to address it.\n");
+            cards
+        });
         let assembly = self.config.assembly(
             mode,
             context,
@@ -211,7 +223,7 @@ impl ChatSession {
         );
         let (event_tx, mut event_rx) = mpsc::unbounded_channel();
         let mut harness = match crate::assembly::assemble(assembly, &event_tx).await {
-            Ok(harness) => harness,
+            Ok(harness) => harness.with_external_agent_cards(cards),
             Err(error) => {
                 self.control.lock().await.end_turn();
                 return format!("Could not start the agent for this chat: {error}");
@@ -327,6 +339,10 @@ impl ChatSession {
         if let Some(session) = self.acp.get_mut(&key) {
             session.absorb(&result);
         }
+        self.control
+            .lock()
+            .await
+            .record_observation(&key, result.observation.clone());
         if result.failed {
             if let Some(session) = self.acp.remove(&key) {
                 session.shutdown();
@@ -420,6 +436,10 @@ impl ChatSession {
             if let Some(session) = self.acp.get_mut(&key) {
                 session.absorb(&result);
             }
+            self.control
+                .lock()
+                .await
+                .record_observation(&key, result.observation.clone());
             if result.failed {
                 if let Some(session) = self.acp.remove(&key) {
                     session.shutdown();

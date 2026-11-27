@@ -359,6 +359,7 @@ impl App {
                     {
                         continue;
                     }
+                    let mut profiles_changed = false;
                     let target =
                         either_split_mut(&mut self.agents_split, &mut self.parked_agents_split);
                     // Pane chrome, not timeline content: the session's
@@ -384,6 +385,7 @@ impl App {
                                     reasoning: reasoning.clone(),
                                 },
                             );
+                            profiles_changed = true;
                         }
                     } else if let SubagentEvent::Commands { commands } = &event {
                         // Pane chrome like `SessionModel`: the agent's own
@@ -391,6 +393,7 @@ impl App {
                         // pane's slash menu reads it through `slash_source`).
                         if let Some(split) = target {
                             split.set_agent_commands(pane, commands.clone());
+                            profiles_changed = true;
                         }
                     } else if let SubagentEvent::ConfigOptions { options } = &event {
                         // Pane chrome like `SessionModel`: the config options
@@ -467,6 +470,7 @@ impl App {
                                 }
                             }
                             split.set_agent_config_options(pane, options);
+                            profiles_changed = true;
                         }
                     } else if let SubagentEvent::Modes { modes, current } = &event {
                         // Pane chrome like `SessionModel`: the advertised
@@ -475,6 +479,7 @@ impl App {
                         // `session/set_mode` binding).
                         if let Some(split) = target {
                             split.set_agent_modes(pane, modes.clone(), current.clone());
+                            profiles_changed = true;
                         }
                     } else if let SubagentEvent::PermissionRequest {
                         call_id,
@@ -523,7 +528,19 @@ impl App {
                             );
                         }
                     } else if let Some(split) = target {
+                        if let SubagentEvent::ToolCall { kind, tool, .. } = &event
+                            && let Some(category) = morpheus::agent_profiles::observed_capability(
+                                *kind,
+                                tool.as_deref(),
+                            )
+                            && let Some(pane) = split.panes.get_mut(pane)
+                        {
+                            profiles_changed = pane.observed_tools.insert(category);
+                        }
                         split.apply_event(pane, &event);
+                    }
+                    if profiles_changed {
+                        self.sync_agents_pane_registry();
                     }
                     // A Commands/ConfigOptions landing on the FOCUSED pane
                     // swaps the slash menu's spinner row for the real list
@@ -650,6 +667,7 @@ impl App {
                         // the "answer twice" bug.
                         split.finish_turn(pane, &output, end);
                     }
+                    self.sync_agents_pane_registry();
                     // The bridge's completion half: a pane turn the
                     // `agents_call` registry was tracking resolves HERE,
                     // keyed by the pane's registry id (the App never knows

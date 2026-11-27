@@ -69,6 +69,7 @@ pub mod events;
 /// [`events::SubagentEvent`] stream the external ACP path emits, so both
 /// sub-agent flavors render identically in the TUI box.
 pub mod internal;
+pub mod inventory;
 pub mod model_picks;
 /// Native OpenCode integration through `opencode serve` (its own documented
 /// HTTP + SSE API) instead of the generic ACP translation. [`acp::call`],

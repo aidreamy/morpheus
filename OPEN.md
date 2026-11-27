@@ -2,22 +2,14 @@
 
 ## Despacho adaptativo de agentes
 
-Fase futura, após a execução durável e a integração verificada de patches.
+As fichas mostram ao coordenador as capacidades, a confiança configurada
+pelo usuário e os benchmarks do modelo. O coordenador usa essas informações
+para escolher o executor e orientar quando trabalhar em paralelo ou pedir
+uma segunda verificação.
 
-O `auto` atual escolhe um provedor pela cadeia de fallbacks, e o
-`agents_call` delega a um painel escolhido pelo coordenador. A proposta é
-escolher a estratégia de execução conforme as dependências do trabalho,
-as ferramentas de cada agente e o orçamento disponível.
-
-- Usar um agente em mudanças pequenas ou com etapas sequenciais.
-- Distribuir frentes independentes entre os agentes que têm as ferramentas
-  adequadas.
-- Acionar uma segunda investigação quando evidências conflitantes impedirem
-  a validação da primeira.
-
-Limitar custo, tempo e concorrência por execução. Comparar as rotas com
-uma execução de agente único usando custo por patch aceito, tempo até a
-validação e taxa de retrabalho.
+Em aberto ficam a aplicação automática de limites de custo, tempo e
+concorrência por execução e a comparação com um agente único. Medir custo
+por patch aceito, tempo até a validação e taxa de retrabalho.
 
 Referências
 

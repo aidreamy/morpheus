@@ -95,6 +95,8 @@ pub struct AgentCoworkerDescriptor {
     /// never advertises a model. The main agent's coworker listing renders
     /// it next to the worktree so it always knows what serves each pane.
     pub model: Option<String>,
+    /// Evidence available to the coordinator for this external pane.
+    pub profile: Option<crate::agent_profiles::AgentProfile>,
 }
 
 /// How a request's answer reaches the caller.
@@ -2060,7 +2062,10 @@ pub fn context_block() -> Option<String> {
          by its coworker id (`agents_call` to message one, `agents_worktree` to \
          move one into or out of a git worktree):\n",
     );
-    for coworker in &coworkers {
+    for coworker in coworkers
+        .iter()
+        .filter(|coworker| coworker.profile.is_none())
+    {
         let session = if coworker.bound {
             "agent session bound"
         } else {
@@ -2081,6 +2086,14 @@ pub fn context_block() -> Option<String> {
             "- {} - {} ({session}{worktree}{model})",
             coworker.id, coworker.agent
         );
+    }
+    let profiles: Vec<_> = coworkers
+        .iter()
+        .filter_map(|coworker| coworker.profile.clone())
+        .collect();
+    if let Some(cards) = crate::agent_profiles::render_cards(&profiles) {
+        block.push_str(&cards);
+        block.push_str("Choose a pane whose tools and permissions fit the task. Respect approvals at every confidence level. Prefer low confidence for inspection or reversible work, and high or max for complex work with verification. Use a comparable published benchmark to break ties. Pick one agent for small or sequential work. Delegate only independent work in parallel, in separate worktrees when editing. Keep the fan-out within the time, cost and concurrency budget of the task. If reports disagree, ask for independent verification. Explain the choice briefly to the user.\n");
     }
     // Task board (F1): surface the 5 most relevant tasks to the coordinator.
     let tasks = task_list();
@@ -2281,6 +2294,10 @@ pub fn agents_call_tool() -> super::core::HarnessTool {
                 "run_in_background": {
                     "type": "boolean",
                     "description": "Set true to send WITHOUT blocking: the call returns a receipt and the pane's report arrives later as an [automated notification]. Omitted or false (default): the call blocks until the pane finishes and returns its report directly.",
+                },
+                "selection_reason": {
+                    "type": "string",
+                    "description": "One short sentence for the user explaining why this pane fits this task, based on its capabilities, availability or user confidence.",
                 },
             },
             "required": ["pane", "input"],
@@ -2493,6 +2510,7 @@ mod tests {
             bound,
             worktree: None,
             model: None,
+            profile: None,
         }
     }
 
@@ -2507,6 +2525,7 @@ mod tests {
             bound: false,
             worktree: None,
             model: None,
+            profile: None,
         }
     }
 

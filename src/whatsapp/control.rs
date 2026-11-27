@@ -26,6 +26,9 @@ use super::commands::{self, Action, AgentCommand, IncomingCommand};
 use super::mode;
 use super::selection;
 use super::state::{ChatStore, STATE_VERSION, StoredChat};
+use crate::agent_profiles::{
+    AgentObservation, AgentProfile, Confidence, ConfidenceCommand, ConfidencePreferences,
+};
 
 /// Mode, roster, sessions, context and cancellation for one chat.
 pub struct ChatControl {
@@ -37,6 +40,8 @@ pub struct ChatControl {
     registered: Vec<String>,
     sessions: BTreeMap<String, String>,
     context: Option<ContextManagerState>,
+    confidence: ConfidencePreferences,
+    observations: HashMap<String, AgentObservation>,
     /// The `setup.json` default for simulated typing, used until the chat
     /// makes its own `/human` choice.
     humanize_default: bool,
@@ -102,6 +107,8 @@ impl ChatControl {
             registered,
             sessions: state.sessions,
             context: state.context,
+            confidence: state.confidence,
+            observations: HashMap::new(),
             humanize_default,
             humanize_choice: state.humanize,
             model_dir,
@@ -208,6 +215,7 @@ impl ChatControl {
             Action::Help => commands::help_text(),
             Action::SetMode(mode) => self.set_mode(mode),
             Action::Agent(command) => self.agent_command(command).await,
+            Action::Confidence(command) => self.confidence_command(command).await,
             Action::Humanize(enabled) => self.human_command(enabled).await,
             Action::Stop => self.stop_running(),
             Action::Usage(message) => message,
@@ -297,6 +305,107 @@ impl ChatControl {
             .map(str::to_string)
     }
 
+    pub fn agent_profiles(&self, cwd: &std::path::Path) -> Vec<AgentProfile> {
+        let picks = ModelPicks::new(&self.model_dir);
+        selection::entries(&self.roster)
+            .into_iter()
+            .map(|entry| {
+                let key = selection::instance_key(&entry.agent, entry.index);
+                let specified = picks.get(&entry.agent);
+                let observed = self.observations.get(&key).filter(|observed| {
+                    specified.is_none_or(|model| observed.model.as_deref() == Some(model))
+                });
+                let mut profile = AgentProfile {
+                    id: if entry.total > 1 {
+                        key.clone()
+                    } else {
+                        entry.agent.clone()
+                    },
+                    agent: entry.agent,
+                    model: observed
+                        .and_then(|info| info.model.clone())
+                        .or_else(|| specified.map(str::to_owned)),
+                    provider: observed.and_then(|info| info.provider.clone()),
+                    reasoning: observed.and_then(|info| info.reasoning.clone()),
+                    mode: format!("{:?}", self.mode),
+                    cwd: cwd.to_path_buf(),
+                    bound: self.sessions.contains_key(&key),
+                    commands: observed
+                        .and_then(|info| info.commands.clone())
+                        .unwrap_or_default(),
+                    observed: observed.map(|info| info.tools.clone()).unwrap_or_default(),
+                    ..Default::default()
+                };
+                profile.confidence = self.confidence.get(&profile);
+                profile
+            })
+            .collect()
+    }
+
+    pub fn record_observation(&mut self, key: &str, observation: AgentObservation) {
+        if self.handles.contains_key(key) {
+            let previous = self.observations.entry(key.to_string()).or_default();
+            if observation.model.is_some() && previous.model != observation.model {
+                *previous = observation;
+            } else {
+                if observation.commands.is_some() {
+                    previous.commands = observation.commands;
+                }
+                previous.tools.extend(observation.tools);
+                if observation.provider.is_some() {
+                    previous.provider = observation.provider;
+                }
+                if observation.reasoning.is_some() {
+                    previous.reasoning = observation.reasoning;
+                }
+            }
+        }
+    }
+
+    async fn confidence_command(&mut self, command: ConfidenceCommand) -> String {
+        let profiles = self.agent_profiles(std::path::Path::new("."));
+        if profiles.is_empty() {
+            return "Select an external agent with `/agent` first.".into();
+        }
+        let find = |name: &str| {
+            profiles.iter().find(|profile| {
+                profile.id == name
+                    || (!profile.id.contains('#')
+                        && name.strip_suffix("#1") == Some(profile.id.as_str()))
+            })
+        };
+        match command {
+            ConfidenceCommand::Show(None) => profiles
+                .iter()
+                .map(AgentProfile::summary)
+                .collect::<Vec<_>>()
+                .join("\n"),
+            ConfidenceCommand::Show(Some(name)) => {
+                find(&name).map(AgentProfile::summary).unwrap_or_else(|| {
+                    "Choose a selected external agent by its ID. `/confidence` lists the targets."
+                        .into()
+                })
+            }
+            ConfidenceCommand::Set { agent, level } => {
+                let Some(profile) = find(&agent) else {
+                    return "Choose a selected external agent by its ID. `/confidence` lists the targets.".into();
+                };
+                let old = self.confidence.get(profile);
+                self.confidence.set(profile, level);
+                if let Err(error) = self.persist().await {
+                    self.confidence.set(profile, old);
+                    return format!("Could not save confidence: {error}");
+                }
+                format!(
+                    "{} confidence for {}: {}.",
+                    profile.id,
+                    profile.model.as_deref().unwrap_or("the unconfirmed model"),
+                    level.map_or("unrated", Confidence::label)
+                )
+            }
+        }
+    }
+
     async fn agent_command(&mut self, command: AgentCommand) -> String {
         match command {
             AgentCommand::List => selection::render_list(&self.summaries(), &self.installed),
@@ -308,6 +417,7 @@ impl ChatControl {
                     handle.shutdown();
                 }
                 self.handles.clear();
+                self.observations.clear();
                 self.roster.clear();
                 self.sessions.clear();
                 match self.persist().await {
@@ -367,6 +477,7 @@ impl ChatControl {
             }
         });
         self.sessions.retain(|key, _| keys.contains(key));
+        self.observations.retain(|key, _| keys.contains(key));
     }
 
     /// Drop one instance's session (or every instance of an agent) while
@@ -407,6 +518,7 @@ impl ChatControl {
                 handle.shutdown();
             }
             self.sessions.remove(key);
+            self.observations.remove(key);
         }
         match self.persist().await {
             Ok(()) => format!(
@@ -453,6 +565,7 @@ impl ChatControl {
                     sessions: self.sessions.clone(),
                     context: self.context.clone(),
                     humanize: self.humanize_choice,
+                    confidence: self.confidence.clone(),
                 },
             )
             .await
@@ -484,6 +597,24 @@ mod tests {
     async fn command(control: &mut ChatControl, text: &str) -> String {
         let parsed = commands::parse(text).expect("a registered command");
         control.handle_command(parsed).await
+    }
+
+    #[tokio::test]
+    async fn confidence_is_per_chat_and_follows_the_selected_model() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut chat = control(dir.path()).await;
+        command(&mut chat, "/agent claude,claude").await;
+        command(&mut chat, "/agent model claude sonnet-4").await;
+        let reply = command(&mut chat, "/confidence claude#2 high").await;
+        assert!(reply.contains("sonnet-4: high"), "{reply}");
+        let rejected = command(&mut chat, "/confidence morpheus max").await;
+        assert!(rejected.contains("selected external agent"), "{rejected}");
+        let mut reloaded = control(dir.path()).await;
+        let list = command(&mut reloaded, "/confidence").await;
+        assert_eq!(list.matches("confidence high").count(), 2, "{list}");
+        command(&mut reloaded, "/agent model claude opus-4").await;
+        let reply = command(&mut reloaded, "/confidence claude#2").await;
+        assert!(reply.contains("opus-4 · confidence unrated"), "{reply}");
     }
 
     #[tokio::test]

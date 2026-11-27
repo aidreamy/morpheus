@@ -259,6 +259,7 @@ impl App {
                                 p.agent == crate::routes::session::agents_split::MANAGER_LABEL;
                             Some(
                                 morpheus::harness::agent_coworkers::AgentCoworkerDescriptor {
+                                    profile: self.pane_profile(split, i),
                                     id,
                                     // The pane's IDENTITY rides the descriptor:
                                     // the registry reconciles by it, so a label
@@ -313,6 +314,13 @@ impl App {
                         .collect()
                 })
                 .unwrap_or_default();
+        let profiles = panes
+            .iter()
+            .filter_map(|pane| pane.profile.clone())
+            .collect::<Vec<_>>();
+        if !cfg!(test) {
+            morpheus::agent_profiles::discover(&profiles, &self.tokio_handle);
+        }
         morpheus::harness::agent_coworkers::set_coworkers(panes);
         self.wake_main_agent_with_reports(None);
     }
@@ -1364,6 +1372,16 @@ impl App {
     /// says which list the user was LOOKING at, while the scope says who the
     /// command belongs to.
     pub(super) fn run_slash_command(&mut self, cmd: &crate::ui::slash_menu::SlashCommand) {
+        if cmd.name == "confidence" {
+            let tail = crate::ui::slash_menu::SlashMenu::command_arg_tail(
+                &self.prompt_view.input,
+                "confidence",
+            );
+            self.run_confidence_command(tail.as_deref().unwrap_or_default());
+            self.slash_menu.visible = false;
+            self.prompt_view.clear_all();
+            return;
+        }
         if super::agents_dispatch::route_agent_slash_command(self, cmd) {
             self.slash_menu.visible = false;
             self.prompt_view.clear_all();

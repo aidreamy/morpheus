@@ -22,7 +22,10 @@
 //! with only a command name is still a command: the handler reports the
 //! missing arguments instead of guessing.
 
-use crate::harness::Mode;
+use crate::{
+    agent_profiles::{CONFIDENCE_USAGE, ConfidenceCommand},
+    harness::Mode,
+};
 
 use super::mode;
 
@@ -63,6 +66,11 @@ pub const COMMANDS: &[CommandSpec] = &[
         usage: "/human [on|off]",
     },
     CommandSpec {
+        name: "confidence",
+        summary: "Check or set confidence in a selected external agent",
+        usage: CONFIDENCE_USAGE,
+    },
+    CommandSpec {
         name: "stop",
         summary: "Stop the turns running in this chat",
         usage: "/stop",
@@ -94,6 +102,7 @@ pub enum Action {
     SetMode(Mode),
     /// Inspect or change the external-agent roster.
     Agent(AgentCommand),
+    Confidence(ConfidenceCommand),
     /// Inspect (`None`) or change the simulated-typing setting.
     Humanize(Option<bool>),
     /// Cancel the turns currently running in this chat.
@@ -216,6 +225,10 @@ impl IncomingCommand {
                 }
             }
             "agent" => Action::Agent(self.agent_command()),
+            "confidence" => match ConfidenceCommand::parse(&self.args) {
+                Ok(command) => Action::Confidence(command),
+                Err(usage) => Action::Usage(format!("Use `{usage}`.")),
+            },
             "human" => {
                 let mut words = self.args.split_whitespace();
                 match (words.next(), words.next()) {

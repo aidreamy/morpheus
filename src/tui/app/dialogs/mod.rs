@@ -1,6 +1,8 @@
 mod agent_config;
 mod checkup;
+mod confidence;
 mod confirm;
+pub(super) use confidence::ConfidenceEdit;
 mod message_actions;
 mod model;
 mod provider_key;

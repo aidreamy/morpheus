@@ -32,6 +32,7 @@ impl Harness {
             mcp: McpManager::new(),
             mcp_config: McpConfig::default(),
             header_context: String::new(),
+            external_agent_cards: None,
             system_prompts: Vec::new(),
             harness_tools: default_harness_tools(),
             morpheus_tools: Some(morpheus_tools),

@@ -27,6 +27,67 @@ use crate::events::{
 /// with `mode: primary` even though no user selects them.
 const INTERNAL_AGENTS: &[&str] = &["compaction", "summary", "title"];
 
+#[derive(serde::Deserialize)]
+struct InventoryName {
+    id: Option<String>,
+    name: Option<String>,
+}
+
+pub(super) async fn inventory(
+    http: &Http,
+    model: Option<&str>,
+) -> crate::inventory::AgentInventory {
+    let tools = async {
+        if let Some((provider, model)) = model.and_then(|name| name.split_once('/')) {
+            let query = reqwest::Url::parse_with_params(
+                "http://localhost",
+                &[("provider", provider), ("model", model)],
+            )
+            .ok()?;
+            let endpoint = format!("/experimental/tool?{}", query.query()?);
+            if let Ok(tools) = http.get::<Vec<InventoryName>>(&endpoint).await {
+                return Some(names(
+                    tools.into_iter().filter_map(|tool| tool.id.or(tool.name)),
+                ));
+            }
+        }
+        http.get::<Vec<String>>("/experimental/tool/ids")
+            .await
+            .ok()
+            .map(names)
+    };
+    let skills = async {
+        http.get::<Vec<InventoryName>>("/skill")
+            .await
+            .ok()
+            .map(|skills| {
+                names(
+                    skills
+                        .into_iter()
+                        .filter_map(|skill| skill.name.or(skill.id)),
+                )
+            })
+    };
+    let (tools, skills) = tokio::join!(tools, skills);
+    crate::inventory::AgentInventory {
+        tools,
+        skills,
+        resume: Some(true),
+        ..Default::default()
+    }
+}
+
+fn names(values: impl IntoIterator<Item = String>) -> Vec<String> {
+    let mut names: Vec<_> = values
+        .into_iter()
+        .filter(|name| crate::inventory::identifier(name))
+        .collect();
+    names.sort_unstable();
+    names.dedup();
+    names.truncate(32);
+    names
+}
+
 /// Probe a session's advertised surface over a throwaway server.
 ///
 /// `session_id` names the session whose current mode/model are reported back

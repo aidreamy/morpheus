@@ -50,6 +50,11 @@ pub struct StoredChat {
     /// behavior, so no schema bump is needed.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub humanize: Option<bool>,
+    #[serde(
+        default,
+        skip_serializing_if = "crate::agent_profiles::ConfidencePreferences::is_empty"
+    )]
+    pub confidence: crate::agent_profiles::ConfidencePreferences,
 }
 
 impl Default for StoredChat {
@@ -60,6 +65,7 @@ impl Default for StoredChat {
             sessions: BTreeMap::new(),
             context: None,
             humanize: None,
+            confidence: Default::default(),
         }
     }
 }

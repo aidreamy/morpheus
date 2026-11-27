@@ -117,6 +117,7 @@ pub struct Harness {
     /// [`Self::with_mcp_config`] from the TUI's `Setup.mcp`.
     mcp_config: McpConfig,
     header_context: String,
+    external_agent_cards: Option<String>,
     system_prompts: Vec<PromptSystem>,
     harness_tools: Vec<HarnessTool>,
     morpheus_tools: Option<MorpheusTools>,

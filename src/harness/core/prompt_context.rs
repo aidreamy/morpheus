@@ -4,6 +4,11 @@
 use super::Harness;
 
 impl Harness {
+    #[must_use]
+    pub fn with_external_agent_cards(mut self, cards: Option<String>) -> Self {
+        self.external_agent_cards = cards;
+        self
+    }
     /// Build the system context for the LLM.
     ///
     /// Returns the header context (instructions + tool definitions). The
@@ -33,10 +38,12 @@ impl Harness {
         // awareness rides a prompt preamble (`agent_coworkers::take_preamble`) at
         // dispatch time instead.
         self.context_manager
-            .set_coworkers_block(match &self.own_coworker_id {
-                None => super::agent_coworkers::context_block(),
-                Some(own_id) => super::agent_coworkers::peer_block(own_id),
-            });
+            .set_coworkers_block(self.external_agent_cards.clone().or_else(|| {
+                match &self.own_coworker_id {
+                    None => super::agent_coworkers::context_block(),
+                    Some(own_id) => super::agent_coworkers::peer_block(own_id),
+                }
+            }));
         self.header_context.clone()
     }
 }

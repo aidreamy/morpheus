@@ -99,6 +99,7 @@ pub const COMMAND_INVENTORY: &[(&str, CommandScope)] = &[
     ("export", CommandScope::Agent),
     ("worktree", CommandScope::Agent),
     ("agents", CommandScope::Global),
+    ("confidence", CommandScope::Global),
     ("router", CommandScope::Global),
     ("download", CommandScope::Global),
     ("providers", CommandScope::Global),
@@ -159,6 +160,13 @@ pub fn undo_command_entry() -> SlashCommand {
     SlashCommand {
         name: "undo".into(),
         desc: "Rewind this agent's conversation to a checkpoint".into(),
+    }
+}
+
+pub fn confidence_command_entry() -> SlashCommand {
+    SlashCommand {
+        name: "confidence".into(),
+        desc: "Set confidence in an external agent for its current model".into(),
     }
 }
 
@@ -304,6 +312,7 @@ impl SlashMenu {
             // one more agent whose turns can run in a checkout. The pane
             // sources do NOT append a second copy; see `slash_source`.
             worktree_command_entry(),
+            confidence_command_entry(),
         ]
     }
 
@@ -344,7 +353,7 @@ impl SlashMenu {
     /// the raw input submits as a plain prompt, exactly as before.
     #[must_use]
     pub fn takes_args(name: &str) -> bool {
-        matches!(name, "worktree" | "wallpaper")
+        matches!(name, "worktree" | "wallpaper" | "confidence")
     }
 
     pub fn check_state(input: &str) -> (bool, String) {

@@ -10,6 +10,36 @@ fn slash_cmd(name: &str) -> crate::ui::slash_menu::SlashCommand {
 }
 
 #[tokio::test]
+async fn confidence_picker_updates_the_focused_external_model() {
+    use morpheus::agent_profiles::Confidence;
+    let _guard = HOME_LOCK.lock();
+    isolate_home();
+    let mut app = App::new("/tmp".into());
+    let id = crate::session::store::generate_session_id();
+    app.state
+        .add_empty_session(id.clone(), "confidence".into(), 0);
+    app.state.current_session_id = Some(id);
+    app.open_agents_split(vec![crate::ui::agents_picker::AgentPick {
+        name: "claude".into(),
+        instances: 1,
+    }]);
+    app.agents_model_picks.set("claude", "sonnet-4").unwrap();
+    app.prompt_view.input = "/confidence".into();
+    app.slash_menu.set_loading(true);
+    app.slash_menu_refresh();
+    let command = app.slash_menu.get_selected_command().unwrap().clone();
+    assert_eq!(command.name, "confidence");
+    app.run_slash_command(&command);
+    assert!(app.is_agent_config_dialog_visible());
+    app.handle_agent_config_dialog_key(KeyCode::Down);
+    app.handle_agent_config_dialog_key(KeyCode::Enter);
+    let split = app.agents_split.as_ref().unwrap();
+    let profile = app.pane_profile(split, 0).unwrap();
+    assert_eq!(profile.model.as_deref(), Some("sonnet-4"));
+    assert_eq!(profile.confidence, Some(Confidence::Low));
+}
+
+#[tokio::test]
 async fn compaction_progress_targets_the_running_box_and_final_output_replaces_status() {
     let _guard = HOME_LOCK.lock();
     isolate_home();

@@ -69,6 +69,8 @@ pub struct Setup {
     /// `MORPHEUS_KILO_TRANSPORT`) always wins over this value.
     #[serde(default)]
     pub native_transport: NativeTransport,
+    /// User confidence in external agents, keyed by their model profile.
+    pub agent_confidence: crate::agent_profiles::ConfidencePreferences,
     /// User-registered LLM provider endpoints (Settings screen). Each entry
     /// maps a public provider name to its base URL and API family - the
     /// same declarative shape Goose's custom providers use. Empty when the
@@ -129,6 +131,7 @@ impl Default for Setup {
             mcp: McpConfig::default(),
             acp_agents: Vec::new(),
             native_transport: NativeTransport::default(),
+            agent_confidence: Default::default(),
             custom_providers: Vec::new(),
             editor: String::new(),
             telemetry: true,
@@ -1391,6 +1394,9 @@ impl Setup {
         if section_differs(&self.acp_agents, &baseline.acp_agents) {
             merged.acp_agents = self.acp_agents.clone();
         }
+        merged
+            .agent_confidence
+            .merge_changes(&baseline.agent_confidence, &self.agent_confidence);
         if self.native_transport.opencode != baseline.native_transport.opencode {
             merged.native_transport.opencode = self.native_transport.opencode.clone();
         }

@@ -2737,6 +2737,60 @@ where
 /// capabilities advertised at `initialize`. Both ACP mechanisms count:
 /// `sessionCapabilities.resume` (`session/resume`) and the older top-level
 /// `session/load` capability (`session/load`).
+pub(crate) async fn probe_inventory(
+    agent: &str,
+) -> Result<crate::inventory::AgentInventory, String> {
+    validate_agent(agent)?;
+    let entry = find_agent(agent).ok_or_else(|| format!("unknown agent '{agent}'"))?;
+    let launcher = agent_launcher(&entry)?;
+    tokio::task::spawn_blocking(move || {
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .map_err(|e| e.to_string())?
+            .block_on(async {
+                tokio::time::timeout(
+                    Duration::from_secs(8),
+                    Client.builder().name("morpheus").connect_with(
+                        launcher,
+                        async move |connection: ConnectionTo<AcpRole>| {
+                            let init = connection
+                                .send_request(InitializeRequest::new(ProtocolVersion::V1))
+                                .block_task()
+                                .await
+                                .map_err(|error| acp_error(error.to_string()))?;
+                            let capabilities = init.agent_capabilities;
+                            let inputs = [
+                                (capabilities.prompt_capabilities.image, "image"),
+                                (capabilities.prompt_capabilities.audio, "audio"),
+                                (
+                                    capabilities.prompt_capabilities.embedded_context,
+                                    "embedded-context",
+                                ),
+                            ]
+                            .into_iter()
+                            .filter_map(|(supported, name)| supported.then_some(name))
+                            .collect();
+                            Ok(crate::inventory::AgentInventory {
+                                inputs,
+                                resume: Some(
+                                    session_resume_support(&capabilities)
+                                        != SessionResumeSupport::None,
+                                ),
+                                ..Default::default()
+                            })
+                        },
+                    ),
+                )
+                .await
+                .map_err(|_| "ACP capability probe timed out".to_string())?
+                .map_err(|error| error.to_string())
+            })
+    })
+    .await
+    .map_err(|error| error.to_string())?
+}
+
 fn session_resume_support(capabilities: &AgentCapabilities) -> SessionResumeSupport {
     if capabilities.session_capabilities.resume.is_some() {
         SessionResumeSupport::Resume

@@ -337,8 +337,7 @@ pub enum SubagentEvent {
         /// Raw input parameters, when the harness reports them.
         raw_input: Option<serde_json::Value>,
         /// The tool's REAL name (`fs_edit`, `find_grep`, …) when the source
-        /// carries one - the internal sub-agent does; an ACP harness does
-        /// not (its protocol has only the kind + a free-form title). The
+        /// carries one, including the optional ACP tool name. The
         /// TUI labels the row with THIS name, exactly like the main chat's
         /// compact renderer, instead of the kind's generic short form.
         /// `#[serde(default)]`: persisted envelopes from before the field
@@ -638,10 +637,7 @@ impl SubagentEvent {
             kind: ToolKind::from_acp(call.kind),
             status: ToolCallStatus::from_acp(call.status),
             raw_input: call.raw_input,
-            // The ACP protocol carries no tool name - the free-form title is
-            // all a harness gives us. `None`: the row labels itself by kind,
-            // as it always did.
-            tool: None,
+            tool: call.name.filter(|name| crate::inventory::identifier(name)),
         }
     }
 

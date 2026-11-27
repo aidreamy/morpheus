@@ -37,6 +37,7 @@ pub struct AcpTurnResult {
     pub modes: Option<Vec<AgentSessionMode>>,
     /// The config options advertised during this turn (used for model picks).
     pub config_options: Option<Vec<AgentConfigOption>>,
+    pub observation: crate::agent_profiles::AgentObservation,
 }
 
 impl AcpTurnResult {
@@ -49,6 +50,7 @@ impl AcpTurnResult {
             denied_tools: Vec::new(),
             modes: None,
             config_options: None,
+            observation: Default::default(),
         }
     }
 }
@@ -159,11 +161,14 @@ pub async fn run(
     let mut denied_tools = Vec::new();
     let mut observed_modes = None;
     let mut observed_options = None;
+    let mut observation = crate::agent_profiles::AgentObservation::default();
     let outcome = loop {
         tokio::select! {
             outcome = &mut turn => break outcome,
             event = chunk_rx.recv() => match event {
-                Some(event) => match event {
+                Some(event) => {
+                    observation.observe(&event);
+                    match event {
                     SubagentEvent::PermissionRequest { title, options, .. } => {
                         let (answer, denied) = permission_answer(&options, yolo);
                         if denied {
@@ -175,6 +180,7 @@ pub async fn run(
                     SubagentEvent::Modes { modes, .. } => observed_modes = Some(modes),
                     SubagentEvent::ConfigOptions { options } => observed_options = Some(options),
                     _ => {}
+                    }
                 },
                 // The stream closes only when the turn future ends; keep
                 // awaiting it for the terminal outcome.
@@ -182,6 +188,14 @@ pub async fn run(
             }
         }
     };
+    while let Ok(event) = chunk_rx.try_recv() {
+        observation.observe(&event);
+        match event {
+            SubagentEvent::Modes { modes, .. } => observed_modes = Some(modes),
+            SubagentEvent::ConfigOptions { options } => observed_options = Some(options),
+            _ => {}
+        }
+    }
 
     log::debug!(
         "morpheus whatsapp: ACP turn ended ({}, failed={})",
@@ -201,6 +215,7 @@ pub async fn run(
         denied_tools,
         modes: observed_modes,
         config_options: observed_options,
+        observation,
     }
 }
 

@@ -40,6 +40,22 @@ use crossterm::event::KeyCode;
 /// source keeps the menu's selection, so this is safe to call on every
 /// focus change and probe arrival.
 pub(super) fn sync_slash_source(app: &mut App) {
+    // Confidence is managed by Morpheus and remains available while the
+    // focused transport is still discovering its own command list.
+    if app
+        .prompt_view
+        .input
+        .split_whitespace()
+        .next()
+        .is_some_and(|name| name.eq_ignore_ascii_case("/confidence"))
+    {
+        let commands = [crate::ui::slash_menu::confidence_command_entry()];
+        if !slash_lists_equal(&commands, &app.slash_menu.commands) {
+            app.slash_menu.set_agent_commands(commands.into());
+        }
+        app.slash_menu.set_loading(false);
+        return;
+    }
     let next = app
         .agents_split
         .as_ref()
@@ -453,6 +469,7 @@ fn assign_focused_pane_worktree(app: &mut App, path: Option<&str>, branch: &str)
                 return;
             };
             pane.worktree = Some(worktree);
+            pane.observed_tools.clear();
             pane.worktree_handoff_pending = true;
             app.sync_agents_pane_registry();
             persist_worktree_change(app);
@@ -696,6 +713,7 @@ fn clear_focused_pane_worktree(app: &mut App) {
     let was_pinned = split.panes[pane_index].worktree.is_some();
     let pane = &mut split.panes[pane_index];
     pane.worktree = None;
+    pane.observed_tools.clear();
     pane.worktree_handoff_pending = was_pinned;
     app.sync_agents_pane_registry();
     persist_worktree_change(app);
@@ -747,6 +765,7 @@ impl App {
                 );
                 let pane = &mut split.panes[pane_index];
                 pane.worktree = Some(worktree);
+                pane.observed_tools.clear();
                 pane.worktree_handoff_pending = true;
                 Ok(message)
             }
@@ -790,6 +809,7 @@ impl App {
         let was_pinned = split.panes[pane_index].worktree.is_some();
         let pane = &mut split.panes[pane_index];
         pane.worktree = None;
+        pane.observed_tools.clear();
         pane.worktree_handoff_pending = was_pinned;
         self.sync_agents_pane_registry();
         persist_worktree_change(self);
@@ -1695,6 +1715,7 @@ impl App {
             split.set_stop_signal(pane, Some(signal.clone()));
             split.set_steer(pane, steer.clone());
         }
+        self.sync_agents_pane_registry();
         // The pane's mirror in the shared subagent list starts spinning too
         // (same running flag, pane-index routed).
         self.sync_agents_pane_mirrors();

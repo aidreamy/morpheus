@@ -125,9 +125,9 @@ dependencies = [
 
 [[package]]
 name = "aiface"
-version = "0.3.0"
+version = "0.3.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "1b6c30e08030c3845496a40db2502c741fcc034b08e658af51aabebeba89da8a"
+checksum = "7b00945616984b0e13ceca6545f16e5954f92c97ee04e08e27608b13debfa581"
 dependencies = [
  "async-stream",
  "base64 0.22.1",
@@ -144,6 +144,7 @@ dependencies = [
  "serde",
  "serde_json",
  "sha2 0.10.9",
+ "tempfile",
  "thiserror 2.0.21",
  "tokio",
  "tokio-stream",
@@ -5678,7 +5679,7 @@ dependencies = [
 name = "morpheus"
 version = "1.0.3"
 dependencies = [
- "aiface 0.3.0",
+ "aiface 0.3.1",
  "arboard",
  "bzip2 0.6.1",
  "chrono",
@@ -5877,7 +5878,7 @@ dependencies = [
 name = "morpheus-tools"
 version = "0.1.6"
 dependencies = [
- "aiface 0.3.0",
+ "aiface 0.3.1",
  "ast-grep-core",
  "async-stream",
  "criterion",

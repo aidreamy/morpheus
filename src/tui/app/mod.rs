@@ -286,6 +286,7 @@ pub struct App {
     /// teardown-and-rebuild under an open box can never dispatch a stale
     /// config id into a rebuilt pane that merely shares the index.
     agent_config_edit: Option<(u64, usize, String, String)>,
+    confidence_edit: Option<dialogs::ConfidenceEdit>,
     /// Multi-select dialog behind `/agents`: picks which agent CLIs receive
     /// delegated work. Owns its own visibility (`visible` flag) and mark
     /// state; `None` fields below mean the picker is not on screen.
@@ -919,6 +920,7 @@ impl App {
             prompt_correction_cancel: Arc::new(AtomicBool::new(false)),
             slash_menu: crate::ui::slash_menu::SlashMenu::new(),
             agent_config_edit: None,
+            confidence_edit: None,
             agents_picker: crate::ui::agents_picker::AgentsPicker::new(),
             agents_split: None,
             parked_agents_split: None,

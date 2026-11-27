@@ -52,6 +52,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   unblocks dependent tasks. If the base branch advances during the check,
   the candidate must be verified again.
 
+- The coordinator receives a compact card for each distinct external-agent
+  configuration. Cards show instance IDs, model, observed tools, advertised
+  capabilities and skills, and published Terminal-Bench or DeepSWE results
+  when the model matches. Native servers are queried without sending a turn.
+
+- `/confidence` sets confidence per external agent and model. The TUI opens
+  a picker, and WhatsApp accepts `/confidence <agent> <low|medium|high|max>`
+  and saves it per chat. The coordinator uses this preference when choosing
+  an agent, with each task's permissions and approvals applied as usual.
+
 ### Changed
 
 - The sub-agent implementation moved out of `morpheus-tools` into its own

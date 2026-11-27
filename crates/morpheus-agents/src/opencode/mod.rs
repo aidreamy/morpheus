@@ -55,6 +55,17 @@ pub mod http;
 pub mod server;
 pub mod session;
 mod snapshot;
+
+pub(crate) async fn inventory(
+    agent: &str,
+    cwd: &std::path::Path,
+    model: Option<&str>,
+) -> Result<crate::inventory::AgentInventory, String> {
+    let backend = Backend::from_agent(agent).ok_or_else(|| format!("unknown server '{agent}'"))?;
+    let server = server::Server::start(cwd, backend)?;
+    server.ensure_ready().await?;
+    Ok(snapshot::inventory(server.http(), model).await)
+}
 mod turn;
 
 use std::path::PathBuf;

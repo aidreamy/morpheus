@@ -103,6 +103,12 @@ enum SwitchAction {
     /// Flip `setup.voice.auto_generate` (automatic generation at the end of
     /// a turn); the caller also syncs the app's `SpeechState`.
     VoiceAuto,
+    /// Flip `setup.native_transport.opencode` between native (empty) and
+    /// forced ACP (`"acp"`). Effective on the next launch.
+    OpenCodeNativeTransport,
+    /// Flip `setup.native_transport.kilo` between native (empty) and
+    /// forced ACP (`"acp"`). Effective on the next launch.
+    KiloNativeTransport,
 }
 
 #[derive(PartialEq, Eq)]
@@ -294,6 +300,18 @@ const INTEGRATIONS: SettingsSection = SettingsSection {
             description: "OpenAI-compatible LLM endpoints registered by URL and API family",
             kind: SettingKind::ProviderList,
         },
+        SettingsItem {
+            id: "opencode_native_transport",
+            label: "OpenCode native transport",
+            description: "Use OpenCode's native server instead of the ACP transport (restart required)",
+            kind: SettingKind::Switch(SwitchAction::OpenCodeNativeTransport),
+        },
+        SettingsItem {
+            id: "kilo_native_transport",
+            label: "Kilo native transport",
+            description: "Use Kilo's native server instead of the ACP transport (restart required)",
+            kind: SettingKind::Switch(SwitchAction::KiloNativeTransport),
+        },
     ],
 };
 
@@ -463,6 +481,12 @@ fn is_enabled(item: &SettingsItem, setup: &Setup) -> bool {
         SettingKind::Switch(SwitchAction::WhatsAppSelfChat) => setup.whatsapp.self_chat,
         SettingKind::Switch(SwitchAction::WhatsAppHumanize) => setup.whatsapp.humanize,
         SettingKind::Switch(SwitchAction::VoiceAuto) => setup.voice.auto_generate,
+        SettingKind::Switch(SwitchAction::OpenCodeNativeTransport) => {
+            !setup.native_transport.opencode.eq_ignore_ascii_case("acp")
+        }
+        SettingKind::Switch(SwitchAction::KiloNativeTransport) => {
+            !setup.native_transport.kilo.eq_ignore_ascii_case("acp")
+        }
         _ => false,
     }
 }
@@ -1403,6 +1427,24 @@ impl SettingsView {
                         setup.voice.auto_generate = !setup.voice.auto_generate;
                         self.selection.clamp(selectable_rows(setup).len());
                         return Some(SettingsAction::VoiceAutoToggled);
+                    }
+                    SettingKind::Switch(SwitchAction::OpenCodeNativeTransport) => {
+                        if setup.native_transport.opencode.eq_ignore_ascii_case("acp") {
+                            setup.native_transport.opencode.clear();
+                        } else {
+                            setup.native_transport.opencode = "acp".to_string();
+                        }
+                        self.selection.clamp(selectable_rows(setup).len());
+                        return Some(SettingsAction::ToggleSaved);
+                    }
+                    SettingKind::Switch(SwitchAction::KiloNativeTransport) => {
+                        if setup.native_transport.kilo.eq_ignore_ascii_case("acp") {
+                            setup.native_transport.kilo.clear();
+                        } else {
+                            setup.native_transport.kilo = "acp".to_string();
+                        }
+                        self.selection.clamp(selectable_rows(setup).len());
+                        return Some(SettingsAction::ToggleSaved);
                     }
                     // Each hook category flips only its own event's switch.
                     SettingKind::HookList(event) => match *event {
@@ -2546,6 +2588,8 @@ mod tests {
                 SettingsRow::AddAcpAgent,
                 cat("custom_providers"),
                 SettingsRow::AddProvider,
+                cat("opencode_native_transport"),
+                cat("kilo_native_transport"),
                 cat("whatsapp_self_chat"),
                 cat("whatsapp_contacts"),
                 SettingsRow::AddWhatsAppEntry {
@@ -2594,6 +2638,8 @@ mod tests {
                 SettingsRow::AddAcpAgent,
                 cat("custom_providers"),
                 SettingsRow::AddProvider,
+                cat("opencode_native_transport"),
+                cat("kilo_native_transport"),
                 cat("whatsapp_self_chat"),
                 cat("whatsapp_contacts"),
                 SettingsRow::AddWhatsAppEntry {

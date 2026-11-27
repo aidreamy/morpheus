@@ -1,10 +1,15 @@
 # `acp` - the external ACP harness engine
 
-`acp` is the part of the module that actually talks to other agent
+`acp` is the part of the crate that actually talks to other agent
 harnesses: it resolves the agent name, spawns the harness in ACP server
 mode, drives a full [Agent Client Protocol](https://agentclientprotocol.com/)
 turn as a client, streams the agent's output in real time, and accumulates
 the result until the turn ends.
+
+This module is also the crate's public façade: OpenCode is routed to its
+native server before any ACP machinery runs (see
+[opencode.md](opencode.md)), so the signatures below cover both transports
+unchanged.
 
 There are two entry points over the same turn engine:
 

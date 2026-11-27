@@ -23,7 +23,7 @@
 //! 4. `session/prompt` — sends the task as the user prompt.
 //! 5. `session/update` notifications — mapped events stream live to the
 //!    TUI's sub-agent box, and message chunks feed the turn's closure
-//!    ([`TurnClosure`](crate::subagent::closure)): only the message written
+//!    ([`TurnClosure`](crate::closure)): only the message written
 //!    after the LAST tool call is the report returned to the caller.
 //! 6. The turn ends when the `session/prompt` response arrives with a
 //!    [`StopReason`](agent_client_protocol::schema::v1::StopReason).
@@ -525,7 +525,7 @@ fn script_shim_in_path(binary: &str) -> bool {
 /// Returns `Some(wrapped_args)` when a `cmd` detour is needed, `None`
 /// otherwise (native `.exe`, non-Windows, or unsafe-to-wrap argument).
 #[cfg(windows)]
-fn windows_script_launcher(args: &[String]) -> Option<Vec<String>> {
+pub(crate) fn windows_script_launcher(args: &[String]) -> Option<Vec<String>> {
     const CMD_METACHARACTERS: [char; 7] = ['&', '|', '^', '%', '<', '>', '"'];
     if args
         .iter()
@@ -548,7 +548,7 @@ fn windows_script_launcher(args: &[String]) -> Option<Vec<String>> {
 
 /// Non-Windows no-op: Unix spawn resolves scripts through the shebang line.
 #[cfg(not(windows))]
-fn windows_script_launcher(_args: &[String]) -> Option<Vec<String>> {
+pub(crate) fn windows_script_launcher(_args: &[String]) -> Option<Vec<String>> {
     None
 }
 
@@ -928,7 +928,7 @@ pub fn prepare_session_cwd(cwd: &std::path::Path, strictness: CwdStrictness) -> 
     // The read-only passes substitute home when it resolves to a real
     // directory, and log the substitution — a silent path swap would be
     // indistinguishable from a bug in the harness.
-    if let Some(home) = crate::skills::home_dir()
+    if let Some(home) = home_dir()
         && let Ok(home) = std::fs::canonicalize(&home)
         && home.is_dir()
     {
@@ -957,6 +957,55 @@ pub enum CwdStrictness {
     /// The READ-ONLY passes (`replay`, `session_snapshot`): a missing
     /// workspace substitutes the home directory so the load/probe proceeds.
     Substitute,
+}
+
+/// The user's home directory, when it resolves to a real directory: `HOME`
+/// first (normalized, so a Git-Bash `/c/Users/...` spelling becomes a
+/// Windows path), then `USERPROFILE` on Windows. `None` when neither
+/// resolves — the caller degrades to passing the original path through.
+fn home_dir() -> Option<String> {
+    if let Some(h) = std::env::var_os("HOME") {
+        // Lossy on invalid UTF-8 (unpaired surrogates): the is_dir probe
+        // then fails and resolution degrades safely to USERPROFILE.
+        let h = normalize_shell_path(&h.to_string_lossy());
+        if std::path::Path::new(&h).is_dir() {
+            return Some(h);
+        }
+    }
+    if let Some(up) = std::env::var_os("USERPROFILE") {
+        let up = up.to_string_lossy().into_owned();
+        if std::path::Path::new(&up).is_dir() {
+            return Some(up);
+        }
+    }
+    None
+}
+
+/// Translate a POSIX-style absolute path (Git Bash/MSYS spelling) into the
+/// native Windows form, leaving native paths untouched.
+fn normalize_shell_path(path: &str) -> String {
+    #[cfg(not(windows))]
+    {
+        path.to_string()
+    }
+    #[cfg(windows)]
+    {
+        msys_to_windows(path).unwrap_or_else(|| path.to_string())
+    }
+}
+
+/// Map `/c/Users/me` (and `/cygdrive/c/Users/me`) to `C:/Users/me`.
+#[cfg(windows)]
+fn msys_to_windows(path: &str) -> Option<String> {
+    let rest = path
+        .strip_prefix("/cygdrive/")
+        .or_else(|| path.strip_prefix('/'))?;
+    let mut chars = rest.chars();
+    let drive = chars.next()?;
+    if !drive.is_ascii_alphabetic() || chars.next()? != '/' {
+        return None;
+    }
+    Some(format!("{}:/{}", drive.to_ascii_uppercase(), chars.as_str()))
 }
 
 #[cfg(test)]
@@ -1057,7 +1106,7 @@ mod cwd_preparation_tests {
 ///    sends `session/cancel` and the agent ends the turn itself.
 /// 3. Streams typed [`SubagentEvent`]s through `chunk_tx` (for the TUI)
 ///    while feeding the message text to the turn's closure
-///    ([`TurnClosure`](crate::subagent::closure::TurnClosure)).
+///    ([`TurnClosure`](crate::closure::TurnClosure)).
 /// 4. Permission handling is MODE-AWARE: `permission_rx: Some(rx)` makes
 ///    every `session/request_permission` surface as a
 ///    [`SubagentEvent::PermissionRequest`] and AWAIT the user's option pick
@@ -1100,6 +1149,24 @@ pub async fn call(
     stop_signal: Arc<AtomicBool>,
     chunk_tx: tokio::sync::mpsc::UnboundedSender<SubagentEvent>,
 ) -> Result<(String, String, Option<String>), String> {
+    // OpenCode is driven through its own server (see `opencode`); every
+    // other harness — and OpenCode itself when the native transport is
+    // disabled — takes the generic ACP path below. Callers never see the
+    // difference.
+    if super::opencode::is_native(agent) {
+        return super::opencode::call(
+            agent,
+            input,
+            resume,
+            picks,
+            mode,
+            permission_rx,
+            cwd,
+            stop_signal,
+            chunk_tx,
+        )
+        .await;
+    }
     validate_agent(agent)?;
     let entry = find_agent(agent).ok_or_else(|| format!("unknown agent '{agent}'"))?;
     // Absolute, resolved session cwd for EVERY request on this connection
@@ -1288,7 +1355,7 @@ struct PermissionSlot {
 /// turn in flight, so a pane that is being hidden or closed never leaves the
 /// harness working in the background).
 pub struct SessionHandle {
-    tx: tokio::sync::mpsc::UnboundedSender<HostCommand>,
+    backend: SessionBackend,
     cwd: PathBuf,
     shutdown: Arc<AtomicBool>,
     /// Why the supervisor is closing: a failed handshake, a harness that
@@ -1300,10 +1367,17 @@ pub struct SessionHandle {
     closed_reason: Arc<Mutex<Option<String>>>,
 }
 
+/// What drives a pane's live session: the ACP supervisor thread, or the
+/// native OpenCode server (see [`super::opencode`]).
+enum SessionBackend {
+    Acp(tokio::sync::mpsc::UnboundedSender<HostCommand>),
+    OpenCode(Arc<super::opencode::session::Session>),
+}
+
 impl Clone for SessionHandle {
     fn clone(&self) -> Self {
         Self {
-            tx: self.tx.clone(),
+            backend: self.backend.clone(),
             cwd: self.cwd.clone(),
             shutdown: self.shutdown.clone(),
             closed_reason: self.closed_reason.clone(),
@@ -1320,17 +1394,61 @@ impl std::fmt::Debug for SessionHandle {
     }
 }
 
+impl Clone for SessionBackend {
+    fn clone(&self) -> Self {
+        match self {
+            Self::Acp(tx) => Self::Acp(tx.clone()),
+            Self::OpenCode(session) => Self::OpenCode(Arc::clone(session)),
+        }
+    }
+}
+
 impl SessionHandle {
+    /// Build a handle backed by the native OpenCode session.
+    pub(crate) fn from_native(
+        session: Arc<super::opencode::session::Session>,
+        cwd: PathBuf,
+    ) -> Self {
+        Self {
+            backend: SessionBackend::OpenCode(session),
+            cwd,
+            shutdown: Arc::new(AtomicBool::new(false)),
+            closed_reason: Arc::new(Mutex::new(None)),
+        }
+    }
+
     /// The canonical cwd the session was opened in.
     #[must_use]
     pub fn cwd(&self) -> &Path {
         &self.cwd
     }
 
-    /// Whether this handle still answers (the supervisor thread is alive).
+    /// Whether this handle still answers (the supervisor thread or the
+    /// native server process is alive).
     #[must_use]
     pub fn is_alive(&self) -> bool {
-        !self.tx.is_closed()
+        match &self.backend {
+            SessionBackend::Acp(tx) => !tx.is_closed(),
+            SessionBackend::OpenCode(session) => session.is_alive(),
+        }
+    }
+
+    /// Get the modes from this handle's live native server before a prompt.
+    ///
+    /// Returns `None` for ACP agents (which publish modes during the turn)
+    /// or if the caller stops the probe.
+    ///
+    /// # Errors
+    ///
+    /// Returns the native server's error if the mode catalog cannot be read.
+    pub async fn native_modes(
+        &self,
+        stop: &AtomicBool,
+    ) -> Result<Option<Vec<super::events::AgentSessionMode>>, String> {
+        match &self.backend {
+            SessionBackend::Acp(_) => Ok(None),
+            SessionBackend::OpenCode(session) => session.modes(stop).await,
+        }
     }
 
     /// Whether the session was opened in the same workspace as `cwd`. A moved
@@ -1345,7 +1463,12 @@ impl SessionHandle {
     /// to call more than once and from any thread.
     pub fn shutdown(&self) {
         self.shutdown.store(true, Ordering::Relaxed);
-        let _ = self.tx.send(HostCommand::Shutdown);
+        match &self.backend {
+            SessionBackend::Acp(tx) => {
+                let _ = tx.send(HostCommand::Shutdown);
+            }
+            SessionBackend::OpenCode(session) => session.shutdown(),
+        }
     }
 
     /// Run one turn on the live session and await its outcome.
@@ -1374,10 +1497,32 @@ impl SessionHandle {
             chunk_tx,
             reply,
         };
-        if self.tx.send(HostCommand::Turn(Box::new(request))).is_err() {
-            return self.closed_outcome();
+        match &self.backend {
+            SessionBackend::Acp(tx) => {
+                if tx.send(HostCommand::Turn(Box::new(request))).is_err() {
+                    return self.closed_outcome();
+                }
+                answer.await.unwrap_or_else(|_| self.closed_outcome())
+            }
+            SessionBackend::OpenCode(session) => {
+                // The request box exists only to travel through the ACP
+                // command channel; the native path calls the session
+                // directly with its inputs.
+                let TurnRequest {
+                    input,
+                    picks,
+                    mode,
+                    permission_rx,
+                    stop_signal,
+                    chunk_tx,
+                    reply,
+                } = request;
+                drop(reply);
+                session
+                    .run_turn(input, &picks, mode.as_deref(), permission_rx, stop_signal, chunk_tx)
+                    .await
+            }
         }
-        answer.await.unwrap_or_else(|_| self.closed_outcome())
     }
 
     /// The outcome for a turn the supervisor never answered: the recorded
@@ -1424,6 +1569,9 @@ pub fn open_session(
     resume: Option<String>,
     cwd: PathBuf,
 ) -> Result<SessionHandle, String> {
+    if super::opencode::is_native(agent) {
+        return super::opencode::open_session(agent, resume, cwd);
+    }
     validate_agent(agent)?;
     let entry = find_agent(agent).ok_or_else(|| format!("unknown agent '{agent}'"))?;
     let cwd = prepare_session_cwd(&cwd, CwdStrictness::Strict);
@@ -1436,7 +1584,7 @@ pub fn open_session(
     let shutdown = Arc::new(AtomicBool::new(false));
     let closed_reason = Arc::new(Mutex::new(None));
     let handle = SessionHandle {
-        tx,
+        backend: SessionBackend::Acp(tx),
         cwd: cwd.clone(),
         shutdown: shutdown.clone(),
         closed_reason: closed_reason.clone(),
@@ -1492,7 +1640,7 @@ where
     let shutdown = Arc::new(AtomicBool::new(false));
     let closed_reason = Arc::new(Mutex::new(None));
     let handle = SessionHandle {
-        tx,
+        backend: SessionBackend::Acp(tx),
         cwd: cwd.clone(),
         shutdown: shutdown.clone(),
         closed_reason: closed_reason.clone(),
@@ -2153,7 +2301,7 @@ async fn run_host_session<T>(
     }
 }
 
-fn failed_outcome(error: String) -> TurnOutcome {
+pub(crate) fn failed_outcome(error: String) -> TurnOutcome {
     TurnOutcome {
         output: error,
         stop_reason: "error".to_string(),
@@ -2194,6 +2342,9 @@ pub async fn replay(
     cwd: PathBuf,
     chunk_tx: tokio::sync::mpsc::UnboundedSender<SubagentEvent>,
 ) -> Result<(), String> {
+    if super::opencode::is_native(agent) {
+        return super::opencode::replay(agent, session_id, cwd, chunk_tx).await;
+    }
     validate_agent(agent)?;
     let entry = find_agent(agent).ok_or_else(|| format!("unknown agent '{agent}'"))?;
     // Same harness-side validation as every other entry point — a replay
@@ -2413,6 +2564,9 @@ pub async fn session_snapshot(
     session_id: Option<String>,
     cwd: PathBuf,
 ) -> Result<SessionSnapshot, String> {
+    if super::opencode::is_native(agent) {
+        return super::opencode::snapshot(agent, session_id, cwd).await;
+    }
     validate_agent(agent)?;
     let entry = find_agent(agent).ok_or_else(|| format!("unknown agent '{agent}'"))?;
     // The harnesses validate `cwd` as an ABSOLUTE path to an EXISTING

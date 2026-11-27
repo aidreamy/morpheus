@@ -60,6 +60,7 @@ Después de instalar, ejecuta `morpheus` en la terminal. Si el directorio de ins
 
 | Crate                                                           | Descripción                                                                                                            |
 | --------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------- |
+| [`morpheus-agents`](../../crates/morpheus-agents/README.md)     | Integración de subagentes: harnesses del cliente ACP, estado de sesión y streams de eventos tipados                    |
 | [`morpheus-tools`](../../crates/morpheus-tools/README.md)       | Herramientas de desarrollo y computer tools                                                                            |
 | [`morpheus-tui`](../../crates/morpheus-tui/README.md)           | Biblioteca de widgets de TUI: renderizado de markdown/diff y layout, los componentes detrás de la interfaz de terminal |
 | [`morpheus-sdk`](../../crates/morpheus-sdk/README.md)           | Primitivas reutilizables para agentes: motor de parches, análisis de tool calls, cliente LSP e inteligencia AST        |

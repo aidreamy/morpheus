@@ -25,7 +25,7 @@ use crate::routes::session::agents_split::subagent_input_rail;
 
 use std::collections::HashMap;
 
-use morpheus_tools::subagent::events::{PlanEntryStatus, ToolCallStatus};
+use morpheus_agents::events::{PlanEntryStatus, ToolCallStatus};
 
 use crate::component::spinner_highlight::HighlightSpinner;
 
@@ -60,11 +60,11 @@ const SEVERITY_TINT_ALPHA: f32 = 0.65;
 /// running tool-call spinner's beam, where the orange shows at full
 /// vividness. The enum variant keeps its protocol name (`Severity::Yellow`
 /// is the wire format's middle severity); only the rendered color moved.
-fn severity_rgba(sev: morpheus_tools::subagent::severity::Severity) -> RGBA {
+fn severity_rgba(sev: morpheus_agents::severity::Severity) -> RGBA {
     match sev {
-        morpheus_tools::subagent::severity::Severity::Green => RGBA::from_hex("#22C55E"),
-        morpheus_tools::subagent::severity::Severity::Yellow => RGBA::from_hex("#FB923C"),
-        morpheus_tools::subagent::severity::Severity::Red => RGBA::from_hex("#EF4444"),
+        morpheus_agents::severity::Severity::Green => RGBA::from_hex("#22C55E"),
+        morpheus_agents::severity::Severity::Yellow => RGBA::from_hex("#FB923C"),
+        morpheus_agents::severity::Severity::Red => RGBA::from_hex("#EF4444"),
     }
 }
 
@@ -2033,7 +2033,7 @@ mod tests {
     /// opens a fresh one: the painted order is strictly arrival order.
     #[test]
     fn interleaved_reasoning_and_text_paint_in_arrival_order() {
-        use morpheus_tools::subagent::events::SubagentEvent;
+        use morpheus_agents::events::SubagentEvent;
 
         let theme = test_theme();
         let mut state = RightPanelState::new();
@@ -2149,7 +2149,7 @@ mod tests {
     /// the LAST text on screen — the contract the chat itself keeps.
     #[test]
     fn multi_delta_interleaved_stream_paints_in_arrival_order() {
-        use morpheus_tools::subagent::events::SubagentEvent;
+        use morpheus_agents::events::SubagentEvent;
 
         let theme = test_theme();
         let mut state = RightPanelState::new();
@@ -2330,7 +2330,7 @@ mod tests {
     /// visible inside the natural height.
     #[test]
     fn subagent_window_paints_the_embedded_edit_diff() {
-        use morpheus_tools::subagent::events::SubagentEvent;
+        use morpheus_agents::events::SubagentEvent;
 
         const DIFF: &str = "--- a/src/main.rs\n+++ b/src/main.rs\n@@ -1,2 +1,3 @@\n fn main() {\n-    old();\n+    new();\n }";
         let theme = test_theme();
@@ -2341,7 +2341,7 @@ mod tests {
             &SubagentEvent::ToolCall {
                 id: "c1".to_string(),
                 title: "fs_edit src/main.rs".to_string(),
-                kind: morpheus_tools::subagent::events::ToolKind::Edit,
+                kind: morpheus_agents::events::ToolKind::Edit,
                 status: ToolCallStatus::InProgress,
                 raw_input: Some(serde_json::json!({"path": "src/main.rs"})),
                 tool: Some("fs_edit".to_string()),
@@ -2354,10 +2354,10 @@ mod tests {
                 status: Some(ToolCallStatus::Completed),
                 title: None,
                 raw_output: None,
-                content: morpheus_tools::subagent::events::ToolOutputBlock {
+                content: morpheus_agents::events::ToolOutputBlock {
                     text: "edited".to_string(),
                     skipped: 0,
-                    diff: Some(morpheus_tools::subagent::events::ToolDiffSummary {
+                    diff: Some(morpheus_agents::events::ToolDiffSummary {
                         path: "src/main.rs".to_string(),
                         added: 1,
                         removed: 1,
@@ -2423,7 +2423,7 @@ mod tests {
     /// region set, and its text must match what is on screen.
     #[test]
     fn subagent_copy_regions_rebuild_from_scratch_not_accumulate() {
-        use morpheus_tools::subagent::events::SubagentEvent;
+        use morpheus_agents::events::SubagentEvent;
 
         let theme = test_theme();
         let mut state = RightPanelState::new();
@@ -2634,7 +2634,7 @@ mod tests {
     /// message rows stay rail-less — the rail marks INPUTS only.
     #[test]
     fn agent_mirror_timeline_inputs_wear_the_input_rail() {
-        use morpheus_tools::subagent::events::SubagentEvent;
+        use morpheus_agents::events::SubagentEvent;
 
         let theme = test_theme();
         let mut state = RightPanelState::new();
@@ -2809,7 +2809,7 @@ mod tests {
 
         let red_tint = rgba_color(blend(
             theme.background_element,
-            severity_rgba(morpheus_tools::subagent::severity::Severity::Red),
+            severity_rgba(morpheus_agents::severity::Severity::Red),
             SEVERITY_TINT_ALPHA,
         ));
         let plain = rgba_color(theme.background_element);
@@ -2834,7 +2834,7 @@ mod tests {
         let theme = test_theme();
         let tint = blend(
             theme.background_element,
-            severity_rgba(morpheus_tools::subagent::severity::Severity::Yellow),
+            severity_rgba(morpheus_agents::severity::Severity::Yellow),
             SEVERITY_TINT_ALPHA,
         );
         let (r, g, b, _) = tint.to_ints();
@@ -2862,12 +2862,12 @@ mod tests {
         // the three verdicts even after the dark blend.
         let red = blend(
             theme.background_element,
-            severity_rgba(morpheus_tools::subagent::severity::Severity::Red),
+            severity_rgba(morpheus_agents::severity::Severity::Red),
             SEVERITY_TINT_ALPHA,
         );
         let green = blend(
             theme.background_element,
-            severity_rgba(morpheus_tools::subagent::severity::Severity::Green),
+            severity_rgba(morpheus_agents::severity::Severity::Green),
             SEVERITY_TINT_ALPHA,
         );
         assert_ne!(tint, red, "middle tint must differ from red");
@@ -2966,7 +2966,7 @@ mod tests {
     /// app's auto-follow so the streaming conditions match production.
     #[test]
     fn interleaved_timeline_paints_in_order_without_overlap() {
-        use morpheus_tools::subagent::events::{SubagentEvent, ToolCallStatus, ToolKind};
+        use morpheus_agents::events::{SubagentEvent, ToolCallStatus, ToolKind};
 
         let theme = test_theme();
         let mut state = RightPanelState::new();
@@ -3063,7 +3063,7 @@ mod tests {
     /// this exercises a taller-than-8k block in the paint walk).
     #[test]
     fn constrained_viewport_hostile_events_paint_without_overlap() {
-        use morpheus_tools::subagent::events::{SubagentEvent, ToolCallStatus, ToolKind};
+        use morpheus_agents::events::{SubagentEvent, ToolCallStatus, ToolKind};
 
         let theme = test_theme();
         let mut state = RightPanelState::new();
@@ -3088,18 +3088,18 @@ mod tests {
                 status: Some(ToolCallStatus::Completed),
                 title: None,
                 raw_output: None,
-                content: morpheus_tools::subagent::events::ToolOutputBlock::default(),
+                content: morpheus_agents::events::ToolOutputBlock::default(),
             });
             events.push(SubagentEvent::Plan {
                 entries: (0..=i)
-                    .map(|j| morpheus_tools::subagent::events::PlanEntry {
+                    .map(|j| morpheus_agents::events::PlanEntry {
                         content: format!("tarefa {j} com descrição"),
                         status: if j < i {
-                            morpheus_tools::subagent::events::PlanEntryStatus::Completed
+                            morpheus_agents::events::PlanEntryStatus::Completed
                         } else {
-                            morpheus_tools::subagent::events::PlanEntryStatus::InProgress
+                            morpheus_agents::events::PlanEntryStatus::InProgress
                         },
-                        priority: morpheus_tools::subagent::events::PlanEntryPriority::Medium,
+                        priority: morpheus_agents::events::PlanEntryPriority::Medium,
                     })
                     .collect(),
             });
@@ -3157,7 +3157,7 @@ mod tests {
     /// across the wrap.
     #[test]
     fn wrapped_tool_label_is_swept_across_row_boundaries() {
-        use morpheus_tools::subagent::events::{SubagentEvent, ToolCallStatus, ToolKind};
+        use morpheus_agents::events::{SubagentEvent, ToolCallStatus, ToolKind};
         use ratatui::style::Color;
 
         let fg_rgb = |buf: &Buffer, x: u16, y: u16| match buf.cell((x, y))?.style().fg {
@@ -3324,7 +3324,7 @@ mod tests {
     /// reported overlap).
     #[test]
     fn fuzz_activity_paint_order_and_no_overlap() {
-        use morpheus_tools::subagent::events::{
+        use morpheus_agents::events::{
             PlanEntry, PlanEntryPriority, PlanEntryStatus, SubagentEvent, ToolCallStatus, ToolKind,
         };
 
@@ -3416,7 +3416,7 @@ mod tests {
                     status: Some(ToolCallStatus::Completed),
                     title: None,
                     raw_output: None,
-                    content: morpheus_tools::subagent::events::ToolOutputBlock::default(),
+                    content: morpheus_agents::events::ToolOutputBlock::default(),
                 });
                 if next() % 2 == 0 {
                     events.push(SubagentEvent::Plan {
@@ -3484,7 +3484,7 @@ mod tests {
     /// entry's rows or duplicates it.
     #[test]
     fn subagent_captured_opencode_stream_replay_has_no_overlap() {
-        use morpheus_tools::subagent::events::SubagentEvent;
+        use morpheus_agents::events::SubagentEvent;
 
         let theme = test_theme();
         const CAPTURE1: &str = include_str!("testdata/subagent_stream_capture.json");
@@ -3674,7 +3674,7 @@ mod tests {
     /// title with the other's file paths.
     #[test]
     fn subagent_two_windows_full_panel_no_cross_overlap() {
-        use morpheus_tools::subagent::events::SubagentEvent;
+        use morpheus_agents::events::SubagentEvent;
 
         let theme = test_theme();
         let raw1 = include_str!("testdata/subagent_stream_capture.json");
@@ -4488,7 +4488,7 @@ mod tests {
         let bottom_bg = buf.cell((1u16, max_h - 1)).map(|c| c.bg);
         let red_tint = blend(
             theme.background_element,
-            severity_rgba(morpheus_tools::subagent::severity::Severity::Red),
+            severity_rgba(morpheus_agents::severity::Severity::Red),
             SEVERITY_TINT_ALPHA,
         );
         let plain = theme.background_element;

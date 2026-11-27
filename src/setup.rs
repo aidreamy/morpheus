@@ -62,6 +62,13 @@ pub struct Setup {
     /// one, so legacy files without the section keep loading unchanged.
     #[serde(default)]
     pub acp_agents: Vec<AcpAgentEntry>,
+    /// Transport override for the native OpenCode/Kilo server path
+    /// (`setup.json` → `native_transport`). Empty (the default) keeps the
+    /// native transport; `"acp"` forces the generic ACP transport for that
+    /// agent. An environment variable (`MORPHEUS_OPENCODE_TRANSPORT` /
+    /// `MORPHEUS_KILO_TRANSPORT`) always wins over this value.
+    #[serde(default)]
+    pub native_transport: NativeTransport,
     /// User-registered LLM provider endpoints (Settings screen). Each entry
     /// maps a public provider name to its base URL and API family — the
     /// same declarative shape Goose's custom providers use. Empty when the
@@ -121,6 +128,7 @@ impl Default for Setup {
             lsp: true,
             mcp: McpConfig::default(),
             acp_agents: Vec::new(),
+            native_transport: NativeTransport::default(),
             custom_providers: Vec::new(),
             editor: String::new(),
             telemetry: true,
@@ -843,6 +851,39 @@ pub struct AcpAgentEntry {
     pub command: String,
 }
 
+/// Transport override for the native OpenCode/Kilo server path
+/// (`setup.json` → `native_transport`). Empty (the default) keeps the native
+/// transport; `"acp"` forces the generic ACP transport for that agent. An
+/// environment variable (`MORPHEUS_OPENCODE_TRANSPORT` /
+/// `MORPHEUS_KILO_TRANSPORT`) always wins over these values.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct NativeTransport {
+    /// Force the generic ACP transport for OpenCode (`"acp"`); empty keeps
+    /// the native server path.
+    #[serde(default)]
+    pub opencode: String,
+    /// Force the generic ACP transport for Kilo (`"acp"`); empty keeps the
+    /// native server path.
+    #[serde(default)]
+    pub kilo: String,
+}
+
+impl NativeTransport {
+    #[must_use]
+    pub fn overrides(&self) -> morpheus_agents::opencode::TransportOverrides {
+        morpheus_agents::opencode::TransportOverrides {
+            opencode_acp: self.opencode.trim().eq_ignore_ascii_case("acp"),
+            kilo_acp: self.kilo.trim().eq_ignore_ascii_case("acp"),
+        }
+    }
+
+    /// Register the persisted choices. The agent crate resolves environment overrides.
+    pub fn apply(&self) {
+        morpheus_agents::opencode::configure_transports(self.overrides());
+    }
+}
+
 /// One user-registered LLM provider endpoint (Settings → Integrations →
 /// Custom providers; `setup.json` → `custom_providers`). The same
 /// declarative shape Goose's custom providers use: a display name, the
@@ -1350,6 +1391,12 @@ impl Setup {
         if section_differs(&self.acp_agents, &baseline.acp_agents) {
             merged.acp_agents = self.acp_agents.clone();
         }
+        if self.native_transport.opencode != baseline.native_transport.opencode {
+            merged.native_transport.opencode = self.native_transport.opencode.clone();
+        }
+        if self.native_transport.kilo != baseline.native_transport.kilo {
+            merged.native_transport.kilo = self.native_transport.kilo.clone();
+        }
         if section_differs(&self.custom_providers, &baseline.custom_providers) {
             merged.custom_providers = self.custom_providers.clone();
         }
@@ -1374,7 +1421,7 @@ impl Setup {
 
     /// The user-registered ACP agent harnesses (`setup.json` →
     /// `acp_agents`), as `(name, launch command)` pairs in registration
-    /// order — the exact shape [`morpheus_tools::subagent::acp
+    /// order — the exact shape [`morpheus_agents::acp
     /// ::register_custom_agents`] consumes.
     #[must_use]
     pub fn acp_agent_pairs(&self) -> Vec<(String, String)> {
@@ -2262,6 +2309,19 @@ mod tests {
                 .any(|(_, item)| bump_first_scalar(item)),
             serde_json::Value::Null => false,
         }
+    }
+
+    #[test]
+    fn transport_choices_merge_independently() {
+        let baseline = Setup::default();
+        let mut local = baseline.clone();
+        local.native_transport.opencode = "acp".to_string();
+        let mut disk = baseline.clone();
+        disk.native_transport.kilo = "acp".to_string();
+
+        let merged = local.merged_over(&baseline, disk);
+        assert!(merged.native_transport.overrides().opencode_acp);
+        assert!(merged.native_transport.overrides().kilo_acp);
     }
 
     /// SCHEMA TRIPWIRE for the save-time merge: every serialized top-level

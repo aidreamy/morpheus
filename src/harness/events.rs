@@ -130,7 +130,7 @@ pub enum HarnessEvent {
         call_ref: Option<String>,
     },
     /// A typed progress event from a running ACP sub-agent
-    /// ([`morpheus_tools::subagent::events::SubagentEvent`]). Message-text
+    /// ([`morpheus_agents::events::SubagentEvent`]). Message-text
     /// events are ALSO mirrored through [`HarnessEvent::ToolOutput`] so the
     /// existing chat rendering does not regress; this variant carries the
     /// rest (thoughts, tool calls, plans, usage) for the TUI's sub-agent
@@ -144,7 +144,7 @@ pub enum HarnessEvent {
         /// other's activity lines.
         call_ref: Option<String>,
         /// The typed event.
-        event: morpheus_tools::subagent::events::SubagentEvent,
+        event: morpheus_agents::events::SubagentEvent,
     },
     /// One live event of the `/agents` split-pane mode. Each pane is an
     /// independent ACP (or nested morpheus) turn driven directly by the TUI —
@@ -182,7 +182,7 @@ pub enum HarnessEvent {
         turn: u64,
         /// The typed event, the same shape the right-panel sub-agent box
         /// renders.
-        event: morpheus_tools::subagent::events::SubagentEvent,
+        event: morpheus_agents::events::SubagentEvent,
     },
     /// A `/agents` pane turn ENDED. Carries the final report (the
     /// `TurnClosure` contract: the last post-tool-call message), the stop

@@ -21,7 +21,7 @@ use crossterm::event::KeyCode;
 use crate::component::list_dialog::FilterState;
 use crate::routes::session::agent_command_map::ConfigTarget;
 use crate::ui::dialogs::{DialogType, filter_matches};
-use morpheus_tools::subagent::events::AgentConfigOption;
+use morpheus_agents::events::AgentConfigOption;
 
 impl App {
     /// Open the standardized config box for the FOCUSED pane, bound to the

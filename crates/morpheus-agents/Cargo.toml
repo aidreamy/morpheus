@@ -1,0 +1,46 @@
+[package]
+categories = ["development-tools"]
+description = "Sub-agent integration for Morpheus — ACP client harnesses, session state and typed event streams"
+keywords = ["ai", "coding", "terminal", "agent", "acp"]
+license = "Apache-2.0"
+name = "morpheus-agents"
+readme = "README.md"
+repository = "https://github.com/aidreamy/morpheus"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+# Agent Client Protocol client: spawns an ACP harness over stdio, drives the
+# initialize → session/new → session/prompt turn and streams
+# `session/update` notifications.
+agent-client-protocol = "2.2"
+# Structured patch summaries for the tool-diff event (`events`), the same
+# patch engine the harness applies.
+morpheus-sdk = { path = "../morpheus-sdk", version = "0.1.6" }
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+log = "0.4"
+# OpenCode's native transport is an HTTP + SSE client (`opencode`): the
+# server's own documented API instead of the generic ACP translation.
+reqwest = { version = "0.13", features = ["json"] }
+
+# Persistent per-agent model picks (`model_picks`): async file IO on the
+# Tokio runtime the ACP turns already run on.
+[dependencies.tokio]
+version = "1.52.3"
+features = ["fs", "io-util", "macros", "process", "rt", "rt-multi-thread", "sync", "time"]
+
+# Kernel-pinned filesystem sandboxing for the ACP `fs/*` requests
+# (`openat` component walk with `O_NOFOLLOW`, see `src/acp.rs`).
+[target.'cfg(unix)'.dependencies]
+rustix = { version = "1.1", features = ["fs"] }
+
+[dev-dependencies]
+tempfile = "3"
+
+[lints]
+workspace = true
+
+[[example]]
+name = "subagent"
+path = "examples/subagent.rs"

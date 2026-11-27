@@ -21,11 +21,11 @@ use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
 
-use morpheus_tools::subagent::events::{
+use morpheus_agents::events::{
     AgentCommand, AgentConfigOption, AgentPermissionOption, AgentSessionMode, PanePermissionAnswer,
     PlanEntryStatus, SubagentEvent, ToolCallStatus, ToolKind,
 };
-use morpheus_tools::subagent::palette::{display_name, palette_for};
+use morpheus_agents::palette::{display_name, palette_for};
 use morpheus_tui::core::lib::rgba::{ColorInput, RGBA};
 use morpheus_tui::core::renderable::Renderable;
 use morpheus_tui::core::renderables::markdown::MarkdownRenderable;
@@ -170,7 +170,7 @@ pub struct AgentPane {
     /// dropped only for the named rebuild reasons (rewind, cwd move, harness
     /// death, pane hidden/closed, app restart). `None` for a fresh pane and
     /// for the manager pane (which runs morpheus's own loop).
-    pub acp_session: Option<morpheus_tools::subagent::acp::SessionHandle>,
+    pub acp_session: Option<morpheus_agents::acp::SessionHandle>,
     /// What serves this pane's session, from the ACP config options: the
     /// prompt badge's `(model, reasoning)` pair. Empty until the first
     /// turn (or replay pass) reports it; every report replaces it, so a
@@ -4598,7 +4598,7 @@ mod tests {
             &SubagentEvent::ToolCall {
                 id: "c1".to_string(),
                 title: "fs_edit src/main.rs".to_string(),
-                kind: morpheus_tools::subagent::events::ToolKind::Edit,
+                kind: morpheus_agents::events::ToolKind::Edit,
                 status: ToolCallStatus::InProgress,
                 raw_input: Some(serde_json::json!({"path": "src/main.rs"})),
                 tool: Some("fs_edit".to_string()),
@@ -4606,15 +4606,15 @@ mod tests {
         );
         state.apply_event(
             0,
-            &morpheus_tools::subagent::events::SubagentEvent::ToolCallUpdate {
+            &morpheus_agents::events::SubagentEvent::ToolCallUpdate {
                 id: "c1".to_string(),
                 status: Some(ToolCallStatus::Completed),
                 title: None,
                 raw_output: None,
-                content: morpheus_tools::subagent::events::ToolOutputBlock {
+                content: morpheus_agents::events::ToolOutputBlock {
                     text: "edited".to_string(),
                     skipped: 0,
-                    diff: Some(morpheus_tools::subagent::events::ToolDiffSummary {
+                    diff: Some(morpheus_agents::events::ToolDiffSummary {
                         path: "src/main.rs".to_string(),
                         added: 1,
                         removed: 1,
@@ -4682,7 +4682,7 @@ mod tests {
             &SubagentEvent::ToolCall {
                 id: "c1".to_string(),
                 title: "find_grep src".to_string(),
-                kind: morpheus_tools::subagent::events::ToolKind::Search,
+                kind: morpheus_agents::events::ToolKind::Search,
                 status: ToolCallStatus::InProgress,
                 raw_input: None,
                 tool: Some("find_grep".to_string()),
@@ -4713,7 +4713,7 @@ mod tests {
                 status: Some(ToolCallStatus::Completed),
                 title: None,
                 raw_output: None,
-                content: morpheus_tools::subagent::events::ToolOutputBlock {
+                content: morpheus_agents::events::ToolOutputBlock {
                     text: "ok".to_string(),
                     skipped: 0,
                     diff: None,
@@ -4752,7 +4752,7 @@ mod tests {
                 &SubagentEvent::ToolCall {
                     id: "c1".to_string(),
                     title: "find_grep src".to_string(),
-                    kind: morpheus_tools::subagent::events::ToolKind::Search,
+                    kind: morpheus_agents::events::ToolKind::Search,
                     status: ToolCallStatus::InProgress,
                     raw_input: None,
                     tool: Some("find_grep".to_string()),

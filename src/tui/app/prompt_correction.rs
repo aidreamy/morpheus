@@ -208,7 +208,7 @@ async fn correct_with_acp(
     // The correction cancel flag is passed through as the ACP stop signal
     // (Phase 5): Esc interrupts the remote turn via `session/cancel`
     // instead of abandoning the blocking runtime to the turn timeout.
-    let call = morpheus_tools::subagent::acp::call(
+    let call = morpheus_agents::acp::call(
         agent,
         request,
         None,

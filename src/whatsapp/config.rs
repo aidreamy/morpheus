@@ -57,13 +57,14 @@ impl RuntimeConfig {
     /// defaults, so a model/route chosen in the TUI is what WhatsApp uses.
     pub fn load(cwd: &str) -> Self {
         let setup = Setup::load();
+        setup.native_transport.apply();
         // Process-wide registration, mirroring `App::new`: custom ACP agents
         // and custom providers must be published before any harness is
         // assembled, and the LSP switch is a process-wide flag. Doing this
         // here (rather than in `from_setup`) keeps the pure resolver
         // testable.
         for error in
-            morpheus_tools::subagent::acp::register_custom_agents_lossy(&setup.acp_agent_pairs())
+            morpheus_agents::acp::register_custom_agents_lossy(&setup.acp_agent_pairs())
         {
             log::warn!("user-registered ACP agent skipped: {error}");
         }

@@ -2696,7 +2696,7 @@ async fn run_session_cancels_the_remote_turn_on_the_stop_signal() {
 /// `include_str!`. This variant drives a MULTI-TOOL turn with narration
 /// between calls (the user-reported overlap scenario).
 ///
-/// Run with: `cargo test -p morpheus-tools --test-threads=1
+/// Run with: `cargo test -p morpheus-agents
 /// capture_real_opencode_stream_multi_tool -- --ignored --nocapture`, then
 /// commit the refreshed JSON together with any code change that needs it.
 #[tokio::test(flavor = "current_thread")]
@@ -2709,14 +2709,14 @@ async fn capture_real_opencode_stream_multi_tool() {
             .enable_all()
             .build()
             .expect("capture runtime");
-        rt.block_on(crate::subagent::acp::call(
+        rt.block_on(crate::acp::call(
             "opencode",
             "In three separate steps, each with its own tool call and a \
              one-sentence narration BEFORE and AFTER every call: (1) read \
-             crates/morpheus-tools/src/subagent/closure.rs and report its first \
+             crates/morpheus-agents/src/closure.rs and report its first \
              line; (2) grep the workspace for 'TurnClosure' and report how \
              many files mention it; (3) list the files in \
-             crates/morpheus-tools/src/subagent/ and count them. Think step by \
+             crates/morpheus-agents/src/ and count them. Think step by \
              step; narrate between the steps.",
             None,
             // No user picks or mode binding: the registry defaults apply.
@@ -2868,7 +2868,7 @@ async fn capture_real_opencode_stream_multi_tool() {
 /// `include_str!`. Requires the opencode harness to be installed and
 /// authenticated.
 ///
-/// Run with: `cargo test -p morpheus-tools --test-threads=1
+/// Run with: `cargo test -p morpheus-agents
 /// capture_real_opencode_stream -- --ignored --nocapture`, then commit the
 /// refreshed JSON together with any code change that needs it.
 #[tokio::test(flavor = "current_thread")]
@@ -2881,9 +2881,9 @@ async fn capture_real_opencode_stream() {
             .enable_all()
             .build()
             .expect("capture runtime");
-        rt.block_on(crate::subagent::acp::call(
+        rt.block_on(crate::acp::call(
             "opencode",
-            "Read the file crates/morpheus-tools/src/subagent/events.rs and, \
+            "Read the file crates/morpheus-agents/src/events.rs and, \
              in one short sentence each: (1) say what module it defines, \
              (2) list the first three event variants you saw, \
              (3) state how many lines the file has. Think step by step \

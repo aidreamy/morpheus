@@ -301,7 +301,7 @@ mod tests {
 
     #[test]
     fn every_registered_acp_agent_has_a_palette() {
-        for agent in crate::subagent::acp::ACP_AGENTS {
+        for agent in crate::acp::ACP_AGENTS {
             let palette =
                 palette_for(agent.name).unwrap_or_else(|| panic!("{} has no palette", agent.name));
             // Pure black BY ACCIDENT is the failure mode (an unsampled

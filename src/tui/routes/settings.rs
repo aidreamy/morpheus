@@ -103,6 +103,12 @@ enum SwitchAction {
     /// Flip `setup.voice.auto_generate` (automatic generation at the end of
     /// a turn); the caller also syncs the app's `SpeechState`.
     VoiceAuto,
+    /// Flip `setup.native_transport.opencode` between native (empty) and
+    /// forced ACP (`"acp"`). Effective on the next launch.
+    OpenCodeNativeTransport,
+    /// Flip `setup.native_transport.kilo` between native (empty) and
+    /// forced ACP (`"acp"`). Effective on the next launch.
+    KiloNativeTransport,
 }
 
 #[derive(PartialEq, Eq)]
@@ -292,6 +298,18 @@ const INTEGRATIONS: SettingsSection = SettingsSection {
             description: "OpenAI-compatible LLM endpoints registered by URL and API family",
             kind: SettingKind::ProviderList,
         },
+        SettingsItem {
+            id: "opencode_native_transport",
+            label: "OpenCode native transport",
+            description: "Use OpenCode's native server instead of the ACP transport (restart required)",
+            kind: SettingKind::Switch(SwitchAction::OpenCodeNativeTransport),
+        },
+        SettingsItem {
+            id: "kilo_native_transport",
+            label: "Kilo native transport",
+            description: "Use Kilo's native server instead of the ACP transport (restart required)",
+            kind: SettingKind::Switch(SwitchAction::KiloNativeTransport),
+        },
     ],
 };
 
@@ -461,6 +479,12 @@ fn is_enabled(item: &SettingsItem, setup: &Setup) -> bool {
         SettingKind::Switch(SwitchAction::WhatsAppSelfChat) => setup.whatsapp.self_chat,
         SettingKind::Switch(SwitchAction::WhatsAppHumanize) => setup.whatsapp.humanize,
         SettingKind::Switch(SwitchAction::VoiceAuto) => setup.voice.auto_generate,
+        SettingKind::Switch(SwitchAction::OpenCodeNativeTransport) => {
+            !setup.native_transport.overrides().opencode_acp
+        }
+        SettingKind::Switch(SwitchAction::KiloNativeTransport) => {
+            !setup.native_transport.overrides().kilo_acp
+        }
         _ => false,
     }
 }
@@ -577,7 +601,7 @@ pub fn validate_acp_agent(
     if name.split_whitespace().count() != 1 {
         return Err("Name must be a single word (it is the agent id the model calls).".into());
     }
-    if morpheus_tools::subagent::acp::ACP_AGENTS
+    if morpheus_agents::acp::ACP_AGENTS
         .iter()
         .any(|agent| agent.name.eq_ignore_ascii_case(name))
     {
@@ -1351,6 +1375,24 @@ impl SettingsView {
                         self.selection.clamp(selectable_rows(setup).len());
                         return Some(SettingsAction::VoiceAutoToggled);
                     }
+                    SettingKind::Switch(SwitchAction::OpenCodeNativeTransport) => {
+                        if setup.native_transport.overrides().opencode_acp {
+                            setup.native_transport.opencode.clear();
+                        } else {
+                            setup.native_transport.opencode = "acp".to_string();
+                        }
+                        self.selection.clamp(selectable_rows(setup).len());
+                        return Some(SettingsAction::ToggleSaved);
+                    }
+                    SettingKind::Switch(SwitchAction::KiloNativeTransport) => {
+                        if setup.native_transport.overrides().kilo_acp {
+                            setup.native_transport.kilo.clear();
+                        } else {
+                            setup.native_transport.kilo = "acp".to_string();
+                        }
+                        self.selection.clamp(selectable_rows(setup).len());
+                        return Some(SettingsAction::ToggleSaved);
+                    }
                     // Each hook category flips only its own event's switch.
                     SettingKind::HookList(event) => match *event {
                         PRE_TOOL_USE_EVENT => {
@@ -1834,7 +1876,7 @@ impl SettingsView {
                     // ✔/✗ toggles above. The name keeps the sub-row indent
                     // (+4) shared with the other lists and "+ Add agent".
                     let installed =
-                        morpheus_tools::subagent::acp::custom_agent_installed(&entry.name);
+                        morpheus_agents::acp::custom_agent_installed(&entry.name);
                     let name_color = if installed { fg } else { muted };
                     // 🗑 remove glyph hugs the box's right inner edge (the
                     // summarizer rows' controls slot); name and preview are
@@ -2473,6 +2515,8 @@ mod tests {
                 SettingsRow::AddAcpAgent,
                 cat("custom_providers"),
                 SettingsRow::AddProvider,
+                cat("opencode_native_transport"),
+                cat("kilo_native_transport"),
                 cat("whatsapp_self_chat"),
                 cat("whatsapp_contacts"),
                 SettingsRow::AddWhatsAppEntry {
@@ -2521,6 +2565,8 @@ mod tests {
                 SettingsRow::AddAcpAgent,
                 cat("custom_providers"),
                 SettingsRow::AddProvider,
+                cat("opencode_native_transport"),
+                cat("kilo_native_transport"),
                 cat("whatsapp_self_chat"),
                 cat("whatsapp_contacts"),
                 SettingsRow::AddWhatsAppEntry {

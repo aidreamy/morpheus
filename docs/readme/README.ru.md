@@ -60,6 +60,7 @@ irm https://raw.githubusercontent.com/aidreamy/morpheus/main/download.ps1 | iex
 
 | Крейт                                                           | Описание                                                                                                    |
 | --------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| [`morpheus-agents`](../../crates/morpheus-agents/README.md)     | Интеграция субагентов: клиентские harness-ы ACP, состояние сессий и типизированные потоки событий          |
 | [`morpheus-tools`](../../crates/morpheus-tools/README.md)       | Инструменты разработки и computer tools                                                                     |
 | [`morpheus-tui`](../../crates/morpheus-tui/README.md)           | Библиотека TUI-виджетов: рендеринг markdown/diff и layout, компоненты терминального интерфейса              |
 | [`morpheus-sdk`](../../crates/morpheus-sdk/README.md)           | Переиспользуемые примитивы для агентов: движок патчей, разбор tool calls, LSP-клиент и AST-анализ           |

@@ -44,6 +44,7 @@ sessions and caches; it does not change the location of `setup.json`.
 | `providers` | `/providers` | Local model-server URLs |
 | `custom_providers` | `/settings` → Integrations | OpenAI-compatible endpoints registered by URL |
 | `acp_agents` | `/settings` → Integrations | Custom ACP sub-agent harnesses |
+| `native_transport` | — | Force the generic ACP transport for OpenCode/Kilo (`"acp"`); empty keeps the native server path |
 | `voice` | `/settings` → Voice, voice builds only | Automatic speech output |
 | `effective_context` | `/settings` → Models & caching | Reduced context budget instead of the full window |
 | `model` | `/models` | Last selected provider/model |
@@ -193,6 +194,21 @@ the launch command with its arguments:
   "acp_agents": [
     { "name": "my-agent", "command": "my-agent --acp" }
   ]
+}
+```
+
+`native_transport` forces the generic ACP transport for the two agents that
+ship a native server (OpenCode and Kilo). Empty (the default) keeps the native
+server path. Set a field to `"acp"` to use ACP. A non-empty
+`MORPHEUS_OPENCODE_TRANSPORT` or `MORPHEUS_KILO_TRANSPORT` environment variable
+takes precedence over the corresponding field.
+
+```json
+{
+  "native_transport": {
+    "opencode": "acp",
+    "kilo": ""
+  }
 }
 ```
 

@@ -385,12 +385,12 @@ impl RouterView {
 
     /// All registered ACP agents, installed harnesses first so the usable
     /// options lead the list. No filter: the registry is small and fixed.
-    fn acp_agents_ordered(&self) -> Vec<morpheus_tools::subagent::acp::Agent> {
-        let installed = morpheus_tools::subagent::acp::detect_installed();
+    fn acp_agents_ordered(&self) -> Vec<morpheus_agents::acp::Agent> {
+        let installed = morpheus_agents::acp::detect_installed();
         let (mut present, mut missing): (Vec<_>, Vec<_>) =
-            morpheus_tools::subagent::acp::all_agent_names()
+            morpheus_agents::acp::all_agent_names()
                 .into_iter()
-                .filter_map(morpheus_tools::subagent::acp::find_agent)
+                .filter_map(morpheus_agents::acp::find_agent)
                 .partition(|agent| installed.contains(&agent.name));
         present.append(&mut missing);
         present
@@ -737,20 +737,20 @@ impl RouterView {
                 prompt_choices.y,
                 prompt_choices.width,
                 ACP_LIST_TOP_OFFSET
-                    + morpheus_tools::subagent::acp::all_agent_names().len() as u16
+                    + morpheus_agents::acp::all_agent_names().len() as u16
                     + ROUTER_SECTION_GAP,
             ),
             prompt_models: Rect::new(
                 prompt_choices.x,
                 prompt_choices.y
                     + ACP_LIST_TOP_OFFSET
-                    + morpheus_tools::subagent::acp::all_agent_names().len() as u16
+                    + morpheus_agents::acp::all_agent_names().len() as u16
                     + ROUTER_SECTION_GAP,
                 prompt_choices.width,
                 prompt_choices
                     .height
                     .saturating_sub(ACP_LIST_TOP_OFFSET + 1)
-                    .saturating_sub(morpheus_tools::subagent::acp::all_agent_names().len() as u16),
+                    .saturating_sub(morpheus_agents::acp::all_agent_names().len() as u16),
             ),
             prompt_fallbacks,
         }
@@ -813,7 +813,7 @@ impl RouterView {
                     let text = acp_row_text(
                         "  ",
                         agent.name,
-                        morpheus_tools::subagent::acp::installed_agents_snapshot()
+                        morpheus_agents::acp::installed_agents_snapshot()
                             .contains(&agent.name),
                     );
                     if click_lands_on_text(mouse.x, choice_x, &text) {
@@ -1057,7 +1057,7 @@ impl RouterView {
             acp_title_style,
         );
 
-        let installed = morpheus_tools::subagent::acp::installed_agents_snapshot();
+        let installed = morpheus_agents::acp::installed_agents_snapshot();
         let acp_list_top = layout.prompt_acp.y + ACP_LIST_TOP_OFFSET;
         for (index, agent) in self.acp_agents_ordered().into_iter().enumerate() {
             let y = acp_list_top + index as u16;
@@ -1941,7 +1941,7 @@ mod tests {
         let agents = view.acp_agents_ordered();
         assert_eq!(
             agents.len(),
-            morpheus_tools::subagent::acp::ACP_AGENTS.len()
+            morpheus_agents::acp::ACP_AGENTS.len()
         );
     }
 

@@ -752,13 +752,13 @@ impl App {
                                     crate::types::Part::Text(text) => {
                                         if matches!(message.role, crate::types::MessageRole::User) {
                                             events.push(
-                                                morpheus_tools::subagent::events::SubagentEvent::UserMessage {
+                                                morpheus_agents::events::SubagentEvent::UserMessage {
                                                     text: text.text.clone(),
                                                 },
                                             );
                                         } else {
                                             events.push(
-                                                morpheus_tools::subagent::events::SubagentEvent::Message {
+                                                morpheus_agents::events::SubagentEvent::Message {
                                                     text: text.text.clone(),
                                                 },
                                             );
@@ -766,7 +766,7 @@ impl App {
                                     }
                                     crate::types::Part::Reasoning(reasoning) => {
                                         events.push(
-                                            morpheus_tools::subagent::events::SubagentEvent::Thought {
+                                            morpheus_agents::events::SubagentEvent::Thought {
                                                 text: reasoning.text.clone(),
                                             },
                                         );

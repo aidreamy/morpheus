@@ -28,11 +28,12 @@ use morpheus_tools::{
         SkillSource, Skills,
         types::{SkillsMatchInput, SkillsReadAssetInput, SkillsReadInput},
     },
-    subagent::{
-        SubAgent,
-        types::{SubAgentCallInput, SubAgentCallOutput},
-    },
     web::{Web, WebFetch, WebSearchInput},
+};
+
+use morpheus_agents::{
+    SubAgent,
+    types::{SubAgentCallInput, SubAgentCallOutput},
 };
 
 #[cfg(feature = "embed")]
@@ -1598,7 +1599,7 @@ impl Tools for MorpheusTools {
                 // (reused raw input) never double-appends it. The same
                 // review decision is kept for the report side: a finished
                 // review turn's report gets the header ENFORCED below.
-                let is_review = morpheus_tools::subagent::severity::is_review_task(
+                let is_review = morpheus_agents::severity::is_review_task(
                     &call_input,
                     input.code_review,
                 );
@@ -1609,7 +1610,7 @@ impl Tools for MorpheusTools {
                 // from the raw input — so this call exists to VALIDATE.
                 self.subagent
                     .resolve_description(input.description.clone(), is_review)?;
-                let call_input = morpheus_tools::subagent::severity::with_severity_contract(
+                let call_input = morpheus_agents::severity::with_severity_contract(
                     &call_input,
                     input.code_review,
                 );
@@ -1653,7 +1654,7 @@ impl Tools for MorpheusTools {
                         .clone()
                         .unwrap_or_else(|| Arc::new(AtomicBool::new(false)));
                     let (chunk_tx, mut chunk_rx) = tokio::sync::mpsc::unbounded_channel::<
-                        morpheus_tools::subagent::events::SubagentEvent,
+                        morpheus_agents::events::SubagentEvent,
                     >();
                     // Clones for the detached task: the originals stay with
                     // the caller, which returns the spawn receipt below.
@@ -1691,7 +1692,7 @@ impl Tools for MorpheusTools {
                                     }
                                 }
                             });
-                            let turn = morpheus_tools::subagent::acp::call(
+                            let turn = morpheus_agents::acp::call(
                                 &body_agent,
                                 &call_input,
                                 resume,
@@ -1727,7 +1728,7 @@ impl Tools for MorpheusTools {
                                 let completed = stop_reason == "end_turn";
                                 let output = if is_review && completed && !output.trim().is_empty()
                                 {
-                                    morpheus_tools::subagent::severity::enforce_severity_header(
+                                    morpheus_agents::severity::enforce_severity_header(
                                         &output, true,
                                     )
                                 } else {
@@ -1816,7 +1817,7 @@ impl Tools for MorpheusTools {
                     .unwrap_or_else(|| Arc::new(AtomicBool::new(false)));
 
                 let (chunk_tx, mut chunk_rx) = tokio::sync::mpsc::unbounded_channel::<
-                    morpheus_tools::subagent::events::SubagentEvent,
+                    morpheus_agents::events::SubagentEvent,
                 >();
 
                 // `agent` is moved into the spawned turn below; the clone
@@ -1825,7 +1826,7 @@ impl Tools for MorpheusTools {
                 let stored_agent = agent.clone();
 
                 let mut call_handle = tokio::task::spawn(async move {
-                    morpheus_tools::subagent::acp::call(
+                    morpheus_agents::acp::call(
                         &agent,
                         &call_input,
                         resume,
@@ -1901,7 +1902,7 @@ impl Tools for MorpheusTools {
                 // completed — this match will silently exclude it.
                 let completed = matches!(stop_reason.as_str(), "end_turn");
                 let accumulated = if is_review && completed && !accumulated.trim().is_empty() {
-                    morpheus_tools::subagent::severity::enforce_severity_header(&accumulated, true)
+                    morpheus_agents::severity::enforce_severity_header(&accumulated, true)
                 } else {
                     accumulated
                 };

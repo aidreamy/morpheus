@@ -2,7 +2,7 @@
 
 [English](../../README.md) | [Português](./README.pt-BR.md) | [Español](./README.es.md) | [Русский](./README.ru.md) | [中文](./README.zh-CN.md) | **日本語**
 
-<img width="1910" height="1064" alt="Morpheus のターミナル画面" src="https://github.com/user-attachments/assets/a80fcff1-068a-44f8-b43d-3e7d7697ecd6" />
+<img width="1697" height="927" alt="Morpheus のターミナル画面" src="https://github.com/user-attachments/assets/7b3404d6-acd3-4f5e-a32a-5b941be99c9e" />
 
 Morpheus はターミナル上で動作する汎用コーディングエージェントです。ソフトウェア開発ツールに加え、グラフィカルアプリケーションと対話できる *computer tools* を備えています。
 
@@ -52,7 +52,22 @@ irm https://raw.githubusercontent.com/aidreamy/morpheus/main/download.ps1 | iex
 
 > 注意: `curl | bash` コマンドは PowerShell や CMD では**動作しません**。Windows にはネイティブの `bash` がないためです。上記の PowerShell スクリプトを使用してください。Git Bash と WSL でも動作します。
 
-オプション変数: `MORPHEUS_BIN_DIR`（インストール先ディレクトリ）、`MORPHEUS_VERSION`（特定バージョン）、`MORPHEUS_VARIANT`（デフォルトは `slim`、fastembed によるローカル RAG 付きは `slim-embed`）。`slim-embed` ビルドは現在 Linux x64 と Windows x64 のみ提供され、macOS には `slim` が配布されます。PowerShell では、コマンド実行前に `$env:MORPHEUS_VERSION = "v0.1.0"` のように設定してください。
+オプション変数: `MORPHEUS_BIN_DIR`（インストール先ディレクトリ）、`MORPHEUS_VERSION`（特定バージョン）、`MORPHEUS_VARIANT`（デフォルトは `slim`、fastembed によるローカル RAG 付きは `slim-embed`、完全な音声ビルドは `slim-speak`）。`slim-embed` ビルドは現在 Linux x64 と Windows x64 のみ提供され、macOS には `slim` と `slim-speak` が配布されます。PowerShell では、コマンド実行前に `$env:MORPHEUS_VERSION = "v0.1.0"` のように設定してください。
+
+### 音声出力
+
+`slim-speak` は完全な音声ビルドです。`speak-phonemize` フロントエンドを有効にした Kokoro によるローカル音声合成を備え、英語と中国語だけでなく、ポルトガル語（ブラジル）など同梱レキシコンのない言語も動作します。
+
+```sh
+export MORPHEUS_VARIANT=slim-speak
+curl -fsSL https://raw.githubusercontent.com/aidreamy/morpheus/main/download.sh | bash
+```
+
+アーカイブには追加の `morpheus-ttsd` バイナリが含まれ、アプリはそれを兄弟プロセスとして起動します。`morpheus` と同じディレクトリに置いてください。Linux では再生に `paplay`、`pw-play`、`aplay`、`play`、`ffplay` のいずれかが必要です。macOS は内蔵の `afplay` を使用します。
+
+音声モデルは同梱されていません。[sherpa-onnx のモデルリリース](https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models)から Kokoro バンドルをダウンロードし、`~/.cache/morpheus/models/` に展開してください（または展開先ディレクトリを `MORPHEUS_KOKORO_MODEL_DIR` に指定）。デフォルト音声は v1.1、ブラジルポルトガル語音声は v1.0 を使用します。
+
+> **Windows:** 音声出力はまだサポートされていません。音声デーモンは Unix ドメインソケットで通信し、Unix プロセス API を使用するため、`slim-speak` は Linux x64 と macOS（x64 および arm64）のみで公開されています。Windows には `slim` と `slim-embed` が配布されます。
 
 インストール後、ターミナルで `morpheus` を実行してください。インストールディレクトリが `PATH` にない場合は、スクリプトが追加用のコマンドを表示します。インストールで問題があれば issue を作成してください。喜んでお手伝いします。
 

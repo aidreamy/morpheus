@@ -2,7 +2,7 @@
 
 [English](../../README.md) | [Português](./README.pt-BR.md) | [Español](./README.es.md) | [Русский](./README.ru.md) | **中文** | [日本語](./README.ja.md)
 
-<img width="1910" height="1064" alt="Morpheus 终端界面" src="https://github.com/user-attachments/assets/a80fcff1-068a-44f8-b43d-3e7d7697ecd6" />
+<img width="1697" height="927" alt="Morpheus 终端界面" src="https://github.com/user-attachments/assets/7b3404d6-acd3-4f5e-a32a-5b941be99c9e" />
 
 Morpheus 是一个运行在终端中的通用编码智能体（coding agent）。它提供软件工程工具，以及可与图形应用程序交互的 *computer tools*。
 
@@ -52,7 +52,22 @@ irm https://raw.githubusercontent.com/aidreamy/morpheus/main/download.ps1 | iex
 
 > 注意：`curl | bash` 命令在 PowerShell 或 CMD 中**无法**使用，因为 Windows 没有原生的 `bash`。请使用上面的 PowerShell 脚本；Git Bash 和 WSL 同样可用。
 
-可选变量：`MORPHEUS_BIN_DIR`（安装目录）、`MORPHEUS_VERSION`（指定版本）和 `MORPHEUS_VARIANT`（`slim` 为默认，或 `slim-embed`，含基于 fastembed 的本地 RAG）。`slim-embed` 构建目前仅提供 Linux x64 和 Windows x64 版本；macOS 使用 `slim`。在 PowerShell 中，请在运行命令前将它们设置为 `$env:MORPHEUS_VERSION = "v0.1.0"`。
+可选变量：`MORPHEUS_BIN_DIR`（安装目录）、`MORPHEUS_VERSION`（指定版本）和 `MORPHEUS_VARIANT`（`slim` 为默认，`slim-embed` 含基于 fastembed 的本地 RAG，`slim-speak` 为完整语音构建）。`slim-embed` 构建目前仅提供 Linux x64 和 Windows x64 版本；macOS 提供 `slim` 和 `slim-speak`。在 PowerShell 中，请在运行命令前将它们设置为 `$env:MORPHEUS_VERSION = "v0.1.0"`。
+
+### 语音输出
+
+`slim-speak` 是完整的语音构建：通过 Kokoro 进行本地语音合成，并启用 `speak-phonemize` 前端，因此葡萄牙语（巴西）和其他没有内置词典的语言也可用，而不仅限于英语和中文。
+
+```sh
+export MORPHEUS_VARIANT=slim-speak
+curl -fsSL https://raw.githubusercontent.com/aidreamy/morpheus/main/download.sh | bash
+```
+
+压缩包还包含额外的 `morpheus-ttsd` 二进制文件，应用会将其作为同级进程启动；请将其与 `morpheus` 放在同一目录中。在 Linux 上，播放需要 `paplay`、`pw-play`、`aplay`、`play` 或 `ffplay` 之一；macOS 使用内置的 `afplay`。
+
+语音模型未内置：请从 [sherpa-onnx 模型发布](https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models)下载 Kokoro 包，并解压到 `~/.cache/morpheus/models/`（或将 `MORPHEUS_KOKORO_MODEL_DIR` 指向解压目录）——默认语音使用 v1.1，巴西葡萄牙语语音使用 v1.0。
+
+> **Windows:** 暂不支持语音输出。语音守护进程通过 Unix domain socket 通信，并使用 Unix 进程 API，因此 `slim-speak` 仅发布 Linux x64 和 macOS（x64 与 arm64）版本。Windows 提供 `slim` 和 `slim-embed`。
 
 安装完成后，在终端运行 `morpheus`。如果安装目录不在你的 `PATH` 中，脚本会自动输出添加它的命令。安装过程中遇到任何问题，请提交 issue，我们会很乐意帮忙。
 

@@ -2,7 +2,7 @@
 
 [English](../../README.md) | [Português](./README.pt-BR.md) | **Español** | [Русский](./README.ru.md) | [中文](./README.zh-CN.md) | [日本語](./README.ja.md)
 
-<img width="1910" height="1064" alt="Interfaz de terminal de Morpheus" src="https://github.com/user-attachments/assets/a80fcff1-068a-44f8-b43d-3e7d7697ecd6" />
+<img width="1697" height="927" alt="Interfaz de terminal de Morpheus" src="https://github.com/user-attachments/assets/7b3404d6-acd3-4f5e-a32a-5b941be99c9e" />
 
 Morpheus es un coding agent de propósito general para la terminal. Incluye herramientas de ingeniería de software y *computer tools* que le permiten interactuar con aplicaciones gráficas.
 
@@ -52,7 +52,22 @@ irm https://raw.githubusercontent.com/aidreamy/morpheus/main/download.ps1 | iex
 
 > Nota: el comando `curl | bash` **no** funciona en PowerShell ni CMD, porque Windows no tiene `bash` nativo. Usa el script de PowerShell de arriba; Git Bash y WSL también funcionan.
 
-Variables opcionales: `MORPHEUS_BIN_DIR` (directorio de instalación), `MORPHEUS_VERSION` (versión específica) y `MORPHEUS_VARIANT` (`slim`, el predeterminado, o `slim-embed`, con RAG local vía fastembed). Las compilaciones `slim-embed` se publican actualmente solo para Linux x64 y Windows x64; en macOS se distribuye `slim`. En PowerShell, defínelas como `$env:MORPHEUS_VERSION = "v0.1.0"` antes de ejecutar el comando.
+Variables opcionales: `MORPHEUS_BIN_DIR` (directorio de instalación), `MORPHEUS_VERSION` (versión específica) y `MORPHEUS_VARIANT` (`slim`, el predeterminado, `slim-embed`, con RAG local vía fastembed, o `slim-speak`, la compilación completa de voz). Las compilaciones `slim-embed` se publican actualmente solo para Linux x64 y Windows x64; en macOS se distribuyen `slim` y `slim-speak`. En PowerShell, defínelas como `$env:MORPHEUS_VERSION = "v0.1.0"` antes de ejecutar el comando.
+
+### Salida de voz
+
+`slim-speak` es la compilación completa de voz: habla local mediante Kokoro con el frontend `speak-phonemize` habilitado, de modo que funcionan el portugués (Brasil) y los demás idiomas sin léxico integrado, no solo inglés y chino.
+
+```sh
+export MORPHEUS_VARIANT=slim-speak
+curl -fsSL https://raw.githubusercontent.com/aidreamy/morpheus/main/download.sh | bash
+```
+
+El archivo incluye un binario adicional `morpheus-ttsd`, que la app ejecuta como proceso hermano; mantenlo en el mismo directorio que `morpheus`. En Linux, la reproducción necesita uno de `paplay`, `pw-play`, `aplay`, `play` o `ffplay`; en macOS usa el `afplay` integrado.
+
+El modelo de voz no está integrado: descarga un paquete Kokoro desde las [releases de modelos de sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx/releases/tag/tts-models) y extráelo en `~/.cache/morpheus/models/` (o apunta `MORPHEUS_KOKORO_MODEL_DIR` al directorio extraído): v1.1 para las voces predeterminadas, v1.0 para la voz de portugués de Brasil.
+
+> **Windows:** la salida de voz aún no es compatible. El daemon de voz se comunica mediante un socket Unix domain y usa APIs de proceso Unix, por lo que `slim-speak` solo se publica para Linux x64 y macOS (x64 y arm64). En Windows se distribuyen `slim` y `slim-embed`.
 
 Después de instalar, ejecuta `morpheus` en la terminal. Si el directorio de instalación no está en tu `PATH`, el propio script muestra el comando para agregarlo. Ante cualquier dificultad en la instalación, abre un issue y con gusto te ayudaremos.
 

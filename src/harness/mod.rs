@@ -1,4 +1,4 @@
-//! Harness — agent loop runtime.
+//! Harness - agent loop runtime.
 //!
 //! Bridges LLM responses to tool execution through three tiers:
 //! internal harness tools, local morpheus-tools, and external MCP servers.

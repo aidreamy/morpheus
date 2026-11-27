@@ -577,7 +577,7 @@ mod tests {
         assert!(reply.contains("Installed: claude, codex"), "{reply}");
 
         let all = command(&mut chat, "/agent ls all").await;
-        assert!(all.contains("• gemini — not installed"), "{all}");
+        assert!(all.contains("• gemini - not installed"), "{all}");
     }
 
     #[tokio::test]
@@ -748,11 +748,11 @@ mod tests {
 
         let reply = command(&mut chat, "/agent ls").await;
         assert!(
-            reply.contains("• *claude #1* — model `sonnet-4`, session saved"),
+            reply.contains("• *claude #1* - model `sonnet-4`, session saved"),
             "{reply}"
         );
         assert!(
-            reply.contains("• *claude #2* — model `sonnet-4`, new session"),
+            reply.contains("• *claude #2* - model `sonnet-4`, new session"),
             "{reply}"
         );
     }

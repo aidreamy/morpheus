@@ -114,12 +114,12 @@ fn mask_tool_call_never_consumes_the_thinking_block_stash() {
 
 /// The tool-correction memory churns on every tool failure (new entry,
 /// duplicate reordering, eviction). The system prompt sits at position 0 of
-/// the exact-prefix cache, so the corrections must NEVER be appended to it —
+/// the exact-prefix cache, so the corrections must NEVER be appended to it -
 /// they render at the TAIL of the messages instead (before the TODO block).
 #[test]
 fn correction_memory_never_reaches_the_system_prompt() {
     let mut h = make_harness();
-    h.push_correction_for_test("Tool call failed — you sent: {}");
+    h.push_correction_for_test("Tool call failed - you sent: {}");
 
     let system = h.build_chat_context_for_test();
     assert!(
@@ -143,7 +143,7 @@ fn correction_memory_never_reaches_the_system_prompt() {
 /// All cloud providers officially recommend native function calling and warn
 /// that inline-JSON instructions in the prompt conflict with it (Gemini 3.x
 /// obeys the legacy inline-JSON `TOOL_FORMAT` literally and emits tool calls
-/// as raw TEXT even with toolConfig AUTO — the API then rejects the turn with
+/// as raw TEXT even with toolConfig AUTO - the API then rejects the turn with
 /// MALFORMED_FUNCTION_CALL and stray JSON/reasoning fragments leak to the
 /// user). Cloud providers get the NATIVE instruction; only local model
 /// servers (ollama/lmstudio/vllm/llamacpp) keep the inline-JSON fallback.
@@ -182,7 +182,7 @@ fn cloud_header_uses_native_tool_format() {
     );
 }
 
-/// The tool-call MODE decides the instruction — not the provider's
+/// The tool-call MODE decides the instruction - not the provider's
 /// locality. Default (Native, like crush): every provider, local included,
 /// is told to use the platform's structured function calling.
 #[test]
@@ -205,7 +205,7 @@ fn local_header_defaults_to_native_tool_format() {
 }
 
 /// Switching the mode to Inline restores the inline-JSON instruction for
-/// ANY provider — the user opts into the text-parsed path explicitly.
+/// ANY provider - the user opts into the text-parsed path explicitly.
 #[test]
 fn inline_mode_keeps_inline_tool_format() {
     use std::collections::HashSet;
@@ -225,7 +225,7 @@ fn inline_mode_keeps_inline_tool_format() {
 }
 
 /// Cloud providers hold the tool schemas in their native function-calling
-/// mechanism (the request's `tools` array) — re-sending them inline in the
+/// mechanism (the request's `tools` array) - re-sending them inline in the
 /// system prompt duplicates every schema (~4.3k tokens of the measured
 /// header) on every request. The header keeps names + descriptions as prose
 /// so the model can reason over the tool list, but the `Schema: {...}` block
@@ -253,7 +253,7 @@ fn cloud_header_omits_inline_schemas() {
     );
 }
 
-/// Ask mode uses the filtered writer — the same schema omission must apply
+/// Ask mode uses the filtered writer - the same schema omission must apply
 /// to it for cloud providers.
 #[test]
 fn cloud_ask_header_omits_inline_schemas() {
@@ -273,7 +273,7 @@ fn cloud_ask_header_omits_inline_schemas() {
 
 /// The schemas stay inline in the header ONLY in Inline mode (the model
 /// must see them to write valid JSON). In Native mode they live exclusively
-/// in the request's `tools` array — for local providers too.
+/// in the request's `tools` array - for local providers too.
 #[test]
 fn header_schemas_follow_tool_call_mode() {
     use std::collections::HashSet;

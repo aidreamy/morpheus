@@ -103,7 +103,7 @@ const ESCAPE_DRAIN_WINDOW: Duration = Duration::from_millis(300);
 /// The piped path spawns bash as its own process group
 /// (`tokio::process::Command::process_group`) and the PTY path spawns it as
 /// a session leader (portable_pty's `setsid`), so a negative-pid signal
-/// reaches the entire tree — bash plus every descendant. This matters
+/// reaches the entire tree - bash plus every descendant. This matters
 /// because a plain child kill leaks grandchildren that never touch the
 /// output pipes again: a leaked `yes >/dev/null` burns a core forever.
 #[cfg(unix)]
@@ -161,9 +161,9 @@ async fn kill_pty_tree_settled(
 #[cfg(unix)]
 const WATCHDOG_TICK_MS: libc::c_int = 250;
 
-/// How long a child may sit in raw (non-canonical) terminal mode — the
+/// How long a child may sit in raw (non-canonical) terminal mode - the
 /// signature of an interactive pager/TUI waiting for keystrokes the harness
-/// can never send — before the input-wait watchdog kills it.
+/// can never send - before the input-wait watchdog kills it.
 #[cfg(unix)]
 const WATCHDOG_RAW_MODE_GRACE: Duration = Duration::from_secs(2);
 
@@ -175,7 +175,7 @@ const DEAD_CHILD_DRAIN: Duration = Duration::from_millis(500);
 
 /// Diagnostic emitted on stderr when the input-wait watchdog kills a child.
 ///
-/// Deliberately DESCRIPTIVE ONLY — no suggested commands. This message only
+/// Deliberately DESCRIPTIVE ONLY - no suggested commands. This message only
 /// appears when the auto-fix layer could not rewrite the command with
 /// 100% certainty (otherwise there is nothing to kill), so any specific
 /// advice could be wrong for the unknown case; the model infers the fix
@@ -196,12 +196,12 @@ fn env_var_pattern() -> &'static Regex {
 /// Resolve the bash executable to spawn, per platform.
 ///
 /// - Unix: plain `"bash"` (resolved through `PATH`, as before).
-/// - Windows: an absolute path to a Git Bash (`bash.exe`) — never the
+/// - Windows: an absolute path to a Git Bash (`bash.exe`) - never the
 ///   `C:\Windows\System32\bash.exe` WSL launcher. `CreateProcessW` searches
 ///   System32 **before** `PATH`, so a bare `"bash"` would silently route
 ///   commands into WSL (ignoring the Windows `cwd` and filesystem). The
 ///   resolution order is:
-///   1. `where.exe bash.exe` — first hit that is not the WSL launcher
+///   1. `where.exe bash.exe` - first hit that is not the WSL launcher
 ///      (respects the user's PATH, e.g. a scoop/custom install);
 ///   2. the standard Git-for-Windows install locations
 ///      (`...\Git\bin\bash.exe`, then `...\Git\usr\bin\bash.exe`).
@@ -212,7 +212,7 @@ fn env_var_pattern() -> &'static Regex {
 ///
 /// # Panics
 ///
-/// Panics if no Git Bash can be located — this is a programming/deployment
+/// Panics if no Git Bash can be located - this is a programming/deployment
 /// error (the harness requires Git for Windows), not a per-command failure.
 #[cfg(windows)]
 fn resolve_bash() -> &'static str {
@@ -385,7 +385,7 @@ pub fn run(
     // Guards
     // On Windows, POSIX-style absolute commands (`/bin/echo hi`) are NOT
     // `Path::is_absolute`, but Git Bash resolves them against its MSYS root
-    // — they are absolute from the shell's perspective and are blocked too.
+    // - they are absolute from the shell's perspective and are blocked too.
     let is_absolute = Path::new(command).is_absolute() || command.starts_with('/');
     if is_absolute {
         return Err(BashError {
@@ -483,7 +483,7 @@ pub fn run(
 /// of a command "hanging": when stdout is a PTY (or the pager is inherited
 /// from the harness's own environment), tools like `git` launch `less` on
 /// `git log` / `git diff`, which then blocks forever waiting for keystrokes
-/// that never arrive — the run only ends when the timeout fires.
+/// that never arrive - the run only ends when the timeout fires.
 const NON_INTERACTIVE_DEFAULTS: &[(&str, &str)] = &[
     // Plain-text pagers: never launch an interactive pager.
     ("PAGER", "cat"),
@@ -505,7 +505,7 @@ const NON_INTERACTIVE_DEFAULTS: &[(&str, &str)] = &[
 /// Any variable **explicitly** provided by the caller wins over the default:
 /// only the defaults whose keys are absent from `caller_env` are returned.
 /// Note that an inherited value from the parent process's environment does
-/// NOT win — the parent may itself run under `PAGER=less`, which is exactly
+/// NOT win - the parent may itself run under `PAGER=less`, which is exactly
 /// the hang this mechanism prevents.
 fn non_interactive_defaults(
     caller_env: &Option<Vec<(String, String)>>,
@@ -527,7 +527,7 @@ fn non_interactive_defaults(
 // The rewrite layer ONLY fires when it can be 100% certain the rewrite is
 // safe (no quoting, no shell operators it doesn't understand). When it
 // cannot be certain, it returns the command untouched and the input-wait
-// watchdog remains the backstop — so the worst case is exactly the
+// watchdog remains the backstop - so the worst case is exactly the
 // pre-existing behavior.
 
 /// Regex: `git [env-prefixes] [global-flags...] <paged-subcommand>` at the
@@ -535,7 +535,7 @@ fn non_interactive_defaults(
 /// insert `--no-pager` at its exact position even with env prefixes present.
 /// Global flags that consume a separate value are enumerated explicitly
 /// (`-c`, `-C`, `--git-dir`, `--work-tree`, `--namespace`,
-/// `--super-prefix` — git's fixed global-option list); anything else stays
+/// `--super-prefix` - git's fixed global-option list); anything else stays
 /// unmatched → no rewrite.
 #[cfg(any(unix, windows))]
 static AUTO_FIX_GIT_RE: LazyLock<Regex> = LazyLock::new(|| {
@@ -561,7 +561,7 @@ static AUTO_FIX_PIPE_PAGER_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"\|\s*(less|more|most)\b(?:\s+-{1,2}[\w][\w-]*)*\s*$").unwrap());
 
 /// Regex: `less`/`more` invoked as the command itself with plain filename
-/// arguments (no flags — flags would be invalid for `cat`).
+/// arguments (no flags - flags would be invalid for `cat`).
 #[cfg(any(unix, windows))]
 static AUTO_FIX_PAGER_CMD_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^(less|more)\s+([^;|&]+)$").unwrap());
@@ -569,7 +569,7 @@ static AUTO_FIX_PAGER_CMD_RE: LazyLock<Regex> =
 /// Rewrite `command` so it cannot block on an interactive pager, when doing
 /// so is 100% certain; otherwise return the command unchanged.
 ///
-/// Returns `(possibly-rewritten-command, note)` where `note` — when present —
+/// Returns `(possibly-rewritten-command, note)` where `note` - when present -
 /// describes the rewrite and MUST be surfaced to the caller (the model) as
 /// stderr, so it knows exactly which command actually ran.
 ///
@@ -580,7 +580,7 @@ static AUTO_FIX_PAGER_CMD_RE: LazyLock<Regex> =
 ///
 /// Rules are applied repeatedly until the command stabilizes (bounded), so
 /// composite forms like `git log | less` are resolved by a single applicable
-/// rule — the pipeline rule — instead of stacking rewrites.
+/// rule - the pipeline rule - instead of stacking rewrites.
 #[cfg(any(unix, windows))]
 pub(crate) fn auto_fix_command(command: &str) -> (String, Option<String>) {
     use regex::Captures;
@@ -609,7 +609,7 @@ pub(crate) fn auto_fix_command(command: &str) -> (String, Option<String>) {
         // stdout attached to a pipe git never launches its pager anyway,
         // and the flag would be pure noise. Compound commands are also
         // refused: in `git log && less file`, fixing only the git segment
-        // would leave a blocking pager behind — a partial rewrite is not
+        // would leave a blocking pager behind - a partial rewrite is not
         // 100% certain, so anything with `;` or `&` passes through.
         if !command.contains('|')
             && !command.contains(';')
@@ -618,7 +618,7 @@ pub(crate) fn auto_fix_command(command: &str) -> (String, Option<String>) {
         {
             let git_token = cap.get(1)?;
             let sub = cap.get(2)?.as_str();
-            // Insert right after the captured `git` token — not at the
+            // Insert right after the captured `git` token - not at the
             // match start, which can be preceded by env assignments.
             let insert_at = git_token.end();
             let mut fixed = String::with_capacity(command.len() + "--no-pager ".len());
@@ -677,7 +677,7 @@ pub(crate) fn auto_fix_command(command: &str) -> (String, Option<String>) {
     }
 
     // Fix loop: apply one rule at a time until nothing applies. The bound
-    // is defensive — every rule is convergent, but never risk unbounded
+    // is defensive - every rule is convergent, but never risk unbounded
     // rewriting on a pathological input.
     let mut current = command.to_string();
     let mut notes: Vec<String> = Vec::new();
@@ -723,7 +723,7 @@ pub(crate) fn spawn_bash_cfg(
     timeout_ms: Option<u64>,
     liveness_config: LivenessConfig,
 ) -> Pin<Box<dyn Stream<Item = Result<SpawnOutput, Error>> + Send>> {
-    // Own `cwd`/`command` up front so the returned stream is 'static — it
+    // Own `cwd`/`command` up front so the returned stream is 'static - it
     // must never borrow a caller's string, because `run()` passes an
     // auto-fixed command that is a local of its own frame.
     let cwd = cwd.into();
@@ -794,7 +794,7 @@ pub(crate) fn spawn_bash_cfg(
         let mut escaped = false;
 
         // Zero timeout: the command must not run at all. Kill it immediately
-        // without reading any output, so the result is deterministic — the
+        // without reading any output, so the result is deterministic - the
         // child never gets a chance to write before the 0ms timer fires.
         if timeout_ms == Some(0) {
             #[cfg(unix)]
@@ -864,7 +864,7 @@ pub(crate) fn spawn_bash_cfg(
 
                     // Escape first: if the main child already exited while
                     // orphaned descendants keep the pipes open, the reads
-                    // below would never see EOF — end immediately and let
+                    // below would never see EOF - end immediately and let
                     // the post-loop drain + status return handle it.
                     if matches!(child.try_wait(), Ok(Some(_))) {
                         escaped = true;
@@ -955,7 +955,7 @@ pub(crate) fn spawn_bash_cfg(
 
         // Escape path: the main child exited but orphaned descendants may
         // still hold the pipes. Drain in-flight output for a short window,
-        // then detach — dropping the read ends when the stream ends frees
+        // then detach - dropping the read ends when the stream ends frees
         // us, while the orphans keep running on their own.
         //
         // Known Windows limitation: the stream itself ends promptly (items
@@ -1003,7 +1003,7 @@ pub(crate) fn spawn_bash_cfg(
             for item in drained {
                 yield Ok(item);
             }
-            // Diagnose only when the pipes really stayed open — a same-tick
+            // Diagnose only when the pipes really stayed open - a same-tick
             // race (child exits just before EOF propagates) is a normal
             // exit and needs no explanation.
             if !(stdout_done && stderr_done) {
@@ -1087,7 +1087,7 @@ pub(crate) fn spawn_bash_cfg(
 /// | Blocking task | `poll`, `read`, `close` on `pipe_rx` and `pty_fd` | Both fds are valid and open for the lifetime of `poll_fds`; `pipe_rx` is closed once after use |
 /// | Watchdog check | `mem::zeroed` + `tcgetattr` on `pty_fd` | `termios` is a fully-owned stack out-buffer, zeroed before the call; `pty_fd` is valid and open for the loop's lifetime (POSIX: `tcgetattr` on a PTY master reads the attached slave's line discipline) |
 ///
-/// These are trivially verified by inspection — the pipe fds are created
+/// These are trivially verified by inspection - the pipe fds are created
 /// together, one is consumed per side, and each is closed exactly once.
 ///
 /// [`poll(2)`]: https://man7.org/linux/man-pages/man2/poll.2.html
@@ -1137,7 +1137,7 @@ pub(crate) fn spawn_bash_pty_cfg(
         let mut pipe_fds: [libc::c_int; 2] = [0; 2];
         // SAFETY: pipe/pipe2 are safe per POSIX; fds provides a valid array
         // pointer. macOS has no pipe2, so there the CLOEXEC flag is set
-        // after the fact via fcntl(F_SETFD) — before any child exists, so
+        // after the fact via fcntl(F_SETFD) - before any child exists, so
         // nothing can inherit the fds in practice (the only theoretical
         // window is a concurrent exec elsewhere in the process, which this
         // single-threaded setup point doesn't have).
@@ -1259,7 +1259,7 @@ pub(crate) fn spawn_bash_pty_cfg(
             // observation of raw (non-canonical) terminal mode, if any.
             let mut watchdog_raw_since: Option<Instant> = None;
             // Liveness watchdog: a dedicated sampling thread (see
-            // liveness.rs) — the poll loop must never block on process-table
+            // liveness.rs) - the poll loop must never block on process-table
             // refreshes, which can take hundreds of milliseconds. It only
             // reports output here, one of the progress signals.
             let liveness = child.process_id().map(|pid| {
@@ -1290,7 +1290,7 @@ pub(crate) fn spawn_bash_pty_cfg(
             let mut child_dead_since: Option<Instant> = None;
             loop {
                 // Watchdog tick or I/O readiness: poll's return value is
-                // not needed — revents below drive every event handler.
+                // not needed - revents below drive every event handler.
                 let _n_ready = loop {
 
                     // Bounded timeout so the loop wakes up periodically to
@@ -1308,13 +1308,13 @@ pub(crate) fn spawn_bash_pty_cfg(
                 };
 
                 // n_ready == 0 (watchdog tick, nothing readable): fall
-                // through — all revents are zero, so every event handler
+                // through - all revents are zero, so every event handler
                 // below no-ops and control reaches the input-wait check at
                 // the bottom of the loop.
 
                 // Self-pipe has data → timeout requested by the async handler.
                 if poll_fds[1].revents & (libc::POLLIN | libc::POLLHUP | libc::POLLERR) != 0 {
-                    // Consume the notification byte (ignore errors — we
+                    // Consume the notification byte (ignore errors - we
                     // only care that poll woke up).
                     let _ = unsafe {
                         libc::read(
@@ -1359,7 +1359,7 @@ pub(crate) fn spawn_bash_pty_cfg(
                 if poll_fds[0].revents & (libc::POLLHUP | libc::POLLERR) != 0 {
                     // Drain any remaining data before breaking. POLLHUP can
                     // race with buffered kernel data (poll reports HUP while
-                    // data is still readable — Linux permits both), and one
+                    // data is still readable - Linux permits both), and one
                     // read is not guaranteed to consume the whole buffer, so
                     // loop until EOF; Ok(0) ends the drain.
                     loop {
@@ -1392,7 +1392,7 @@ pub(crate) fn spawn_bash_pty_cfg(
                     watchdog_raw_since = None;
                     // Orphan escape: the main child exited, but descendants
                     // may still hold the PTY slave, which suppresses POLLHUP
-                    // on the master — the loop would never see EOF. Keep
+                    // on the master - the loop would never see EOF. Keep
                     // draining output for a short window; if the hangup
                     // still hasn't arrived, detach and return the status.
                     match child_dead_since {
@@ -1537,7 +1537,7 @@ pub(crate) fn spawn_bash_pty_cfg(
             }
         }
 
-        // Stream ended normally — close the pipe write end.
+        // Stream ended normally - close the pipe write end.
         // SAFETY: pipe_tx was not closed by the timeout handler (the
         // handler returned above).
         unsafe { libc::close(pipe_tx); }
@@ -1555,7 +1555,7 @@ pub(crate) fn spawn_bash_pty_cfg(
 /// # Windows ConPTY specifics
 ///
 /// Unlike a Unix PTY, the ConPTY **output pipe never reaches EOF when the
-/// child exits** — the conhost side keeps the pipe handle open, so a blocking
+/// child exits** - the conhost side keeps the pipe handle open, so a blocking
 /// reader would hang forever. Two protocol quirks are handled here (both
 /// verified experimentally against Git Bash under ConPTY):
 ///
@@ -1576,8 +1576,8 @@ pub(crate) fn spawn_bash_pty_cfg(
 ///
 /// The async deadline arms `tokio::select!` against the channel receiver. On
 /// timeout the child is killed via `portable_pty::ChildKiller::kill`
-/// (`TerminateProcess`) — callable from the async side through a pre-cloned
-/// killer — in-flight chunks are drained, and the final `signal: Some(-1)`
+/// (`TerminateProcess`) - callable from the async side through a pre-cloned
+/// killer - in-flight chunks are drained, and the final `signal: Some(-1)`
 /// item is yielded. The watcher's exit status is discarded in that case,
 /// matching the Unix path (timeout item wins).
 #[cfg(windows)]
@@ -1696,7 +1696,7 @@ pub(crate) fn spawn_bash_pty_cfg(
 
         // Reader thread: forwards chunks through an unbounded channel. An
         // empty Vec signals EOF/read-error. The thread may stay blocked in
-        // read() forever (ConPTY never EOFs) — it is detached when the
+        // read() forever (ConPTY never EOFs) - it is detached when the
         // stream ends; the OS reclaims it when the process exits.
         let (tx, mut rx) = mpsc::unbounded_channel::<Vec<u8>>();
         tokio::task::spawn_blocking(move || {
@@ -1715,7 +1715,7 @@ pub(crate) fn spawn_bash_pty_cfg(
         });
 
         // Watcher thread: reaps the child and reports its status as
-        // (exit_code, signal). ConPTY has no signal concept — a killed child
+        // (exit_code, signal). ConPTY has no signal concept - a killed child
         // surfaces as a non-zero exit code.
         let (stx, mut srx) = mpsc::unbounded_channel::<(Option<i32>, Option<i32>)>();
         std::thread::spawn(move || match child.wait() {
@@ -1892,7 +1892,7 @@ pub(crate) fn spawn_bash_pty_cfg(
                 truncated: false,
             });
         }
-        // Watcher died without a status (should not happen) — end the
+        // Watcher died without a status (should not happen) - end the
         // stream silently, matching the Unix path's behavior on error.
     })
 }

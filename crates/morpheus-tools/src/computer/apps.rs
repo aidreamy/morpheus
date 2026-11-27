@@ -1,4 +1,4 @@
-//! `computer_apps` — list running desktop applications, or report the
+//! `computer_apps` - list running desktop applications, or report the
 //! foreground application and its keyboard-focused element.
 //!
 //! Thin adapter over [`xa11y::AppExt`]; every xa11y call is blocking
@@ -21,9 +21,9 @@ const DEFAULT_TIMEOUT_MS: u64 = 3000;
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum AppsResult {
-    /// `target: "all"` (default) — every running application.
+    /// `target: "all"` (default) - every running application.
     All(AppsOutput),
-    /// `target: "focused"` — the foreground app and its focused element.
+    /// `target: "focused"` - the foreground app and its focused element.
     Focused(FocusedOutput),
 }
 
@@ -34,14 +34,14 @@ pub enum AppsResult {
 /// foreground is flagged.
 ///
 /// With `target: "focused"` only the foreground application is resolved, plus
-/// the element inside it holding keyboard focus — the cheap "where do my
+/// the element inside it holding keyboard focus - the cheap "where do my
 /// keystrokes go?" check before `computer_keyboard`.
 ///
 /// # Errors
 ///
 /// Returns `Err` when the platform accessibility API is unreachable
-/// (missing macOS Accessibility permission, no AT-SPI2 bus on Linux, …), or —
-/// for `target: "focused"` — when no application holds the foreground within
+/// (missing macOS Accessibility permission, no AT-SPI2 bus on Linux, …), or -
+/// for `target: "focused"` - when no application holds the foreground within
 /// the timeout (e.g. focus is on the shell or a lock screen).
 pub async fn apps(input: &ComputerApps) -> Result<AppsResult, String> {
     let input = input.clone();
@@ -76,7 +76,7 @@ fn list_all() -> Result<AppsOutput, String> {
 /// keyboard focus.
 ///
 /// The focused element is found by a bounded depth-first walk looking for
-/// `states.focused` — the same state the snapshot reports, so what this
+/// `states.focused` - the same state the snapshot reports, so what this
 /// answers is exactly what `computer_keyboard` will type into. A miss (focus
 /// on the window itself, or the platform not reporting element focus)
 /// reports `focused_element: null` rather than failing, because the app
@@ -102,7 +102,7 @@ fn focused_blocking(input: &ComputerApps) -> Result<FocusedOutput, String> {
 
 /// Depth bound for the focused-element walk: deep enough to reach fields in
 /// real dialogs, shallow enough to stay cheap. A tree deeper than this does
-/// not fail the query — focus that far down is reported as absent, and a
+/// not fail the query - focus that far down is reported as absent, and a
 /// snapshot answers it precisely.
 pub(crate) const FOCUSED_WALK_MAX_DEPTH: usize = 15;
 
@@ -148,7 +148,7 @@ pub(crate) fn find_focused(
     if data.states.focused {
         return Some((vec![role], data.clone()));
     }
-    // Cap reached: report absence instead of fetching another level —
+    // Cap reached: report absence instead of fetching another level -
     // bounded depth means bounded provider work.
     if depth == FOCUSED_WALK_MAX_DEPTH {
         return None;

@@ -1,4 +1,4 @@
-//! LLM streaming: one model turn end-to-end — chunk dispatch, tool-call
+//! LLM streaming: one model turn end-to-end - chunk dispatch, tool-call
 //! extraction funnels and mid-stream retry handling.
 
 use std::sync::atomic::Ordering;
@@ -41,7 +41,7 @@ impl Harness {
         self.last_finish_reason = None;
         self.last_stream_unfinished = false;
         // Typed-classification slot: reset per attempt, like the truncation
-        // signal — a stale error from a previous stream must never drive this
+        // signal - a stale error from a previous stream must never drive this
         // attempt's recovery decision.
         self.last_connector_error = None;
         self.pending_thinking_blocks.clear();
@@ -78,7 +78,7 @@ impl Harness {
                         on_event(StreamEvent::Reset);
                         // The RETRIED segment streams its own reasoning: emit
                         // the next queue entry AFTER the marker, riding the
-                        // same accumulation + event path — so a test can pin
+                        // same accumulation + event path - so a test can pin
                         // that the reset discarded the failed attempt's
                         // thinking while the retry's survives.
                         for chunk in self.mock_reasoning_queue.pop_front().unwrap_or_default() {
@@ -92,7 +92,7 @@ impl Harness {
                     for token in &tokens {
                         // Mid-stream stop: an interrupted mock turn must
                         // surface the INTERRUPTED_MARKER error exactly like
-                        // the real stream path — never a silent `Ok("done")`
+                        // the real stream path - never a silent `Ok("done")`
                         // that makes the loop treat the truncation as a
                         // completed turn.
                         if self
@@ -119,7 +119,7 @@ impl Harness {
                     // Tests can simulate a provider-side truncation by queueing
                     // a finish_reason per stream (consumed one at a time).
                     // Match the OUTER option first: an explicitly queued
-                    // `None` (EOF without a finish frame — the whitelist's
+                    // `None` (EOF without a finish frame - the whitelist's
                     // silent "none" continuation path) stays testable; an
                     // unqueued mock stream ends deliberately (`stop`).
                     self.last_finish_reason = match self.mock_finish_reasons.pop_front() {
@@ -185,7 +185,7 @@ impl Harness {
                     .is_some_and(|s| s.load(Ordering::Relaxed));
                 if stop {
                     log::debug!("stream_chat_with_messages STOPPED by signal");
-                    // Surface the interruption as the marker error — NOT as a
+                    // Surface the interruption as the marker error - NOT as a
                     // completed turn. Falling through to `Ok("done")` here
                     // made the agent loop treat the truncated response as a
                     // finished assistant turn and CONTINUE (Done → queued
@@ -220,7 +220,7 @@ impl Harness {
             if let Some(f) = fr {
                 self.last_finish_reason = Some(f.to_owned());
             }
-            // Log only the first few tokens and every 100th — logging every
+            // Log only the first few tokens and every 100th - logging every
             // token costs a mutex + file write per token in debug builds.
             if token_count <= 5 || token_count.is_multiple_of(100) || fr.is_some() {
                 log::debug!(
@@ -232,8 +232,8 @@ impl Harness {
                 );
             }
             // The SDK retried a mid-stream failure: drop the partial content
-            // of the failed attempt — the extractor buffer, the thinking
-            // blocks stashed from it, and any finish reason it carried — and
+            // of the failed attempt - the extractor buffer, the thinking
+            // blocks stashed from it, and any finish reason it carried - and
             // tell the consumer (agent loop / TUI) to discard what it
             // rendered, so the retried response restarts clean.
             if chunk.is_reset() {
@@ -247,7 +247,7 @@ impl Harness {
             // model "think" while it works (never echoed back to the model).
             // The same deltas accumulate on `attempt_reasoning` so the loop
             // can record them with the response's context item (DISPLAY-ONLY
-            // payload — the model never receives it back). Accumulated even
+            // payload - the model never receives it back). Accumulated even
             // when no reasoning channel is wired, so a harness without a TUI
             // listener still persists the thinking.
             let reasoning = chunk.reasoning();
@@ -274,7 +274,7 @@ impl Harness {
         // claims.
         self.last_stream_unfinished = extractor.has_unfinished_stream();
         // Stream accounting (file log, target `morpheus::harness`): what THIS
-        // attempt produced — streamed token count, reasoning bytes, finish
+        // attempt produced - streamed token count, reasoning bytes, finish
         // reason and the cut flag. The reasoning bytes are the promotion
         // fuel: if the reasoning-only veto fires repeatedly on the same
         // turn, this line shows how much thinking gets re-sent each retry.
@@ -324,7 +324,7 @@ impl Harness {
     ///   validation funnel ([`Self::process_native_tool_call`]), in both
     ///   modes;
     /// - text chunks are parsed for inline-JSON tool calls ONLY in
-    ///   [`ToolCallMode::Inline`] — in `Native` mode (default) the text is
+    ///   [`ToolCallMode::Inline`] - in `Native` mode (default) the text is
     ///   the model's answer and is emitted verbatim, never parsed (the crush
     ///   contract: tool calls arrive only as structured parts).
     fn dispatch_chunk(
@@ -403,7 +403,7 @@ impl Harness {
 
     /// Route a tool call the provider delivered NATIVELY (structured
     /// `tool_calls`/`tool_use`/`functionCall` parts) through the extractor's
-    /// native validation funnel — the same `StreamAction` dispatch as the
+    /// native validation funnel - the same `StreamAction` dispatch as the
     /// inline-JSON path, minus the text parsing. Validation failures are
     /// counted and fed to the correction memory exactly like a failed inline
     /// call (the tool-failure message streams as text).
@@ -432,7 +432,7 @@ impl Harness {
 
     /// Stream a chat completion, calling `on_token` with each text delta.
     ///
-    /// Use this when streaming is enabled — tokens are delivered in real time
+    /// Use this when streaming is enabled - tokens are delivered in real time
     /// via the callback. Returns `Ok("done".into())` when the stream finishes.
     ///
     /// # Errors
@@ -515,7 +515,7 @@ impl Harness {
                 if stop {
                     // log::debug!("stream_chat STOPPED by signal");
                     // Same contract as [`Self::stream_chat_with_messages`]:
-                    // an interrupted stream must surface the marker error —
+                    // an interrupted stream must surface the marker error -
                     // the compaction caller maps it to
                     // `CompactionErr::Interrupted` (a silent `Ok` would make
                     // the truncation look like a finished summary).
@@ -548,7 +548,7 @@ impl Harness {
             if let Some(f) = fr {
                 self.last_finish_reason = Some(f.to_owned());
             }
-            // Log only the first few tokens and every 100th — logging every
+            // Log only the first few tokens and every 100th - logging every
             // token costs a mutex + file write per token in debug builds.
             if token_count <= 5 || token_count.is_multiple_of(100) || fr.is_some() {
                 log::debug!(
@@ -573,7 +573,7 @@ impl Harness {
             // model "think" while it works (never echoed back to the model).
             // The same deltas accumulate on `attempt_reasoning` so the loop
             // can record them with the response's context item (DISPLAY-ONLY
-            // payload — the model never receives it back). Accumulated even
+            // payload - the model never receives it back). Accumulated even
             // when no reasoning channel is wired, so a harness without a TUI
             // listener still persists the thinking.
             let reasoning = chunk.reasoning();

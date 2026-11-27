@@ -38,7 +38,7 @@ impl From<ArrowError> for VecDbError {
 /// Validate that `name` is a valid LanceDB table name.
 ///
 /// LanceDB table names must be valid directory names on the local filesystem.
-/// We restrict to alphanumeric, hyphens, underscores — must start with a letter.
+/// We restrict to alphanumeric, hyphens, underscores - must start with a letter.
 pub fn validate_table_name(name: &str) -> Result<(), VecDbError> {
     if name.is_empty() {
         return Err(VecDbError::Database("table name must not be empty".into()));
@@ -158,7 +158,7 @@ impl VecDb {
     /// Open an existing LanceDB table for **read-only** access.
     ///
     /// Unlike [`connect`](Self::connect), this returns an error if the
-    /// table does not exist — no table is created. The vector dimension
+    /// table does not exist - no table is created. The vector dimension
     /// is inferred from the table schema.
     ///
     /// # Errors

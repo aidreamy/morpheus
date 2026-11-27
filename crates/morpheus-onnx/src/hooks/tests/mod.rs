@@ -39,7 +39,7 @@ static REGISTRY_LOCK: Mutex<()> = Mutex::new(());
 /// Take the registry lock and clear any leaked default hooks. Every hook test
 /// calls this first: `compose_hooks` reads the global registry on every
 /// `system_one`, so an unlocked test would fire another test's leaked
-/// defaults. Poison is tolerated — a panicked neighbour must not fail the
+/// defaults. Poison is tolerated - a panicked neighbour must not fail the
 /// rest of the suite.
 fn registry_isolation() -> std::sync::MutexGuard<'static, ()> {
     let guard = REGISTRY_LOCK.lock().unwrap_or_else(|e| e.into_inner());

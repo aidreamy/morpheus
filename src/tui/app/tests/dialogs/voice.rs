@@ -70,7 +70,7 @@ async fn voice_picker_applies_speaker_and_language_together() {
 
 /// A v1.1 installation has no Portuguese voice. The picker still lists the
 /// v1.0 bundle installed beside it, and confirming one of its voices switches
-/// `model_dir` — the user never edits `setup.json` to reach the languages the
+/// `model_dir` - the user never edits `setup.json` to reach the languages the
 /// recommended bundle lacks.
 #[cfg(feature = "speak")]
 #[tokio::test]

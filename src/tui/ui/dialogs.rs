@@ -27,7 +27,7 @@ use crate::util::field_selection::DragSelection;
 const MODEL_LIST_LOADING_HINT: &str = "Loading models";
 
 /// Paint the dialog surface: fill the rect with spaces on `bg`, strip every
-/// modifier (a dialog is a clean slate — no lingering bold/underline from
+/// modifier (a dialog is a clean slate - no lingering bold/underline from
 /// whatever was underneath) and opt every cell out of the diff pipeline so
 /// the frame is redrawn as a unit.
 fn clear_dialog_surface(buf: &mut Buffer, area: Rect, bg: Color) {
@@ -93,7 +93,7 @@ pub(crate) fn model_entry_matches_filter(entry: &ModelEntry, filter: &str) -> bo
 }
 
 /// Only `options` rows matching the shared list-dialog filter (case-
-/// insensitive `contains` over name and value id — the model picker's
+/// insensitive `contains` over name and value id - the model picker's
 /// convention). The AgentConfigList render arm uses this; the mouse arm
 /// and the keyboard handler re-derive the SAME rows through it, so the
 /// painted list, the hit-test and the Enter target can never drift.
@@ -119,7 +119,7 @@ enum ShortcutLine {
     Key(&'static str, &'static str),
 }
 
-/// Only non-obvious compound shortcuts — basic nav/enter/esc are excluded
+/// Only non-obvious compound shortcuts - basic nav/enter/esc are excluded
 const SHORTCUTS: &[ShortcutLine] = &[
     ShortcutLine::Key("Ctrl+K", "Show/hide keyboard shortcuts"),
     ShortcutLine::Key("Ctrl+B", "Toggle left panel"),
@@ -219,7 +219,7 @@ fn shortcuts_layout(area: Rect) -> ShortcutsLayout {
     }
 }
 
-/// Visible list rows of the Shortcuts overlay for the given frame size —
+/// Visible list rows of the Shortcuts overlay for the given frame size -
 /// the single definition used by both the layout and the scroll bounds.
 fn shortcuts_max_visible(area: Rect) -> usize {
     (area.height.saturating_sub(4) as usize)
@@ -229,7 +229,7 @@ fn shortcuts_max_visible(area: Rect) -> usize {
 }
 
 /// Upper scroll bound for the Shortcuts overlay: how many list rows exist
-/// beyond what fits on screen. Key handlers must clamp against this — the
+/// beyond what fits on screen. Key handlers must clamp against this - the
 /// render clamps only its own local view (it receives the dialog by shared
 /// reference and cannot write the value back), so an unbounded scroll keeps
 /// climbing past it and the subsequent scroll-up sits "dead" on screen
@@ -239,7 +239,7 @@ pub fn shortcuts_max_scroll(area: Rect) -> usize {
 }
 /// Message and option row of the [`DialogType::ProviderKeyChoice`] box,
 /// drawn inside the border the caller already painted (message at +2,
-/// "Forget key" / "Overwrite key" side by side at +4 — the selected option
+/// "Forget key" / "Overwrite key" side by side at +4 - the selected option
 /// gets the primary color and bold, the other stays muted).
 #[allow(clippy::too_many_arguments)]
 fn draw_provider_key_choice_content(
@@ -303,7 +303,7 @@ fn draw_provider_key_choice_content(
 
 /// Borderless text prompt panel: bold title with an "esc" hint on the first
 /// content row, the input line with the blinking cursor, and an "enter
-/// submit" hint at the bottom — one blank padding row above and below.
+/// submit" hint at the bottom - one blank padding row above and below.
 fn render_rename_session_dialog(
     buf: &mut Buffer,
     area: Rect,
@@ -318,7 +318,7 @@ fn render_rename_session_dialog(
     let dialog_x = area.x + area.width.saturating_sub(dialog_w) / 2;
     let dialog_y = area.y + area.height.saturating_sub(dialog_h) / 2;
 
-    // Solid background panel — the same color as the history sidebar, a bare
+    // Solid background panel - the same color as the history sidebar, a bare
     // floating surface with no border characters.
     let bg_color = rgba_color(theme.background_panel);
     clear_dialog_surface(
@@ -421,7 +421,7 @@ fn confirm_dialog_w(message: &str, area_width: u16) -> u16 {
 /// Height of a Confirm box: the classic 7 rows for one/two message lines,
 /// growing with the message when a caller supplies a longer explanation
 /// (telemetry consent), so no line is dropped. Options sit on the row three
-/// from the bottom border — the same position the 7-row box always used.
+/// from the bottom border - the same position the 7-row box always used.
 fn confirm_dialog_h(message: &str) -> u16 {
     let lines = message.lines().count().max(1) as u16;
     lines.saturating_add(5).max(7)
@@ -433,7 +433,7 @@ fn confirm_options_y(dialog_y: u16, dialog_h: u16) -> u16 {
 }
 
 /// Content-derived width for the agent config box (the `confirm_dialog_w`
-/// convention): the longest value name — or the title — plus room for the
+/// convention): the longest value name - or the title - plus room for the
 /// ● indicator and padding, floored at the compact-picker minimum and
 /// clamped to the terminal. The mouse arm computes the SAME width, so the
 /// hit-test always walks the frame the renderer painted.
@@ -456,7 +456,7 @@ pub(crate) fn agent_config_dialog_w(
 /// gateway offer box's Connecting → Authorizing progression.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DeviceLoginPhase {
-    /// The background transaction is starting: no code yet — a spinner hint
+    /// The background transaction is starting: no code yet - a spinner hint
     /// stands in for the input row.
     Connecting,
     /// The verification URL + user code arrived: the box shows them
@@ -515,7 +515,7 @@ pub enum DialogType {
         models: Vec<ModelEntry>,
         current: String,
         filter: String,
-        /// True while a background API fetch is repopulating `models` — the
+        /// True while a background API fetch is repopulating `models` - the
         /// list area renders a spinner instead of the (still empty) list.
         loading: bool,
     },
@@ -547,7 +547,7 @@ pub enum DialogType {
     /// option, `current` the active value id (the row indicator); the app
     /// layer applies the picked value through `session/set_config_option`.
     /// Filtering/selection/cursor live in the shared list-dialog
-    /// component's [`FilterState`] — the same search box every morpheus list
+    /// component's [`FilterState`] - the same search box every morpheus list
     /// picker carries, OMITTED when `search` is false (the reasoning
     /// sub-box: a level list is never long enough to filter, and it must
     /// render the exact shape of the morpheus reasoning picker).
@@ -561,7 +561,7 @@ pub enum DialogType {
     /// Searchable voice picker (Settings → Voice): one row per speaker of the
     /// configured Kokoro bundle and of every other complete bundle installed
     /// beside it, grouped by language and model. Uses the SAME shared list
-    /// component as `/models` — search by voice name, id, language or model,
+    /// component as `/models` - search by voice name, id, language or model,
     /// Enter applies speaker + language (and the bundle when the row belongs
     /// to another one) together.
     VoiceList {
@@ -573,7 +573,7 @@ pub enum DialogType {
     /// Compact three-option picker for the checkup resident model
     /// (Settings → Decision model): `english` / `multilingual` /
     /// `typed-decisions`. Custom checkpoints stay setup.json-only and are
-    /// never selectable here — `current` then matches no option and no
+    /// never selectable here - `current` then matches no option and no
     /// row carries the indicator.
     CheckupModelList {
         current: String,
@@ -613,7 +613,7 @@ pub enum DialogType {
         env_var: String,
     },
     /// Live OAuth device sign-in started from the ADD Provider box's Login
-    /// button: the API-key dialog itself turns into the sign-in display —
+    /// button: the API-key dialog itself turns into the sign-in display -
     /// the same "box becomes the device code" mechanic the free-gateway
     /// offer uses. `Connecting` shows a spinner hint; `Authorizing` shows
     /// the verification URL + user code (both drag-copyable) while the
@@ -621,7 +621,7 @@ pub enum DialogType {
     /// (the user Esc'd and moved on) can be told apart from the live one.
     DeviceLogin {
         provider: String,
-        /// Display name for the title ("GitHub Copilot", "Charm") — computed
+        /// Display name for the title ("GitHub Copilot", "Charm") - computed
         /// by the caller (app layer owns the provider-name mapping; the UI
         /// layer stays vendor-neutral).
         label: String,
@@ -667,7 +667,7 @@ pub enum DialogType {
     /// MCP registration form: name, endpoint, timeout and API key on a
     /// single panel with the hook form's mechanics (Up/Down switch fields,
     /// Enter saves, Esc cancels, click focuses). Every field stays visible
-    /// and editable until the save — no step-by-step wizard. The API key
+    /// and editable until the save - no step-by-step wizard. The API key
     /// is the LAST field: blank = public server, `$VAR` = read that
     /// environment variable, anything else = a typed key stored in the OS
     /// keyring (never persisted to setup.json).
@@ -687,7 +687,7 @@ pub enum DialogType {
     },
     /// ACP harness registration form (Settings → Integrations → ACP
     /// agents): the same panel mechanics as [`DialogType::McpForm`] with
-    /// two fields — the public agent name and its `command args…` launch
+    /// two fields - the public agent name and its `command args…` launch
     /// line. `editing` targets an existing `setup.acp_agents` entry (the
     /// form opens prefilled); `None` creates one.
     AcpForm {
@@ -706,10 +706,10 @@ pub enum DialogType {
     },
     /// Custom LLM provider registration form (Settings → Integrations →
     /// Custom providers): the same panel mechanics as [`DialogType::AcpForm`]
-    /// with four fields — the public provider name, the endpoint's base
+    /// with four fields - the public provider name, the endpoint's base
     /// URL, the API family (free text, validated on save; only
     /// `openai-compatible` is accepted today), an optional model name, and
-    /// the provider's API key (masked, stored in the OS keyring — never in
+    /// the provider's API key (masked, stored in the OS keyring - never in
     /// setup.json). `editing` targets an existing `setup.custom_providers`
     /// entry (the form opens prefilled); `None` creates one. A blank API key
     /// while editing keeps whatever credential is already stored.
@@ -777,12 +777,12 @@ pub enum DialogType {
         /// click. `None` = the chat's own path (message_id keys the
         /// action); `Some` = `run_pane_message_action` keys the action
         /// positionally (pane timeline entry ↔ pane session's k-th user
-        /// message — pane entries carry no store ids).
+        /// message - pane entries carry no store ids).
         pane_action: Option<(usize, usize, Option<usize>)>,
     },
 
     /// `/undo`: versioned `/tmp` snapshots taken before each revert. A bare
-    /// borderless list — Enter or click rolls the session files back to the
+    /// borderless list - Enter or click rolls the session files back to the
     /// picked version. Each row is labeled with the start of the prompt that
     /// was reverted (plus the version number) so the user can tell the
     /// branches apart without trial and error.
@@ -813,7 +813,7 @@ pub enum DialogType {
 }
 
 // Manual Debug: `ApiKeyInput.input` and `McpForm.api_key` hold whatever the
-// user is typing — possibly a live API key. A stray `{:?}` (log line, panic
+// user is typing - possibly a live API key. A stray `{:?}` (log line, panic
 // message, test failure dump) must never print it, so secret-bearing fields
 // format as one redacted glyph.
 impl std::fmt::Debug for DialogType {
@@ -1077,7 +1077,7 @@ impl std::fmt::Debug for DialogType {
                 .debug_struct("UndoList")
                 .field("session_id", session_id)
                 .field("pane", pane)
-                // The previews are user-typed prompt text — same redaction
+                // The previews are user-typed prompt text - same redaction
                 // policy as every other user-content field.
                 .field(
                     "versions",
@@ -1129,7 +1129,7 @@ pub struct DialogInstance {
     /// app render tick while a ModelList with `loading: true` is on top).
     pub spinner: SpinnerState,
     /// Whether the pointer sits on the API-key dialog's Login button (the
-    /// caller resolves it against the PREVIOUS frame's stored hitbox — the
+    /// caller resolves it against the PREVIOUS frame's stored hitbox - the
     /// same one-frame-muted→text swap the footer's update button uses).
     /// Render reads it; the mouse handler stores it.
     pub login_hover: bool,
@@ -1340,7 +1340,7 @@ impl DialogState {
                 };
 
                 // The shared list-dialog component owns the geometry and the
-                // hit-test (theme box: preferred 40, floor 24, 10-row cap) —
+                // hit-test (theme box: preferred 40, floor 24, 10-row cap) -
                 // the scroll window and the row mapping can never drift from
                 // the painted frame.
                 let layout = list_dialog::compute_layout(
@@ -1577,7 +1577,7 @@ impl DialogState {
             }
             DialogType::ToolCallList { current: _ } => {
                 // Two-option list with long descriptions: wide enough for
-                // "inline  —  JSON written in the text, parsed locally".
+                // "inline  -  JSON written in the text, parsed locally".
                 let max_w = 60u16.min(area.width.saturating_sub(4));
                 let dialog_w = max_w.max(28).min(area.width.saturating_sub(2));
                 let dialog_x = area.x + area.width.saturating_sub(dialog_w) / 2;
@@ -1669,11 +1669,11 @@ impl DialogState {
                 // The shared list-dialog component owns the geometry: the
                 // box clamps to the terminal, the scroll window follows the
                 // selection, and the hit-test walks the SAME window the
-                // renderer painted — over the SAME filtered rows (a click
+                // renderer painted - over the SAME filtered rows (a click
                 // must hit the list the search shows, not an invisible
                 // unfiltered twin) at the SAME content-derived width.
                 // Outside the box → dismiss; on the header's "esc" →
-                // dismiss; on a row → select it (release then confirms —
+                // dismiss; on a row → select it (release then confirms -
                 // one click applies, like the model list).
                 let rows = filter_matches(options, &filter.filter);
                 let max_w = agent_config_dialog_w(title, options, area.width);
@@ -1694,7 +1694,7 @@ impl DialogState {
                         if index < rows.len() {
                             // `filter.selected` is the box's single source
                             // of truth (the render arm and the confirm path
-                            // read it) — hover just moves it; release then
+                            // read it) - hover just moves it; release then
                             // confirms the row the highlight sits on.
                             filter.selected = index;
                             match mouse.event_type {
@@ -1736,7 +1736,7 @@ impl DialogState {
                             filter.selected = selection;
                             match mouse.event_type {
                                 // Hover just moves the visual selection;
-                                // release confirms — the model list's rule.
+                                // release confirms - the model list's rule.
                                 MouseEventType::Move
                                 | MouseEventType::Drag
                                 | MouseEventType::Down => DialogAction::Consumed,
@@ -2015,7 +2015,7 @@ impl DialogState {
 
                 // The same visual rows the renderer paints (headers +
                 // models), through the shared list-dialog component: ONE
-                // geometry and ONE hit-test — the scroll window and the
+                // geometry and ONE hit-test - the scroll window and the
                 // row mapping can never drift from the painted frame.
                 let rows: Vec<ListRow> = grouped
                     .keys()
@@ -2150,7 +2150,7 @@ impl DialogState {
                 );
 
                 // Content is INSIDE the border (1 row padding top/bottom)
-                // Center each message line at rows dialog_y + 2.. — a `\n`
+                // Center each message line at rows dialog_y + 2.. - a `\n`
                 // in the message wraps it onto the next row, keeping the box
                 // narrow (confirm_dialog_w sizes to the longest line).
                 let lines: Vec<&str> = message.lines().collect();
@@ -2263,7 +2263,7 @@ impl DialogState {
                 current,
                 filter,
             } => {
-                // Swatches must stay parallel to themes — the zip below
+                // Swatches must stay parallel to themes - the zip below
                 // silently drops trailing rows if the invariant ever breaks.
                 debug_assert_eq!(
                     themes.len(),
@@ -2375,7 +2375,7 @@ impl DialogState {
                     bg_color,
                 );
 
-                // Title line — main title of the box, wearing the theme's
+                // Title line - main title of the box, wearing the theme's
                 // primary as a background so it gets its own color band.
                 let title_text = " Keyboard Shortcuts ";
                 let title_fg = hook_marker_fg(theme);
@@ -2471,7 +2471,7 @@ impl DialogState {
                     *cursor_pos,
                 );
                 // The Login button (device-OAuth providers only): rendered
-                // inside the box's bottom row, right-aligned — the same
+                // inside the box's bottom row, right-aligned - the same
                 // hover-swap styling the footer's update button uses.
                 if *device_login && let Some(button) = api_key_login_button_area(area, input) {
                     draw_api_key_login_button(buf, button, theme, instance.login_hover);
@@ -2479,7 +2479,7 @@ impl DialogState {
             }
             DialogType::DeviceLogin { label, phase, .. } => {
                 // Same box language as the API-key input (the dialog it
-                // replaced): the box IS the sign-in display — code + URL
+                // replaced): the box IS the sign-in display - code + URL
                 // where the input row used to be, the gateway offer box's
                 // "box becomes the device code" mechanic.
                 let box_rect = input_dialog_box(area, 1);
@@ -2502,7 +2502,7 @@ impl DialogState {
                 );
                 draw_text_line_compact(
                     buf,
-                    "(device code — paste it at the URL)",
+                    "(device code - paste it at the URL)",
                     content_x,
                     box_rect.y + 2,
                     content_w,
@@ -2573,7 +2573,7 @@ impl DialogState {
                     now,
                     &instance.cursor,
                     "Prompt cache duration",
-                    "e.g. 30m, 1h, 1h30m — empty or \"default\" resets",
+                    "e.g. 30m, 1h, 1h30m - empty or \"default\" resets",
                     false,
                     input,
                     *cursor_pos,
@@ -2587,7 +2587,7 @@ impl DialogState {
                     now,
                     &instance.cursor,
                     "Editor command",
-                    "e.g. nvim, vim -u NONE (args split on spaces) — empty: auto-detect",
+                    "e.g. nvim, vim -u NONE (args split on spaces) - empty: auto-detect",
                     false,
                     input,
                     *cursor_pos,
@@ -2601,7 +2601,7 @@ impl DialogState {
                     now,
                     &instance.cursor,
                     "Skill directories",
-                    "colon-separated paths (~ = $HOME) — empty: ~/.skills",
+                    "colon-separated paths (~ = $HOME) - empty: ~/.skills",
                     false,
                     input,
                     *cursor_pos,
@@ -2615,7 +2615,7 @@ impl DialogState {
                     now,
                     &instance.cursor,
                     "Speech pace",
-                    "pace factor, 1.0 is natural — empty: 1.0",
+                    "pace factor, 1.0 is natural - empty: 1.0",
                     false,
                     input,
                     *cursor_pos,
@@ -2647,7 +2647,7 @@ impl DialogState {
                     now,
                     &instance.cursor,
                     "Checkup min confidence",
-                    "0–1 (e.g. 0.6) — empty or \"default\" resets to 0.6",
+                    "0–1 (e.g. 0.6) - empty or \"default\" resets to 0.6",
                     false,
                     input,
                     *cursor_pos,
@@ -2845,7 +2845,7 @@ impl DialogState {
                 // Visual rows for the shared list-dialog component: provider
                 // headers (never selectable) + models (★ auto keeps its
                 // accent treatment). Selection is a MODEL index, so map it
-                // to its visual position first — the lookup stays identical
+                // to its visual position first - the lookup stays identical
                 // to handle_mouse() so hover, scrolling and the painted
                 // highlight agree.
                 let rows: Vec<ListRow> = grouped
@@ -2883,7 +2883,7 @@ impl DialogState {
                 // The shared list-dialog component owns the box: terminal-
                 // clamped geometry, the Search line with the blinking
                 // cursor, the scroll window that follows the selection. The
-                // model list is UNCAPTED — its window grows with the
+                // model list is UNCAPTED - its window grows with the
                 // terminal (the compact pickers cap at 10, this does not).
                 let layout = list_dialog::compute_layout(
                     visual_selection,
@@ -2916,7 +2916,7 @@ impl DialogState {
                     // the wait is visible. The frame is advanced by the app
                     // render tick (see app/render.rs), since this render takes
                     // `&self`. Loading is cleared when ModelsLoaded updates the
-                    // list — or stays cleared with the plain empty-list render
+                    // list - or stays cleared with the plain empty-list render
                     // if the fetch found nothing.
                     if let Some(cell) = buf.cell_mut((list_x, list_top)) {
                         cell.set_char(instance.spinner.current_char());
@@ -2993,7 +2993,7 @@ impl DialogState {
                     Style::default().fg(rgba_color(theme.text_muted)),
                 );
 
-                // Line 1: the picked model (muted, may be long — truncate).
+                // Line 1: the picked model (muted, may be long - truncate).
                 let model_style = Style::default().fg(rgba_color(theme.text_muted));
                 draw_text_line_compact(buf, model, header_x, dialog_y + 1, header_w, model_style);
 
@@ -3098,7 +3098,7 @@ impl DialogState {
                 }
             }
             DialogType::UndoList { versions, .. } => {
-                // Borderless floating box in the left-panel color — bare
+                // Borderless floating box in the left-panel color - bare
                 // version list, exactly like the MessageActions surface.
                 let max_w = 64u16.min(area.width.saturating_sub(4));
                 let items = versions.len().max(1);
@@ -3142,7 +3142,7 @@ impl DialogState {
                     Style::default().fg(rgba_color(theme.text_muted)),
                 );
 
-                // Lines 4+: one row per revert — the start of the reverted
+                // Lines 4+: one row per revert - the start of the reverted
                 // prompt as the return indicator, with the version number
                 // right-aligned so ordering stays visible.
                 let list_top = dialog_y + 4;
@@ -3224,7 +3224,7 @@ impl DialogState {
                     .saturating_add((area.height.saturating_sub(dialog_h)) / 2);
                 let dialog_area = Rect::new(dialog_x, dialog_y, dialog_w, dialog_h);
 
-                // Solid fill in the same color as the history sidebar panel —
+                // Solid fill in the same color as the history sidebar panel -
                 // a bare floating surface with no border characters, like the
                 // rename dialog.
                 let bg_color = rgba_color(theme.background_panel);
@@ -3447,7 +3447,7 @@ impl DialogState {
             }
             DialogType::CheckupModelList { current } => {
                 // Three-option list, same compact geometry as ToolCallList:
-                // wide enough for "multilingual  —  Multilingual checkpoint".
+                // wide enough for "multilingual  -  Multilingual checkpoint".
                 let max_w = 60u16.min(area.width.saturating_sub(4));
                 let dialog_w = max_w.max(28).min(area.width.saturating_sub(2));
                 let dialog_x = area.x + area.width.saturating_sub(dialog_w) / 2;
@@ -3579,7 +3579,7 @@ impl DialogState {
                     } else {
                         (rgba_color(theme.text), bg_element)
                     };
-                    let label = format!("{name}  —  {desc}");
+                    let label = format!("{name}  -  {desc}");
                     draw_text_line_compact(
                         buf,
                         &label,
@@ -3729,7 +3729,7 @@ impl DialogState {
                     } else {
                         (rgba_color(theme.text), bg_element)
                     };
-                    let label = format!("{name}  —  {desc}");
+                    let label = format!("{name}  -  {desc}");
                     draw_text_line_compact(
                         buf,
                         &label,
@@ -3814,7 +3814,7 @@ impl DialogState {
                         }
                     }
 
-                    // Current-style indicator ●; selected indicator (space) —
+                    // Current-style indicator ●; selected indicator (space) -
                     // the same dot language every morpheus list picker speaks.
                     let (indicator_fg, indicator_ch) = if is_current {
                         if is_selected {
@@ -3907,10 +3907,10 @@ impl DialogState {
             } => {
                 // The shared list-dialog component owns the box: terminal-
                 // clamped geometry, the Search line with the blinking
-                // cursor (omitted on a searchless box — the reasoning
+                // cursor (omitted on a searchless box - the reasoning
                 // sub-box), and a scroll window that follows the selection
-                // (the config lists can outgrow ten rows — opencode's
-                // `model` alone publishes 115 values — so the selection may
+                // (the config lists can outgrow ten rows - opencode's
+                // `model` alone publishes 115 values - so the selection may
                 // never fall off-screen again). One row per ACP value, ●
                 // on the active value.
                 let rows = filter_matches(options, &filter.filter);
@@ -4096,7 +4096,7 @@ pub fn api_key_login_button_area(area: Rect, input: &str) -> Option<Rect> {
 }
 
 /// Draw the API-key dialog's Login button: the label in the muted color at
-/// rest (the theme's disabled/inactive shade — the same one the LSP
+/// rest (the theme's disabled/inactive shade - the same one the LSP
 /// "disabled" tag and the Settings off-labels use) and the plain text
 /// color while hovered; bold in both states so it reads as a button, not
 /// a label. A dialog button has no separate rest-state token to swap FROM
@@ -4152,7 +4152,7 @@ fn render_text_input_dialog(
     let dialog_x = box_rect.x;
     let dialog_y = box_rect.y;
 
-    // Fill background with the LEFT PANEL color — the modal box reads as
+    // Fill background with the LEFT PANEL color - the modal box reads as
     // the same surface layer as the sidebar (the hook registration form
     // already follows this rule).
     let bg_color = rgba_color(theme.background_panel);
@@ -4185,7 +4185,7 @@ fn render_text_input_dialog(
         Style::default().fg(rgba_color(theme.text_muted)),
     );
 
-    // Input rows (blinking cursor at cursor_pos) — same surface as the box
+    // Input rows (blinking cursor at cursor_pos) - same surface as the box
     // itself (the left panel color), never the old element color. The text is
     // wrapped by the same call that sized the box, so nothing is ever drawn
     // past the border.
@@ -4273,7 +4273,7 @@ fn render_text_input_dialog(
 // ── Multi-field registration panel (hooks, MCP servers) ─────────────────
 // One shared panel: marker-highlighted labels, wrapped values, click to
 // focus. Forms differ only in title, subtitle and per-field label/hint
-// text, passed in by the caller — no per-form geometry or render code.
+// text, passed in by the caller - no per-form geometry or render code.
 
 fn mcp_field_label(field: usize) -> &'static str {
     match field {
@@ -4381,7 +4381,7 @@ fn mcp_field_placeholder(field: usize) -> &'static str {
     }
 }
 
-/// The hook form has no placeholders yet — empty fields render blank.
+/// The hook form has no placeholders yet - empty fields render blank.
 fn hook_field_placeholder(_field: usize) -> &'static str {
     ""
 }
@@ -4407,7 +4407,7 @@ fn hook_field_hint(field: usize) -> &'static str {
 /// Panel width: 56-column floor, grown to fit the panel's static
 /// single-line rows when they need more (the demand comes from
 /// [`dialog_panel_demand`]); clamped to the terminal. Field values are
-/// excluded on purpose — they wrap onto extra rows instead of widening
+/// excluded on purpose - they wrap onto extra rows instead of widening
 /// the panel, keeping the cursor grid stable while typing.
 pub(crate) fn form_panel_width(area: Rect, demand: usize) -> u16 {
     let wanted = demand.saturating_add(4).max(56) as u16; // +2-cell margin per side
@@ -4442,7 +4442,7 @@ fn panel_static_demand(
 /// Width (columns) the panel's static single-line rows demand: the widest
 /// among the title+esc header, the subtitle, each label+hint row and each
 /// placeholder. `None` (no panel open) yields 0 → the base width. Field
-/// values never participate — they wrap instead of widening the panel.
+/// values never participate - they wrap instead of widening the panel.
 pub(crate) fn dialog_panel_demand(dialog: Option<&DialogType>) -> usize {
     let Some(dialog) = dialog else {
         return 0;
@@ -4552,7 +4552,7 @@ pub(crate) fn form_panel_metrics(
     (x, y, w, h, x + 2, cols)
 }
 
-/// WCAG relative luminance — decides which text family stays readable.
+/// WCAG relative luminance - decides which text family stays readable.
 fn relative_luminance(c: RGBA) -> f32 {
     let channel = |v: u8| {
         let s = f32::from(v) / 255.0;
@@ -4577,7 +4577,7 @@ fn hook_marker_fg(theme: &Theme) -> Color {
     }
 }
 
-/// Map a click position to `(field, char index)` — labels focus the field,
+/// Map a click position to `(field, char index)` - labels focus the field,
 /// value rows also position the cursor. `None` when the click lands on
 /// padding inside the panel; the caller decides outside-panel dismissal.
 /// Shared with the app's drag-selection handling, which reuses the same
@@ -4660,7 +4660,7 @@ fn focus_form_field(
     DialogAction::Consumed
 }
 
-/// Registration panel shared by the hook and MCP-server forms — borderless,
+/// Registration panel shared by the hook and MCP-server forms - borderless,
 /// filled with the sidebar's `background_panel` like the rename prompt.
 /// Every field label wears a primary-color marker highlight (text tone
 /// adapts to the theme), values keep breathing margins around them, wrap
@@ -4681,7 +4681,7 @@ fn render_form_panel(
     // Per-field secrecy: masked fields render one `•` per character
     // instead of the value, so a typed API key never reaches the screen
     // (and thus never reaches terminal scrollback or tmux captures).
-    // Geometry, cursor and hit-testing keep using the REAL value — the
+    // Geometry, cursor and hit-testing keep using the REAL value - the
     // masked string has the same character count, so nothing shifts.
     mask: fn(usize) -> bool,
     fields: &[&str],
@@ -4695,7 +4695,7 @@ fn render_form_panel(
     let content_w = cols as u16;
     let geoms = form_field_geometries(dialog_y, fields, cols);
 
-    // Solid background panel — same color as the history sidebar, a bare
+    // Solid background panel - same color as the history sidebar, a bare
     // floating surface with no border characters (rename-prompt style).
     let bg_color = rgba_color(theme.background_panel);
     clear_dialog_surface(
@@ -4744,7 +4744,7 @@ fn render_form_panel(
         let focused = field == active_field;
         let field_label = label(field);
 
-        // Marker-highlighted label: " Name " drawn on the theme's primary —
+        // Marker-highlighted label: " Name " drawn on the theme's primary -
         // focused fields go bold so the active one stands out.
         let marked = format!(" {field_label} ");
         let mut mark_style = Style::default().fg(marker_fg).bg(rgba_color(theme.primary));
@@ -4835,7 +4835,7 @@ fn render_form_panel(
         }
         // Drag selection over this field's value: paint the covered cells
         // with the text/background colors swapped (dark text on a light
-        // bar — the same look as the chat prompt's selection). The grid
+        // bar - the same look as the chat prompt's selection). The grid
         // is the one `form_panel_hit_field` maps clicks onto (plain
         // char slicing, `cols` per row), so highlight and hit-testing
         // cannot drift.
@@ -5094,7 +5094,7 @@ mod hook_panel_tests {
         // includes the API-key hint's pull) only matches with the full set.
         let empty = ["", "", "", ""];
         // The grid is derived from the MCP form's demand, not the base
-        // width — its API-key hint widens the panel past 56 columns.
+        // width - its API-key hint widens the panel past 56 columns.
         let demand = dialog_panel_demand(Some(&DialogType::McpForm {
             name: String::new(),
             endpoint: String::new(),
@@ -5253,7 +5253,7 @@ mod shortcuts_tests {
 
     /// The right-panel section must end with the function-key owner
     /// switches the corner hints advertise: F1 Subagent, F2 Bash, F3
-    /// TODO, F4 mixed — in that order, so the help teaches the same
+    /// TODO, F4 mixed - in that order, so the help teaches the same
     /// mapping the hint labels show.
     #[test]
     fn right_panel_section_documents_the_function_key_owner_switches() {
@@ -5275,7 +5275,7 @@ mod shortcuts_tests {
     }
 
     /// The `/agents` pane section must teach the zoom toggle (Ctrl+O) and
-    /// the pane-focus hotkeys: `Alt+0..9` is the ONLY chorded form — every
+    /// the pane-focus hotkeys: `Alt+0..9` is the ONLY chorded form - every
     /// terminal encodes ESC+digit, while the legacy C0 encoding turns
     /// Ctrl+digits into other keys (Ctrl+Space, Ctrl+A/B/C, Backspace,
     /// Tab) before crossterm ever sees a digit.
@@ -5360,7 +5360,7 @@ mod theme_list_swatch_tests {
         assert_eq!(buf[(start, 12)].symbol(), "\u{2588}");
 
         // sakura row: chips right-anchor at the SAME edge despite its longer
-        // name — that alignment is the whole point of this layout. Each chip
+        // name - that alignment is the whole point of this layout. Each chip
         // paints SWATCH_WIDTH cells, so its fg appears once per cell.
         let sakura = registry.get("sakura").expect("sakura");
         let sakura_swatches = theme_swatches(sakura);
@@ -5395,7 +5395,7 @@ mod theme_list_swatch_tests {
         state.render(&mut buf, area, &theme, std::time::SystemTime::now());
 
         // Only sakura survives the filter, so row 0 must carry sakura's
-        // chips — not the chips of the theme that used to be above it.
+        // chips - not the chips of the theme that used to be above it.
         let sakura = registry.get("sakura").expect("sakura");
         let first = rgba_color(theme_swatches(sakura)[0]);
         let start = 21 + 38 - swatches_width(theme_swatches(sakura).len());

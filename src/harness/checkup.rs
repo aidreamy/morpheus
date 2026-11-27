@@ -1,21 +1,21 @@
-//! Checkup — the decision model's audit seam.
+//! Checkup - the decision model's audit seam.
 //!
 //! A `Checkup` audits decisions the harness makes. The current point of use
 //! is agent-loop termination: when the loop is about to end on an ambiguous
 //! signal (a text-only natural completion), the model reads the final text
 //! and answers whether the task is actually done. Explicit stops (the
 //! `stop_agent_loop` tool, Esc, hook halts) and infrastructure failures
-//! never pass through here — there is no ambiguity to audit.
+//! never pass through here - there is no ambiguity to audit.
 //!
-//! The state the model reviews is deliberately MINIMAL — the final text
+//! The state the model reviews is deliberately MINIMAL - the final text
 //! alone (`{"message": …}`), verbatim the shape the `loop_terminated`
 //! evaluation scores. A measured probe (`crates/morpheus-onnx/tests/eval/
-//! shape_probe.rs`) tested richer shapes — the user request prepended,
-//! concatenated, two-field — and every one made the published checkpoints
+//! shape_probe.rs`) tested richer shapes - the user request prepended,
+//! concatenated, two-field - and every one made the published checkpoints
 //! FLIP closing summaries to `running` (the request reads as "work in
 //! progress"): the enrichment shipped a false veto. The direct-answer
 //! failure mode ("2+2 é 4" read as running) is the checkpoint's
-//! out-of-distribution blind spot, not a context problem — it is fixed
+//! out-of-distribution blind spot, not a context problem - it is fixed
 //! deterministically at the call site (a cycle with no tool calls is a pure
 //! text exchange; there is nothing to audit). [`ContextManager::
 //! turn_user_thread`] stays as the seam a future request-aware checkpoint
@@ -26,7 +26,7 @@
 //!
 //! **Fail-open, per point of use**: the model is an improver, never a single
 //! point of failure. On load or inference failure the verdict is
-//! [`TerminationDecision::Terminated`] — at the natural-completion gate that
+//! [`TerminationDecision::Terminated`] - at the natural-completion gate that
 //! preserves the current behaviour (the loop ends); at the heuristic guards
 //! the stop stands regardless and the verdict is only recorded.
 
@@ -46,7 +46,7 @@ pub trait Checkup: Send + Sync {
 /// Whether the reviewed text terminates the agent loop.
 ///
 /// `NotTerminated` (not "running"): the model judges whether the text
-/// closes the loop — it does not observe loop state.
+/// closes the loop - it does not observe loop state.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum TerminationDecision {
     /// The task is complete: a summary of what was done, nothing left to do.
@@ -66,7 +66,7 @@ pub struct TerminationVerdict {
     /// The audited decision.
     pub decision: TerminationDecision,
     /// The calibrated `answer_confidence` of the model's answer
-    /// (0.0 when the verdict is a fail-open fallback — no information).
+    /// (0.0 when the verdict is a fail-open fallback - no information).
     pub confidence: f64,
 }
 
@@ -82,7 +82,7 @@ impl TerminationVerdict {
     }
 }
 
-/// The question id inside the schema — the same id the loop-termination
+/// The question id inside the schema - the same id the loop-termination
 /// evaluation scores, so benchmark numbers map 1:1 onto this consumer.
 ///
 /// Shared at module level so the in-process adapter and the daemon client
@@ -98,7 +98,7 @@ pub(crate) const QID: &str = "loop_terminated";
 /// `temperature_by_options` calibrates `choice:2` explicitly.
 ///
 /// VERBATIM is load-bearing: the benchmark numbers map 1:1 onto this consumer
-/// only while the question — and the bare `{"message"}` state it reads — stay
+/// only while the question - and the bare `{"message"}` state it reads - stay
 /// identical. The shape probe showed ANY enrichment (request prepended,
 /// criteria reworded) flips the published checkpoints' closing summaries to
 /// `running`, so the wording stays frozen until a checkpoint trained on the
@@ -146,7 +146,7 @@ mod onnx_adapter {
     /// When the last load attempt failed, and for which kind. A failed load
     /// must not poison the resident (a transient failure on turn N should
     /// not disable the audit forever), but retrying a multi-GB load on every
-    /// message of a broken setup is its own failure mode — so a failing kind
+    /// message of a broken setup is its own failure mode - so a failing kind
     /// is throttled before the next attempt.
     static LAST_LOAD_FAILURE: Mutex<Option<(ModelKind, Instant)>> = Mutex::new(None);
 
@@ -160,10 +160,10 @@ mod onnx_adapter {
 
     /// The resident model for `kind`: the cached one when it matches, a
     /// fresh load otherwise (kind changed since the last turn, or first
-    /// use). `None` when the load failed — either just now or within the
+    /// use). `None` when the load failed - either just now or within the
     /// retry window of an earlier failure.
     fn resident(kind: &ModelKind) -> Option<Arc<dyn DecisionModel>> {
-        // Fast path: the resident matches — nothing to do but share it.
+        // Fast path: the resident matches - nothing to do but share it.
         if let Ok(guard) = RESIDENT.lock()
             && let Some(resident) = guard.as_ref()
             && &resident.kind == kind
@@ -184,7 +184,7 @@ mod onnx_adapter {
         // The load runs OUTSIDE the resident lock: it can take seconds, and
         // holding the mutex through it would stall any concurrent turn
         // asking for the model. Two turns racing into a load both pay it
-        // and the last store wins — harmless, never a correctness issue.
+        // and the last store wins - harmless, never a correctness issue.
         match load_model(kind) {
             Ok(model) => {
                 if let Ok(mut guard) = RESIDENT.lock() {
@@ -226,7 +226,7 @@ mod onnx_adapter {
 
     /// A [`Checkup`] over a resident decision model.
     ///
-    /// Holds the shared `Arc<dyn DecisionModel>` — the same resident the
+    /// Holds the shared `Arc<dyn DecisionModel>` - the same resident the
     /// rest of the app uses; `decide` is `&self`, so a review only borrows.
     pub struct OnnxCheckup {
         model: Arc<dyn DecisionModel>,
@@ -240,7 +240,7 @@ mod onnx_adapter {
 
         /// Attach the resident model for `kind`, loading it on first use.
         /// Fail-open: returns `None` (no checkup) when the model cannot be
-        /// loaded — the harness runs unaudited, exactly as it does without
+        /// loaded - the harness runs unaudited, exactly as it does without
         /// the feature. Repeated turns reuse the process-wide resident
         /// instead of reloading; failed loads are retried after
         /// [`LOAD_RETRY_AFTER`].
@@ -262,7 +262,7 @@ mod onnx_adapter {
             };
             let prediction = Prediction::from(result);
             // Missing answer fields are a broken checkpoint/runtime pairing,
-            // not a decision — fail open rather than guess.
+            // not a decision - fail open rather than guess.
             let Some(choice) = prediction.choice(QID) else {
                 log::warn!("termination checkup failed-open: no choice answer for {QID}");
                 return TerminationVerdict::fallback();
@@ -311,7 +311,7 @@ mod tests {
         ] {
             assert!(
                 eval.contains(needle),
-                "the eval's {what} drifted from the consumer's question — \
+                "the eval's {what} drifted from the consumer's question - \
                  the benchmark no longer scores what the checkup asks"
             );
         }

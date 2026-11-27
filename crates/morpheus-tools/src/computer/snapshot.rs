@@ -1,4 +1,4 @@
-//! `computer_snapshot` — capture an application's accessibility tree.
+//! `computer_snapshot` - capture an application's accessibility tree.
 //!
 //! Two renderings share one resolution path: the compact indented outline
 //! (role, name, value and non-default state flags per line) and structured
@@ -15,7 +15,7 @@ use super::types::{ComputerSnapshot, ElementStates, SnapshotFormat, SnapshotOutp
 
 /// Default auto-wait for the application to appear.
 pub(crate) const DEFAULT_TIMEOUT_MS: u64 = 3000;
-/// Default snapshot depth — deep enough for real dialogs, shallow enough
+/// Default snapshot depth - deep enough for real dialogs, shallow enough
 /// to keep the output inside a tool-result budget.
 pub(crate) const DEFAULT_MAX_DEPTH: u32 = 12;
 /// Hard depth cap: runaway web-embedded trees can be enormous.
@@ -72,7 +72,12 @@ fn snapshot_blocking(input: &ComputerSnapshot) -> Result<SnapshotOutput, String>
         return snapshot_surface(input, surface, max_depth, format);
     }
 
-    let app = super::resolve_app(input.name.as_deref(), input.pid, timeout, "computer_snapshot")?;
+    let app = super::resolve_app(
+        input.name.as_deref(),
+        input.pid,
+        timeout,
+        "computer_snapshot",
+    )?;
 
     let (snapshot, elements) = match &input.selector {
         Some(selector) => {
@@ -91,7 +96,7 @@ fn snapshot_blocking(input: &ComputerSnapshot) -> Result<SnapshotOutput, String>
     })
 }
 
-/// Render a surface-rooted snapshot — shared by the production path
+/// Render a surface-rooted snapshot - shared by the production path
 /// (resolved against the singleton provider) and the tests (mock provider,
 /// via the `ShellSurface` handle they build directly).
 pub(crate) fn snapshot_surface(
@@ -137,7 +142,7 @@ fn render(
     Ok((render_tree(format, &tree), count))
 }
 
-/// Render a snapshot rooted at ANY element handle — an application root or
+/// Render a snapshot rooted at ANY element handle - an application root or
 /// a shell-surface root take the same path (both wrap a real platform
 /// element).
 fn render_root(
@@ -154,7 +159,7 @@ fn render_root(
 /// `build_tree_node` depth semantics: `Some(d)` stops at depth `d`,
 /// `None` traverses the full subtree.
 ///
-/// States come from the same `ElementData` fetch that identifies the node —
+/// States come from the same `ElementData` fetch that identifies the node -
 /// one provider round trip per element, same as xa11y's stateless tree.
 fn build_state_tree(
     element: &xa11y::Element,
@@ -230,7 +235,7 @@ pub(crate) fn write_outline(node: &StateNode, depth: usize, out: &mut String) {
     // A cut branch must never read as a leaf: say the subtree is unknown.
     if node.children_not_read {
         out.push_str(&indent);
-        out.push_str("  … children not read (depth limit — raise max_depth)\n");
+        out.push_str("  … children not read (depth limit - raise max_depth)\n");
     }
     for child in &node.children {
         write_outline(child, depth + 1, out);

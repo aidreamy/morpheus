@@ -34,7 +34,7 @@ async fn applies_when_section_tag_is_live_files_content_hash() {
 async fn validates_anchor_from_content_hash_even_with_no_recorded_snapshot() {
     // The core fix: the tag fingerprints the WHOLE file. An edit anchored at
     // a line the model never saw recorded applies whenever the live file
-    // still hashes to the tag — no stored snapshot is consulted.
+    // still hashes to the tag - no stored snapshot is consulted.
     let content = "l1\nl2\nl3\nl4\nl5\n";
     let fs = InMemoryFilesystem::new([(PATH.to_string(), content.to_string())]);
     let mut store = InMemorySnapshotStore::new(&InMemorySnapshotStoreOptions::default());
@@ -86,7 +86,7 @@ async fn refuses_with_mismatch_when_recorded_version_no_longer_matches_live() {
     // Hash WAS observed for this path, so we land on the "file changed" branch.
     assert!(message.contains("file changed between read and edit"));
     assert!(message.contains("Section is bound to #"));
-    // Disk untouched — refusal must never leave a partial write.
+    // Disk untouched - refusal must never leave a partial write.
     assert_eq!(check_fs.get(PATH).unwrap(), "drifted\n");
 }
 
@@ -97,7 +97,7 @@ async fn refuses_with_not_from_this_session_when_tag_never_recorded_for_path() {
     let store = InMemorySnapshotStore::new(&InMemorySnapshotStoreOptions::default());
     let mut patcher = Patcher::new(fs, store, None);
     // A 4-hex tag that is neither the live content hash nor a recorded
-    // version — equivalent to the model fabricating it or carrying it over
+    // version - equivalent to the model fabricating it or carrying it over
     // from a prior session.
     let live = compute_file_hash("current\n");
     let bogus = if live == "FFFF" { "0000" } else { "FFFF" };

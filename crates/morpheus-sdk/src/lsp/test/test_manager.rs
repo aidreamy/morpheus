@@ -1,5 +1,5 @@
 //! Manager behavior tests: discovery, lazy spawning, dedup, backoff,
-//! eviction and teardown — all over in-memory fake servers.
+//! eviction and teardown - all over in-memory fake servers.
 
 use std::{
     path::{Path, PathBuf},
@@ -137,7 +137,7 @@ async fn root_resolution_walks_up_to_nearest_marker() {
         .find(|(_, name)| *name == "rust-nested")
         .unwrap();
     // Manager roots go through `canonical_root`, which strips the Windows
-    // verbatim prefix `canonicalize` adds — expect the stripped form.
+    // verbatim prefix `canonicalize` adds - expect the stripped form.
     assert_eq!(
         nested.0.root,
         super::super::manager::canonical_root(&pkg),
@@ -311,7 +311,7 @@ async fn extensionless_files_match_by_name() {
 }
 
 /// The same project reached through a symlink must resolve to the same
-/// `ClientKey` — otherwise two processes of one server run against one
+/// `ClientKey` - otherwise two processes of one server run against one
 /// project.
 #[cfg(unix)]
 #[tokio::test]
@@ -494,7 +494,7 @@ async fn missing_binary_does_not_mask_working_server() {
     let kills: Arc<Mutex<Vec<watch::Sender<bool>>>> = Arc::new(Mutex::new(Vec::new()));
     let mut config = ManagerConfig::new(dir.path().to_path_buf());
     // The ghost exercises the PATH check (true); the real server then answers
-    // through the factory, so resolution must be off for it (false) — split
+    // through the factory, so resolution must be off for it (false) - split
     // into two managers instead: one per behavior.
     config.resolves_binaries = true;
     let ghost_manager = Manager::build(
@@ -723,7 +723,7 @@ async fn root_resolution_tolerates_path_casing() {
 
     // Flip the case of the first character of the drive prefix, whatever
     // drive the tempdir landed on (`C:` ↔ `c:`). Skip when the root has no
-    // drive/UNC prefix — nothing to case-flip.
+    // drive/UNC prefix - nothing to case-flip.
     let text = root.display().to_string();
     let cased = match text.chars().next() {
         Some(first) if first.is_ascii_alphabetic() => {

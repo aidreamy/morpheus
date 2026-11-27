@@ -4,7 +4,7 @@
 //!   automático (sem `cargo check` implícito a cada edição).
 //! * **morpheus**: `Fs::read` aquece (`touch_file` → didOpen), o `global_lsp` não
 //!   sobe servidores no startup (lazy) e o `Fs::write`/`edit` passivo nunca
-//!   manda `didSave` — sem flycheck/`cargo check` implícito (subprocesso +
+//!   manda `didSave` - sem flycheck/`cargo check` implícito (subprocesso +
 //!   GBs de RAM + lock em `target/`).
 //!
 //! Fakes em memória, sem binário real.
@@ -65,7 +65,7 @@ fn lsp_for(dir: &std::path::Path) -> Lsp {
 ///
 /// O agente lê dezenas de arquivos explorando o repo; cada leitura vira um
 /// `didOpen` com o texto integral. No rust-analyzer real, cada doc aberto
-/// expande a análise em memória — aqui o fake prova o acoplamento.
+/// expande a análise em memória - aqui o fake prova o acoplamento.
 #[tokio::test]
 async fn read_warms_lsp_and_pins_document() {
     let dir = tempfile::tempdir().unwrap();
@@ -87,7 +87,7 @@ async fn read_warms_lsp_and_pins_document() {
     assert_eq!(results.len(), 1);
     assert!(!results[0].content.is_empty());
 
-    // O servidor agora tem o documento aberto — custo de memória fixado por
+    // O servidor agora tem o documento aberto - custo de memória fixado por
     // uma leitura que no opencode não abriria nada sozinha.
     let clients = lsp.manager().running_clients();
     assert_eq!(clients.len(), 1, "servidor subiu no read (warm)");
@@ -101,7 +101,7 @@ async fn read_warms_lsp_and_pins_document() {
 /// Um `write` fixa o documento (touch) e NUNCA dispara `didSave`.
 ///
 /// O caminho passivo observa diagnósticos via pull/push sobre
-/// `didOpen`/`didChange` — sem flycheck/`cargo check` implícito a cada
+/// `didOpen`/`didChange` - sem flycheck/`cargo check` implícito a cada
 /// edição, como no opencode.
 #[tokio::test]
 async fn write_pins_document_without_save() {

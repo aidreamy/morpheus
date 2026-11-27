@@ -421,7 +421,7 @@ impl RagView {
     ) -> Option<RagAction> {
         let filtered = self.filtered_dbs();
         if filtered.is_empty() {
-            // No DBs to pick — just close on any key
+            // No DBs to pick - just close on any key
             self.close_db_picker();
             return Some(RagAction::Consumed);
         }
@@ -463,7 +463,7 @@ impl RagView {
 
     pub fn handle_paste(&mut self, text: &str) {
         if self.show_create_db {
-            // Paste into the focused create-db field (keeps newlines — the
+            // Paste into the focused create-db field (keeps newlines - the
             // description is multi-line markdown; strip \r like the prompt).
             self.note_cursor_activity();
             let cleaned = text.replace('\r', "");
@@ -1376,7 +1376,7 @@ mod tests {
         view.db_description_input = "ab\ncd".into();
         view.db_description_cursor_pos = 4; // end
 
-        // render() must store last_area — Up/Down need it to know the field
+        // render() must store last_area - Up/Down need it to know the field
         // width; without it they are silent no-ops.
         let theme = crate::theme::ThemeRegistry::new().default_theme().clone();
         let area = Rect::new(0, 0, 100, 40);

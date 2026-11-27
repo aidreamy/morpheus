@@ -53,8 +53,8 @@ impl From<aiface::connector::ConnectorError> for RagError {
 /// | [`Cloud`][Embedder::Cloud] | `cloud` | Remote embedding via aiface connector |
 ///
 /// # Feature flags
-/// - `fastembed` — enables the [`Local`][Embedder::Local] variant
-/// - `cloud` — enables the [`Cloud`][Embedder::Cloud] variant
+/// - `fastembed` - enables the [`Local`][Embedder::Local] variant
+/// - `cloud` - enables the [`Cloud`][Embedder::Cloud] variant
 ///
 /// At least one feature must be active; otherwise the enum is empty and
 /// `Rag` cannot be constructed.
@@ -267,9 +267,9 @@ impl Rag {
     ///
     /// # Arguments
     ///
-    /// * `uri` — Local directory or cloud URI for the `LanceDB` database.
-    /// * `table_name` — Name of the table inside the database.
-    /// * `embedder` — An [`Embedder`] instance (local or cloud).
+    /// * `uri` - Local directory or cloud URI for the `LanceDB` database.
+    /// * `table_name` - Name of the table inside the database.
+    /// * `embedder` - An [`Embedder`] instance (local or cloud).
     ///
     /// # Errors
     ///
@@ -299,8 +299,8 @@ impl Rag {
     ///
     /// # Arguments
     ///
-    /// * `id` — A unique identifier (max 100 chars, no `'`, `;`, or `"`).
-    /// * `content` — The raw text to embed and index.
+    /// * `id` - A unique identifier (max 100 chars, no `'`, `;`, or `"`).
+    /// * `content` - The raw text to embed and index.
     ///
     /// # Returns
     ///
@@ -332,7 +332,7 @@ impl Rag {
     ///
     /// # Arguments
     ///
-    /// * `entries` — A slice of `(id, content)` tuples.
+    /// * `entries` - A slice of `(id, content)` tuples.
     ///
     /// # Returns
     ///
@@ -373,8 +373,8 @@ impl Rag {
     ///
     /// # Arguments
     ///
-    /// * `query` — Natural-language search query.
-    /// * `limit` — Maximum number of results to return.
+    /// * `query` - Natural-language search query.
+    /// * `limit` - Maximum number of results to return.
     ///
     /// # Returns
     ///

@@ -201,7 +201,7 @@ pub struct GrepResult {
     pub skipped_oversized: Option<u32>,
     /// `true` when the search was cut short by the timeout and `matches` only
     /// holds the partial results found up to that point. The search is
-    /// INCOMPLETE — an empty `matches` with `timed_out: true` is not proof of
+    /// INCOMPLETE - an empty `matches` with `timed_out: true` is not proof of
     /// absence.
     pub timed_out: bool,
 }
@@ -1175,7 +1175,7 @@ impl ParallelVisitor for StreamingGrepVisitor<'_> {
             match_count: search.match_count,
             limit_reached: search.limit_reached,
         });
-        // Stream each match live (content mode only — count/files modes have
+        // Stream each match live (content mode only - count/files modes have
         // no per-line payload worth streaming).
         if let Some(on_match) = &self.on_match {
             let relative_path = self
@@ -1271,7 +1271,7 @@ fn run_streaming_grep(
         ct,
         on_match,
     };
-    // A timeout that already elapsed before the walk starts is an error —
+    // A timeout that already elapsed before the walk starts is an error -
     // nothing was searched, so there is nothing to salvage.
     ct.heartbeat()?;
     builder.build_parallel().visit(&mut visitor_builder);

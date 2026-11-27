@@ -3,7 +3,7 @@
 //!
 //! Only the field-agnostic kernel lives here: anchor/extend, normalise a
 //! range, slice text. Coordinate mapping (click → byte), highlight
-//! painting and edit semantics stay with each surface — the RAG fields
+//! painting and edit semantics stay with each surface - the RAG fields
 //! render through a markdown pipeline on a word-wrapped grid while the
 //! registration panels paint a plain char grid, and typing replaces the
 //! range in the panels but clears it in the RAG form.
@@ -67,7 +67,7 @@ impl<F: Copy + PartialEq> DragSelection<F> {
     }
 
     /// The text covered by the range owned by `field` in `line`, where the
-    /// range offsets are CHAR indices (not bytes) — the addressing surfaces
+    /// range offsets are CHAR indices (not bytes) - the addressing surfaces
     /// with char-based cursors/inputs use. `None` for another field's
     /// selection or an empty range. Purely additive: byte-addressed
     /// surfaces keep using [`Self::slice_of`].
@@ -114,7 +114,7 @@ mod tests {
     fn char_slice_addresses_chars_not_bytes() {
         let mut sel = DragSelection::anchor(0usize, 2);
         sel.extend(4);
-        // "çéab" — byte slicing would cut inside `ç`/`é`; char slicing
+        // "çéab" - byte slicing would cut inside `ç`/`é`; char slicing
         // yields the two chars in between.
         assert_eq!(
             sel.slice_char_range_of(0, "çéab"),

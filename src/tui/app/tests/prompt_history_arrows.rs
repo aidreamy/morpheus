@@ -1,14 +1,14 @@
 //! Regression test for the plain ArrowUp / ArrowDown gate between prompt
 //! content and prompt history.
 //!
-//! Old routing grabbed plain Up/Down whenever `history_index != -1` — and a
+//! Old routing grabbed plain Up/Down whenever `history_index != -1` - and a
 //! prompt recalled via Ctrl+Up keeps `history_index` set (only typing or
 //! sending resets it). That made the internal `cursor_up` / `cursor_down`
 //! movement unreachable inside a recalled draft: both arrows kept walking
 //! the history instead of moving the cursor.
 //!
 //! Expected: the arrow is handed to the history ONLY at the matching
-//! extremity of the prompt (head for Up, tail for Down — wrapping-aware,
+//! extremity of the prompt (head for Up, tail for Down - wrapping-aware,
 //! so a cursor on the first/last visual line counts even on multi-line
 //! drafts); everywhere else it moves the cursor.
 use super::{App, HOME_LOCK, isolate_home};
@@ -116,7 +116,7 @@ async fn up_moves_cursor_inside_recalled_draft() {
     );
 
     // Down from the last visual line: the tail extremity IS met, so the
-    // arrow resumes the history walk — which, from the only entry, returns
+    // arrow resumes the history walk - which, from the only entry, returns
     // to the (empty) draft.
     send(&mut app, plain(KeyCode::Down));
     assert_eq!(app.prompt_view.input, "", "tail ArrowDown resumes the walk");
@@ -160,7 +160,7 @@ async fn up_at_head_continues_history_walk() {
     assert_eq!(app.prompt_view.input, "newest msg");
 
     // Single-line recalled draft: the cursor is on its only visual line,
-    // so BOTH extremities are met and the walk continues upward — the
+    // so BOTH extremities are met and the walk continues upward - the
     // standard shell-like behavior.
     send(&mut app, plain(KeyCode::Up));
     assert_eq!(app.prompt_view.input, "older msg");

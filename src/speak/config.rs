@@ -56,7 +56,7 @@ pub struct SpeakConfig {
     pub voice: i32,
     /// Speech speed factor: `1.0` is the model's natural pace, larger is
     /// faster and smaller is slower (sherpa-onnx's `GenerationConfig::speed`
-    /// semantics — not the inverse `length_scale` of the model config). Must
+    /// semantics - not the inverse `length_scale` of the model config). Must
     /// be greater than zero.
     pub speed: f32,
     /// ONNX Runtime inference threads. Two is a good default on a laptop;

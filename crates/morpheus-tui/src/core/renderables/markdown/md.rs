@@ -29,7 +29,7 @@ use super::styles::{
 /// `[PERF] markdown_render_self` / `code_block_render` line per second across
 /// the whole renderer. Without this, every re-render of a huge message (a
 /// 7k-char markdown block takes 100ms+ to render) writes a log line through a
-/// mutex-guarded file — tens of thousands of lines during a single heavy
+/// mutex-guarded file - tens of thousands of lines during a single heavy
 /// frame, and a multi-hundred-MB debug log over a long session.
 static LAST_PERF_LOG_MS: AtomicU64 = AtomicU64::new(0);
 
@@ -83,7 +83,7 @@ pub(crate) fn compute_list_marker_widths(
     // (slot index, ordered, first number, item count)
     let mut open: Vec<(usize, bool, usize, usize)> = Vec::new();
     // Lists inside blockquotes are rendered by RECURSIVE passes that compute
-    // their own widths — they must not consume this pass's slots.
+    // their own widths - they must not consume this pass's slots.
     let mut quote_depth = 0usize;
 
     for (event, _) in events {
@@ -337,11 +337,11 @@ pub struct WarningTheme {
 
 /// Per-pass options for [`MarkdownRenderable::render_block_events`].
 ///
-/// * `highlight_code` — run tree-sitter on fenced code blocks (off for
+/// * `highlight_code` - run tree-sitter on fenced code blocks (off for
 ///   height measurement; styles never affect layout);
-/// * `conceal` — hide link syntax (`[label](url)` shown literally when off);
-/// * `depth` — blockquote recursion depth guard;
-/// * `warning` — apply the palette's warning theme to this pass (set for a
+/// * `conceal` - hide link syntax (`[label](url)` shown literally when off);
+/// * `depth` - blockquote recursion depth guard;
+/// * `warning` - apply the palette's warning theme to this pass (set for a
 ///   quote body that starts with the configured warning prefix).
 #[derive(Debug, Clone, Copy)]
 pub(crate) struct RenderPass {
@@ -363,7 +363,7 @@ const MAX_QUOTE_DEPTH: u16 = 8;
 /// their last source line, and reserving that phantom row leaves an empty
 /// strip at the foot of every document ending in a fence (and inflated
 /// height estimates for consumers like the right panel). INTERIOR blank
-/// rows (spacing between a block's own elements) are untouched — only the
+/// rows (spacing between a block's own elements) are untouched - only the
 /// tail is trimmed.
 #[allow(clippy::cast_possible_truncation)]
 fn block_content_height(height: u16, rows: &[Vec<Cell>]) -> u16 {
@@ -1064,7 +1064,7 @@ impl Renderable for MarkdownRenderable {
         match hit {
             Some(url) => {
                 // Detached: launchers can block, and this runs on the UI
-                // thread — a slow handler must not freeze rendering.
+                // thread - a slow handler must not freeze rendering.
                 if let Err(err) = open::that_detached(&url) {
                     log::warn!("failed to open link {url}: {err}");
                 }
@@ -1119,7 +1119,7 @@ impl Renderable for MarkdownRenderable {
         // ── Blit cached block renders (rendering misses on demand) ──
         // Blocks are laid out by their measured heights: each block's cursor
         // already sits on the row after its content, so the next block starts
-        // right there — unless source semantics call for a blank separator
+        // right there - unless source semantics call for a blank separator
         // row between the pair (separated kinds, or an explicit blank line
         // between paragraphs). The LAST block is laid out by its content
         // height instead, leaving no blank row at the foot of the document.
@@ -1405,7 +1405,7 @@ impl MarkdownRenderable {
         let mut y = 0u16;
         let mut x = 0u16;
 
-        // Table-buffering state (cells are styled span lists — see TableCell)
+        // Table-buffering state (cells are styled span lists - see TableCell)
         let mut in_table = false;
         let mut tbl_headers: Vec<TableCell> = Vec::new();
         let mut tbl_rows: Vec<Vec<TableCell>> = Vec::new();
@@ -1425,7 +1425,7 @@ impl MarkdownRenderable {
         let events: Vec<(Event<'_>, std::ops::Range<usize>)> = parser.into_offset_iter().collect();
         let mut list_marker_widths = compute_list_marker_widths(&events);
 
-        // List-nesting state: one frame per open list level — markers are
+        // List-nesting state: one frame per open list level - markers are
         // drawn at the parent content indent and item content starts right
         // after the (aligned) marker, so nested lists indent naturally.
         let mut list_stack: Vec<ListFrame> = Vec::new();
@@ -1433,7 +1433,7 @@ impl MarkdownRenderable {
         let mut links: Vec<LinkRegion> = Vec::new();
 
         /// Effective indentation: the innermost list frame's content column.
-        /// Blockquote indentation is NOT part of this — quotes recurse into
+        /// Blockquote indentation is NOT part of this - quotes recurse into
         /// their own canvas offset by the quote bar, so nesting accumulates
         /// through geometry instead of state.
         fn effective_indent(stack: &[ListFrame]) -> u16 {
@@ -1712,7 +1712,7 @@ impl MarkdownRenderable {
                             );
                         }
                         // Concealed (default): the label alone represents the
-                        // link — nothing to emit at the boundaries.
+                        // link - nothing to emit at the boundaries.
                         Tag::Link { .. } => {}
                         Tag::TableHead
                         | Tag::TableRow
@@ -1995,7 +1995,7 @@ impl MarkdownRenderable {
 
         // Language-tagged blocks draw a label row on the CURRENT (fresh)
         // row and start their code below it; language-less blocks draw a
-        // blank top-padding row there instead — the twin of their bottom
+        // blank top-padding row there instead - the twin of their bottom
         // padding. Either way the block OWNS its top gap: it renders even
         // when no inter-block margin applies (first block of a document,
         // fence inside a quote or list item), where the old rule left the
@@ -2226,7 +2226,7 @@ impl MarkdownRenderable {
         //   2. the side padding is dropped to 0 (borders hug the text)
         //      and the columns are re-scaled from their natural widths;
         //   3. last resort: columns may shrink to 0 content columns so
-        //      the border grid itself always fits — no column content is
+        //      the border grid itself always fits - no column content is
         //      drawn for a 0-width column, but nothing leaks past the
         //      area either.
         let available = max_x.saturating_sub(area_x);
@@ -2237,16 +2237,16 @@ impl MarkdownRenderable {
         }
         // Gap count derives from the SLICE length (not the original
         // col_count) so the stage-4 truncation loop measures the width of
-        // the column prefix it is testing — using the original count would
+        // the column prefix it is testing - using the original count would
         // over-estimate and truncate more columns than necessary.
         //
         // PAINTED width is sum(w + 2*pad) + n for padded columns: every
         // column renders its own LEFT border cell plus content+padding, and
         // the last column adds the trailing right border (consecutive columns
-        // SHARE the border cell between them — see render_cell_line's vline
+        // SHARE the border cell between them - see render_cell_line's vline
         // at `sx - 1` = the previous column's `ex`). Budgeting only n-1
         // borders (the old math) left the rightmost corner one column past
-        // the available width, where cell_mut silently dropped it — a missing
+        // the available width, where cell_mut silently dropped it - a missing
         // ┐/┘ on exactly-fitting tables.
         // With no side padding, the first column needs one additional cell:
         // its left border cannot share the first content cell. Subsequent
@@ -2275,7 +2275,7 @@ impl MarkdownRenderable {
                     // column straight to 0, and greedy shaving can only
                     // reduce from there. Without this floor a table whose
                     // scaled widths all round to 0 renders an empty border
-                    // grid — and the stage-2 entry check, seeing the
+                    // grid - and the stage-2 entry check, seeing the
                     // collapsed widths "fit" with padding, never retries
                     // with real content.
                     *w = (*w).max(min_col);
@@ -2323,7 +2323,7 @@ impl MarkdownRenderable {
         };
 
         // Stage 4 (pathological): so many columns that even the border
-        // separators alone exceed the available width — no width trick can
+        // separators alone exceed the available width - no width trick can
         // fit the grid. Truncate the TRAILING columns so the remaining
         // grid renders complete and inside the area instead of leaking
         // past it and being silently clipped at the buffer edge.
@@ -2447,7 +2447,7 @@ impl MarkdownRenderable {
                 // ONE cell with its trailing columns marked `Skip`, exactly
                 // like `flush_render_word` does for prose. Writing raw chars
                 // here used to split VS16 sequences across cells and leave
-                // wide glyphs without shadow marks — both desynchronize the
+                // wide glyphs without shadow marks - both desynchronize the
                 // buffer from the terminal grid and leak stale glyphs across
                 // view switches. Inline span styles are patched over the
                 // row's base style so bold/code/links survive inside cells;
@@ -2599,7 +2599,7 @@ static ESTIMATE_CACHE: std::sync::LazyLock<Mutex<LruCache<(u64, u16), u16>>> =
 /// Key = (block source hash, width, keeps trailing feed row). The streaming
 /// layout re-measures a growing document EVERY frame (`estimate_height(tail)`),
 /// and without this memo every closed block was re-rendered into a throwaway
-/// canvas on each of those misses — O(tail) per frame. With it, only the
+/// canvas on each of those misses - O(tail) per frame. With it, only the
 /// unstable trailing blocks pay for measurement; closed blocks hit their
 /// cached height.
 ///
@@ -2617,7 +2617,7 @@ static BLOCK_HEIGHT_CACHE: std::sync::LazyLock<Mutex<LruCache<BlockHeightCacheKe
 ///
 /// Measures by actually rendering each top-level block into a growable canvas
 /// (the same code path the renderer uses), so the estimate is exact by
-/// construction and can never drift from the renderer's wrap logic — the
+/// construction and can never drift from the renderer's wrap logic - the
 /// hand-synced mirror algorithms this replaces could (and did) diverge.
 ///
 /// Styles are irrelevant to layout, so measurement skips tree-sitter
@@ -2670,7 +2670,7 @@ pub(crate) fn estimate_height_ext(text: &str, max_w: u16, keep_last_feed: bool) 
         }
         // The final block of a DOCUMENT drops its trailing feed row: no blank
         // line is left at the foot. Interior slices (streaming segments) keep
-        // it — the following blocks position themselves after it.
+        // it - the following blocks position themselves after it.
         let keeps_feed = block_idx + 1 != block_count || keep_last_feed;
         let height = {
             let mut hasher = std::collections::hash_map::DefaultHasher::new();

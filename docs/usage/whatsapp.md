@@ -4,15 +4,15 @@
 companion device and answers the allowed chats with the agent. No TUI is opened:
 the pairing QR code is printed, and after pairing the terminal only reports
 connection events while messages are handled in the background. Keep the process
-running — it is the connection.
+running - it is the connection.
 
 ```sh
 morpheus whatsapp
 ```
 
 Scan the QR code with WhatsApp on the phone (Linked devices → Link a device).
-The pairing lives in a device store under the Morpheus data directory — the
-startup line `Device store: …` prints its path — so later runs reconnect without
+The pairing lives in a device store under the Morpheus data directory - the
+startup line `Device store: …` prints its path - so later runs reconnect without
 a new code. If the stored session goes dead (unlinked from the phone), the
 process clears it and prints a fresh QR code instead of exiting.
 
@@ -36,7 +36,7 @@ its own chat.
 Each entry is `{ "id": …, "enabled": … }`. Disabling keeps the entry in the file
 but grants nothing; removing deletes it. The same knobs are editable in
 `/settings` → WhatsApp: `self_chat` and `humanize` are switches flipped in
-place, and each list shows toggle rows — Enter flips an entry, the 🗑 glyph
+place, and each list shows toggle rows - Enter flips an entry, the 🗑 glyph
 removes it, and the **+ Add** row appends comma-separated entries.
 
 The self-chat is never paced: a typing state in a chat with yourself has
@@ -46,8 +46,8 @@ chats, and `/human` in the self-chat says so instead of saving a choice.
 A contact id is a phone number in international format or an account id
 (`@lid` included); `+`, spaces, punctuation and the `@server` suffix are
 ignored, so `+55 (11) 91234-5678` and `5511912345678` are the same contact.
-A group id is the group id (`120363…@g.us`) or just its digits. An empty list —
-or one whose entries are all disabled — denies that origin kind entirely.
+A group id is the group id (`120363…@g.us`) or just its digits. An empty list -
+or one whose entries are all disabled - denies that origin kind entirely.
 
 A message from an origin that is not allowed is logged and never answered: the
 sender gets no reply and no turn starts for that chat.

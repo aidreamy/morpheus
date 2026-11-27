@@ -19,7 +19,7 @@ fn parse_severity(input: &DiagnosticsInput) -> Result<SeverityFilter, String> {
 
 /// Ensure the file's servers are up, wait for diagnostics to settle, then
 /// render. With `file_path` omitted this reports a workspace-wide snapshot of
-/// current state — nothing is opened or waited on.
+/// current state - nothing is opened or waited on.
 pub async fn run_diagnostics(
     deps: &Deps<'_>,
     input: &DiagnosticsInput,

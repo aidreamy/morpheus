@@ -1,12 +1,12 @@
 //! The SENT-prompt box: the `│`-railed frame a submitted user message
-//! paints in the main chat — extracted verbatim from the session route's
+//! paints in the main chat - extracted verbatim from the session route's
 //! `render_user_message` so the `/agents` pane can mirror the EXACT same
 //! box for its inputs. One point of truth for both chats: a restyle of
 //! the sent box changes this component, never a per-surface copy.
 //!
 //! Geometry (the chat's contract, byte-preserved):
 //! - a `│` rail on EACH side (left + right), full height; no top/bottom
-//!   border, no corners — the rails sit on the underlying surface;
+//!   border, no corners - the rails sit on the underlying surface;
 //! - a background band (`background_panel`) painted one column short of
 //!   each rail, so the rails read on the chat/pane background exactly
 //!   like the prompt input box;
@@ -23,7 +23,7 @@ use ratatui::layout::Rect;
 
 use crate::theme::Theme;
 
-/// Side-rail border glyphs: `│` on both verticals, everything else blank —
+/// Side-rail border glyphs: `│` on both verticals, everything else blank -
 /// the chat's sent-message gutter (the same glyphs the session route's
 /// `left_border_chars` yields for a left+right box; the corners and
 /// T-joints are never drawn because top/bottom are off).
@@ -46,12 +46,12 @@ const fn side_rail_chars() -> BorderCharacters {
 /// Paint the sent-prompt box frame over `area`: the `│` rails in
 /// `rail_color` on both sides, the `theme.background_panel` band between
 /// them (one column short of each rail). Call BEFORE painting the box's
-/// content — the content overwrites the band, never the rails.
+/// content - the content overwrites the band, never the rails.
 ///
 /// The rail TONE is the caller's speaker decision: the chat paints the
 /// user's messages in the agent-mode color and errors in `theme.error`;
 /// a pane paints the user's echo in the pane agent's brand color and
-/// another agent's input in the theme's secondary — the color alone tells
+/// another agent's input in the theme's secondary - the color alone tells
 /// WHO is speaking, the shape is shared.
 pub(crate) fn render(buf: &mut Buffer, area: Rect, rail_color: RGBA, theme: &Theme) {
     let mut border_box = BoxRenderable::new();
@@ -90,7 +90,7 @@ mod tests {
     }
 
     /// The extraction contract, byte-enforced: the component paints
-    /// EXACTLY what the chat's inline construction painted — the border
+    /// EXACTLY what the chat's inline construction painted - the border
     /// glyphs come from the session route's own `left_border_chars`, the
     /// band inset is the same one-column-short rect.
     #[test]

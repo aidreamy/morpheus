@@ -17,7 +17,7 @@ use crate::util::field_selection::DragSelection;
 /// Content for a specific free gateway recommendation.
 ///
 /// Each gateway defines its own constant of this type. The UI dialog is
-/// completely generic — it only reads these fields.
+/// completely generic - it only reads these fields.
 pub struct GatewayRecommendationContent {
     /// Short tab label (question-dialog tab bar).
     pub tab_label: &'static str,
@@ -43,10 +43,10 @@ pub struct GatewayOffer {
 
 /// Placeholder for future free-gateway recommendations.
 ///
-/// The dialog itself is generic — to recommend a new gateway, define a
+/// The dialog itself is generic - to recommend a new gateway, define a
 /// `GatewayRecommendationContent` const here, add a `GatewayOffer` entry
 /// to [`OFFERS`], and route its device sign-in in
-/// `gateway_sign_in_inner` (`app/gateway_recommendation.rs`) — the
+/// `gateway_sign_in_inner` (`app/gateway_recommendation.rs`) - the
 /// provider id in `OFFERS` is what the dispatcher matches on.
 ///
 /// Example:
@@ -67,7 +67,7 @@ pub const PLACEHOLDER: GatewayRecommendationContent = GatewayRecommendationConte
 /// the tabs (not the prose) carry which gateway is which, so one reveal
 /// covers Charm and GitHub alike and switching tabs mid-stream is seamless.
 const GATEWAY_PITCH: &str = "No provider key is configured, so this model cannot be reached. \
-Two gateways are offered as alternatives — select a tab and choose Yes to sign in.\n\n\
+Two gateways are offered as alternatives - select a tab and choose Yes to sign in.\n\n\
 **Charm** is free and ready to use. **GitHub Copilot** is available if you already have a \
 Copilot subscription. These are recommendations only: morpheus has no sponsorship, affiliation \
 or agreement with either provider.\n\n\
@@ -75,11 +75,11 @@ Choosing Yes opens your browser to authorize morpheus with a device code. The to
 in your OS keyring. Choosing No closes this dialog; \u{2190} \u{2192} switch tabs to \
 compare the gateways.";
 
-/// Charm Hyper — the free gateway morpheus recommends.
+/// Charm Hyper - the free gateway morpheus recommends.
 ///
 /// The recommendation is editorial, not sponsored: Charm is recommended
 /// because it is good, practical, fairly priced for what it offers and,
-/// above all, honest about its contracts — the device protocol morpheus speaks
+/// above all, honest about its contracts - the device protocol morpheus speaks
 /// is the same one Charm's own CLI uses, in the open, with no surprise
 /// deprecations or silent contract changes.
 pub const CHARM: GatewayRecommendationContent = GatewayRecommendationContent {
@@ -88,7 +88,7 @@ pub const CHARM: GatewayRecommendationContent = GatewayRecommendationContent {
     stream_text: GATEWAY_PITCH,
 };
 
-/// GitHub Copilot — for users who already carry a Copilot subscription.
+/// GitHub Copilot - for users who already carry a Copilot subscription.
 /// The device flow is GitHub's standard RFC 8628 endpoints (see the SDK's
 /// `copilot::oauth`), and the resulting token is the `GITHUB_TOKEN`
 /// credential the Copilot family resolves.
@@ -130,7 +130,7 @@ enum Phase {
     /// (no hide/reopen flicker) until `Started` moves it to Authorizing.
     Connecting,
     /// Opt-in accepted and the device code arrived: the Yes/No options gave
-    /// way to the device sign-in display — device code, verification URL and
+    /// way to the device sign-in display - device code, verification URL and
     /// a copy hint. Everything on it is drag-selectable; the box stays up
     /// until the flow ends.
     Authorizing,
@@ -165,7 +165,7 @@ pub struct FreeGatewayRecommendationDialog {
     content: &'static GatewayRecommendationContent,
     /// The offered gateways, in tab order. Empty = single-content mode (no
     /// tab bar, generic/tests use): Left/Right keep driving Yes/No. Non-empty
-    /// = tabbed mode: Left/Right switch tabs, Up/Down drive Yes/No — the
+    /// = tabbed mode: Left/Right switch tabs, Up/Down drive Yes/No - the
     /// arrows' two jobs never share a key.
     offers: &'static [GatewayOffer],
     /// Which offer tab is active (index into `offers`).
@@ -174,14 +174,14 @@ pub struct FreeGatewayRecommendationDialog {
     phase: Phase,
     /// How many *characters* of `stream_text` have been revealed so far.
     /// Tracked as a char index (not byte offset) so slicing is always on a
-    /// valid char boundary even with multi-byte UTF-8 like `—` or `–`.
+    /// valid char boundary even with multi-byte UTF-8 like `-` or `–`.
     stream_chars: usize,
     /// Wall-clock timestamp of the last `advance_stream()` call.
     last_frame: Instant,
     /// Live device sign-in shown in the `Authorizing` phase:
     /// (verification_url, user_code). `None` outside that phase.
     sign_in: Option<(String, String)>,
-    /// Mouse drag selection over the box's copy document — ONE flat,
+    /// Mouse drag selection over the box's copy document - ONE flat,
     /// char-addressed text made of every copyable row in visual order (see
     /// `copy_doc`). A single range means a drag emends across rows: body →
     /// question, or body → device code, is one selection, one copy.
@@ -277,7 +277,7 @@ impl FreeGatewayRecommendationDialog {
 
     /// Cycle to the neighboring tab (question-dialog semantics): selection
     /// resets to Yes, the stream reveal carries over (the body text is
-    /// shared across tabs by contract — see `GATEWAY_PITCH`), and any drag
+    /// shared across tabs by contract - see `GATEWAY_PITCH`), and any drag
     /// selection dies (its offsets address the old tab's document).
     fn switch_tab(&mut self, delta: isize) {
         let count = self.tab_count();
@@ -301,7 +301,7 @@ impl FreeGatewayRecommendationDialog {
     }
 
     /// Enter the `Connecting` phase in place: the box was just accepted
-    /// (Yes) and STAYS OPEN — no hide/reopen flicker — until `Started`
+    /// (Yes) and STAYS OPEN - no hide/reopen flicker - until `Started`
     /// moves it to `Authorizing`.
     pub fn begin_connecting(&mut self) {
         self.visible = true;
@@ -333,7 +333,7 @@ impl FreeGatewayRecommendationDialog {
 
     /// Whether the box is showing the device sign-in flow (`Connecting` or
     /// `Authorizing` phase). The transaction itself keeps polling in the
-    /// background regardless of the box — Esc yields the screen (the code
+    /// background regardless of the box - Esc yields the screen (the code
     /// was already shown and is drag-copyable); this flag only marks the
     /// phases without Yes/No options to drive.
     pub fn is_authorizing(&self) -> bool {
@@ -387,13 +387,13 @@ impl FreeGatewayRecommendationDialog {
 
     /// EXACT height of the body: the count of `wrap_plain` rows the renderer
     /// actually draws (the markdown estimator is a different pipeline and can
-    /// disagree by a row — here layout, render and hit-test share one wrap by
+    /// disagree by a row - here layout, render and hit-test share one wrap by
     /// construction). The body renders as PLAIN text in EVERY phase.
     fn body_height(&self, inner_w: u16) -> u16 {
         self.body_rows(inner_w).len().max(1) as u16
     }
 
-    /// The wrapped plain-text body rows the renderer draws — the same wrap
+    /// The wrapped plain-text body rows the renderer draws - the same wrap
     /// for layout, render and hit-test in every phase.
     fn body_rows(&self, inner_w: u16) -> Vec<String> {
         let plain = morpheus_tui::core::renderables::markdown::markdown_to_visible_text(
@@ -410,7 +410,7 @@ impl FreeGatewayRecommendationDialog {
         }
         let inner_w = max_width.saturating_sub(5); // pad(3) + 2
 
-        // The body wraps as PLAIN text in every phase — measured with the
+        // The body wraps as PLAIN text in every phase - measured with the
         // same wrap the renderer draws, so layout = render = hit-test.
         let text_h = self.body_height(inner_w);
 
@@ -453,11 +453,11 @@ impl FreeGatewayRecommendationDialog {
         let code = key.code;
         let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
 
-        // During streaming, skip navigation keys — only Esc and (tabbed
+        // During streaming, skip navigation keys - only Esc and (tabbed
         // mode) the tab arrows are accepted: the tab bar is part of the
         // box's chrome in every phase, and the streamed body is shared
         // across tabs, so switching mid-stream is seamless (no rewind, no
-        // restart) — that seamlessness is WHY the body is shared.
+        // restart) - that seamlessness is WHY the body is shared.
         if self.phase == Phase::Streaming {
             match code {
                 KeyCode::Esc => return true,
@@ -474,7 +474,7 @@ impl FreeGatewayRecommendationDialog {
         }
 
         // Connecting/Authorizing: no options to drive. Esc YIELDS the box to
-        // the user — the device flow keeps polling in the background and
+        // the user - the device flow keeps polling in the background and
         // ends itself (Authorized/Failed hide + toast), so dismissing here
         // orphans nothing; it only gives the screen back. Ctrl+C is handled
         // by the App (copies the drag selection); anything else falls
@@ -491,7 +491,7 @@ impl FreeGatewayRecommendationDialog {
         //
         // Tabbed mode splits the arrows' two jobs: Left/Right switch gateway
         // tabs (question-dialog semantics), Up/Down move the Yes/No
-        // highlight — the options are a COLUMN, so the vertical arrows drive
+        // highlight - the options are a COLUMN, so the vertical arrows drive
         // them and the lateral arrows never fight the selection. Single-
         // content mode (no tabs) keeps Left/Right on Yes/No.
         match code {
@@ -537,7 +537,7 @@ impl FreeGatewayRecommendationDialog {
                 self.visible = false;
                 // A dismissed dialog owns nothing: leave a stale selection
                 // behind and a later Ctrl+C (gated on ownership, correctly)
-                // would skip it forever — but nothing would ever clear it
+                // would skip it forever - but nothing would ever clear it
                 // either. Drop it here so dismissal is a full reset.
                 self.clear_selection();
                 true
@@ -565,7 +565,7 @@ impl FreeGatewayRecommendationDialog {
     }
 
     /// Extend the active selection's drag end to the document offset `pos`.
-    /// No region checks — the document is ONE flat text, so a drag emends
+    /// No region checks - the document is ONE flat text, so a drag emends
     /// across rows (body → question, body → device code) instead of
     /// stopping at a region boundary.
     pub fn extend_selection(&mut self, pos: usize) {
@@ -586,8 +586,8 @@ impl FreeGatewayRecommendationDialog {
     }
 
     /// The box's COPY DOCUMENT: every copyable row in visual order, as the
-    /// renderer draws it. One flat text — body soft-wrapped rows first,
-    /// then the hard rows (offer title, or device code + URL) — so a single
+    /// renderer draws it. One flat text - body soft-wrapped rows first,
+    /// then the hard rows (offer title, or device code + URL) - so a single
     /// char range can span body → question or body → code and copy is one
     /// contiguous slice. Layout, hit-test, highlight and copy all read
     /// THIS, so they can never drift apart. `inner_w` is the wrap width the
@@ -605,7 +605,7 @@ impl FreeGatewayRecommendationDialog {
                     doc.push((url.clone(), CopyRowKind::Hard));
                 }
             }
-            // Offer phase only — Streaming/Connecting have no title row.
+            // Offer phase only - Streaming/Connecting have no title row.
             Phase::WaitingForResponse => {
                 doc.push((self.content.title.to_string(), CopyRowKind::Hard));
             }
@@ -655,11 +655,11 @@ impl FreeGatewayRecommendationDialog {
 
     /// Resolve the copy-document offset a mouse press/drag targets, given
     /// the SAME `area` the render call received. Rows CLAMP to the nearest
-    /// copyable row instead of rejecting — the App consumes any press in
+    /// copyable row instead of rejecting - the App consumes any press in
     /// the drawn box, and a `None` here would fall through to the chat's
     /// drag selection (the original leak). A gap/pad/options row anchors
-    /// the BOUNDARY between its neighbors — neighboring rows' document
-    /// offsets coincide there — so drags emend across rows: body →
+    /// the BOUNDARY between its neighbors - neighboring rows' document
+    /// offsets coincide there - so drags emend across rows: body →
     /// question, body → device code, one contiguous selection.
     pub fn selection_target_at(&self, x: u16, y: u16, area: Rect) -> Option<usize> {
         if !self.visible {
@@ -680,7 +680,7 @@ impl FreeGatewayRecommendationDialog {
         if doc.is_empty() {
             return None;
         }
-        // Screen y of each document row — the SAME layout the renderer
+        // Screen y of each document row - the SAME layout the renderer
         // draws: the tab bar (when drawn) takes the first label row plus a
         // separator, body rows follow from the top pad, ONE gap row, then
         // the hard rows (device code + URL in Authorizing, the question
@@ -707,7 +707,7 @@ impl FreeGatewayRecommendationDialog {
                 CopyRowKind::Hard if self.phase == Phase::Authorizing => {
                     // Invariant: copy_doc emits exactly `text_h` body rows
                     // (wrap_plain never returns zero), so `i` is never
-                    // below `text_h` here — saturating pins it anyway.
+                    // below `text_h` here - saturating pins it anyway.
                     (hard_y + i.saturating_sub(text_h as usize) as u16, 2u16)
                 }
                 CopyRowKind::Hard => (title_y, 0u16),
@@ -717,7 +717,7 @@ impl FreeGatewayRecommendationDialog {
         }
         // Columns clamp into the inner band; the ROW is the last one at or
         // above the pointer (rows are in visual order), clamped to the
-        // drawable rect — a press below the last copyable row anchors its
+        // drawable rect - a press below the last copyable row anchors its
         // end, a press on the gap anchors the boundary.
         if x < area.x || x >= area.x + area.width {
             return None;
@@ -730,7 +730,7 @@ impl FreeGatewayRecommendationDialog {
             .rfind(|(sy, ..)| *sy <= y)
             .or_else(|| rows.first())?;
         // Column beyond the row's own text (past its end, or inside its
-        // 2-cell prefix) anchors the boundary — the nearest doc char.
+        // 2-cell prefix) anchors the boundary - the nearest doc char.
         Some(row_start + col.saturating_sub(*x_prefix as usize).min(*row_len))
     }
 
@@ -764,7 +764,7 @@ impl FreeGatewayRecommendationDialog {
         let _inner_w = area.width.saturating_sub(5);
 
         // Click on the tab bar (question-dialog design): " Label " chips on
-        // the first inner row. Streaming and the offer phase — the tab bar
+        // the first inner row. Streaming and the offer phase - the tab bar
         // is chrome in every NAVIGABLE phase (keyboard Left/Right switch
         // tabs mid-stream too; mouse must not lag the keyboard).
         // Connecting/Authorizing pin the provider whose sign-in is running
@@ -787,7 +787,7 @@ impl FreeGatewayRecommendationDialog {
         }
 
         // Streaming: presses inside the box anchor a copy selection (the
-        // body is drag-copyable from the first revealed character) — a
+        // body is drag-copyable from the first revealed character) - a
         // click no longer dismisses; Esc still does. Clicks outside keep
         // the caller's dismissal semantics via the fall-through.
         if self.phase == Phase::Streaming {
@@ -798,7 +798,7 @@ impl FreeGatewayRecommendationDialog {
         let footer_y = area.y + height.saturating_sub(2);
 
         // The question and options are at fixed positions relative to
-        // footer — mirroring the render branch: question at footer-5, then
+        // footer - mirroring the render branch: question at footer-5, then
         // the Yes/No COLUMN (Yes at footer-3, No at footer-2).
         let yes_y = footer_y.saturating_sub(3);
         let no_y = footer_y.saturating_sub(2);
@@ -823,7 +823,7 @@ impl FreeGatewayRecommendationDialog {
                 return true;
             }
             // Render draws " confirm" spanning inner_x+5..inner_x+13 and
-            // " esc" from inner_x+14 — the hit-test must read the SAME
+            // " esc" from inner_x+14 - the hit-test must read the SAME
             // columns (an overlap here dismissed on clicks meant for the
             // label text).
             let esc_x = inner_x + 14;
@@ -859,7 +859,7 @@ impl FreeGatewayRecommendationDialog {
         let tab_y = area.y + 1;
         let tabs = u16::from(self.has_tabs()) * 2;
 
-        // Body: PLAIN text (markdown stripped) wrapped at inner_w — the
+        // Body: PLAIN text (markdown stripped) wrapped at inner_w - the
         // exact rows `selection_target_at` addresses, in EVERY phase
         // (streaming included): drag-copy works from the first revealed
         // character. Below the tab bar when tabs are drawn.
@@ -874,7 +874,7 @@ impl FreeGatewayRecommendationDialog {
         // rest muted; a blank separator row divides bar and body. Drawn in
         // EVERY phase (the bar is part of the box's chrome, and the shared
         // stream body makes a mid-stream switch seamless). Hit-tested in
-        // the offer phase only — Connecting/Authorizing pin the provider
+        // the offer phase only - Connecting/Authorizing pin the provider
         // whose sign-in is running.
         if self.has_tabs() {
             let mut tx = inner_x;
@@ -897,7 +897,7 @@ impl FreeGatewayRecommendationDialog {
                 );
                 tx += label.chars().count() as u16 + 1;
             }
-            // Separator row: intentionally blank — the wall background
+            // Separator row: intentionally blank - the wall background
             // already separates the bar from the body; the ROW is what the
             // required-height budget reserves (tabs = 2).
         }
@@ -925,7 +925,7 @@ impl FreeGatewayRecommendationDialog {
                 if e > total_before && s < total_before + row.chars().count() {
                     let a = s.saturating_sub(total_before).min(row.chars().count()) as u16;
                     // Clamp to the DRAWN width: wrap_plain never hard-splits
-                    // an over-long word, so a row can exceed inner_w — the
+                    // an over-long word, so a row can exceed inner_w - the
                     // tail is clipped by draw_text_line and must not be
                     // painted over the border/padding.
                     let b = e
@@ -959,7 +959,7 @@ impl FreeGatewayRecommendationDialog {
             }
         } else if self.phase == Phase::Connecting {
             // Opt-in accepted, device flow starting: keep the box EXACTLY
-            // where it is (same body, same geometry) — only the options
+            // where it is (same body, same geometry) - only the options
             // rows give way to a "connecting" hint. No hide/reopen flicker.
             let hint_y = text_y + text_h + 1;
             let box_bottom = area.y + height.saturating_sub(1);
@@ -982,7 +982,7 @@ impl FreeGatewayRecommendationDialog {
         } else if self.phase == Phase::Authorizing {
             // Device sign-in display: the body (drawn above, selectable in
             // every phase) stays, and the options rows give way to the
-            // device code + verification URL — the two things the user must
+            // device code + verification URL - the two things the user must
             // read and paste. All three are drag-copyable.
             let Some((url, code)) = self.sign_in.as_ref() else {
                 return;
@@ -991,11 +991,11 @@ impl FreeGatewayRecommendationDialog {
             let url_y = code_y + 1;
             let hint_y = url_y + 1;
             // The rect is height-clamped (`height.min(area.height)`): on a
-            // short terminal the tail rows fall below the box — never paint
+            // short terminal the tail rows fall below the box - never paint
             // them over the content underneath.
             let box_bottom = area.y + height.saturating_sub(1);
 
-            // Device code: prominent, bold, own line — the ONE thing the
+            // Device code: prominent, bold, own line - the ONE thing the
             // user must get right.
             let code_line = format!("  {code}");
             if code_y <= box_bottom {
@@ -1066,12 +1066,12 @@ impl FreeGatewayRecommendationDialog {
                 }
             }
 
-            // Copy hint — drag-and-drop semantics, same as the question
+            // Copy hint - drag-and-drop semantics, same as the question
             // dialog's selection: drag over the text, release copies it.
             if hint_y <= box_bottom {
                 draw_text_line(
                     buf,
-                    "drag over the code to select — release to copy",
+                    "drag over the code to select - release to copy",
                     inner_x,
                     hint_y,
                     inner_w,
@@ -1079,7 +1079,7 @@ impl FreeGatewayRecommendationDialog {
                 );
             }
         } else {
-            // Question + Yes/No COLUMN — one breathing gap row between the
+            // Question + Yes/No COLUMN - one breathing gap row between the
             // question and the options, and the options stacked vertically
             // (Yes above No) so the vertical arrows drive them and the
             // lateral arrows stay free for tab switching. (footer-1 holds
@@ -1088,7 +1088,7 @@ impl FreeGatewayRecommendationDialog {
             let yes_y = footer_y.saturating_sub(3);
             let no_y = footer_y.saturating_sub(2);
 
-            // Question text — drag-copyable (the last hard row of the
+            // Question text - drag-copyable (the last hard row of the
             // copy document in the offer phase).
             let q_style = Style::default().fg(rgba_color(theme.text));
             draw_text_line(
@@ -1124,7 +1124,7 @@ impl FreeGatewayRecommendationDialog {
             }
 
             // Options: a Yes/No COLUMN (Yes above No), both at the inner
-            // edge — the question-dialog option column, so Up/Down drives
+            // edge - the question-dialog option column, so Up/Down drives
             // the highlight and Left/Right switch tabs in tabbed mode.
             let yes_selected = self.selected == 0;
             let no_selected = self.selected == 1;
@@ -1144,7 +1144,7 @@ impl FreeGatewayRecommendationDialog {
             };
             draw_text_line(buf, "Yes", inner_x + 2, yes_y, 3, yes_label_style);
 
-            // No — own row, directly below Yes
+            // No - own row, directly below Yes
             let no_indicator = if no_selected { "\u{1F7B4} " } else { "  " };
             let no_style = if no_selected {
                 Style::default().fg(rgba_color(theme.error))
@@ -1253,7 +1253,7 @@ mod tests {
     }
 
     /// Sample content for exercising the generic dialog (the shipped
-    /// `PLACEHOLDER` is intentionally empty). Not part of [`OFFERS`] —
+    /// `PLACEHOLDER` is intentionally empty). Not part of [`OFFERS`] -
     /// the dialog must stay generic over ANY content.
     const SAMPLE: GatewayRecommendationContent = GatewayRecommendationContent {
         tab_label: "Sample",
@@ -1343,7 +1343,7 @@ mod tests {
     #[test]
     fn streaming_body_is_drag_copyable() {
         // The user asked for copy DURING streaming: anchor mid-body via the
-        // hit-test the render shares, extend, then copy — the revealed text
+        // hit-test the render shares, extend, then copy - the revealed text
         // must come back (no sign_in dependency, no phase gate).
         let mut d = FreeGatewayRecommendationDialog::new();
         d.show(&SAMPLE);
@@ -1376,7 +1376,7 @@ mod tests {
     #[test]
     fn esc_yields_box_in_connecting_and_authorizing() {
         // Anti-flicker contract: after opt-in the box stays up (Connecting,
-        // options give way to a hint), body copy still works — and Esc now
+        // options give way to a hint), body copy still works - and Esc now
         // YIELDS the box in every phase (the background flow ends itself).
         let mut d = FreeGatewayRecommendationDialog::new();
         d.show(&SAMPLE);
@@ -1390,7 +1390,7 @@ mod tests {
         assert!(!d.visible, "Esc must yield the box during Connecting too");
 
         // Started then arrives: the flow is still running, but the user
-        // asked the box away — the pump must NOT force it back open.
+        // asked the box away - the pump must NOT force it back open.
         assert!(!d.visible, "no ghost reopen after the user dismissed");
 
         // A fresh box (no Esc) reaches Authorizing with the code displayed.
@@ -1416,7 +1416,7 @@ mod tests {
         // Bug report: dragging UP from the last word of the code line
         // (crossing into the body) copied nothing. In the copy-document
         // model the drag EMENDS: anchor on the code's tail, extend up into
-        // the body — the copy is one contiguous slice ending at the code's
+        // the body - the copy is one contiguous slice ending at the code's
         // end (no region clamp, no discarded movement).
         let mut d = FreeGatewayRecommendationDialog::new();
         d.show(&SAMPLE);
@@ -1429,15 +1429,15 @@ mod tests {
         let text_h = d.body_height(inner_w);
         let code_y = 1 + text_h + 1; // body_start(1) + text_h + gap(1)
         let code_len = "ABCD-1234".chars().count();
-        // Anchor at the code's END boundary — one cell past the last char
+        // Anchor at the code's END boundary - one cell past the last char
         // (row drawn with a 2-cell prefix; the hit-test clamps past-end
         // presses to the row's length, so the slice INCLUDES the final
-        // '4' — char offsets select up to the anchor, not through it)...
+        // '4' - char offsets select up to the anchor, not through it)...
         let Some(anchor) = d.selection_target_at(3 + 2 + code_len as u16, code_y, area) else {
             panic!("the code row must be hit-testable while authorizing");
         };
         d.begin_selection(anchor, inner_w);
-        // ...and drag UP into the body band — one contiguous selection.
+        // ...and drag UP into the body band - one contiguous selection.
         let Some(end) = d.selection_target_at(10, 1, area) else {
             panic!("the body band must stay hit-testable during the drag");
         };
@@ -1459,7 +1459,7 @@ mod tests {
     #[test]
     fn press_one_cell_before_the_first_char_still_anchors() {
         // Bug report: copying "No API key is configured" required hitting
-        // the 'N' exactly — a press one cell before it (on the pad) was
+        // the 'N' exactly - a press one cell before it (on the pad) was
         // rejected and fell through. The hit-test must clamp the column
         // into the inner band.
         let mut d = FreeGatewayRecommendationDialog::new();
@@ -1493,7 +1493,7 @@ mod tests {
     #[test]
     fn offer_title_is_drag_copyable() {
         // Last gap: the offer-phase question ("Sign in to the Charm gateway
-        // with OAuth?") had no copy region — a drag over it selected the
+        // with OAuth?") had no copy region - a drag over it selected the
         // chat instead. It must anchor the Title region and copy verbatim.
         let mut d = FreeGatewayRecommendationDialog::new();
         d.show(&SAMPLE);
@@ -1510,7 +1510,7 @@ mod tests {
             panic!("the title row must be hit-testable in the offer phase");
         };
         d.begin_selection(anchor, area.width.saturating_sub(5));
-        // Drag through the last word (beyond the title's end — clamps).
+        // Drag through the last word (beyond the title's end - clamps).
         let Some(end) = d.selection_target_at(60, question_y, area) else {
             panic!("the title drag end must be hit-testable too");
         };
@@ -1541,7 +1541,7 @@ mod tests {
     fn drag_from_body_into_the_question_emends_one_copy() {
         // THE refactor's reason (#2179): "não consigo emendar no copy de
         // cima; ele para de copiar quando chega na pergunta". The document
-        // is ONE flat text — a drag from mid-body down through the gap into
+        // is ONE flat text - a drag from mid-body down through the gap into
         // the question row must produce a single contiguous copy: body tail
         // (soft-wrapped rows re-joined with spaces) + newline + title slice.
         let mut d = FreeGatewayRecommendationDialog::new();
@@ -1587,7 +1587,7 @@ mod tests {
     }
 
     /// REGRESSION (stale-selection leak): Esc dismisses the box but used to
-    /// keep the drag selection alive — a hidden selection that nothing
+    /// keep the drag selection alive - a hidden selection that nothing
     /// would ever clear. Dismissal must be a full reset.
     #[test]
     fn esc_dismissal_clears_the_drag_selection() {
@@ -1601,7 +1601,7 @@ mod tests {
             panic!("the body band must be hit-testable");
         };
         d.begin_selection(anchor, area.width.saturating_sub(5));
-        // An anchor alone is not an ACTIVE selection yet — extend it, same
+        // An anchor alone is not an ACTIVE selection yet - extend it, same
         // as a real drag's first move.
         let Some(end) = d.selection_target_at(20, 1, area) else {
             panic!("the drag end must be hit-testable too");
@@ -1622,7 +1622,7 @@ mod tests {
     }
 
     /// REGRESSION (tabbed offer): with two or more offered gateways the
-    /// arrows SPLIT jobs — Left/Right switch tabs (question-dialog
+    /// arrows SPLIT jobs - Left/Right switch tabs (question-dialog
     /// semantics), Up/Down drive the Yes/No column. The stream reveal is
     /// shared across tabs, so a switch never rewinds it, and the Yes/No
     /// selection resets to Yes.
@@ -1702,7 +1702,7 @@ mod tests {
     }
 
     /// Single-content mode (no tab bar) keeps the old arrow map: Left/Right
-    /// still drive Yes/No — the split only exists when tabs exist.
+    /// still drive Yes/No - the split only exists when tabs exist.
     #[test]
     fn single_content_mode_keeps_the_old_arrow_map() {
         let mut d = FreeGatewayRecommendationDialog::new();
@@ -1719,7 +1719,7 @@ mod tests {
     }
 
     /// Mouse/keyboard parity: a click on a tab chip switches tabs DURING
-    /// the Streaming phase too — the tab bar is chrome in every navigable
+    /// the Streaming phase too - the tab bar is chrome in every navigable
     /// phase, and the shared body makes the switch seamless.
     #[test]
     fn mouse_click_switches_tabs_mid_stream() {
@@ -1753,7 +1753,7 @@ mod tests {
         assert!(d.visible, "a tab click is navigation, never dismissal");
     }
 
-    /// REGRESSION (geometry drift): the question row sits at footer-5 — a
+    /// REGRESSION (geometry drift): the question row sits at footer-5 - a
     /// regression moving it would otherwise go uncaught because the
     /// hit-test clamps out-of-band rows back into the options. The click
     /// ON the real row is swallowed (no action), a row BELOW it (the gap)
@@ -1782,7 +1782,7 @@ mod tests {
     }
 
     /// The streamed body is ONE generic message shared by every offered
-    /// gateway — the tabs (not the prose) carry which gateway is which, so
+    /// gateway - the tabs (not the prose) carry which gateway is which, so
     /// a mid-stream switch is seamless and the copy mentions both by name.
     #[test]
     fn the_streamed_pitch_is_shared_and_covers_every_offered_gateway() {
@@ -1794,7 +1794,7 @@ mod tests {
         for offer in OFFERS {
             assert_eq!(
                 offer.content.stream_text, pitch,
-                "every tab shares the same body — a switch must never restart the reveal"
+                "every tab shares the same body - a switch must never restart the reveal"
             );
             assert!(
                 !offer.content.tab_label.is_empty(),

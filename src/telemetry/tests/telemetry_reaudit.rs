@@ -1,6 +1,6 @@
 //! Re-audit (TELEMETRY_AUDIT.md, C01–C05) regression tests.
 //!
-//! Every case below asserts the SAFE outcome required of the remediation —
+//! Every case below asserts the SAFE outcome required of the remediation -
 //! the original `repro_*` tests asserted the DEFECTIVE behavior and were
 //! converted after the fixes, exactly like the F-series in
 //! `telemetry_audit.rs`.
@@ -75,7 +75,7 @@ fn c04_update_versions_with_the_10_fragment_validate() {
     // Was repro_update_version_still_matches_private_ip_denylist: a fully
     // valid Update event carrying the version 0.10.0 failed the envelope's
     // final payload guard (the "10." fragment matches the private-IP
-    // pattern). Update payloads are now exempt from the substring scan —
+    // pattern). Update payloads are now exempt from the substring scan -
     // their from/to fields are shape-validated typed values instead.
     let update = UpdatePayload::new(
         AppVersion::validate("0.9.0").unwrap(),

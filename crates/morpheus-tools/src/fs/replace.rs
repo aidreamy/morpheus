@@ -5,7 +5,7 @@
 //! `new_string`. The engine is a frontend over the hashline pipeline: it
 //! locates the match in the snapshot the tag names, translates the change
 //! into line-anchored hashline ops, and applies them through the same
-//! patcher path as the `targets` engine — so hash validation, 3-way merge
+//! patcher path as the `targets` engine - so hash validation, 3-way merge
 //! recovery, rollback recording, diffs, and warnings behave identically.
 //!
 //! Matching is deliberately exact (no fuzzy fallback): a wrong `old_string`
@@ -89,7 +89,7 @@ async fn replace_one(
     let snapshot = fetch_snapshot(&entry.path, &canonical, &hash).ok_or_else(|| {
         // `read` skips recording snapshots for files over the snapshot
         // budget or with binary content, so an unresolvable tag there is
-        // an anchorability problem, not a stale tag — sending the model
+        // an anchorability problem, not a stale tag - sending the model
         // to re-read would loop forever. Compare on the normalized text
         // exactly as `rollback::record` does when it declines to record.
         match std::fs::read(&canonical) {
@@ -182,14 +182,14 @@ fn line_col_at(text: &str, offset: usize) -> (u32, usize) {
 /// (ends exactly at the start of the next line) is translated to reproduce
 /// the exact character-level replacement:
 ///
-/// - `new_string` ending with `\n` supplies the consumed terminator itself —
+/// - `new_string` ending with `\n` supplies the consumed terminator itself -
 ///   one trailing newline is stripped so the engine re-supplies it.
 /// - otherwise the replacement content is *joined* with the following line
 ///   (its untouched text is appended to the payload and the range extended),
 ///   because the consumed terminator no longer separates them.
 /// - when the match ends at the file's final newline there is no following
 ///   line to join: an empty `new_string` with an empty prefix is a pure line
-///   deletion, and anything else would drop the trailing newline — inexpressible
+///   deletion, and anything else would drop the trailing newline - inexpressible
 ///   in line ops, so rejected with a diagnostic instead of misapplied.
 fn build_ops(text: &str, new: &str, occurrences: &[(usize, usize)]) -> Result<String, String> {
     let lines: Vec<&str> = text.split('\n').collect();
@@ -301,7 +301,7 @@ fn missing_tag_message(path: &str) -> String {
 fn unknown_tag_message(path: &str, hash: &str) -> String {
     format!(
         "No snapshot recorded for tag #{hash} of {path} in this session. Re-read the \
-         file with `read` to mint a current ¶path#TAG header — never invent the tag."
+         file with `read` to mint a current ¶path#TAG header - never invent the tag."
     )
 }
 
@@ -331,7 +331,7 @@ fn joins_past_eof_message(start_line: u32, end_line: u32) -> String {
     )
 }
 
-/// Ambiguous exact match — byte-for-byte the oh-my-pi occurrence error
+/// Ambiguous exact match - byte-for-byte the oh-my-pi occurrence error
 /// (previews around each recorded occurrence, disambiguation instruction),
 /// plus one extra line naming OUR escape hatch (`replace_all`), which the
 /// upstream message omits because its schema presents it elsewhere.
@@ -354,12 +354,12 @@ fn ambiguous_message(path: &str, text: &str, old: &str) -> String {
     message
 }
 
-/// No exact match anywhere — the fuzzy closest-match search turns the
+/// No exact match anywhere - the fuzzy closest-match search turns the
 /// rejection into a one-round-trip correction: when a near-identical region
 /// exists (unique above the threshold, or a dominant best), point at it with
 /// similarity, line, and the first differing line; otherwise fall back to
 /// oh-my-pi's exact `format_match_error` wording. The fuzzy result NEVER
-/// substitutes anything — the model re-issues with the corrected text.
+/// substitutes anything - the model re-issues with the corrected text.
 fn no_match_message(path: &str, text: &str, old: &str) -> String {
     let outcome = fuzzy::find_match(
         text,

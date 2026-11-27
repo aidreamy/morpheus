@@ -45,7 +45,7 @@ pub async fn run_restart(deps: &Deps<'_>, input: &RestartInput) -> Result<Restar
         restarted.push(key.server.clone());
     }
 
-    // Warm a scoped restart back up so the next query is instant — including
+    // Warm a scoped restart back up so the next query is instant - including
     // reopening the file (didOpen) on the fresh server, matching what the
     // tool description promises. Workspace-wide restarts respawn lazily;
     // warming every language here would undo the lazy-start guarantees.

@@ -22,11 +22,11 @@ impl App {
     /// `/undo`: open the undo references for what the user is talking to.
     ///
     /// - a focused ACP pane of the live split answers with ITS checkpoints
-    ///   ([`Self::open_pane_undo_dialog`]) — `/undo` is a Global-scoped
+    ///   ([`Self::open_pane_undo_dialog`]) - `/undo` is a Global-scoped
     ///   command, so with an external agent focused the App still handles it,
     ///   and the only meaningful target is that agent's own conversation;
     /// - otherwise the native, store-backed list is unchanged: the current
-    ///   session's pre-revert references (a manager pane included — its
+    ///   session's pre-revert references (a manager pane included - its
     ///   conversation IS a morpheus session).
     pub(in crate::app) fn open_undo_dialog(&mut self) {
         if let Some(pane) = self.focused_external_pane() {
@@ -76,7 +76,7 @@ impl App {
     ///
     /// ACP has no history truncation, and the agent's own session log is
     /// append-only, so every user prompt the pane shows is a point the
-    /// conversation can be rewound TO — the entry order the ACP `session/load`
+    /// conversation can be rewound TO - the entry order the ACP `session/load`
     /// replay rebuilds after a restart. The box lists them oldest first (like
     /// the native list), with the selection parked on the NEWEST one so Enter
     /// undoes the last exchange.
@@ -92,7 +92,7 @@ impl App {
         if pane_state.running || pane_state.rehydrating {
             self.toast_state.show(ToastOptions {
                 title: Some("Undo".into()),
-                message: "The agent is working — wait for it to finish.".into(),
+                message: "The agent is working - wait for it to finish.".into(),
                 variant: ToastVariant::Warning,
                 duration_ms: 4000,
             });
@@ -194,7 +194,7 @@ impl App {
         if self.state.status == crate::types::SessionStatus::Working {
             self.toast_state.show(ToastOptions {
                 title: Some("Undo".into()),
-                message: "The agent is working — wait for it to finish.".into(),
+                message: "The agent is working - wait for it to finish.".into(),
                 variant: ToastVariant::Warning,
                 duration_ms: 4000,
             });
@@ -209,7 +209,7 @@ impl App {
             });
             return;
         }
-        // The cached projection is stale now — force a replay and jump the
+        // The cached projection is stale now - force a replay and jump the
         // view to the bottom of the selected state.
         self.state.session_cache.pop(session_id);
         self.state
@@ -225,7 +225,7 @@ impl App {
     }
 
     /// Rewind the ACP pane `pane` to checkpoint `version` (`v1` = the pane's
-    /// first prompt): the identical rewind the Message Actions Revert runs —
+    /// first prompt): the identical rewind the Message Actions Revert runs -
     /// the transcript is truncated before that prompt, the prompt comes back
     /// for editing, and the agent session is abandoned so the next turn opens
     /// a fresh one primed with the kept prefix.
@@ -258,7 +258,7 @@ impl App {
 }
 
 /// The pane transcript's checkpoints: one per USER prompt, oldest first, as
-/// `(undo_label, prompt_preview)` pairs — the shape the `/undo` box takes.
+/// `(undo_label, prompt_preview)` pairs - the shape the `/undo` box takes.
 /// `v{n}` counts the prompts from the start of the pane's conversation.
 fn pane_checkpoints(timeline: &[SubagentTimelineEntry]) -> Vec<(String, String)> {
     let mut checkpoints = Vec::new();
@@ -271,7 +271,7 @@ fn pane_checkpoints(timeline: &[SubagentTimelineEntry]) -> Vec<(String, String)>
     checkpoints
 }
 
-/// The transcript index of the `v{n}` checkpoint — the n-th USER prompt —
+/// The transcript index of the `v{n}` checkpoint - the n-th USER prompt -
 /// or `None` when the pane no longer carries it.
 fn checkpoint_index(timeline: &[SubagentTimelineEntry], version: &str) -> Option<usize> {
     let wanted: usize = version.strip_prefix('v')?.parse().ok()?;

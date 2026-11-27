@@ -195,15 +195,15 @@
         "status": "Completed",
         "title": "crates/morpheus-tools/src/subagent/closure.rs",
         "raw_output": {
-          "output": "<path>/home/inky/morpheus/crates/morpheus-tools/src/subagent/closure.rs</path>\n<type>file</type>\n<content>\n1: //! The turn's final-message accumulator — the ACP analogue of the internal\n\n(Showing lines 1-1 of 176. Use offset=2 to continue.)\n</content>",
+          "output": "<path>/home/inky/morpheus/crates/morpheus-tools/src/subagent/closure.rs</path>\n<type>file</type>\n<content>\n1: //! The turn's final-message accumulator - the ACP analogue of the internal\n\n(Showing lines 1-1 of 176. Use offset=2 to continue.)\n</content>",
           "metadata": {
-            "preview": "//! The turn's final-message accumulator — the ACP analogue of the internal",
+            "preview": "//! The turn's final-message accumulator - the ACP analogue of the internal",
             "truncated": true,
             "loaded": [],
             "display": {
               "type": "file",
               "path": "/home/inky/morpheus/crates/morpheus-tools/src/subagent/closure.rs",
-              "text": "//! The turn's final-message accumulator — the ACP analogue of the internal",
+              "text": "//! The turn's final-message accumulator - the ACP analogue of the internal",
               "lineStart": 1,
               "lineEnd": 1,
               "totalLines": 176,
@@ -212,7 +212,7 @@
           }
         },
         "content": {
-          "text": "//! The turn's final-message accumulator — the ACP analogue of the internal",
+          "text": "//! The turn's final-message accumulator - the ACP analogue of the internal",
           "skipped": 0,
           "diff": null
         }
@@ -243,7 +243,7 @@
       "ms": 5157,
       "event": {
         "kind": "Message",
-        "text": "-message accumulator — the A"
+        "text": "-message accumulator - the A"
       }
     },
     {
@@ -336,14 +336,14 @@
         "status": "Completed",
         "title": "TurnClosure",
         "raw_output": {
-          "output": "Found 27 matches\n/home/inky/morpheus/docs/tools/subagent/types.md:\n  Line 54:     /// its last tool call (see `subagent::closure::TurnClosure`), not the\n\n\n/home/inky/morpheus/docs/tools/subagent/acp.md:\n  Line 153:    empty report (the mechanism is `subagent::closure::TurnClosure`). There\n\n\n/home/inky/morpheus/crates/morpheus-tools/src/subagent/types.rs:\n  Line 70:     /// its last tool call (see `subagent::closure::TurnClosure`), not the\n\n\n/home/inky/morpheus/crates/morpheus-tools/src/subagent/test.rs:\n  Line 258:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 439:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 569:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 711:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 1629:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 1906:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 2030:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 2091:              line; (2) grep the workspace for 'TurnClosure' and report how \\\n\n\n/home/inky/morpheus/crates/morpheus-tools/src/subagent/acp.rs:\n  Line 19: //!    ([`TurnClosure`](crate::subagent::closure)): only the message written\n\n  Line 555: ///    ([`TurnClosure`](crate::subagent::closure::TurnClosure)).\n\n  Line 600:     let accumulated: Arc<Mutex<super::closure::TurnClosure>> =\n\n  Line 601:         Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 634:         // (post-tool-calls) — see the `TurnClosure` contract on `output`.\n\n  Line 837: /// [`TurnClosure`](super::closure::TurnClosure) — only the message written\n\n  Line 856:     accumulated: Arc<Mutex<super::closure::TurnClosure>>,\n\n\n/home/inky/morpheus/crates/morpheus-tools/src/subagent/closure.rs:\n  Line 39: pub(crate) struct TurnClosure {\n\n  Line 51: impl TurnClosure {\n\n  Line 106:         let mut closure = TurnClosure::default();\n\n  Line 117:         let mut closure = TurnClosure::default();\n\n  Line 126:         let mut closure = TurnClosure::default();\n\n  Line 136:         let mut closure = TurnClosure::default();\n\n  Line 147:         let mut closure = TurnClosure::default();\n\n  Line 156:         let mut closure = TurnClosure::default();\n\n  Line 172:         let mut closure = TurnClosure::default();\n",
+          "output": "Found 27 matches\n/home/inky/morpheus/docs/tools/subagent/types.md:\n  Line 54:     /// its last tool call (see `subagent::closure::TurnClosure`), not the\n\n\n/home/inky/morpheus/docs/tools/subagent/acp.md:\n  Line 153:    empty report (the mechanism is `subagent::closure::TurnClosure`). There\n\n\n/home/inky/morpheus/crates/morpheus-tools/src/subagent/types.rs:\n  Line 70:     /// its last tool call (see `subagent::closure::TurnClosure`), not the\n\n\n/home/inky/morpheus/crates/morpheus-tools/src/subagent/test.rs:\n  Line 258:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 439:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 569:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 711:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 1629:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 1906:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 2030:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 2091:              line; (2) grep the workspace for 'TurnClosure' and report how \\\n\n\n/home/inky/morpheus/crates/morpheus-tools/src/subagent/acp.rs:\n  Line 19: //!    ([`TurnClosure`](crate::subagent::closure)): only the message written\n\n  Line 555: ///    ([`TurnClosure`](crate::subagent::closure::TurnClosure)).\n\n  Line 600:     let accumulated: Arc<Mutex<super::closure::TurnClosure>> =\n\n  Line 601:         Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 634:         // (post-tool-calls) - see the `TurnClosure` contract on `output`.\n\n  Line 837: /// [`TurnClosure`](super::closure::TurnClosure) - only the message written\n\n  Line 856:     accumulated: Arc<Mutex<super::closure::TurnClosure>>,\n\n\n/home/inky/morpheus/crates/morpheus-tools/src/subagent/closure.rs:\n  Line 39: pub(crate) struct TurnClosure {\n\n  Line 51: impl TurnClosure {\n\n  Line 106:         let mut closure = TurnClosure::default();\n\n  Line 117:         let mut closure = TurnClosure::default();\n\n  Line 126:         let mut closure = TurnClosure::default();\n\n  Line 136:         let mut closure = TurnClosure::default();\n\n  Line 147:         let mut closure = TurnClosure::default();\n\n  Line 156:         let mut closure = TurnClosure::default();\n\n  Line 172:         let mut closure = TurnClosure::default();\n",
           "metadata": {
             "matches": 27,
             "truncated": false
           }
         },
         "content": {
-          "text": "Found 27 matches\n/home/inky/morpheus/docs/tools/subagent/types.md:\n  Line 54:     /// its last tool call (see `subagent::closure::TurnClosure`), not the\n\n\n/home/inky/morpheus/docs/tools/subagent/acp.md:\n  Line 153:    empty report (the mechanism is `subagent::closure::TurnClosure`). There\n\n\n/home/inky/morpheus/crates/morpheus-tools/src/subagent/types.rs:\n  Line 70:     /// its last tool call (see `subagent::closure::TurnClosure`), not the\n\n\n/home/inky/morpheus/crates/morpheus-tools/src/subagent/test.rs:\n  Line 258:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 439:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 569:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 711:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 1629:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 1906:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 2030:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 2091:              line; (2) grep the workspace for 'TurnClosure' and report how \\\n\n\n/home/inky/morpheus/crates/morpheus-tools/src/subagent/acp.rs:\n  Line 19: //!    ([`TurnClosure`](crate::subagent::closure)): only the message written\n\n  Line 555: ///    ([`TurnClosure`](crate::subagent::closure::TurnClosure)).\n\n  Line 600:     let accumulated: Arc<Mutex<super::closure::TurnClosure>> =\n\n  Line 601:         Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 634:         // (post-tool-calls) — see the `TurnClosure` contract on `output`.\n\n  Line 837: /// [`TurnClosure`](super::closure::TurnClosure) — only the message written\n\n  Line 856:     accumulated: Arc<Mutex<super::closure::TurnClosure>>,\n\n\n/home/inky/morpheus/crates/morpheus-tools/src/subagent/closure.rs:\n  Line 39: pub(crate) struct TurnClosure {\n\n  Line 51: impl TurnClosure {\n\n  Line 106:         let mut closure = TurnClosure::default();\n\n  Line 117:         let mut closure = TurnClosure::default();\n\n  Line 126:         let mut closure = TurnClosure::default();\n\n  Line 136:         let mut closure = TurnClosure::default();\n\n  Line 147:         let mut closure = TurnClosure::default();\n\n  Line 156:         let mut closure = TurnClosure::default();\n\n  Line 172:         let mut closure = TurnClosure::default();\n",
+          "text": "Found 27 matches\n/home/inky/morpheus/docs/tools/subagent/types.md:\n  Line 54:     /// its last tool call (see `subagent::closure::TurnClosure`), not the\n\n\n/home/inky/morpheus/docs/tools/subagent/acp.md:\n  Line 153:    empty report (the mechanism is `subagent::closure::TurnClosure`). There\n\n\n/home/inky/morpheus/crates/morpheus-tools/src/subagent/types.rs:\n  Line 70:     /// its last tool call (see `subagent::closure::TurnClosure`), not the\n\n\n/home/inky/morpheus/crates/morpheus-tools/src/subagent/test.rs:\n  Line 258:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 439:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 569:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 711:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 1629:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 1906:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 2030:     let accumulated = Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 2091:              line; (2) grep the workspace for 'TurnClosure' and report how \\\n\n\n/home/inky/morpheus/crates/morpheus-tools/src/subagent/acp.rs:\n  Line 19: //!    ([`TurnClosure`](crate::subagent::closure)): only the message written\n\n  Line 555: ///    ([`TurnClosure`](crate::subagent::closure::TurnClosure)).\n\n  Line 600:     let accumulated: Arc<Mutex<super::closure::TurnClosure>> =\n\n  Line 601:         Arc::new(Mutex::new(super::closure::TurnClosure::default()));\n\n  Line 634:         // (post-tool-calls) - see the `TurnClosure` contract on `output`.\n\n  Line 837: /// [`TurnClosure`](super::closure::TurnClosure) - only the message written\n\n  Line 856:     accumulated: Arc<Mutex<super::closure::TurnClosure>>,\n\n\n/home/inky/morpheus/crates/morpheus-tools/src/subagent/closure.rs:\n  Line 39: pub(crate) struct TurnClosure {\n\n  Line 51: impl TurnClosure {\n\n  Line 106:         let mut closure = TurnClosure::default();\n\n  Line 117:         let mut closure = TurnClosure::default();\n\n  Line 126:         let mut closure = TurnClosure::default();\n\n  Line 136:         let mut closure = TurnClosure::default();\n\n  Line 147:         let mut closure = TurnClosure::default();\n\n  Line 156:         let mut closure = TurnClosure::default();\n\n  Line 172:         let mut closure = TurnClosure::default();\n",
           "skipped": 0,
           "diff": null
         }
@@ -537,7 +537,7 @@
       "ms": 8012,
       "event": {
         "kind": "Message",
-        "text": "essage accumulator — the A"
+        "text": "essage accumulator - the A"
       }
     },
     {
@@ -710,5 +710,5 @@
       }
     }
   ],
-  "report": "The directory listing shows 8 entries. Here's a summary of all three steps:\n\n1. **closure.rs first line:** `//! The turn's final-message accumulator — the ACP analogue of the internal` (docs header).\n2. **'TurnClosure' mentions:** 6 files (acp.rs, closure.rs, test.rs, types.rs under `crates/morpheus-tools/src/subagent/`, plus `docs/tools/subagent/acp.md` and `docs/tools/subagent/types.md`).\n3. **Files in subagent/:** 8 (acp.rs, closure.rs, events.rs, mod.rs, sandbox.rs, severity.rs, test.rs, types.rs)."
+  "report": "The directory listing shows 8 entries. Here's a summary of all three steps:\n\n1. **closure.rs first line:** `//! The turn's final-message accumulator - the ACP analogue of the internal` (docs header).\n2. **'TurnClosure' mentions:** 6 files (acp.rs, closure.rs, test.rs, types.rs under `crates/morpheus-tools/src/subagent/`, plus `docs/tools/subagent/acp.md` and `docs/tools/subagent/types.md`).\n3. **Files in subagent/:** 8 (acp.rs, closure.rs, events.rs, mod.rs, sandbox.rs, severity.rs, test.rs, types.rs)."
 }

@@ -2,7 +2,7 @@
 //! composed, which directory the turn runs in, and how its ending is
 //! classified.
 //!
-//! Everything here is PURE over plain data — no `App`, no split state, no
+//! Everything here is PURE over plain data - no `App`, no split state, no
 //! timeline types. That is what lets the same rules serve the TUI today and a
 //! GUI (or a headless coordinator) tomorrow, and what lets the tests pin the
 //! behavior without a harness.
@@ -32,7 +32,7 @@ pub fn assemble_turn_input(
     }
 }
 
-/// A pane's EFFECTIVE working directory — the ONE resolution every consumer
+/// A pane's EFFECTIVE working directory - the ONE resolution every consumer
 /// reads: the worktree path when the pane is pinned (`/worktree`), the
 /// session's working directory otherwise.
 ///
@@ -70,7 +70,7 @@ pub struct TerminalCause {
     pub detail: Option<String>,
 }
 
-/// Decide the pane turn's report and how it ended — the ONE place a pane turn
+/// Decide the pane turn's report and how it ended - the ONE place a pane turn
 /// is classified.
 ///
 /// The rule, in order:
@@ -141,14 +141,14 @@ pub fn close_pane_turn(
 ///
 /// Shared vocabulary: the coordinator uses it to decide which model a pane
 /// turn runs with, and a frontend uses the same matching rule to seed the
-/// control the user sees — one rule, so the box and the turn agree by
+/// control the user sees - one rule, so the box and the turn agree by
 /// construction.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ConfigTarget {
-    /// Match an option by its exact id (e.g. `provider` — no category exists
+    /// Match an option by its exact id (e.g. `provider` - no category exists
     /// for it in the spec).
     ById(&'static str),
-    /// Match an option by its semantic category (e.g. `model` — harnesses
+    /// Match an option by its semantic category (e.g. `model` - harnesses
     /// predate the category system, so the id alone is not stable).
     ByCategory(&'static str),
 }
@@ -156,10 +156,10 @@ pub enum ConfigTarget {
 /// Match one session config option against a [`ConfigTarget`].
 ///
 /// `ByCategory` is a TWO-PASS match: an option whose `id` equals the category
-/// name wins first — cline categorizes BOTH its `provider` and `model` options
+/// name wins first - cline categorizes BOTH its `provider` and `model` options
 /// as `Model`, so a single-pass category scan in list order would hand the
 /// model box the provider option. Only when no such id exists does the
-/// category field decide (harnesses that predate ids — the reason the
+/// category field decide (harnesses that predate ids - the reason the
 /// category fallback exists at all). A flat per-element OR is wrong for the
 /// same reason: it cannot tell "the model option" from "the provider option".
 #[must_use]
@@ -181,7 +181,7 @@ pub fn match_option(
 
 /// The pane option the MODEL surface rides, resolved through
 /// [`match_option`]'s two-pass `ByCategory("model")`. Returns the option's OWN
-/// id — a pick must ride the id the harness advertises
+/// id - a pick must ride the id the harness advertises
 /// (`apply_session_picks` matches against the advertised list).
 #[must_use]
 pub fn model_option_id(options: &[AgentConfigOption]) -> Option<&str> {
@@ -190,14 +190,14 @@ pub fn model_option_id(options: &[AgentConfigOption]) -> Option<&str> {
 
 /// The turn's config picks, in precedence order: the pane's own USER picks
 /// (the config-box confirm wrote the option's current and recorded its id)
-/// first, then the persisted per-agent model pick — the CLI-parity "remember
+/// first, then the persisted per-agent model pick - the CLI-parity "remember
 /// my last model". A freshly created pane carries no picks of its own, while
 /// an agent's native CLI reuses the last chosen model for every NEW session;
 /// the persisted record restores that behavior (the headless ACP harness never
 /// runs the interactive layer that would remember it itself). The registry
 /// default still applies when neither exists: `acp::call` injects `entry.model`
 /// only into a model-less pick set. A persisted model the harness no longer
-/// offers is skipped inside `apply_session_picks` — it degrades to the harness
+/// offers is skipped inside `apply_session_picks` - it degrades to the harness
 /// default instead of failing the turn.
 #[must_use]
 pub fn turn_picks(
@@ -213,7 +213,7 @@ pub fn turn_picks(
                 .collect::<Vec<(String, String)>>()
         })
         .unwrap_or_default();
-    // The persisted pick seeds under the MODEL option's OWN id — a harness
+    // The persisted pick seeds under the MODEL option's OWN id - a harness
     // that names the option differently but tags the category only honors a
     // pick carrying ITS id (`apply_session_picks` matches against the
     // advertised list). No model option advertised at all: fall back to the
@@ -249,12 +249,12 @@ mod tests {
             input,
             "[moved]\n\n## Agents Panes\n- claude#1\n\nthe message"
         );
-        // Preamble without handoff — the Phase 1 shape.
+        // Preamble without handoff - the Phase 1 shape.
         assert_eq!(
             assemble_turn_input(None, Some("## Agents Panes".into()), "msg".into()),
             "## Agents Panes\n\nmsg"
         );
-        // Neither layer — the input goes out verbatim.
+        // Neither layer - the input goes out verbatim.
         assert_eq!(assemble_turn_input(None, None, "msg".into()), "msg");
     }
 
@@ -305,7 +305,7 @@ mod tests {
 
         // 2. THE REGRESSION: no closure, but the model wrote text one item
         // earlier (the turn ended on a tool result). It must be delivered as
-        // a `partial` report — never as "ended without a report", and never
+        // a `partial` report - never as "ended without a report", and never
         // as `cancelled`.
         let (text, end) =
             close_pane_turn(Some(&done), None, Some("now I'll edit core.rs".to_string()));
@@ -325,7 +325,7 @@ mod tests {
         assert_eq!(end, AgentCoworkerTurnEnd::Incomplete);
 
         // 4. `Stopped` is the USER's stop and the ONLY legitimate
-        // `cancelled` — for a pane the model cannot stop its own loop.
+        // `cancelled` - for a pane the model cannot stop its own loop.
         let (_, end) = close_pane_turn(Some(&stopped), None, Some("half done".to_string()));
         assert_eq!(end, AgentCoworkerTurnEnd::Cancelled);
 
@@ -418,7 +418,7 @@ mod tests {
 
     /// A harness that names the model option differently but tags the
     /// category: the seed rides the option's REAL id, and the pane's own pick
-    /// of that same option suppresses the seed — the id comparison, not a
+    /// of that same option suppresses the seed - the id comparison, not a
     /// hard-coded `model`, keeps the user's fresher choice from being
     /// overridden by the persisted record in `apply_session_picks`.
     #[test]

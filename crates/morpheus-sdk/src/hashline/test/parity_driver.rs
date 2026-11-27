@@ -1,4 +1,4 @@
-//! Behavioral-parity driver — identical scenarios to upstream oh-my-pi's
+//! Behavioral-parity driver - identical scenarios to upstream oh-my-pi's
 //! `crates/pi-edit/tests/parity_driver.rs`. Run both with `--nocapture` and
 //! diff the dumps for an exact behavioral comparison.
 use super::super::apply::apply_edits;

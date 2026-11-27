@@ -1,7 +1,7 @@
-//! Coordination — the layer that OWNS the agent tree.
+//! Coordination - the layer that OWNS the agent tree.
 //!
 //! `harness` runs ONE agent for ONE turn. This module decides *who runs when*,
-//! *with which tools*, and *how a turn's ending is classified* — the parts of
+//! *with which tools*, and *how a turn's ending is classified* - the parts of
 //! coordination that are policy over plain data and therefore have no business
 //! living in a renderer.
 //!
@@ -24,7 +24,7 @@
 //! tui (bin)   → all of the above
 //! ```
 //!
-//! - `coordinator` NEVER imports `crate::tui` — that is the whole point.
+//! - `coordinator` NEVER imports `crate::tui` - that is the whole point.
 //! - `harness` NEVER imports `coordinator` or `assembly`: the loop must not
 //!   depend on the layer that builds and drives it.
 //! - The coworker REGISTRY ([`crate::harness::agent_coworkers`]) stays in
@@ -34,9 +34,9 @@
 //!
 //! ## What lives here today
 //!
-//! - [`policy`] — the pane turn's tool policy, and the reason it is NOT the
+//! - [`policy`] - the pane turn's tool policy, and the reason it is NOT the
 //!   Manager mode's restriction.
-//! - [`turn`] — the pure per-turn decision logic: input composition, effective
+//! - [`turn`] - the pure per-turn decision logic: input composition, effective
 //!   cwd, and the ending classification.
 //!
 //! ## What still lives in the TUI and should move here

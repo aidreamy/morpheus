@@ -1,5 +1,5 @@
 //! The decision contract: the question protocol, confidence estimation, the
-//! schema mapping, the sequence builder and the model trait — the crate-level
+//! schema mapping, the sequence builder and the model trait - the crate-level
 //! core every decision backend implements.
 //!
 //! The question protocol (`choice` / `score` / `noul`) is a crate-level

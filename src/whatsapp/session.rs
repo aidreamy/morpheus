@@ -21,8 +21,8 @@ use std::sync::atomic::AtomicBool;
 use tokio::sync::{Mutex, mpsc};
 use tokio::task::JoinSet;
 
-use morpheus_tools::question::types::AnswerItem;
 use morpheus_agents::model_picks::ModelPicks;
+use morpheus_tools::question::types::AnswerItem;
 
 use crate::harness::{ContextManagerState, Harness, HarnessEvent, Mode, PermissionAction};
 use crate::setup::data_dir_override;
@@ -482,7 +482,7 @@ impl ChatSession {
     }
 
     /// Command mode: the message IS a shell command. No LLM call, no
-    /// context mutation — the conversation history is preserved untouched.
+    /// context mutation - the conversation history is preserved untouched.
     async fn run_shell(&self, command: &str) -> String {
         use crate::harness::Tools;
 

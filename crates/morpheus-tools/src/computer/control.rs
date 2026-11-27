@@ -1,16 +1,16 @@
-//! `computer_control` — pointer AND keyboard as one pipeline tool.
+//! `computer_control` - pointer AND keyboard as one pipeline tool.
 //!
 //! Collapses the former `computer_pointer` + `computer_keyboard` pair: one
 //! step is EITHER a pointer action (`action` + target, default `click`) OR a
 //! keyboard action (`key`/`text`), and steps chain via `then` with shell
-//! `&&` semantics — each step runs only if the previous succeeded, the
+//! `&&` semantics - each step runs only if the previous succeeded, the
 //! first failure aborts the chain reporting the exact failing step and
 //! everything that completed before it.
 //!
 //! This file is ONLY the pipeline: chain walking, wait steps and step
-//! classification. The step KINDS live in their components — pointer
+//! classification. The step KINDS live in their components - pointer
 //! dispatch in [`super::mouse`], keyboard dispatch in [`super::keyboard`]
-//! — so each can be reused by other tools without carrying this pipeline
+//! - so each can be reused by other tools without carrying this pipeline
 //! along.
 //!
 //! Targeting is PER STEP (`app`/`pid`/`surface` + `selector` on every
@@ -18,7 +18,7 @@
 //! what dissolves the focus problem the two old tools wrestled with: a real
 //! click on an element is the one mechanism that moves OS keyboard focus on
 //! every toolkit, so the canonical pipeline is click the field → then type.
-//! No focus synthesis, no gates — the click that selects IS the focus.
+//! No focus synthesis, no gates - the click that selects IS the focus.
 //! Keystrokes go through the shared input simulator (see
 //! [`super::shared_input_sim`]); every call is blocking, so it runs on
 //! tokio's blocking pool.
@@ -31,7 +31,7 @@ use super::types::{ComputerControl, ControlOutput};
 pub const CONTROL_CHAIN_MAX_DEPTH: usize = 8;
 
 /// Run a desktop-control pipeline: pointer and keyboard steps chained via
-/// `then`, executed sequentially in ONE call with `&&` semantics — each
+/// `then`, executed sequentially in ONE call with `&&` semantics - each
 /// step runs only if the previous succeeded, and the first failure aborts
 /// with the exact failing step and the report of what completed.
 ///
@@ -42,12 +42,12 @@ pub const CONTROL_CHAIN_MAX_DEPTH: usize = 8;
 /// keyboard step, `key` with `text`, `text` with `held`, unknown key or
 /// modifier names, an invalid pointer target combination, or a chain
 /// deeper than [`CONTROL_CHAIN_MAX_DEPTH`]. Returns `Err` mid-chain
-/// (earlier steps stay applied — they were real events) when an
+/// (earlier steps stay applied - they were real events) when an
 /// app/selector does not resolve or the platform input backend is
 /// unavailable.
 pub async fn control(input: &ComputerControl) -> Result<ControlOutput, String> {
     validate_chain(input, CONTROL_CHAIN_MAX_DEPTH)?;
-    // `spawn_blocking` needs 'static — clone the (small) input struct in.
+    // `spawn_blocking` needs 'static - clone the (small) input struct in.
     let owned = input.clone();
     tokio::task::spawn_blocking(move || control_blocking(&owned))
         .await
@@ -71,11 +71,11 @@ pub(crate) fn validate_chain(step: &ComputerControl, remaining: usize) -> Result
 }
 
 /// Validate ONE step. A step is a KEYBOARD step when `key` or `text` is
-/// present, otherwise a POINTER step — the two field groups are disjoint,
+/// present, otherwise a POINTER step - the two field groups are disjoint,
 /// and mixing them in one step is a mistake the model should hear about.
 /// The kind-specific rules live in the components.
 fn validate_step(step: &ComputerControl) -> Result<(), String> {
-    // Wait step: STANDALONE — it carries no action, so any other field next
+    // Wait step: STANDALONE - it carries no action, so any other field next
     // to it is ambiguous about what the wait applies to. Cap the duration:
     // the pipeline stays one tool call, and a wait is a pause for the app
     // to catch up, not a sleep primitive.
@@ -110,7 +110,7 @@ fn validate_step(step: &ComputerControl) -> Result<(), String> {
         .collect();
         if !extra.is_empty() {
             return Err(format!(
-                "computer_control: `wait` is a standalone step — it takes no {}",
+                "computer_control: `wait` is a standalone step - it takes no {}",
                 extra.join(", ")
             ));
         }
@@ -119,14 +119,14 @@ fn validate_step(step: &ComputerControl) -> Result<(), String> {
         }
         if ms > MAX_WAIT_MS {
             return Err(format!(
-                "computer_control: `wait` is capped at {MAX_WAIT_MS} ms per step — \
+                "computer_control: `wait` is capped at {MAX_WAIT_MS} ms per step - \
                  chain several wait steps for longer pauses"
             ));
         }
         return Ok(());
     }
 
-    // Hold/release step: STANDALONE key-state manipulation — every other
+    // Hold/release step: STANDALONE key-state manipulation - every other
     // field would silently misstate what the step does.
     if step.hold.is_some() || step.release.is_some() {
         if let Some(names) = &step.hold {
@@ -160,7 +160,7 @@ fn validate_step(step: &ComputerControl) -> Result<(), String> {
             .collect();
             if !extra.is_empty() {
                 return Err(format!(
-                    "computer_control: `hold` is a standalone step — it takes no {}",
+                    "computer_control: `hold` is a standalone step - it takes no {}",
                     extra.join(", ")
                 ));
             }
@@ -200,7 +200,7 @@ fn validate_step(step: &ComputerControl) -> Result<(), String> {
         .collect();
         if !extra.is_empty() {
             return Err(format!(
-                "computer_control: `release` is a standalone step — it takes no {}",
+                "computer_control: `release` is a standalone step - it takes no {}",
                 extra.join(", ")
             ));
         }
@@ -219,7 +219,7 @@ fn validate_step(step: &ComputerControl) -> Result<(), String> {
     }
     if key.is_some() || text.is_some() {
         // Keyboard step: typing goes into the element an EARLIER step's
-        // element click focused — targeting here has no meaning and would
+        // element click focused - targeting here has no meaning and would
         // silently disagree with it.
         for (present, name) in [
             (step.action.is_some(), "`action`"),
@@ -244,7 +244,7 @@ fn validate_step(step: &ComputerControl) -> Result<(), String> {
         ] {
             if present {
                 return Err(format!(
-                    "computer_control: {name} belongs to a pointer step — a keyboard step \
+                    "computer_control: {name} belongs to a pointer step - a keyboard step \
                      types into the focused element; click the target element in an \
                      earlier step (or coordinates), then chain the typing via `then`"
                 ));
@@ -253,7 +253,7 @@ fn validate_step(step: &ComputerControl) -> Result<(), String> {
         if let Some(text) = text {
             if step.held.is_some() {
                 return Err(format!(
-                    "computer_control: `held` is rejected with `text` ({text:?}) — backends \
+                    "computer_control: `held` is rejected with `text` ({text:?}) - backends \
                      synthesize case/shift; use `key` with `held` for chords"
                 ));
             }
@@ -284,7 +284,7 @@ fn control_blocking(input: &ComputerControl) -> Result<ControlOutput, String> {
             if done.is_empty() {
                 format!("computer_control: step {index}: {e}{held}")
             } else {
-                format!("computer_control: step {index}: {e} — completed: {done}{held}")
+                format!("computer_control: step {index}: {e} - completed: {done}{held}")
             }
         })?;
         completed.push(format!("{sent}{}", step_feedback(step)));
@@ -319,7 +319,7 @@ fn step_feedback(step: &ComputerControl) -> String {
 
 /// Execute ONE validated step and return its human-facing report.
 fn run_step(sim: &xa11y::InputSim, step: &ComputerControl) -> Result<String, String> {
-    // Wait step: a plain pause (validated standalone) — gives the app time
+    // Wait step: a plain pause (validated standalone) - gives the app time
     // to open a dialog or create an ephemeral field before the next step.
     if let Some(ms) = step.wait {
         return Ok(keyboard::run_wait_step(ms));

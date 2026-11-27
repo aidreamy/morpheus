@@ -1,14 +1,14 @@
-//! Windows paste-burst coalescing — the legacy-console fallback for "a large
+//! Windows paste-burst coalescing - the legacy-console fallback for "a large
 //! paste is split into one message per line, without pressing Enter" on
 //! Windows.
 //!
 //! LAYERING (read first): on modern Windows consoles pastes no longer reach
 //! this module at all. The patched crossterm (see `[patch.crates-io]` in
-//! Cargo.toml — upstream PR crossterm-rs/crossterm#1030) scopes
+//! Cargo.toml - upstream PR crossterm-rs/crossterm#1030) scopes
 //! `ENABLE_VIRTUAL_TERMINAL_INPUT` to the bracketed-paste lifetime, so
 //! Windows Terminal / modern conhost deliver one real
 //! [`crossterm::event::Event::Paste`], handled in `super::events`
-//! (`App::process_event` → `PromptView::handle_paste`) — atomic placeholder,
+//! (`App::process_event` → `PromptView::handle_paste`) - atomic placeholder,
 //! zero streaming, exactly like Unix. Everything below exists for consoles
 //! WITHOUT VT input (legacy conhost), where stock crossterm 0.29 reads the
 //! console through `ReadConsoleInput` with no bracketed-paste support
@@ -16,28 +16,28 @@
 //! CHARACTER plus ONE `Enter` PER LINE BREAK, and this coalescer (cadence +
 //! clipboard anchor) reconstructs it. Without it, every plain Enter would
 //! fall through to the `SendMessage` keymap action and submit whatever
-//! accumulated so far — one message per line, none of them user-initiated.
+//! accumulated so far - one message per line, none of them user-initiated.
 //!
-//! THE FIX — characters stream by default: every plain text key falls
+//! THE FIX - characters stream by default: every plain text key falls
 //! through to the prompt through the normal typing path, so typing ALWAYS
 //! renders in real time: a paste streams into the prompt exactly like the
 //! pre-coalescer console behaviour, and a HELD KEY (OS auto-repeat, ~20-33ms
-//! per repeat — the same cadence class as a paste burst) shows its
+//! per repeat - the same cadence class as a paste burst) shows its
 //! characters the moment they arrive. The vanish-until-release bug is
 //! impossible by construction for anything that is not a confirmed paste:
 //! nothing is ever withheld on timing suspicion alone.
 //!
-//! THE ELEGANT PART — the clipboard anchor (Windows only): a console paste
+//! THE ELEGANT PART - the clipboard anchor (Windows only): a console paste
 //! IS clipboard content re-injected as key events, so once a burst arms the
 //! coalescer reads the clipboard exactly once and compares. When the
 //! streamed shadow is a strict prefix of the clipboard text (line endings
 //! normalized both sides, like opencode's own `pasteInputText`), the paste
-//! is CONFIRMED by content, not just cadence — and from then on nothing
+//! is CONFIRMED by content, not just cadence - and from then on nothing
 //! more streams: the FULL clipboard text is inserted atomically through
 //! `PromptView::handle_paste` (placeholder included, exactly like the Unix
 //! `Event::Paste` path) and every further matching key is swallowed after
 //! per-character verification. A slow-trickle paste therefore shows a
-//! handful of characters and then the placeholder — never minutes of
+//! handful of characters and then the placeholder - never minutes of
 //! word-by-word streaming. Anything that stops matching (real typing that
 //! merely started like the clipboard, a changed clipboard, a mid-paste
 //! submit) rolls back to exactly what arrived: the atomic insertion is
@@ -47,15 +47,15 @@
 //! arbitrary clipboard, so they always keep streaming.
 //!
 //! Anchor scope notes: only runs that would compress (`paste_would_compress`)
-//! anchor — short pastes stream to completion in milliseconds anyway, and
+//! anchor - short pastes stream to completion in milliseconds anyway, and
 //! skipping them keeps the machinery away from everyday typing. The anchor
 //! never fires on non-Windows builds: Unix pastes already arrive atomically
 //! via bracketed paste, and a synchronous clipboard round-trip there (X11 /
 //! Wayland IPC, potentially hanging on a dead owner) has no business sitting
 //! in the key path.
 //!
-//! What IS classified is the ENTER — plain or modifier-carrying: an Enter
-//! arriving within [`BURST_WINDOW`] of recent text keys — armed or not — is
+//! What IS classified is the ENTER - plain or modifier-carrying: an Enter
+//! arriving within [`BURST_WINDOW`] of recent text keys - armed or not - is
 //! a paste line break, not a user submit (a human cannot hit Enter within
 //! 80ms of the last character; motor time alone is ~150ms, while a console
 //! paste delivers the next record in <1ms). Absorbed Enters go into a SHADOW
@@ -63,39 +63,39 @@
 //! streamed character, preserving arrival order. Absorbing modified Enters
 //! (Ctrl/Shift+Enter) as well is what keeps shadow and prompt consistent:
 //! a modified Enter that fell through would be typed into the prompt by the
-//! newline shortcut WITHOUT being mirrored — the burst-end retraction would
+//! newline shortcut WITHOUT being mirrored - the burst-end retraction would
 //! then drain the wrong span and mix raw text with the placeholder.
 //!
 //! When the burst ends (no key of it for [`BURST_WINDOW`], checked once per
 //! frame from `run()` and before every key that falls through), runs that
-//! absorbed at least one Enter — or that are long enough to compress even
-//! without one (a single-line paste long enough to trigger compression) — are
+//! absorbed at least one Enter - or that are long enough to compress even
+//! without one (a single-line paste long enough to trigger compression) - are
 //! RETRACTED from the prompt and replayed through `PromptView::handle_paste`
-//! — exactly the Linux/macOS path: line endings normalize and long pastes
+//! - exactly the Linux/macOS path: line endings normalize and long pastes
 //! compress into the `[Pasted ~N lines]` placeholder. Short runs with no
 //! absorbed Enter (plain typing, held keys, short single-line pastes) are
 //! left exactly as typed.
 //!
 //! ENTER CHAINING: blank lines inside a paste produce back-to-back Enters
 //! with no text keys between them. The chain MAY continue across further
-//! Enters within [`BURST_WINDOW`] — but only if the chain STARTED inside a
+//! Enters within [`BURST_WINDOW`] - but only if the chain STARTED inside a
 //! text burst ([`PasteBurstState::chain_started_in_text_burst`]). This
 //! bounds the chain: once the run is flushed the flag resets, so a user
 //! mashing Enter in the empty prompt can never be swallowed indefinitely.
 //!
 //! Known trade-offs (documented, self-healing): a real Enter pressed within
 //! [`BURST_WINDOW`] of the last pasted/typed character is absorbed as a
-//! newline — the next press, outside the window, submits normally.
+//! newline - the next press, outside the window, submits normally.
 //!
 //! WHY NO AUTO-REPEAT DISCRIMINATOR: an earlier iteration tried to tell a
 //! held key apart from a paste by gap timing (same character, 15-75ms). It
 //! fails on real Windows consoles: a paste containing same-character runs
 //! (indentation spaces, "aaaa") under console/RDP jitter produces the SAME
-//! gaps, misclassifying a paste as held-key typing — which landed the paste
+//! gaps, misclassifying a paste as held-key typing - which landed the paste
 //! uncoalesced (streaming) and could split-send. Timing cannot separate the
 //! two event streams because THEY ARE the same stream at the OS level
 //! (`wRepeatCount` is discarded by crossterm's parser). Classifying only the
-//! Enter — the only key whose misrouting actually harms — removes the
+//! Enter - the only key whose misrouting actually harms - removes the
 //! tension entirely: characters stream no matter what, Enters within the
 //! window never submit.
 
@@ -115,7 +115,7 @@ use crate::util::selection;
 pub(super) const BURST_WINDOW: Duration = Duration::from_millis(80);
 
 /// Plain character keys that must have arrived inside [`BURST_WINDOW`] for
-/// the burst to arm. Four keys within 80ms means >50 chars/s — far beyond any
+/// the burst to arm. Four keys within 80ms means >50 chars/s - far beyond any
 /// human finger (fast digraphs hit ~2 keys per window), while a console paste
 /// delivers hundreds of records in the time the coalescer needs to arm.
 const BURST_MIN_KEYS: u32 = 4;
@@ -134,7 +134,7 @@ fn is_recent(t: Instant, now: Instant) -> bool {
 /// Byte end of the `char_count`-character span starting at byte `start` in
 /// `s`, or `None` when `start` is not a char boundary or the span overruns
 /// the string. Lets the paste-burst replay retract exactly the streamed
-/// span anywhere in the prompt — never a byte-split multibyte char.
+/// span anywhere in the prompt - never a byte-split multibyte char.
 fn char_count_to_byte_end(s: &str, start: usize, char_count: usize) -> Option<usize> {
     let mut end = start;
     for ch in s.get(start..)?.chars().take(char_count) {
@@ -152,7 +152,7 @@ fn char_count_to_byte_end(s: &str, start: usize, char_count: usize) -> Option<us
 /// A confirmed paste in flight: the streamed run matched the clipboard, so
 /// the full clipboard text was already inserted atomically and the rest of
 /// the stream is verified key by key instead of rendered. See the module
-/// docs ("THE ELEGANT PART — the clipboard anchor").
+/// docs ("THE ELEGANT PART - the clipboard anchor").
 #[derive(Debug, Clone)]
 struct AnchorState {
     /// Normalized (`\r\n`/`\r` → `\n`) clipboard text the stream must equal.
@@ -179,8 +179,8 @@ pub(super) struct PasteBurstState {
     /// Shadow copy of the in-flight run: a mirror of every text character
     /// that streamed into the prompt plus one `\n` per absorbed Enter, in
     /// arrival order. Replayed through `PromptView::handle_paste` at burst
-    /// end (when worth compressing), reconstructing the paste —
-    /// normalized line endings and `[Pasted ~N lines]` compression — from
+    /// end (when worth compressing), reconstructing the paste -
+    /// normalized line endings and `[Pasted ~N lines]` compression - from
     /// text that was never withheld from the prompt (or from an anchored
     /// stream that already landed atomically).
     shadow: String,
@@ -192,12 +192,12 @@ pub(super) struct PasteBurstState {
     /// Byte offset in the prompt input where the in-flight run started
     /// streaming (the cursor position when the run's first character was
     /// mirrored). Lets the burst-end replay retract a paste that landed
-    /// mid-prompt — not just an end-of-input tail — by draining exactly the
+    /// mid-prompt - not just an end-of-input tail - by draining exactly the
     /// streamed span. Reset with every flush/clear, like the shadow itself.
     burst_start: Option<usize>,
     /// Whether the in-flight run reached PASTE semantics: the burst armed
     /// (4+ text keys in the window) or a plain Enter was absorbed. Only a
-    /// replay-worthy run may be flushed — before that, the shadow is just
+    /// replay-worthy run may be flushed - before that, the shadow is just
     /// a mirror of characters that may still become part of an armed run
     /// milliseconds later, and flushing it early would chop the paste into
     /// an unretracted prefix plus a replayed tail.
@@ -218,7 +218,7 @@ pub(super) struct PasteBurstState {
 impl PasteBurstState {
     /// Bookkeeping for a plain text key. MUST run before the armed check so
     /// the machine can reach the armed state. The key itself always falls
-    /// through to the prompt — this only maintains the cadence counters that
+    /// through to the prompt - this only maintains the cadence counters that
     /// classify the NEXT plain Enter.
     fn note_text_key(&mut self, now: Instant) {
         let fresh = self.last_text_key_at.is_some_and(|t| is_recent(t, now));
@@ -235,7 +235,7 @@ impl PasteBurstState {
                 // mirror is dead weight (the characters stay in the prompt
                 // as typed) and must not leak into a later run's retraction
                 // length. A replay-worthy run keeps its shadow across the
-                // gap — console/RDP jitter routinely exceeds the window
+                // gap - console/RDP jitter routinely exceeds the window
                 // mid-paste, and its prefix is still awaiting replay.
                 self.shadow.clear();
                 self.shadow_text_len = 0;
@@ -283,8 +283,8 @@ impl PasteBurstState {
     }
 
     /// Record where in the prompt the in-flight run started streaming.
-    /// Called once per run — when the shadow is still empty, i.e. the very
-    /// first mirrored character — with the live cursor position (the
+    /// Called once per run - when the shadow is still empty, i.e. the very
+    /// first mirrored character - with the live cursor position (the
     /// insertion point the fall-through typing path is about to use).
     fn note_burst_start(&mut self, cursor_pos: usize) {
         if self.shadow_text_len == 0 && self.burst_start.is_none() {
@@ -314,7 +314,7 @@ impl PasteBurstState {
 
     /// Absorb a plain Enter as a paste line break: recorded in the shadow
     /// (the replay turns it into a real newline). An absorbed Enter is
-    /// itself paste semantics — the run becomes replay-worthy.
+    /// itself paste semantics - the run becomes replay-worthy.
     /// `text_burst_was_active` marks whether the ENTER CHAIN may continue
     /// after it (only chains that begin inside a real text burst are
     /// extendable).
@@ -329,7 +329,7 @@ impl PasteBurstState {
 
     /// Drop the shadow WITHOUT replaying it. Used when the streamed run is
     /// already part of the prompt content a fall-through Enter is about to
-    /// send — a replay here would duplicate the text.
+    /// send - a replay here would duplicate the text.
     fn clear(&mut self) {
         self.shadow.clear();
         self.shadow_text_len = 0;
@@ -347,10 +347,10 @@ impl PasteBurstState {
     /// least one Enter (worth reconstructing through `handle_paste`) or when
     /// the run is long enough to compress even without one (a single-line
     /// paste over the shared [`crate::component::prompt::paste_would_compress`]
-    /// threshold — the Unix `Event::Paste` path compresses those, so the
+    /// threshold - the Unix `Event::Paste` path compresses those, so the
     /// Windows replay must too, or a large single-paragraph paste streams
     /// forever and the `[Pasted ~N lines]` placeholder never appears).
-    /// `None` for short runs with no line break — those are cleared and left
+    /// `None` for short runs with no line break - those are cleared and left
     /// as typed (plain typing, held keys, short single-line pastes).
     /// Resets the run state either way, so the next burst arms from scratch
     /// and no stale chain flag can swallow a later Enter.
@@ -375,7 +375,7 @@ impl PasteBurstState {
 
     /// A "text" key the way a Windows console reports pasted characters:
     /// printable chars carrying no modifiers beyond SHIFT (uppercase paste
-    /// chars arrive SHIFTed) — PLUS the CTRL+ALT pair, the Windows-console
+    /// chars arrive SHIFTed) - PLUS the CTRL+ALT pair, the Windows-console
     /// signature of an AltGr character (`@ # $ € ª º` on ABNT). Real
     /// hotkeys never produce Char + CTRL+ALT on Windows (Ctrl+letter keys
     /// arrive as lowercase letters with CTRL only), so counting AltGr as
@@ -399,7 +399,7 @@ impl App {
     /// (`BURST_WINDOW` of the last text character). The Ctrl+Alt+L handler
     /// uses this to tell an AltGr CHARACTER from the chord: on ABNT layouts
     /// `l` arrives encoded as Char+CTRL|ALT, exactly like the shortcut, but
-    /// a real user cannot hit a chord within 80 ms of typing text — only a
+    /// a real user cannot hit a chord within 80 ms of typing text - only a
     /// paste (or AltGr burst) can.
     pub(super) fn paste_burst_text_recent(&self) -> bool {
         self.paste_burst
@@ -411,7 +411,7 @@ impl App {
     /// form, panel or mode-specific input is intercepting keys.
     ///
     /// NOTE: hand-maintained mirror of the "modal sovereignty" gates at the
-    /// top of `App::process_key_event` (keys.rs) — when a new overlay gate is
+    /// top of `App::process_key_event` (keys.rs) - when a new overlay gate is
     /// added there, add it here too, or the coalescer will absorb keys that
     /// overlay should receive.
     ///
@@ -456,15 +456,15 @@ impl App {
 
     /// Classify a key for the in-flight paste burst. Returns `true` when the
     /// key was consumed by the coalescer (the caller must stop processing it
-    /// — in particular it must NOT reach the `SendMessage` keymap action).
+    /// - in particular it must NOT reach the `SendMessage` keymap action).
     ///
     /// Text characters are NEVER consumed on suspicion: they fall through to
     /// the prompt immediately (streaming render, held keys included) while
-    /// being mirrored into the shadow for the burst-end replay — UNLESS a
+    /// being mirrored into the shadow for the burst-end replay - UNLESS a
     /// clipboard anchor already confirmed the stream, in which case matching
     /// keys are swallowed (the full text already landed atomically) and only
     /// a mismatch falls through after rolling back. Only Enters inside the
-    /// burst window are absorbed (as paste line breaks) — plain AND
+    /// burst window are absorbed (as paste line breaks) - plain AND
     /// modifier-carrying (a terminal with bracketed-paste interference
     /// delivers pasted `\n` as Ctrl+Enter; absorbing it keeps the shadow
     /// identical to what the prompt would have received); any other key
@@ -476,7 +476,7 @@ impl App {
             // than dropping it: a paste is user data. Divergence from the
             // Unix path (deliberate): there, an Event::Paste arriving while
             // an input dialog is open is routed INTO that dialog's field
-            // (events.rs); here the text parks in the background prompt —
+            // (events.rs); here the text parks in the background prompt -
             // no corruption, no accidental send, fully visible once the
             // prompt regains focus.
             self.flush_paste_buffer();
@@ -485,7 +485,7 @@ impl App {
         let plain_text = PasteBurstState::is_plain_text_key(key);
         // NOTE: any Enter, not just a plain one. Pasted line breaks usually
         // arrive modifier-free, but a terminal left in bracketed-paste mode
-        // tags them with CONTROL (crossterm#962) — and a Shift/Ctrl+Enter
+        // tags them with CONTROL (crossterm#962) - and a Shift/Ctrl+Enter
         // typed within 80ms of text is motor-impossible for a human anyway,
         // so absorbing it is always the paste-faithful choice. Outside the
         // window it still falls through to the newline shortcut / submit.
@@ -525,7 +525,7 @@ impl App {
             // empty this character starts a fresh run, and the live cursor
             // is the exact insertion point the fall-through typing path is
             // about to use. A jittered run keeps its shadow across a wide
-            // gap (see `note_text_key`), so its original start survives —
+            // gap (see `note_text_key`), so its original start survives -
             // only a fresh run re-anchors.
             self.paste_burst
                 .note_burst_start(self.prompt_view.cursor_pos);
@@ -538,7 +538,7 @@ impl App {
         // Enter (plain or modified).
         //
         // Absorb when the burst is armed OR when ANY text key was seen
-        // within the window (`text_recent`) — even below the arming
+        // within the window (`text_recent`) - even below the arming
         // threshold. A paste whose FIRST line is shorter than
         // [`BURST_MIN_KEYS`] (e.g. `hi\nbye\nok`) delivers its first Enter
         // before the counter reaches 4; falling through there would
@@ -548,11 +548,11 @@ impl App {
         // Modified Enters (Ctrl/Shift+Enter) absorb under the same rule:
         // terminals with bracketed-paste interference send pasted breaks
         // that way, and letting one fall through would type a newline the
-        // shadow never mirrored — desynchronizing the burst-end replay.
+        // shadow never mirrored - desynchronizing the burst-end replay.
         //
         // Clipboard-anchored stream first: a break the clipboard predicts is
         // swallowed (never rendered); anything else rolls back inside and
-        // falls through below — a real submit among them.
+        // falls through below - a real submit among them.
         if self.paste_burst.anchor.is_some() && self.paste_burst_anchor_consume_enter(now) {
             return true;
         }
@@ -567,7 +567,7 @@ impl App {
         // Enter outside any burst (>80ms since the last text key). Land the
         // run FIRST, through the normal flush path: a jittered paste (console
         // stall stretching one record gap past the window) arrives here with
-        // its line breaks still only in the shadow — replaying restores them
+        // its line breaks still only in the shadow - replaying restores them
         // (retract the streamed chars, re-insert with real newlines) so this
         // Enter submits the FULL multi-line text as ONE message. The retraction
         // is exact (the shadow mirrors precisely the streamed tail chars), so
@@ -578,7 +578,7 @@ impl App {
     }
 
     /// Attempt to confirm the in-flight run as clipboard content and, on
-    /// success, land the whole paste atomically (Windows only — see the
+    /// success, land the whole paste atomically (Windows only - see the
     /// module docs). Runs once the stream is long enough to judge
     /// ([`ANCHOR_MIN_CHARS`]): the clipboard is read a single time per run
     /// and the anchor engages only when the entire shadow is a strict
@@ -717,7 +717,7 @@ impl App {
 
     /// The whole clipboard arrived and the placeholder already shows it: drop
     /// the mirror and disarm the cadence entirely. The user's next Enter
-    /// therefore submits instead of absorbing — the paste is provably over,
+    /// therefore submits instead of absorbing - the paste is provably over,
     /// which the timed heuristic alone could never know.
     fn complete_anchor(&mut self) {
         self.paste_burst.clear();
@@ -728,7 +728,7 @@ impl App {
 
     /// Abandon an anchor: retract the atomic insertion and land exactly what
     /// actually arrived, through the normal paste path (long received text
-    /// may still compress on its own merits). Never invents content — when
+    /// may still compress on its own merits). Never invents content - when
     /// the prompt changed underneath, everything is left untouched and the
     /// orphaned mapping is still dropped so undo/expand never see a ghost.
     fn rollback_anchor(&mut self) {
@@ -757,16 +757,16 @@ impl App {
 
     /// Replay the pending run through the NORMAL paste path
     /// (`PromptView::handle_paste`): the streamed characters are retracted
-    /// from the prompt and re-inserted with real line breaks — line endings
+    /// from the prompt and re-inserted with real line breaks - line endings
     /// normalized, and long pastes compressed into the `[Pasted ~N lines]`
-    /// virtual-text placeholder — identical to what Linux/macOS receive in
+    /// virtual-text placeholder - identical to what Linux/macOS receive in
     /// one `Event::Paste`. Short runs that would not compress are cleared
     /// without replaying: plain typing and held keys stay exactly as typed.
     ///
     /// An active clipboard anchor never reaches the logic below: the time-
     /// driven flush (`paste_burst_flush_if_due_at`) skips anchored runs, so
     /// arriving here with one means explicit input contradicted the stream
-    /// (or keyboard ownership changed) — roll back to exactly what arrived.
+    /// (or keyboard ownership changed) - roll back to exactly what arrived.
     fn flush_paste_buffer(&mut self) {
         if self.paste_burst.anchor.is_some() {
             self.rollback_anchor();
@@ -778,7 +778,7 @@ impl App {
         if !self.paste_burst.run_replayable() {
             // The run never developed paste semantics (no absorbed Enter, the
             // cadence never armed): the streamed characters ARE the final
-            // content — nothing to retract or replay.
+            // content - nothing to retract or replay.
             self.paste_burst.clear();
             return;
         }
@@ -788,18 +788,18 @@ impl App {
             return;
         };
 
-        // Retract the run's text characters from where they streamed — the
-        // span starting at `burst_start` — so the replay below re-inserts
+        // Retract the run's text characters from where they streamed - the
+        // span starting at `burst_start` - so the replay below re-inserts
         // them at the same spot with real newlines. The old code only
         // retracted an end-of-input tail (`cursor == input.len()`), so a
         // paste into the MIDDLE of a draft never replayed: no placeholder,
         // and its absorbed line breaks were silently lost. `cursor_pos` and
-        // `input` are BYTE offsets — walk chars, never subtract counts (a
+        // `input` are BYTE offsets - walk chars, never subtract counts (a
         // multibyte char in the run would panic a naive byte drain).
         //
         // The span is verified before draining: if the user moved the cursor
         // or edited mid-burst, the bytes there are no longer the streamed
-        // run — retracting would take foreign characters and replaying
+        // run - retracting would take foreign characters and replaying
         // would DUPLICATE the streamed text. In that case fall back to the
         // end-anchored tail (the common append case), and only give up when
         // neither matches (content stays as streamed, intact).
@@ -857,7 +857,7 @@ impl App {
         // consumers are mutually exclusive per key, never redundant.
         //
         // Anchored runs are skipped outright: the full paste already landed
-        // atomically and the stream is still being verified — silence alone
+        // atomically and the stream is still being verified - silence alone
         // must never disturb it (a stall resumes against the same anchor).
         // Only contradictory input rolls back, via the explicit flush paths.
         if !self.paste_burst.shadow_is_empty()
@@ -897,14 +897,14 @@ impl App {
 
 #[cfg(test)]
 mod state_machine_tests {
-    //! Deterministic unit tests for the [`PasteBurstState`] machine — driven
+    //! Deterministic unit tests for the [`PasteBurstState`] machine - driven
     //! with a synthetic clock (microsecond steps, no real sleeps). The
     //! integration tests in `super::super::tests::paste_burst` cover the App
     //! wiring; this module pins the state-machine invariants themselves.
 
     use super::*;
 
-    /// One microsecond-ish step — any delta far below BURST_WINDOW.
+    /// One microsecond-ish step - any delta far below BURST_WINDOW.
     const STEP: Duration = Duration::from_micros(100);
 
     /// A start instant; every timeline in these tests is relative to it.
@@ -964,7 +964,7 @@ mod state_machine_tests {
     /// resets, so sustained human typing never reaches the arming threshold
     /// that classifies the next Enter as a paste line break. A NOT-yet-
     /// replayable run's shadow is dropped with it (its characters stay in
-    /// the prompt as typed); a REPLAYABLE run keeps its shadow — console/RDP
+    /// the prompt as typed); a REPLAYABLE run keeps its shadow - console/RDP
     /// jitter routinely exceeds the window mid-paste, and the run's prefix
     /// is still awaiting the burst-end replay.
     #[test]
@@ -1031,7 +1031,7 @@ mod state_machine_tests {
 
     /// A SHORT run with no absorbed Enter (plain typing, held keys,
     /// short single-line pastes) is cleared WITHOUT a replay: the streamed
-    /// text stays in the prompt exactly as typed — no retraction, no
+    /// text stays in the prompt exactly as typed - no retraction, no
     /// placeholder compression of fast human typing.
     #[test]
     fn take_replay_without_enter_leaves_text_as_typed() {
@@ -1046,7 +1046,7 @@ mod state_machine_tests {
 
     /// A LONG single-line run (no Enter, but over the shared compression
     /// threshold) IS replayed: the Unix `Event::Paste` path compresses those
-    /// into `[Pasted ~N lines]`, so the Windows replay must too — otherwise
+    /// into `[Pasted ~N lines]`, so the Windows replay must too - otherwise
     /// a large single-paragraph paste streams forever and the placeholder
     /// never appears. The threshold lives in ONE place
     /// (`prompt::paste_would_compress`), so this tracks `handle_paste`.

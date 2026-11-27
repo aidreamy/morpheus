@@ -21,7 +21,7 @@
 //!   `str.isalnum() + '_'`. This port replaces them with linear scanners over
 //!   `char`s classified through `icu_properties` (`isalnum` = general category
 //!   L* ∪ Nd/Nl/No; per-char `isupper`/`islower` = the Uppercase/Lowercase
-//!   binary properties), verified sweep-wide against CPython — this also
+//!   binary properties), verified sweep-wide against CPython - this also
 //!   satisfies `test_identifier_complexity.py`'s linearity requirement by
 //!   construction.
 //! - `state_text` caps at `max_chars` with Python character semantics; Rust
@@ -305,7 +305,7 @@ pub const NON_EN_DIACRITIC_RATE: f64 = 0.02;
 /// alone pull otherwise plain English off the English checkpoint: the rate is
 /// measured over every character, so a single `é` in a short sentence clears
 /// the floor above. English function words keep their say only through the
-/// rescue below — two distinct words no other list holds, at most one
+/// rescue below - two distinct words no other list holds, at most one
 /// non-English letter word, and a rate still well above the floor vetoes
 /// regardless.
 pub const ENGLISH_RESCUE_DIACRITIC_RATE: f64 = 0.06;
@@ -563,7 +563,7 @@ pub(crate) fn profile_from_counts(counts: &[(&'static str, usize)]) -> Vec<(Stri
     ordered
 }
 
-/// `detect_script`: dominant script of `text` — `latin`, `han`,
+/// `detect_script`: dominant script of `text` - `latin`, `han`,
 /// `devanagari`, ... or `unknown` if there are no letters.
 pub fn detect_script(text: &str) -> &'static str {
     script_from_counts(&script_counts(text))
@@ -628,12 +628,12 @@ pub(crate) fn stop_list(lang: &str) -> Option<&'static [&'static str]> {
 //
 // `_WORD` and `_IDENTIFIER` as linear scanners. `_IDENTIFIER` upstream is the
 // regex `(?<![\w-])[\w-]*(?:[.@][\w-]+)+`: dot- and @-joined word runs
-// (`github.com`, `user@acme.com`, `v1.2.3`) are identifiers, not prose — they
+// (`github.com`, `user@acme.com`, `v1.2.3`) are identifiers, not prose - they
 // split into pieces that collide with real function words (`com` is
 // Portuguese for "with"). The lookbehind only keeps the match anchored at the
 // start of a word run; the run itself may contain `-`. Because `[\w-]` and
 // `[.@]` are disjoint, a leftmost match can only ever begin at a run start,
-// so scanning run starts reproduces the regex exactly — and is linear, which
+// so scanning run starts reproduces the regex exactly - and is linear, which
 // `test_identifier_complexity.py` pins (the unanchored greedy retry was
 // quadratic: 50 000 characters of one token cost 30 s).
 
@@ -665,7 +665,7 @@ pub(crate) fn word_runs(text: &str) -> Vec<String> {
     runs
 }
 
-/// Python `\w`: `str.isalnum()` or the ASCII underscore — the character class
+/// Python `\w`: `str.isalnum()` or the ASCII underscore - the character class
 /// of `_IDENTIFIER`'s runs (`[\w-]`, digits and underscore included).
 fn is_wc(ch: char) -> bool {
     ch == '_' || py_is_alnum(ch)
@@ -673,9 +673,9 @@ fn is_wc(ch: char) -> bool {
 
 /// `_IDENTIFIER.sub(" ", text)`: replace every dot-/@-joined identifier run
 /// with a space. The regex is `(?<![\w-])[\w-]*(?:[.@][\w-]+)+`; a leftmost
-/// match can only start where the lookbehind holds — at a run start, or at a
+/// match can only start where the lookbehind holds - at a run start, or at a
 /// separator whose previous character is outside `[\w-]` (`..com` matches at
-/// the second dot) — so scanning those positions reproduces it exactly, and
+/// the second dot) - so scanning those positions reproduces it exactly, and
 /// is linear, which `test_identifier_complexity.py` pins (the unanchored
 /// greedy retry was quadratic: 50 000 characters of one token cost 30 s).
 pub(crate) fn strip_identifiers(text: &str) -> String {
@@ -713,8 +713,8 @@ pub(crate) fn strip_identifiers(text: &str) -> String {
             out.push(' ');
             i = end;
         } else if end > start {
-            // No match can start inside this run either — every later
-            // position fails the lookbehind — so emit the run whole and keep
+            // No match can start inside this run either - every later
+            // position fails the lookbehind - so emit the run whole and keep
             // the scan linear (the unanchored retry upstream was quadratic:
             // 50 000 characters of one token cost 30 s).
             out.extend(chars[start..end].iter());
@@ -727,7 +727,7 @@ pub(crate) fn strip_identifiers(text: &str) -> String {
     out
 }
 
-/// `_CODE_LINE`: a line carrying code syntax — `=`, `;`, braces, brackets or
+/// `_CODE_LINE`: a line carrying code syntax - `=`, `;`, braces, brackets or
 /// a call `name(`. The `\w` of `\w\(` is plain Python `\w` (digits included),
 /// so the scan uses `is_wc`, not the `_WORD`-flavoured `py_word_char`.
 fn is_code_line(line: &str) -> bool {
@@ -744,7 +744,7 @@ fn is_code_line(line: &str) -> bool {
 }
 
 /// `_JOINED`: a whitespace token holding a letter/digit, a joiner
-/// (`.`, `_`, `/`, `\`) and another letter/digit — an identifier or compound.
+/// (`.`, `_`, `/`, `\`) and another letter/digit - an identifier or compound.
 /// `[^\W_]` is plain `\w` (every `isalnum` digit, ASCII or not), so `is_wc`.
 fn has_joined_token(token: &str) -> bool {
     let chars: Vec<char> = token.chars().collect();
@@ -758,7 +758,7 @@ fn has_joined_token(token: &str) -> bool {
 }
 
 /// Python `str.isupper()` on a whole string: at least one cased character,
-/// no lowercase ones — uncased characters (`世`, digits) are ignored, so
+/// no lowercase ones - uncased characters (`世`, digits) are ignored, so
 /// `"ABC世界"` is upper even though its `世` is not. This is what
 /// `_LETTER_RUN.sub` tests per run, not the per-char property.
 fn str_is_upper(s: &[char]) -> bool {
@@ -806,8 +806,8 @@ pub struct LatinProfile {
 /// `latin_profile`: evidence behind the Latin-script language guess.
 ///
 /// A non-English language is only named when it matched at least one word no
-/// other list claims — shared function words alone (`la`, `e`, `o`) identify
-/// no particular language — and beats English by a margin. The stopword
+/// other list claims - shared function words alone (`la`, `e`, `o`) identify
+/// no particular language - and beats English by a margin. The stopword
 /// tables keep the upstream key order because `max` returns the first of
 /// equal values: on a tie the earlier language in `en, fr, de, es, pt, it,
 /// nl, ro, bn, az` wins.
@@ -1099,8 +1099,8 @@ fn named_prose_language(segment: &str) -> Option<String> {
 
 /// `_non_english_segment`: first line or field that, read on its own, is
 /// named a non-English language. Returns `(language, segment)`. A segment
-/// needs the evidence a whole state needs — at least four words, and a
-/// language named by `latin_profile` — and two *different* words of it; reads
+/// needs the evidence a whole state needs - at least four words, and a
+/// language named by `latin_profile` - and two *different* words of it; reads
 /// at most `max_chars` characters in all.
 fn non_english_segment(state: &Value, max_chars: usize) -> Option<(String, String)> {
     let mut seen = 0usize;
@@ -1164,7 +1164,7 @@ fn leaf_non_english(leaf: &str) -> Option<Analysis> {
     best
 }
 
-/// `analyse`: full detection result for a state — `script`, `script_profile`,
+/// `analyse`: full detection result for a state - `script`, `script_profile`,
 /// `language` (best effort, may be `None`), `is_english`,
 /// `non_latin_fraction` and `mixed_segment` (the line or field that made a
 /// mostly English state non-English, else `None`).
@@ -1180,7 +1180,7 @@ pub fn analyse(state: &Value) -> Analysis {
     if result.script == "latin" && result.is_english {
         // A Portuguese ticket with an English stack trace, error payload or
         // form template reads as English as a whole, because the English part
-        // is longer — yet the part a question is about is the customer's, and
+        // is longer - yet the part a question is about is the customer's, and
         // the English checkpoint cannot read it. The cost is lopsided:
         // English sent to multilingual loses a few points, the reverse loses
         // calibration. So a state that would go to English is checked line by

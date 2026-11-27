@@ -5,7 +5,7 @@ use crate::ui::dialogs::DialogType;
 use crossterm::event::KeyCode;
 
 /// An `/agents` split with ONE ACP pane (`opencode`) holding `prompts` user
-/// turns in its transcript — the shape a live (or `session/load` replayed)
+/// turns in its transcript - the shape a live (or `session/load` replayed)
 /// pane has.
 fn app_with_acp_pane(prompts: &[&str]) -> App {
     let mut app = App::new("/tmp".to_string());
@@ -31,7 +31,7 @@ fn toast_message(app: &App) -> Option<(String, String)> {
 }
 
 /// `/undo` with an ACP pane focused opens the SAME box the native path uses,
-/// over the pane's transcript checkpoints — one row per user prompt, oldest
+/// over the pane's transcript checkpoints - one row per user prompt, oldest
 /// first, with the selection parked on the newest so Enter undoes the last
 /// exchange.
 #[tokio::test]
@@ -159,7 +159,7 @@ async fn a_rewound_pane_is_never_replayed_back() {
     assert_eq!(persisted, vec![AgentPaneRef::Name("opencode".into())]);
 }
 
-/// The fence must come DOWN once a real session binds again — otherwise the
+/// The fence must come DOWN once a real session binds again - otherwise the
 /// pane would be refused every future rehydration for the rest of the session
 /// (the flag had no other clearing site). The test reproduces the terminal
 /// `AgentsPaneDone` order: the handler seeds the live resume id FIRST and only

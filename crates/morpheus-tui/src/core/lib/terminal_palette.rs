@@ -473,7 +473,7 @@ impl TerminalPalette {
                     if done_count == results.len() {
                         break;
                     }
-                    // Idle deadline resets on data — continue loop
+                    // Idle deadline resets on data - continue loop
                 }
                 Err(RecvTimeoutError::Timeout | RecvTimeoutError::Disconnected) => {
                     break;

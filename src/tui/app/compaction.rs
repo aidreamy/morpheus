@@ -145,7 +145,7 @@ impl App {
         }
     }
 
-    /// True when the current session has a still-running compaction line — the
+    /// True when the current session has a still-running compaction line - the
     /// render loop must stay live so the stopwatch ticks every frame.
     pub(super) fn has_running_compaction(&self) -> bool {
         self.state.current_session().is_some_and(|s| {

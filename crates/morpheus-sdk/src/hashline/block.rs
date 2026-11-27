@@ -1,6 +1,6 @@
 //! Expand deferred `replace block N:` edits into concrete inserts + deletes.
 //!
-//! The hashline parser cannot expand a block edit on its own — the line span is
+//! The hashline parser cannot expand a block edit on its own - the line span is
 //! unknown until file text + path (→ language) are available. This transform
 //! runs at every apply/preview boundary that has text: it calls the injected
 //! [`BlockResolver`] to resolve each block's `[start, end]` span, then emits
@@ -15,9 +15,9 @@ use super::types::{
 
 /// How to handle a block edit that cannot be resolved (missing resolver or a
 ///
-/// `null` span). `"throw"` (default) raises a `blockUnresolvedMessage` error —
+/// `null` span). `"throw"` (default) raises a `blockUnresolvedMessage` error -
 /// used by the authoritative apply + final preview paths. `"drop"` silently
-/// skips the edit — used by the streaming preview, where a half-written file
+/// skips the edit - used by the streaming preview, where a half-written file
 /// or transient parse error must not throw.
 #[derive(Debug, Clone)]
 pub struct ResolveBlockEditsOptions {
@@ -45,14 +45,14 @@ pub fn has_block_edit(edits: &[Edit]) -> bool {
 /// input unchanged when there is nothing to resolve.
 ///
 /// Synthesized inserts/deletes carry sequential `index` values for readability
-/// only — [`apply_edits`] re-derives every edit's index from array order, so
+/// only - [`apply_edits`] re-derives every edit's index from array order, so
 /// the passthrough edits keeping their original indices is harmless.
 ///
 /// # Errors
 ///
 /// Returns the `block_unresolved_message` diagnostic when an unresolvable
 /// block edit is encountered and `on_unresolved` is set to [`ResolveAction::Throw`]
-/// — never a panic: authored-input rejection flows through the same `Err`
+/// - never a panic: authored-input rejection flows through the same `Err`
 /// channel as every other malformed edit (see the parity guarantee
 /// `unresolved_block_is_an_error_not_a_panic`).
 #[allow(clippy::similar_names)]
@@ -109,7 +109,7 @@ pub fn resolve_block_edits(
         // Mirror the parser's `replace start..end:` expansion exactly: one
         // `before_anchor` replacement insert per payload row at `span.start`,
         // then one delete per line across `[span.start, span.end]`. An empty
-        // `payloads` (from `delete block N`) emits no inserts — a pure deletion.
+        // `payloads` (from `delete block N`) emits no inserts - a pure deletion.
         for payload in payloads {
             resolved.push(Edit::Insert {
                 cursor: Cursor::BeforeAnchor(Anchor { line: start }),

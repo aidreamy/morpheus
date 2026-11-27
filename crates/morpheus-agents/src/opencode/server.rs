@@ -9,7 +9,7 @@
 //! 4. kills the child when the last handle is dropped.
 //!
 //! The server publishes an OpenAPI-described HTTP API; this module only owns
-//! the process, never the protocol — see [`super::http`] and [`super::api`].
+//! the process, never the protocol - see [`super::http`] and [`super::api`].
 
 use std::collections::VecDeque;
 use std::io::{BufRead, BufReader};
@@ -242,7 +242,7 @@ impl Drop for Server {
 /// Kill the server and everything it spawned, then reap it.
 ///
 /// On Windows the launch goes through the npm `.cmd` shim, so the child this
-/// process owns is the `cmd` wrapper — killing it alone would leave the real
+/// process owns is the `cmd` wrapper - killing it alone would leave the real
 /// Bun server listening on its port. `taskkill /T` terminates the whole
 /// tree; on Unix the child IS the server and a plain kill suffices.
 fn kill_tree(mut child: Child) {

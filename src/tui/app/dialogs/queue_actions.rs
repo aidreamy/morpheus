@@ -83,10 +83,10 @@ impl App {
     }
 
     /// True when `queue`/`index` selects the message the chain will send
-    /// NEXT — the head of the Next queue, the immediate one. The edit hold
+    /// NEXT - the head of the Next queue, the immediate one. The edit hold
     /// only ever applies to that message (per spec): while it is being
-    /// edited, the loop chain must wait — a running loop waits at closure,
-    /// an idle chain waits before its auto-start — so the user can finish
+    /// edited, the loop chain must wait - a running loop waits at closure,
+    /// an idle chain waits before its auto-start - so the user can finish
     /// editing before the message is sent. Any other position (or the
     /// next-request queue, whose correctness is handled by the shared-queue
     /// retraction above) never pauses the loop.
@@ -183,11 +183,11 @@ impl App {
         // The deque mutation above and the shared queued-input retraction
         // must stay consistent: the HEAD message may already have been pumped
         // into the shared queue (in-flight, awaiting injection) while the
-        // pending deque still carries it. Retract it there too — otherwise a
+        // pending deque still carries it. Retract it there too - otherwise a
         // Delete would only be visual and the model would still receive the
         // removed text on the next request. ONLY index 0 qualifies: the pump
         // forwards one message at a time, so the shared queue can hold at
-        // most the head — a remove-by-text on a non-head action could match
+        // most the head - a remove-by-text on a non-head action could match
         // the in-flight head when duplicate texts exist.
         if matches!(action, 0 | 1)
             && index == 0
@@ -197,18 +197,18 @@ impl App {
             && self.next_request_in_flight
         {
             // Retract the pumped copy so the model never sees the removed or
-            // stale text (the shared queue held at most this one message —
+            // stale text (the shared queue held at most this one message -
             // the pump forwards one at a time).
             self.queued_input.remove(&text);
             // Reopen the delivery lane for the message that now follows.
             self.next_request_in_flight = false;
         }
 
-        // Editing the head of the NEXT queue — the immediate message —
+        // Editing the head of the NEXT queue - the immediate message -
         // pauses the chain until the edit is submitted:
         // * while idle: the auto-start waits (the submit clears the hold and
         //   starts the loop with the edited text).
-        // * while working: the loop waits at CLOSURE — the deferred start
+        // * while working: the loop waits at CLOSURE - the deferred start
         //   fires only after the hold lifts (the pump branch).
         // Delete never holds the chain: the retraction above already keeps
         // the removed text away from the model. Any other position runs the
@@ -247,7 +247,7 @@ impl App {
     /// dialog submit path).
     ///
     /// While an edit hint for the CURRENT session is outstanding, submitting
-    /// to the hint's queue re-inserts at the tracked position — even if the
+    /// to the hint's queue re-inserts at the tracked position - even if the
     /// text was changed, since editing is the whole point. Choosing the
     /// other queue (or a stale cross-session hint) appends at the end.
     pub(in crate::app) fn enqueue_pending_message(&mut self, target: QueueTarget, text: String) {
@@ -305,13 +305,13 @@ impl App {
         self.prompt_view.focus();
     }
 
-    /// Queue ONE message for the `/agents` pane `pane_id` — the user's own
+    /// Queue ONE message for the `/agents` pane `pane_id` - the user's own
     /// counterpart of the `agents_call` registry queue, with the same two
     /// queues the main agent's session has.
     ///
     /// A "next request" message needs a LIVE loop to be the next request OF:
     /// the pane must be running. How that delivery happens is the turn's own
-    /// business and is the ONE difference between pane kinds — a morpheus pane's
+    /// business and is the ONE difference between pane kinds - a morpheus pane's
     /// harness drains its steering handle before the next request of the same
     /// turn ([`super::super::agents_dispatch`], `pump_agents_pane_queued_requests`),
     /// while an ACP pane's turn is one prompt, so the message goes out the
@@ -371,7 +371,7 @@ impl App {
     /// Normally this starts a fresh agent loop right away. But when an
     /// EDITED queued message is outstanding (the hint armed by Queue Actions
     /// → Edit), the message MUST return to its slot in the queue instead of
-    /// being treated as a direct provider input — otherwise submitting it
+    /// being treated as a direct provider input - otherwise submitting it
     /// right as the loop ends (status already Idle) would jump ahead of
     /// everything still queued. The queue chain then resumes in FIFO order:
     /// leftover "next request" messages are promoted and the head of "next
@@ -396,7 +396,7 @@ impl App {
         self.pending_user_images.clear();
         self.enqueue_pending_message(target, text);
         // The edited message is back in its slot: the head-edit hold ends
-        // here — the chain may consume it again.
+        // here - the chain may consume it again.
         self.edit_hold_queue = None;
 
         if self.state.status != SessionStatus::Idle {

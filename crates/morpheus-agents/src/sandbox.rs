@@ -1,14 +1,14 @@
 //! Kernel-pinned filesystem sandbox for the ACP sub-agent `fs/*` requests
-//! (Unix only — see the `cfg` on the `mod sandbox;` declaration in `mod.rs`).
+//! (Unix only - see the `cfg` on the `mod sandbox;` declaration in `mod.rs`).
 //!
 //! The workspace root is pinned to a VERIFIED directory descriptor once per
 //! call ([`PinnedRoot::acquire`]: open → `fstat` → compare against the
 //! canonicalized path's `(dev, ino)`, retrying while the two observations
-//! disagree — a concurrent root swap makes them diverge). The walk below
+//! disagree - a concurrent root swap makes them diverge). The walk below
 //! never re-resolves the root path and never lets the kernel resolve a full
 //! path: every component is opened `openat`-relative to the previous
 //! descriptor with `O_NOFOLLOW`, so the descriptor used for the actual
-//! read/write is obtained DURING the walk — a concurrent swap of any
+//! read/write is obtained DURING the walk - a concurrent swap of any
 //! directory for an outside symlink is caught at open time and there is no
 //! validate-then-use window, including at the root itself.
 //!
@@ -18,14 +18,14 @@
 //!   against the kernel's own `MAXSYMLINKS` budget.
 //! - An ABSOLUTE target must be rooted at the workspace (canonical prefix),
 //!   and the walk base RESETS to the pinned root before resolving it.
-//! - A RELATIVE target may not contain `..` components — resolution stays
+//! - A RELATIVE target may not contain `..` components - resolution stays
 //!   under the current directory descriptor, which the walk has proven to
 //!   be inside the workspace. There is therefore no escape direction left.
 //! - READS follow a final-entry symlink only when the checks above prove
 //!   the target stays inside; a link whose target leaves the workspace
 //!   (or cannot be proven to stay) fails closed.
 //! - WRITES never write THROUGH a symlinked final entry at all (classic
-//!   no-follow semantics: `ELOOP` on the final open is an error) — a write
+//!   no-follow semantics: `ELOOP` on the final open is an error) - a write
 //!   cannot truncate an unexpected target or materialize one through a
 //!   dangling link. Intermediate symlinked directories may still be
 //!   traversed under the same rules.
@@ -107,9 +107,9 @@ impl PinnedRoot {
         let st_path = std::fs::metadata(&canonical)
             .map_err(|e| inaccessible(canonical.display().to_string(), e))?;
         // dev_t is u64 on Linux, i32 on macOS: a plain `as u64` cast compiles
-        // on both. The allows are per-platform by construction —
+        // on both. The allows are per-platform by construction -
         // `cast_sign_loss` only fires on macOS (i32 -> u64),
-        // `unnecessary_cast` only on Linux (u64 -> u64) — so neither can
+        // `unnecessary_cast` only on Linux (u64 -> u64) - so neither can
         // hide a real narrowing bug on the platform it doesn't apply to.
         #[allow(clippy::cast_sign_loss, clippy::unnecessary_cast)]
         if st_fd.st_dev as u64 != st_path.dev() || st_fd.st_ino != st_path.ino() {
@@ -193,7 +193,7 @@ fn dir_flags() -> OFlags {
 
 /// Resolve `requested` to an opened file descriptor WITHOUT ever letting the
 /// kernel resolve a full path again: every component is opened relative to
-/// the previous descriptor, and symlinks are expanded manually — each target
+/// the previous descriptor, and symlinks are expanded manually - each target
 /// must provably stay inside the workspace.
 fn open_pinned(root: &PinnedRoot, requested: &Path, create: bool) -> Result<File, AcpError> {
     let mut queue = root.relative_components(requested)?;
@@ -229,7 +229,7 @@ fn open_pinned(root: &PinnedRoot, requested: &Path, create: bool) -> Result<File
                 // truncate an unexpected target nor materialize one through
                 // a dangling link (see the module docs).
                 Err(e) if e == Errno::LOOP && create => Err(outside_workspace_error(requested)),
-                // Final entry is a symlink (read): follow it manually — its
+                // Final entry is a symlink (read): follow it manually - its
                 // target must provably stay inside the workspace.
                 Err(e) if e == Errno::LOOP => {
                     hops += 1;
@@ -315,7 +315,7 @@ fn open_pinned(root: &PinnedRoot, requested: &Path, create: bool) -> Result<File
 /// front of the remaining queue so resolution continues through the target.
 ///
 /// An ABSOLUTE target resets the walk base to the pinned workspace root and
-/// must be rooted there; a RELATIVE target may not climb out with `..` —
+/// must be rooted there; a RELATIVE target may not climb out with `..` -
 /// it resolves under the current descriptor, which the walk has proven to
 /// be inside the workspace. Dangling or outside targets fail closed.
 fn follow_symlink(

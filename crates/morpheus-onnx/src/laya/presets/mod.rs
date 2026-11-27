@@ -5,7 +5,7 @@
 //! public shape (`type` / `instructions` / `criteria`). Values are
 //! [`serde_json::Value`]s with insertion-ordered maps (the workspace enables
 //! serde_json `preserve_order`), so key order matches Python dict order
-//! exactly — the order `Agent._to_internal` and `render_options` read.
+//! exactly - the order `Agent._to_internal` and `render_options` read.
 //!
 //! `email_questions` lives in [`crate::laya::email`] now: it is defined once
 //! there and `laya::presets` re-exports it, so both import paths keep

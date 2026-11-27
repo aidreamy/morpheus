@@ -120,12 +120,12 @@ pub(crate) fn truncate_label(s: &str, max_chars: usize) -> String {
 
 /// Draw a blinking cursor at an explicit cell position on a text input field.
 ///
-/// `cursor` — the [`Cursor`] component with blink state.
-/// `now` — the current time for blink timing.
-/// `pad` — X position of the field start.
-/// `col` — column of the cursor within the field (from the wrapped layout).
-/// `y` — Y position of the cursor row.
-/// `pad_w` — available width for the field (cursor hidden past the edge).
+/// `cursor` - the [`Cursor`] component with blink state.
+/// `now` - the current time for blink timing.
+/// `pad` - X position of the field start.
+/// `col` - column of the cursor within the field (from the wrapped layout).
+/// `y` - Y position of the cursor row.
+/// `pad_w` - available width for the field (cursor hidden past the edge).
 fn draw_input_cursor_at(
     buf: &mut Buffer,
     cursor: &Cursor,
@@ -155,9 +155,9 @@ fn draw_input_cursor_at(
 /// The markdown renderer draws plain paragraph text with fg=Reset (only the
 /// field background is set on the cells), so a naive fg/bg swap would leave
 /// the selected text in the dark field color on the terminal's default
-/// background — invisible. Instead we paint the selection explicitly: the
+/// background - invisible. Instead we paint the selection explicitly: the
 /// field's text color becomes the background and the field's background color
-/// becomes the foreground (dark text on a light bar — the same look as the
+/// becomes the foreground (dark text on a light bar - the same look as the
 /// chat prompt's selection).
 ///
 /// Uses the same word-wrap walk that draws the cursor: the cell of each
@@ -180,7 +180,7 @@ fn highlight_selection(
         let (mut row, mut col) = wrapped_cursor_pos(&render[..rp], value_w);
         // The walk parks the caret before `p` on the previous line when the
         // line is exactly full (`col == value_w`); the char itself wraps to
-        // the start of the next row — unless it is whitespace, which the
+        // the start of the next row - unless it is whitespace, which the
         // renderer drops at a wrap (no drawn cell to highlight).
         if col >= value_w {
             let wraps = text[p..].chars().next().is_some_and(|c| !c.is_whitespace());
@@ -212,7 +212,7 @@ fn wrapped_cursor_pos(text: &str, pad_w: u16) -> (u16, u16) {
     let mut visible = markdown_to_visible_text(text);
     // markdown_to_visible_text trims trailing whitespace; restore it (spaces,
     // newlines and invisible blank-line spacers) so the cursor sits on the
-    // rows the renderer actually draws — e.g. right after a Shift+Enter the
+    // rows the renderer actually draws - e.g. right after a Shift+Enter the
     // caret is on the blank line below, not pulled back up.
     let trimmed = text.trim_end_matches(char::is_whitespace);
     visible.push_str(&text[trimmed.len()..]);
@@ -255,7 +255,7 @@ fn flush_cursor_word(word_w: &mut u16, x: &mut u16, y: &mut u16, pad_w: u16) {
 /// that is otherwise blank. NBSP (`U+00A0`) is not whitespace to cmark, so
 /// the line becomes a real paragraph; it renders as a plain space in every
 /// terminal. For cursor/click geometry it is treated as width 0 so a blank
-/// line's caret sits at column 0 — exactly where the next typed character
+/// line's caret sits at column 0 - exactly where the next typed character
 /// is drawn.
 const MARKDOWN_BLANK_LINE_SPACER: char = '\u{00A0}';
 
@@ -334,7 +334,7 @@ fn walk_wrapped_cursor(visible: &str, pad_w: u16) -> (u16, u16) {
 }
 
 /// Same as `wrapped_cursor_pos`, but trailing plain spaces are not restored
-/// (the renderer does not draw them) — only trailing newlines and blank-line
+/// (the renderer does not draw them) - only trailing newlines and blank-line
 /// spacers, which are real rows.
 fn wrapped_cursor_pos_display(text: &str, pad_w: u16) -> (u16, u16) {
     let mut visible = markdown_to_visible_text(text);
@@ -354,10 +354,10 @@ fn wrapped_cursor_pos_display(text: &str, pad_w: u16) -> (u16, u16) {
 /// (`wrapped_cursor_pos_display`): every possible caret position is sampled
 /// and the one whose drawn cell is closest to the click wins. Ties prefer
 /// the later position, so clicking on invisible markdown markers (`## `,
-/// `**`) lands after them — typing there keeps the block/inline syntax
+/// `**`) lands after them - typing there keeps the block/inline syntax
 /// intact.
 /// Visual row of the caret at `byte_pos` in a create-db field value wrapped
-/// at `value_w` columns — the same walk that draws the cursor. The Left/Right
+/// at `value_w` columns - the same walk that draws the cursor. The Left/Right
 /// handlers use this so the caret never crosses a line boundary horizontally
 /// (Up/Down move between lines instead).
 pub(crate) fn caret_row(value: &str, byte_pos: usize, value_w: u16) -> u16 {
@@ -495,7 +495,7 @@ impl RagView {
 
         cy += layout.input_h;
 
-        // Status line — content depends on mode.
+        // Status line - content depends on mode.
         match self.mode {
             RagMode::Idle => {
                 // Action buttons (only when form/picker not open)
@@ -651,7 +651,7 @@ impl RagView {
         // Gap above the Name field
         form_y += 1;
 
-        // Name & Description — the label is drawn as plain text and only the
+        // Name & Description - the label is drawn as plain text and only the
         // value goes through the markdown renderer, so long input wraps to
         // extra lines with syntax highlighting and a leading label never
         // hides block syntax (e.g. "## titulo") from the cmark parser.
@@ -1473,8 +1473,8 @@ mod tests {
         }
         assert!(!found.is_empty(), "typed char must be drawn in the field");
         let (x, y) = found[0];
-        // The char lands on the row BELOW the leading blank line — the row
-        // the caret was on — never one line up.
+        // The char lands on the row BELOW the leading blank line - the row
+        // the caret was on - never one line up.
         assert_eq!(y, desc_y + 1, "X must render on the caret row");
         assert_eq!(x, value_x, "X starts at the value's column 0");
     }
@@ -1524,7 +1524,7 @@ mod tests {
         }
         // The rest of the line renders normally: background untouched, and
         // fg = the field text color that `render_markdown` applies to plain
-        // text (NOT Reset — only the selection inverts the colors).
+        // text (NOT Reset - only the selection inverts the colors).
         let cell = &buf[(value_x + 6, name_y)];
         assert_eq!(cell.bg, super::rgba_color(theme.background_element));
         assert_eq!(cell.fg, super::rgba_color(theme.text));
@@ -1534,7 +1534,7 @@ mod tests {
         // Regression: the char that starts a wrapped row used to be skipped
         // by the highlight walk (its pre-char caret position parked on the
         // exactly-full previous row, `col == value_w`, which the bounds
-        // guard dropped). The copied bytes were always correct — this was
+        // guard dropped). The copied bytes were always correct - this was
         // purely a visual bug.
         use crate::routes::rag::models::CreateDbFocus;
         use crate::routes::rag::view::RagView;
@@ -1567,7 +1567,7 @@ mod tests {
         // Find the wrapped row: the first row after the description start
         // whose first value cell holds a char that is part of the selection
         // (bg = field text color). With sel 8..15 ("ghi jkl"), the wrap puts
-        // "jkl" on the next row — including the 'j'.
+        // "jkl" on the next row - including the 'j'.
         let mut checked = 0;
         for row in 1..desc_lines {
             let cell = &buf[(value_x, desc_y + row)];

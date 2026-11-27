@@ -3,7 +3,7 @@
 //! Every string field passes [`sanitize_string`] before entering an event, and
 //! every event passes [`sanitize_event`] right before enqueueing. Invariant
 //! tests (`tests.rs`) assert that paths, URLs, keys and prompt content cannot
-//! escape — the field is dropped (with a local warning) rather than rewritten.
+//! escape - the field is dropped (with a local warning) rather than rewritten.
 
 use crate::telemetry::schema::{
     ErrorCategory, EventType, FEATURE_ALLOWLIST, Feature, PROVIDER_ALLOWLIST, TOOL_ALLOWLIST,
@@ -11,7 +11,7 @@ use crate::telemetry::schema::{
 use xxhash_rust::xxh64::xxh64;
 
 /// Forbidden patterns for any string leaving the client. A match means the
-/// value could identify a user, a machine or a project — the field is dropped.
+/// value could identify a user, a machine or a project - the field is dropped.
 const FORBIDDEN_PATTERNS: &[&str] = &[
     "/home/",  // unix home dir
     "/users/", // macOS home dir (matched against the lowercased value)
@@ -36,14 +36,14 @@ const FORBIDDEN_PATTERNS: &[&str] = &[
     "172.31.",
     "169.254.", // link-local
     "10.",      // full 10.0.0.0/8 (a version string like "10.1.0" is
-    // never a payload value at this boundary — all numeric
+    // never a payload value at this boundary - all numeric
     // fields are integers, not strings)
     "sk-", // API key shapes
     "ghp_",
     "github_pat_",
     "xox",
     "akia",
-    "eyj", // JWT prefix (base64 of {" — lowercase form)
+    "eyj", // JWT prefix (base64 of {" - lowercase form)
     "bearer ",
     "-----begin ", // PEM blocks (lowercased)
     "postgresql://",
@@ -69,7 +69,7 @@ pub fn hash_identifier(raw: &str) -> String {
 pub fn fingerprint_error(message: &str) -> String {
     let mut normalized = message.to_lowercase();
 
-    // Drop anything that looks like a URL — these carry hosts and user content.
+    // Drop anything that looks like a URL - these carry hosts and user content.
     for token in ["http://", "https://", "file://"] {
         if let Some(idx) = normalized.find(token) {
             normalized.truncate(idx);
@@ -94,7 +94,7 @@ pub fn fingerprint_error(message: &str) -> String {
         no_quotes.push(ch);
     }
 
-    // 2) Drop path-like tokens (any token containing / or \\ — this covers
+    // 2) Drop path-like tokens (any token containing / or \\ - this covers
     // spaced paths like "/etc/my config/x", where every fragment still
     // contains a separator) and strip digits from the remaining words.
     let mut words: Vec<String> = Vec::new();

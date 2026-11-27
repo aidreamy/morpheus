@@ -5,10 +5,10 @@
 //! This module owns ONLY the pane model + layout + painting. The prompt is
 //! a single shared input that lives outside this area (`compute_prompt_area`
 //! in `app/render.rs`), so routing a submission is not this module's
-//! concern — it only tracks which pane (if any) the prompt targets.
+//! concern - it only tracks which pane (if any) the prompt targets.
 //!
-//! Layout heuristic (deliberately approximate — "fits nicely", not a perfect
-//! bin-packing): EVERY pane — the manager included — is an equal participant
+//! Layout heuristic (deliberately approximate - "fits nicely", not a perfect
+//! bin-packing): EVERY pane - the manager included - is an equal participant
 //! in the area division: one row of equal columns while each column stays
 //! readable (>= 24 cols), otherwise two balanced rows (ceil/floor split, the
 //! top row slightly taller when the height is odd). Pane order is preserved,
@@ -69,12 +69,12 @@ pub(crate) const BRAND_CONTRAST_FLOOR: f32 = 40.0;
 /// The sent box's INTERNAL breathing, left and right: the columns between
 /// each rail and the text. The chat's transcript keeps two (`x_off =
 /// area.x + 3`, `max_w = area.width - 6`); the pane's input box mirrors
-/// it — the markdown wraps and blits at `wrap_w - 2 * this`, starting
+/// it - the markdown wraps and blits at `wrap_w - 2 * this`, starting
 /// `this + 1` columns after the pane edge (rail + breathing).
 pub(crate) const INPUT_BOX_INSET_COLS: u16 = 2;
 
 /// How far an UNFOCUSED pane's brand-colored name dims toward the element
-/// background — the same register the old muted header used, so the
+/// background - the same register the old muted header used, so the
 /// focused pane reads at a glance. The FOCUSED name keeps the pure brand
 /// color: the brand mark is the identity, not a highlight to be dimmed.
 const DIM_UNFOCUSED: f32 = 0.45;
@@ -141,7 +141,7 @@ pub struct AgentPane {
     /// and carried unchanged by every pane-set rebuild that keeps the pane
     /// (`AgentsSplitState::reconciled_from`). Every pane event is stamped
     /// with it at dispatch; the event handler routes by id and drops
-    /// whatever no pane answers to — a stream can never land in a
+    /// whatever no pane answers to - a stream can never land in a
     /// replacement pane that merely shares the index.
     pub id: u64,
     /// Structured live transcript, REUSED from the right panel's
@@ -153,7 +153,7 @@ pub struct AgentPane {
     /// A cold-restore replay pass is IN FLIGHT for this pane (its bound
     /// session is being rehydrated through `session/load`). While set, a
     /// user prompt is refused with a toast (the pane's history is still
-    /// arriving — a prompt would interleave with the replay stream), the
+    /// arriving - a prompt would interleave with the replay stream), the
     /// mirror keeps spinning, and the header paints just the simple
     /// braille spinner at the pane's right edge. Cleared by the
     /// `AgentsPaneReplayed` handler, success or failure.
@@ -188,14 +188,14 @@ pub struct AgentPane {
     pub config_options: Option<Vec<AgentConfigOption>>,
     /// Option ids the user actually picked in a config box (the box
     /// confirm records them). `dispatch_to_pane` sends ONLY these ids'
-    /// currents as turn picks — an untouched option rides on the harness's
+    /// currents as turn picks - an untouched option rides on the harness's
     /// own default, letting `acp::call`'s registry default (e.g. a working
     /// free model where the harness's default is a paid-tier login wall)
     /// still apply.
     pub picked_config_ids: Vec<String>,
     /// The pane's OWN model selection (the per-pane `/models` pick on a
     /// focused morpheus pane): the (provider, model, reasoning) triple the
-    /// pane's turns run with. `None` = never picked — the pane inherits
+    /// pane's turns run with. `None` = never picked - the pane inherits
     /// the GLOBAL config at spawn time. A committed selection is ALSO
     /// recorded on the pane's morpheus session (the same provider/model/
     /// reasoning markers the main session carries), so it survives
@@ -205,7 +205,7 @@ pub struct AgentPane {
     /// report (`session/new`/`resume`/`load` payload): the full list plus
     /// the id the session starts in. The client maps its own harness mode
     /// onto one of these ids (`agent_command_map::map_mode_to_agent`) and
-    /// the NEXT turn binds it through `session/set_mode` — per-connection
+    /// the NEXT turn binds it through `session/set_mode` - per-connection
     /// state, so the binding re-applies every turn like the config picks.
     /// `None` = never reported; `Some(vec![])` = the agent advertises no
     /// modes (bind nothing, like gemini).
@@ -219,7 +219,7 @@ pub struct AgentPane {
     /// changed the binding): the next dispatch prepends a handoff block
     /// summarized from the pane's local timeline, so the agent keeps its
     /// working context across the move (resume-with-new-cwd is
-    /// best-effort — a harness that keys sessions by cwd falls back to a
+    /// best-effort - a harness that keys sessions by cwd falls back to a
     /// fresh session and THIS is the safety net). Cleared by the dispatch
     /// that consumes it.
     pub worktree_handoff_pending: bool,
@@ -235,7 +235,7 @@ pub struct AgentPane {
     /// rewind (see `App::rewind_pane_timeline`) and cleared when a real
     /// turn binds a NEW session. While set, cold-restore REPLAYS are
     /// refused for this pane: replaying the abandoned session would put
-    /// every rewound turn back on screen — the undo would look like it did
+    /// every rewound turn back on screen - the undo would look like it did
     /// nothing. It is also what keeps a rebuild-from-metadata (picker
     /// confirm, hidden-pane restore) from re-binding the old session.
     pub rewound: bool,
@@ -246,7 +246,7 @@ pub struct AgentPane {
     /// (the non-Yolo modes route `session/request_permission` to the TUI's
     /// box). `None` = nothing pending. The box's answer flows back through
     /// `permission_tx`; a turn's stop (Esc/Ctrl+X force-close) drops both
-    /// — the ACP handler answers `Cancelled` on the closed channel.
+    /// - the ACP handler answers `Cancelled` on the closed channel.
     pub pending_permission: Option<PanePermissionRequest>,
     /// The answer channel for [`Self::pending_permission`], handed over at
     /// dispatch (non-Yolo modes). `Some` while the turn runs with
@@ -260,8 +260,8 @@ pub struct AgentPane {
     /// - "next request" becomes the next request of the pane's CURRENT
     ///   working stretch: a morpheus pane's harness drains the steering handle
     ///   before that request (`serve_agents_pane_queues`' user-queue twin,
-    ///   `pump_agents_pane_queued_requests`), an ACP pane — whose turn is one
-    ///   prompt — takes it at the prompt boundary, the moment its turn
+    ///   `pump_agents_pane_queued_requests`), an ACP pane - whose turn is one
+    ///   prompt - takes it at the prompt boundary, the moment its turn
     ///   completes and before it can be seen idle;
     /// - "next agent loop" starts a fresh turn once the pane is free.
     ///
@@ -270,7 +270,7 @@ pub struct AgentPane {
     /// USER's queues outrank it (see `serve_agents_pane_user_queues`), and
     /// "next request" outranks "next loop".
     pub queued: crate::state::PendingQueues,
-    /// The generation of the turn this pane is running — bumped when a turn
+    /// The generation of the turn this pane is running - bumped when a turn
     /// is DISPATCHED and when one is force-closed (Ctrl+X), and stamped into
     /// every event that turn emits (`HarnessEvent::AgentsPaneEvent::turn`).
     /// A stopped turn keeps winding down after the pane was closed
@@ -280,7 +280,7 @@ pub struct AgentPane {
     /// and running flag, so Esc/Ctrl+X could no longer stop the agent, which
     /// kept working behind an idle-looking pane).
     pub turn_id: u64,
-    /// The steering handle into the pane's RUNNING turn — the same shared
+    /// The steering handle into the pane's RUNNING turn - the same shared
     /// [`morpheus::harness::queued_input::QueuedInput`] the main agent's queue
     /// uses, cloned into the pane's loop at dispatch. `Some` only while a
     /// morpheus pane turn is live, since only a real harness loop has request
@@ -291,12 +291,12 @@ pub struct AgentPane {
     /// (focus arrived with no cache): the slash menu shows its spinner row
     /// until the probe returns.
     pub snapshot_loading: bool,
-    /// Top of the visible window in content rows — the chat's `scroll_y`.
+    /// Top of the visible window in content rows - the chat's `scroll_y`.
     /// Re-clamped every render against the real content; sticky-bottom
     /// follow is [`AgentPane::auto_follow`].
     pub scroll_y: u16,
     /// The INPUT boxes (the user's echo, an `agents_call` input) of this
-    /// pane's timeline, in timeline order — the chat's clickable
+    /// pane's timeline, in timeline order - the chat's clickable
     /// user-message boxes' equivalent. Rebuilt every render (content
     /// coordinates, pad rows included); the hover highlight and the input
     /// click hit-test read it. Empty between renders.
@@ -345,7 +345,7 @@ pub struct PaneModelSelection {
 }
 
 impl PaneModelSelection {
-    /// Build from the dialog's commit triple (owned values — the caller
+    /// Build from the dialog's commit triple (owned values - the caller
     /// has already copied them out of the app state).
     pub fn new(provider: String, model: String, reasoning: Option<String>) -> Self {
         Self {
@@ -356,7 +356,7 @@ impl PaneModelSelection {
     }
 
     /// Project the selection onto the pane's badge chrome (`AgentSessionInfo`)
-    /// — the ONE mapping every writer shares (the picker's commit, the
+    /// - the ONE mapping every writer shares (the picker's commit, the
     /// rebuild hydration): the model is the picked id, the provider rides
     /// the row only when pinned (an `auto` pick leaves it empty, like an ACP
     /// pane that advertises no provider), no harness labels exist for a
@@ -415,7 +415,7 @@ impl AgentPane {
 
     /// Build a pane from its persisted reference: the agent CLI plus, when
     /// the pane already ran once, the ACP session id it RESUMES (the
-    /// `Bound` variant). A `Name` pane starts unbound — its first turn
+    /// `Bound` variant). A `Name` pane starts unbound - its first turn
     /// creates a session, and the done-handler promotes the persisted
     /// entry to `Bound`.
     #[must_use]
@@ -519,7 +519,7 @@ pub struct AgentsSplitState {
     /// `background_element`, the click-ability cue. `None` = no pane
     /// input hovered. Cleared by any move off the pane/box.
     pub hovered_input: Option<(usize, InputBoxHit)>,
-    /// A confirmed plain click ON a pane's input box: `(pane, hit)` —
+    /// A confirmed plain click ON a pane's input box: `(pane, hit)` -
     /// the pane plus the clicked box's identity (timeline index for
     /// Copy, user ordinal for Revert/Fork). The app layer resolves it to
     /// the pane session's message and opens the Message Actions dialog
@@ -534,31 +534,31 @@ pub struct AgentsSplitState {
     pub focused: Option<usize>,
     /// The pane that took the whole session area (`Ctrl+O` toggle on the
     /// focused pane, or a double-click on it). The OTHER panes stay fully
-    /// alive — turns keep running, streams keep landing in their
-    /// timelines — they are simply painted nothing: the layout hands
+    /// alive - turns keep running, streams keep landing in their
+    /// timelines - they are simply painted nothing: the layout hands
     /// their slots degenerate rects (the already-supported zero-size
     /// path), so every index-keyed structure (pane_regions, block_cache,
     /// diff_cells, pane_rects) survives unchanged. `None` = the normal
     /// grid. A pane hotkey or double-click restores the grid.
     pub maximized: Option<usize>,
-    /// Screen rects of the LAST rendered frame — the mouse dispatcher
+    /// Screen rects of the LAST rendered frame - the mouse dispatcher
     /// hit-tests these, exactly like `SessionView::pill_area`.
     pub pane_rects: Vec<Rect>,
     /// Persistent chat-style markdown renderers for the panes' Message/
-    /// Thought blocks — the SAME cache pattern the right panel's sub-agent
+    /// Thought blocks - the SAME cache pattern the right panel's sub-agent
     /// window uses (`SubagentBlockRenderer` survives across frames so
     /// `set_content` re-parses only the streamed tail). Key:
     /// `{pane_index}:{timeline_index}`. Lives on the split state (not the
     /// pane) so the pane model stays plain data.
     pub block_cache: HashMap<String, SubagentBlockRenderer>,
-    /// Cached styled cells of the panes' `EditDiff` activity lines — the
+    /// Cached styled cells of the panes' `EditDiff` activity lines - the
     /// SAME per-line cache the right panel's window uses (`SubagentDiffCells`,
     /// pruned by the frame's live keys). Key: `{pane_index}:diff{index}`.
     /// Lives on the split state (not the pane) so the pane model stays
     /// plain data.
     pub diff_cells: HashMap<String, SubagentDiffCells>,
     /// Luminous-sweep spinners for the RUNNING tool-call lines of the
-    /// panes' activity streams, keyed `{pane_index}:{call_id}` — the same
+    /// panes' activity streams, keyed `{pane_index}:{call_id}` - the same
     /// highlight the main chat's tool boxes and the right panel's live
     /// windows paint on InProgress rows. Pruned to InProgress entries after
     /// each split render so finished calls never keep animating state alive.
@@ -573,7 +573,7 @@ pub struct AgentsSplitState {
     pub selection_anchor_content_y: i32,
     pub selection_focus_content_y: i32,
     /// Text regions of the LAST rendered frame, per pane (content-row
-    /// labeled) — the extraction source, rebuilt every frame like the right
+    /// labeled) - the extraction source, rebuilt every frame like the right
     /// panel's regions so it always matches what is painted.
     pub pane_regions: Vec<Vec<TextRegion>>,
     /// Drag auto-scroll (the chat's fourth scroll form): armed while a drag
@@ -588,7 +588,7 @@ pub struct AgentsSplitState {
 impl AgentsSplitState {
     /// Build the pane set from the user's split config, in the order they
     /// setup. NO manager insert: the `morpheus` pane exists ONLY when the picker
-    /// marked it — the split is a plain reflection of the user's choice.
+    /// marked it - the split is a plain reflection of the user's choice.
     /// Each entry carries its persisted binding (`AgentPaneRef::Bound`
     /// resumes its ACP session).
     #[must_use]
@@ -625,7 +625,7 @@ impl AgentsSplitState {
         self.panes.len()
     }
 
-    /// Remove and return the pane at `index` — the HIDE primitive (Backspace
+    /// Remove and return the pane at `index` - the HIDE primitive (Backspace
     /// on the focused pane). The pane's running turn is signal-stopped here
     /// (its stream ends with its slot; a discarded stop signal is one nobody
     /// will ever set again) and its late events are dropped by the id router,
@@ -674,7 +674,7 @@ impl AgentsSplitState {
         Some(pane)
     }
 
-    /// Insert a pane at `index` (clamped to the end) — the RESTORE primitive
+    /// Insert a pane at `index` (clamped to the end) - the RESTORE primitive
     /// (Ctrl+Z on a hidden pane). The restored pane takes the focus and the
     /// grid returns. Per-frame caches/selection reset like [`Self::remove_pane`].
     pub fn insert_pane(&mut self, index: usize, pane: AgentPane) {
@@ -711,7 +711,7 @@ impl AgentsSplitState {
         false
     }
 
-    /// The index of the pane carrying `id`, if any — the event router's
+    /// The index of the pane carrying `id`, if any - the event router's
     /// identity check. `None` when no pane answers to the id (it left the
     /// set, or the set was rebuilt without it): the caller drops the event.
     #[must_use]
@@ -720,11 +720,11 @@ impl AgentsSplitState {
     }
 
     /// Reconcile THIS split against a fresh picker set: every surviving
-    /// pane (same agent, in occurrence order — the k-th fresh occurrence of
+    /// pane (same agent, in occurrence order - the k-th fresh occurrence of
     /// an agent adopts the k-th old occurrence of the same agent, the same
     /// binding-inheritance rule `open_agents_split` applies to the
-    /// metadata) keeps its pane OBJECT — timeline, running turn, stop
-    /// signal, bound session, scroll state — and is re-laid at its new
+    /// metadata) keeps its pane OBJECT - timeline, running turn, stop
+    /// signal, bound session, scroll state - and is re-laid at its new
     /// index; genuinely new panes are built fresh. Only the per-frame
     /// caches and the selection state reset (the new layout invalidates
     /// them; the next render rebuilds the caches from the surviving
@@ -733,7 +733,7 @@ impl AgentsSplitState {
     /// Panes the fresh set dropped are NOT carried and are signal-stopped
     /// here (their turn was cancelled with their slot; a discarded stop
     /// signal is one nobody will ever set again): their ids answer to
-    /// nothing, so their late events are dropped by the handler — a
+    /// nothing, so their late events are dropped by the handler - a
     /// removed pane cannot leak its stream into a replacement that shares
     /// the index.
     #[must_use]
@@ -750,7 +750,7 @@ impl AgentsSplitState {
             }
             let k = seen.entry(name).or_insert(0);
             // The k-th occurrence among ALL old panes of the agent, in
-            // order — the same matching `open_agents_split` applies to the
+            // order - the same matching `open_agents_split` applies to the
             // persisted bindings.
             let mut nth = *k;
             let mut picked: Option<usize> = None;
@@ -807,11 +807,11 @@ impl AgentsSplitState {
     }
 
     /// Focus the pane bound to hotkey `ch`: `'0'` UNFOCUSES every pane
-    /// (the shared prompt then targets the MAIN agent — the normal-mode
+    /// (the shared prompt then targets the MAIN agent - the normal-mode
     /// loop, running as manager while the split is open); `'1'..='9'`
     /// focus the 1st..9th pane in picker order. Returns the pane index the
     /// key FOCUSED (`None` for an unfocus, an out-of-range digit, or an
-    /// unmatched key — the caller only needs the index to seed a
+    /// unmatched key - the caller only needs the index to seed a
     /// per-pane fetch like the command snapshot).
     pub fn focus_hotkey(&mut self, ch: char) -> Option<usize> {
         // Jumping to another pane ends the expansion: the grid returns.
@@ -833,15 +833,15 @@ impl AgentsSplitState {
     }
 
     /// Toggle the expanded pane: an unfocused split maximizes the FOCUSED
-    /// pane (focusing it first — expansion needs a target), an already-
+    /// pane (focusing it first - expansion needs a target), an already-
     /// maximized split restores the grid. Returns whether the toggle
     /// HANDLED the key (the caller consumes it). The hotkeys stay
     /// consistent:
     /// `focus_hotkey` first RESTORES the grid (jumping to another pane
-    /// ends the expansion — one click/keystroke back), then focuses.
+    /// ends the expansion - one click/keystroke back), then focuses.
     pub fn toggle_maximized(&mut self) -> bool {
         match self.maximized {
-            // Restore: the grid returns, the key is consumed — the caller
+            // Restore: the grid returns, the key is consumed - the caller
             // must NOT park on the same press (the walk-back is two Escs).
             Some(_) => {
                 self.maximized = None;
@@ -860,9 +860,9 @@ impl AgentsSplitState {
 
     /// The ESC walk-back primitive: restore the grid ONLY when a pane is
     /// expanded. `true` means the press was consumed (the caller must NOT
-    /// park — the next Esc will); `false` means the grid was already up
+    /// park - the next Esc will); `false` means the grid was already up
     /// (nothing expanded) and the caller falls through to its own Esc
-    /// semantics — the park. Distinct from [`Self::toggle_maximized`]
+    /// semantics - the park. Distinct from [`Self::toggle_maximized`]
     /// because an Esc with the grid up must NEVER re-expand (a toggle
     /// would oscillate expand/restore forever and the user could never
     /// leave the split with Esc).
@@ -927,14 +927,14 @@ impl AgentsSplitState {
         self.pending_input_action.take()
     }
 
-    /// Discard any pending input action (a drag consumed the press — the
+    /// Discard any pending input action (a drag consumed the press - the
     /// click never became a click).
     pub fn clear_input_action(&mut self) {
         self.pending_input_action = None;
     }
 
     /// The raw TEXT behind an input hit (the Copy action's source): the
-    /// timeline entry's own text, un-sanitized — exactly what the sender
+    /// timeline entry's own text, un-sanitized - exactly what the sender
     /// typed/sent.
     pub fn input_text(&self, pane: usize, hit: &InputBoxHit) -> Option<String> {
         match self
@@ -992,7 +992,7 @@ impl AgentsSplitState {
     /// wheel path, the right panel's `scroll_up_at` contract: the pane under
     /// the pointer moves, the others stay put). `false` when no pane owns
     /// the position. The grid layout places panes side by side sharing the
-    /// same row band, so the column must be part of the hit-test — a row-only
+    /// same row band, so the column must be part of the hit-test - a row-only
     /// match lands every wheel on the FIRST pane of the row (the manager pane).
     pub fn scroll_at(&mut self, x: u16, y: u16, rows: i32) -> bool {
         let Some(index) = self
@@ -1073,7 +1073,7 @@ impl AgentsSplitState {
     /// Whether the active selection covers a real RANGE (the pointer moved
     /// since the anchor). A bare click anchors and releases on the same
     /// point: the event layer distinguishes drag from click, and a click
-    /// must never copy the one character under it — same rule as the chat's
+    /// must never copy the one character under it - same rule as the chat's
     /// copy-on-drag-release.
     #[must_use]
     pub fn is_drag(&self) -> bool {
@@ -1137,7 +1137,7 @@ impl AgentsSplitState {
 
     /// Called on every drag move: arm auto-scroll when the pointer is near
     /// the anchor pane's edge, or stop it otherwise (the right panel's
-    /// `update_auto_scroll` contract — the speed is re-derived on EVERY move
+    /// `update_auto_scroll` contract - the speed is re-derived on EVERY move
     /// so pushing deeper into the edge zone accelerates).
     pub fn update_auto_scroll(&mut self, y: u16) {
         let dir = self.auto_scroll_direction(y);
@@ -1184,7 +1184,7 @@ impl AgentsSplitState {
             return;
         }
         // Keep the focus content row tracking the moved content (the right
-        // panel's contract — the band follows the scrolled content).
+        // panel's contract - the band follows the scrolled content).
         self.selection_focus_content_y = self.selection_focus_content_y.saturating_add(int_scroll);
     }
 
@@ -1199,8 +1199,8 @@ impl AgentsSplitState {
     /// Extract the text spanned by the active selection out of the pane's
     /// painted regions (the chat's flow-based algorithm, scoped to the
     /// anchor pane so a drag never leaks across panes). Both endpoints are
-    /// content-space rows — the anchor stored at press time, the focus
-    /// tracked live — so the selection survives scrolling during the drag,
+    /// content-space rows - the anchor stored at press time, the focus
+    /// tracked live - so the selection survives scrolling during the drag,
     /// exactly like `SessionView::get_text_in_region`.
     #[must_use]
     pub fn extract_selected_text(&self) -> String {
@@ -1245,7 +1245,7 @@ impl AgentsSplitState {
         }
     }
 
-    /// Echo the turn's input into pane `pane`'s timeline as a FRESH entry —
+    /// Echo the turn's input into pane `pane`'s timeline as a FRESH entry -
     /// the user's own prompt (`user = true`, the brand rail) or another
     /// agent's `agents_call` input (the distinct rail). Out-of-range panes
     /// are ignored, like [`Self::apply_event`].
@@ -1296,19 +1296,19 @@ impl AgentsSplitState {
     /// The focused pane's slash-menu source: `None` when NO pane is
     /// focused. The MANAGER pane (morpheus itself: an ACP probe would be
     /// meaningless) serves the TUI's OWN command set plus the synthesized
-    /// morpheus-side `/worktree` entry every other pane kind carries — the
+    /// morpheus-side `/worktree` entry every other pane kind carries - the
     /// command must be DISCOVERABLE everywhere, and applying it on the
     /// manager pane is honored like on any other (`apply_worktree_command`):
     /// a bound morpheus pane runs its turns in the worktree cwd.
     /// Otherwise the focused pane's
     /// entries: the group commands SYNTHESIZED from the pane's own ACP
-    /// config options first (model / provider / mode — the controls
+    /// config options first (model / provider / mode - the controls
     /// harnesses like opencode and kilo never publish as slash
     /// commands, see `agent_command_map::synthesized_group_commands`),
     /// then the pane's own published command list blocklist-filtered, with
     /// any published command that duplicates a synthesized group name
-    /// dropped (the group's box wins — one entry per control). Options
-    /// still in flight contribute no synthesized entries yet — a later
+    /// dropped (the group's box wins - one entry per control). Options
+    /// still in flight contribute no synthesized entries yet - a later
     /// sync re-runs this method once they land.
     /// `snapshot_loading` marks an in-flight probe: the menu shows its
     /// spinner row until the entries land.
@@ -1316,7 +1316,7 @@ impl AgentsSplitState {
     pub fn slash_source(&self) -> Option<(Vec<crate::ui::slash_menu::SlashCommand>, bool)> {
         let pane = self.focused_pane()?;
         if pane.agent == MANAGER_LABEL {
-            // The manager's own set — which already ends with the morpheus-side
+            // The manager's own set - which already ends with the morpheus-side
             // `/worktree` row, because that row is part of the base list
             // (the MAIN agent gets it too). Appending it here again would
             // list the command twice.
@@ -1339,7 +1339,7 @@ impl AgentsSplitState {
                 .map(|options| super::agent_command_map::synthesized_group_commands(options))
                 .unwrap_or_default(),
         );
-        // The synthesized group spellings, normalized once — the dedup
+        // The synthesized group spellings, normalized once - the dedup
         // filter below reads this SET, not `entries` itself (the mutable
         // extend borrow would otherwise conflict with the closure's read).
         let group_names: std::collections::HashSet<String> = entries
@@ -1362,28 +1362,28 @@ impl AgentsSplitState {
                     name: cmd.name.clone(),
                     // The agent's command NAME is verbatim; the description is
                     // unwrapped to ONE line (harnesses publish whole skill
-                    // briefs — opencode's `customize-opencode`, claude's skill
-                    // commands — which flood the row otherwise).
+                    // briefs - opencode's `customize-opencode`, claude's skill
+                    // commands - which flood the row otherwise).
                     desc: super::agent_command_map::menu_description(&cmd.description),
                 }),
         );
         Some((entries, pane.snapshot_loading))
     }
 
-    /// Deliver the turn's terminal report to pane `pane` — the `AgentsPaneDone`
+    /// Deliver the turn's terminal report to pane `pane` - the `AgentsPaneDone`
     /// `output`. The closure itself lives in ONE place shared with the
     /// right-panel mirror ([`SubagentActivity::close_turn`]): seal the
     /// timeline, drop the streamed Message entry whose text the report
-    /// carries (the `TurnClosure` contract — appending it raw would let the
+    /// carries (the `TurnClosure` contract - appending it raw would let the
     /// coalescer merge the marker into that same entry, the "answer twice"
-    /// bug), then append the marker — the raw report on success, the
-    /// `[turn <reason>]` prefix on failure — as the turn's closing block.
+    /// bug), then append the marker - the raw report on success, the
+    /// `[turn <reason>]` prefix on failure - as the turn's closing block.
     /// A report that does NOT contain the streamed tail (a turn that ended
     /// right after a tool call and fell back to a previous segment, a
     /// truncated report) keeps the entry: degrades to keeping, never to
     /// losing content.
     ///
-    /// `end` ([`morpheus::harness::agent_coworkers::AgentCoworkerTurnEnd`]) decides both details —
+    /// `end` ([`morpheus::harness::agent_coworkers::AgentCoworkerTurnEnd`]) decides both details -
     /// whether the transcript seals failed and whether the marker is
     /// prefixed. A `partial` report deliberately seals like a COMPLETED turn
     /// (it carries the pane's real last text, which already streamed into
@@ -1403,8 +1403,8 @@ impl AgentsSplitState {
 
     /// The list label of pane `pane` in the right panel's mirror entry:
     /// `#k` (1-based occurrence) when THIS split runs the same agent CLI in
-    /// several panes — two `claude` instances must stay distinguishable in
-    /// the shared subagent list — and `None` for a lone instance (the agent
+    /// several panes - two `claude` instances must stay distinguishable in
+    /// the shared subagent list - and `None` for a lone instance (the agent
     /// name alone is unambiguous there).
     #[must_use]
     pub fn pane_mirror_label(&self, pane: usize) -> Option<String> {
@@ -1459,7 +1459,7 @@ impl AgentsSplitState {
         }
     }
 
-    /// Start a new turn on pane `pane`, returning its generation — the stamp
+    /// Start a new turn on pane `pane`, returning its generation - the stamp
     /// its events carry from now on. Out-of-range panes get `0` (a stamp no
     /// pane answers to, so such a dispatch's events land nowhere).
     pub fn begin_turn(&mut self, pane: usize) -> u64 {
@@ -1478,7 +1478,7 @@ impl AgentsSplitState {
     }
 
     /// Attach (or clear) the carried-context block of pane `pane`'s next
-    /// turn — the pane Revert's rewind handoff (see
+    /// turn - the pane Revert's rewind handoff (see
     /// [`AgentPane::rewind_context`]).
     pub fn set_rewind_context(&mut self, pane: usize, context: Option<String>) {
         if let Some(p) = self.panes.get_mut(pane) {
@@ -1486,7 +1486,7 @@ impl AgentsSplitState {
         }
     }
 
-    /// Record (or clear) the pane's post-rewind state — see
+    /// Record (or clear) the pane's post-rewind state - see
     /// [`AgentPane::rewound`].
     pub fn set_rewound(&mut self, pane: usize, rewound: bool) {
         if let Some(p) = self.panes.get_mut(pane) {
@@ -1494,7 +1494,7 @@ impl AgentsSplitState {
         }
     }
 
-    /// Drop timeline entries from `index` onward — the pane-side Revert
+    /// Drop timeline entries from `index` onward - the pane-side Revert
     /// (everything the user rolled back disappears from the pane). Returns
     /// whether the index was in range.
     pub fn truncate_timeline(&mut self, pane: usize, index: usize) -> bool {
@@ -1516,7 +1516,7 @@ impl AgentsSplitState {
     }
 
     /// Clear (or set) the pane's pending worktree HANDOFF flag. The dispatch
-    /// that carried the handoff block consumes it — later turns ride the
+    /// that carried the handoff block consumes it - later turns ride the
     /// prompt untouched until a new `/worktree` add/exit re-flags the pane.
     pub fn set_worktree_handoff_pending(&mut self, pane: usize, pending: bool) {
         if let Some(p) = self.panes.get_mut(pane) {
@@ -1566,7 +1566,7 @@ impl AgentsSplitState {
         };
         if let Some(tx) = &p.permission_tx {
             // `Err` = the receiver is gone (the turn already ended): nothing
-            // to answer — the drop IS the cancellation.
+            // to answer - the drop IS the cancellation.
             let _ = tx.send(answer);
         }
         true
@@ -1586,13 +1586,13 @@ impl AgentsSplitState {
 /// Compute the pane rects for `pane_count` panes inside `area`.
 ///
 /// Heuristic (documented at module level; NOT a perfect bin-packing): EVERY
-/// pane — the morpheus manager pane included — is an equal participant in the tiling,
+/// pane - the morpheus manager pane included - is an equal participant in the tiling,
 /// so the manager pane's block comes out of the same area division as the agents'
 /// instead of a fixed strip:
 /// - 1 pane: the whole area.
 /// - `n >= 2`: a single row of equal columns while every column stays >=
 ///   [`MIN_COLUMN_WIDTH`] wide (with 1-column gaps); otherwise two balanced
-///   rows — `ceil(n/2)` panes on top, `floor(n/2)` below, and when the
+///   rows - `ceil(n/2)` panes on top, `floor(n/2)` below, and when the
 ///   available height is odd the TOP row takes the extra row.
 /// - Gaps are exactly 1 cell (row/column) between panes; there are no
 ///   double borders.
@@ -1606,7 +1606,7 @@ impl AgentsSplitState {
 /// The layout WITH an expanded pane: pane `maximized` takes the whole
 /// area, every other pane's slot collapses to a zero rect (the
 /// degenerate path `render_pane` already skips). Index positions are
-/// PRESERVED — the caller's per-index structures need no re-keying.
+/// PRESERVED - the caller's per-index structures need no re-keying.
 #[must_use]
 pub fn compute_layout_with_maximized(
     pane_count: usize,
@@ -1639,7 +1639,7 @@ pub fn compute_layout_with_maximized(
 #[must_use]
 fn compute_layout_grid(pane_count: usize, area: Rect) -> Vec<Rect> {
     // Guard the division below (`usable / pane_count`): a caller can reach
-    // here with 0 panes — `compute_layout` gates 0/1, but
+    // here with 0 panes - `compute_layout` gates 0/1, but
     // `compute_layout_with_maximized` does not, and `render` passes
     // `state.pane_count()` straight through (a split whose every pane was
     // hidden must layout as an empty frame, not panic).
@@ -1661,7 +1661,7 @@ fn compute_layout_grid(pane_count: usize, area: Rect) -> Vec<Rect> {
         let top_count = pane_count.div_ceil(2);
         let bottom_count = pane_count - top_count;
         // Balanced rows; the top row takes the extra row of an odd height.
-        // Below 3 rows the separator cannot fit — split what is left.
+        // Below 3 rows the separator cannot fit - split what is left.
         let (top_h, bottom_h, row_gap) = if area.height >= 2 * GAP + 2 {
             let usable = area.height - GAP;
             let top = usable.div_ceil(2);
@@ -1729,7 +1729,7 @@ pub fn render(
     // rows inside it get selection regions even when scrolled out of view,
     // so a release after an auto-scroll drag copies the whole span (the
     // chat rebuilds regions for the span on release; panes emit them during
-    // the frame instead — same coverage, no second layout pass).
+    // the frame instead - same coverage, no second layout pass).
     let select_sel: Option<(usize, i32, i32)> = state
         .selection_pane
         .filter(|_| state.drag_selection.is_some())
@@ -1755,7 +1755,7 @@ pub fn render(
     // tail, or the pane vanished) and its renderer+scratch are dropped
     // instead of pinning hundreds of KB per pane for the session's life.
     let mut live_keys: HashSet<String> = HashSet::new();
-    // Spinner keys that are InProgress THIS frame — the map is pruned to
+    // Spinner keys that are InProgress THIS frame - the map is pruned to
     // them after the loop (the right panel's identical pattern), so a
     // finished call never keeps animating state alive.
     let mut live_spinner_keys: Vec<String> = Vec::new();
@@ -1786,7 +1786,7 @@ pub fn render(
     block_cache.retain(|key, _| live_keys.contains(key));
     // The EditDiff cell cache rides the SAME live-key set (the arm keys
     // itself `{pane_index}:diff{index}` into it), so its pruning is one
-    // pass too — the right panel's window prunes identically.
+    // pass too - the right panel's window prunes identically.
     diff_cells.retain(|key, _| live_keys.contains(key));
     // Prune spinner entries that left the InProgress state this frame (the
     // call finished or the pane vanished): finished calls must not keep
@@ -1829,7 +1829,7 @@ pub fn render(
 }
 
 /// Paint one pane: element background, the agent-name header and
-/// the tail of the activity stream (or the idle hint) — rendered through
+/// the tail of the activity stream (or the idle hint) - rendered through
 /// the right panel's REAL pipeline (`activity_lines` + `SubagentBlockRenderer`),
 /// so markdown blocks wrap, style and cache exactly like the sub-agent
 /// mini-chat instead of a stripped-down mirror.
@@ -1859,7 +1859,7 @@ fn render_pane(
     }
     // Background fill: a whisper lighter than the theme's OWN background
     // (the lift is derived per theme in `theme.rs`, so a light theme
-    // lifts off its light background too) — just enough to separate the
+    // lifts off its light background too) - just enough to separate the
     // pane from the transcript without a visible contrast edge. morpheus:
     // background (#07070A) → #0A0A0D.
     let bg = Style::default().bg(rgba_color(theme.agents_pane_background()));
@@ -1874,14 +1874,14 @@ fn render_pane(
 
     // ── Header row: the agent's name, one breathing column in ──
     let name_x = rect.x.saturating_add(1);
-    // The BRAND casing ("OpenCode"), not the lowercase ACP id — the id
+    // The BRAND casing ("OpenCode"), not the lowercase ACP id - the id
     // stays the dispatch key; only the painted label changes. The palette
     // lookup is case-insensitive, so the brand colors still resolve.
     let label = display_name(&pane.agent).to_string();
     let label_w = label.chars().count() as u16;
     // The pane's ACP budget, top-right: the SAME pair the session header
     // paints, fed by the harness's `UsageUpdate` snapshot. The component
-    // picks the widest variant that fits the pane's COLUMNS — the full
+    // picks the widest variant that fits the pane's COLUMNS - the full
     // `used / size tok` + bar on a wide pane, the compact `9.6k/100k 9%`
     // on a narrow one. The variant is chosen AFTER reserving the logo
     // (breathing + name + separator + right margin), so the budget
@@ -1951,7 +1951,7 @@ fn render_pane(
         // The cold-restore state: the pane's bound history is streaming
         // back from the agent's `session/load` replay. Just the simple
         // braille spinner (`component::spinner`), one breathing column in
-        // from the pane's right edge — no label, no extra chrome.
+        // from the pane's right edge - no label, no extra chrome.
         pane.rehydrate_spinner.advance();
         if let Some(cell) = buf.cell_mut((rect.right() - 1, rect.y)) {
             cell.set_char(pane.rehydrate_spinner.current_char());
@@ -1972,7 +1972,7 @@ fn render_pane(
     //
     // The pane's PENDING QUEUES ride that breathing room's place in the
     // chat: a bottom-anchored strip, painted above the reserved row where
-    // the worktree badge sits — the exact spot the chat's strip occupies
+    // the worktree badge sits - the exact spot the chat's strip occupies
     // above its prompt. The flow window shrinks by the strip's rows so no
     // activity line paints under a band, and the strip paints even when the
     // pane has no activity at all (an empty pane that was queued a message
@@ -1992,7 +1992,7 @@ fn render_pane(
     // muted tone, so a pinned pane announces where it works WITHOUT
     // touching the crowded header. Painted BEFORE the activity flow (and
     // before the scroll pill): an empty pane keeps its badge on the
-    // reserved row too, and a visible scroll pill may cover it —
+    // reserved row too, and a visible scroll pill may cover it -
     // navigation feedback wins over the static pin label.
     if let Some(worktree) = &pane.worktree {
         let badge = format!("⎇ {}", worktree.name);
@@ -2015,7 +2015,7 @@ fn render_pane(
     // Same component the chat paints its strip with: the bands are a lighter
     // wash of the pane's AGENT BRAND hue (the pane's identity color, the same
     // one its user-message rail carries), each ending in a full-strength cap
-    // labeled NEXT / CLOSURE. No pointer routing here — a pane's strip is
+    // labeled NEXT / CLOSURE. No pointer routing here - a pane's strip is
     // read-only for now (the chat's strip owns the click-to-edit surface).
     if queue_h > 0 {
         let queue_area = Rect::new(rect.x, body_y + view_h, rect.width, queue_h);
@@ -2030,7 +2030,7 @@ fn render_pane(
     }
     let lines = activity_lines(&pane.activity, wrap_w);
     if lines.is_empty() {
-        // Empty pane: the background fill painted above is the whole body —
+        // Empty pane: the background fill painted above is the whole body -
         // no placeholder text (visual pollution). The zero-content
         // measurement still lands so a stale scroll offset cannot survive.
         pane.effective_scroll = 0;
@@ -2040,20 +2040,20 @@ fn render_pane(
         return;
     }
 
-    // Content height in VISUAL rows — the scroll ceiling, computed from the
+    // Content height in VISUAL rows - the scroll ceiling, computed from the
     // same `visual_rows` the renderer consumes so they can never disagree.
     // Input lines (the sent boxes) reserve their BREATHING rows in this
     // pane's flow: one pad row above + one below the markdown block (the
-    // chat's border+padding). The pads are real flow rows — the first
+    // chat's border+padding). The pads are real flow rows - the first
     // input's top pad exists (it is not a frame decoration clamped away)
     // and the bottom pad is a margin the following output flows UNDER,
     // never over.
-    // The input blocks measure at the BLIT width (`input_block_w` below —
+    // The input blocks measure at the BLIT width (`input_block_w` below -
     // the renderer wraps at the inset width, so the ceiling must count
     // those rows, not a full-width wrap). Measuring at any other width
     // under-counts a wrapped input by the rows the inset stole: the sticky
     // bottom sits too high and the tail box's last rows fall below the
-    // ceiling — the band's bottom clipped while the hover highlight (the
+    // ceiling - the band's bottom clipped while the hover highlight (the
     // box's full span) still lit it, reading as "highlight taller than the
     // band" and "the band lost its bottom row to the pane's padding".
     let input_block_w = wrap_w.saturating_sub(INPUT_BOX_INSET_COLS * 2);
@@ -2089,7 +2089,7 @@ fn render_pane(
     // Sliding window: walk the lines with their absolute content row, skip
     // the ones fully above `scroll_y`, paint the ones intersecting the body
     // (passing `skip` so a straddling block shows only its lower part) and
-    // label every painted visual row with its CONTENT row — the selection
+    // label every painted visual row with its CONTENT row - the selection
     // regions' coordinate system, exactly the right panel's contract.
     // Lines overlapping the active selection span are visited even when
     // fully off-window: they paint nothing but still report regions, so a
@@ -2107,7 +2107,7 @@ fn render_pane(
         let input = is_input_line(line);
         // An input's markdown wraps INSIDE the box's breathing (the blit's
         // `block_w`): measure the block at the SAME width the renderer
-        // draws it at, or the reserved rows disagree with the drawn ones —
+        // draws it at, or the reserved rows disagree with the drawn ones -
         // the flow would overlap the next block by the stolen rows (a
         // wrapped input's tail printed over the following output). Every
         // other line keeps the pipeline width.
@@ -2119,9 +2119,9 @@ fn render_pane(
             _ => line.visual_rows(wrap_w),
         };
         // Input boxes own their breathing rows IN THE FLOW: the line's
-        // extent is [content_row, content_row + h + pads) — one pad row
+        // extent is [content_row, content_row + h + pads) - one pad row
         // above the block, one below. The first input's top pad is a real
-        // row (it exists even at content row 0 — nothing clamps it away),
+        // row (it exists even at content row 0 - nothing clamps it away),
         // and the bottom pad is a margin the following output flows UNDER,
         // never over. Non-input lines keep the bare block extent.
         let top_pad = u16::from(input) * (INPUT_BOX_PAD_ROWS / 2);
@@ -2153,7 +2153,7 @@ fn render_pane(
         let visible = line_end > scroll_y && content_row < scroll_y.saturating_add(view_h);
         if input {
             // The box's full extent: pad row above, content rows, pad row
-            // below — the clickable surface, hover target and drag anchor.
+            // below - the clickable surface, hover target and drag anchor.
             // The hit carries the box's identity: its timeline entry
             // (Copy) and, for a USER echo, its user ordinal (the
             // Revert/Fork target in the pane session).
@@ -2164,7 +2164,7 @@ fn render_pane(
                 ordinal
             });
             // The line's OWN `index` is the timeline position (activity_lines
-            // stamps Message-block lines from the timeline enumerate) — the
+            // stamps Message-block lines from the timeline enumerate) - the
             // walk's `index` is the LINES position, which skips empty
             // entries and would drift.
             let timeline_index = match line {
@@ -2292,15 +2292,15 @@ fn render_pane(
 /// the screen-independent identity the click handler needs.
 #[derive(Debug, Clone, PartialEq)]
 pub struct InputBoxHit {
-    /// Content-row span of the whole box (pads included) — the hover and
+    /// Content-row span of the whole box (pads included) - the hover and
     /// click hit-test target.
     pub span: std::ops::Range<i32>,
-    /// The box's timeline entry index (`SubagentActivity.timeline`) —
+    /// The box's timeline entry index (`SubagentActivity.timeline`) -
     /// Copy reads the text straight from it, no store round-trip.
     pub timeline_index: usize,
     /// The k-th USER input of the timeline (`None` for an `agents_call`
-    /// input): the positional key into the pane session's user messages —
-    /// the same order the echo and the replay builders follow — that
+    /// input): the positional key into the pane session's user messages -
+    /// the same order the echo and the replay builders follow - that
     /// maps the click onto the store's Revert/Fork target.
     pub user_ordinal: Option<usize>,
 }
@@ -2318,7 +2318,7 @@ fn is_input_line(line: &SubagentActivityLine) -> bool {
 /// Union of a line's painted band `[skip, skip + paint)` with the
 /// selection-span band `emit` (both ri-relative, end-exclusive), clamped to
 /// the line's `len` rows: the single row range an activity-line arm below
-/// iterates — it paints only the painted band but reports selection regions
+/// iterates - it paints only the painted band but reports selection regions
 /// for the whole union, so one loop serves both without duplicating the
 /// per-row text formatting.
 fn paint_emit_window(skip: u16, paint: usize, emit: Option<(u16, u16)>, len: usize) -> (u16, u16) {
@@ -2337,11 +2337,11 @@ fn paint_emit_window(skip: u16, paint: usize, emit: Option<(u16, u16)>, len: usi
 /// Paint ONE drawable activity line at absolute `(x, y)`, clipped to
 /// `draw_rows` with its first `skip` rows scrolled off. `emit_rows` is an
 /// optional ri-relative row band (end-exclusive) that reports selection
-/// regions WITHOUT painting — the active drag-selection span where it
-/// overlaps this line — so off-window rows still copy. Markdown blocks
+/// regions WITHOUT painting - the active drag-selection span where it
+/// overlaps this line - so off-window rows still copy. Markdown blocks
 /// (`Message`/`Thought`) go through the pane's persistent
 /// `SubagentBlockRenderer` (chat-style incremental parsing, scratch-buffer
-/// blit — the exact pattern of the right panel's live window); Tool/Diff/
+/// blit - the exact pattern of the right panel's live window); Tool/Diff/
 /// Plan lines draw with the same marker/glyph styles. The replayed user
 /// block additionally wears the prompt input's left `│` rail (see the
 /// `UserMessage` arm). Every painted visual
@@ -2407,11 +2407,11 @@ fn draw_activity_line(
                 _ => dimmed_style,
             };
             // The running tool-call label highlights with the pane agent's
-            // OWN brand color — the same agent-identity accent the header
+            // OWN brand color - the same agent-identity accent the header
             // name paints, and the same luminous-sweep treatment the main
             // chat's tool boxes and the right panel's live windows use for
             // InProgress rows. The accent is NOT focus-dimmed (the right
-            // panel's accents never dim either) — a dimmed brand over a
+            // panel's accents never dim either) - a dimmed brand over a
             // dimmed base washes the sweep out. Finished calls keep the
             // static muted text.
             // A non-catalog agent (the `morpheus` manager pane included) has no
@@ -2419,7 +2419,7 @@ fn draw_activity_line(
             // base uses (theme.text focused), and a sweep lerping between
             // two identical colors is mathematically invisible. Those fall
             // back to the right panel's no-verdict pairing: text accent
-            // over a muted base — always contrasting.
+            // over a muted base - always contrasting.
             let accent = if palette_for(agent).is_some() {
                 brand_rgba(agent, 0.0, theme, true)
             } else {
@@ -2443,7 +2443,7 @@ fn draw_activity_line(
                         // ONE spinner per running call, keyed by pane + call
                         // id, holding the FULL concatenated label. The beam
                         // is normalised over that whole string, so the sweep
-                        // flows ACROSS the wrapped rows — a broken path like
+                        // flows ACROSS the wrapped rows - a broken path like
                         // `src/tui/routes/…` is swept to its end instead of
                         // dying at the first wrap. render_row paints this
                         // row's slice at the row's cumulative character
@@ -2454,7 +2454,7 @@ fn draw_activity_line(
                         // The spinner filters control characters out of
                         // its text (`HighlightSpinner::new`), so the
                         // concatenated label and the per-row offsets must
-                        // be built from the SAME filtered rows — raw
+                        // be built from the SAME filtered rows - raw
                         // offsets would desync the row slices (and, with
                         // a mismatched text, `set_text` would reset the
                         // beam every frame).
@@ -2475,7 +2475,7 @@ fn draw_activity_line(
                         // The row's own width is the paint limit: a shared
                         // `wrap_w` would let a SHORT row (wrap_chars
                         // produces variable-length rows) also paint the
-                        // first chars of the NEXT row's slice — the
+                        // first chars of the NEXT row's slice - the
                         // duplicated-text corruption the right panel's
                         // review already fixed once.
                         let row_chars = seg.chars().count() as u16;
@@ -2515,7 +2515,7 @@ fn draw_activity_line(
             path,
             unified,
         } => {
-            // The REAL unified diff of a completed file edit — the SAME
+            // The REAL unified diff of a completed file edit - the SAME
             // `DiffRenderable` panel the chat's edit box paints, blitted
             // from the per-line cell cache (parse + tree-sitter highlight
             // once per change, not once per frame). The panel sits
@@ -2636,13 +2636,13 @@ fn draw_activity_line(
         | SubagentActivityLine::UserMessage { text, .. }
         | SubagentActivityLine::AgentMessage { text, .. }
         | SubagentActivityLine::Thought { text, .. } => {
-            // Persistent chat-style renderer per (pane, timeline) block —
+            // Persistent chat-style renderer per (pane, timeline) block -
             // `set_content` re-parses only the streamed tail. Thought is
             // dimmed, exactly like the right panel's mini-chat; the
             // replayed user block renders at full text color and wears the
             // prompt input's left `│` rail (painted after each blitted
             // row, below); an `agents_call` input wears the SAME rail in
-            // the theme's secondary tone — the user sees WHO is speaking
+            // the theme's secondary tone - the user sees WHO is speaking
             // from the rail's color alone.
             let dimmed = matches!(line, SubagentActivityLine::Thought { .. });
             let is_user = matches!(line, SubagentActivityLine::UserMessage { .. });
@@ -2651,12 +2651,12 @@ fn draw_activity_line(
             // below the content (its height math adds border 1 + padding 1
             // to the user message). The pane's input box mirrors that: the
             // frame paints `PROMPT_BOX_PAD` rows above and below the
-            // markdown block (see the frame guards below) — padding is
+            // markdown block (see the frame guards below) - padding is
             // chrome, it never enters the content rows' regions or the
             // copied text.
             let fg = if dimmed { theme.text_muted } else { theme.text };
             // The input blocks (the user's echo, an `agents_call` input)
-            // render on the chat's sent-box PANEL band — the frame the
+            // render on the chat's sent-box PANEL band - the frame the
             // `prompt_message_box` component paints under them carries
             // `background_panel`, so the markdown bg must MATCH it or the
             // blit would overwrite the band and the box would read as bare
@@ -2669,7 +2669,7 @@ fn draw_activity_line(
             };
             // The input's INTERNAL breathing (the chat's sent box keeps two
             // columns between each rail and the text): the markdown renders
-            // into a NARROWER scratch and blits two columns in — the
+            // into a NARROWER scratch and blits two columns in - the
             // renderer always starts text at its canvas column 0, so the
             // inset has to come from the blit geometry. The two breathing
             // columns keep the frame's band (same panel tone as the
@@ -2731,7 +2731,7 @@ fn draw_activity_line(
             // oversized block naturally shows its tail). Every row in the
             // union with the selection span becomes a content-row region
             // sampled from the same cells, so extraction matches the
-            // display — including rows scrolled out of view.
+            // display - including rows scrolled out of view.
             let block_h = h_from(text, block_w) as usize;
             let (rlo, rhi) = paint_emit_window(skip, draw_rows, emit_rows, block_h);
             for sy in rlo..rhi {
@@ -2740,7 +2740,7 @@ fn draw_activity_line(
                 if paint_row {
                     // An input blits INSIDE the box: the two breathing
                     // columns stay on the frame's band (painted by the
-                    // walk, same panel tone — seamless like the chat's
+                    // walk, same panel tone - seamless like the chat's
                     // padding), the markdown cells land at `blit_x`.
                     for cx in 0..block_w {
                         let Some(src) = entry.scratch.cell((cx, sy)) else {
@@ -2760,7 +2760,7 @@ fn draw_activity_line(
                 if !trimmed.is_empty() {
                     // Content-only, like the chat's regions: the frame
                     // (rails + band + the breathing columns) is PAINT-only
-                    // and never enters the copied text — the region spans
+                    // and never enters the copied text - the region spans
                     // exactly the blitted content at `blit_x`, so selecting
                     // an input copies exactly what was typed, no decoration
                     // prefix.
@@ -2775,21 +2775,21 @@ fn draw_activity_line(
         }
         SubagentActivityLine::Gap => {
             // The breathing row between the user's input and the agent's
-            // output: the pane's background fill already painted it —
+            // output: the pane's background fill already painted it -
             // nothing to draw, no selection region (an empty row is not
             // content).
         }
     }
 }
 
-/// Block height at `wrap_w` — the SAME estimator the height math uses, so
+/// Block height at `wrap_w` - the SAME estimator the height math uses, so
 /// the scratch buffer always matches the clipped blit.
 fn h_from(text: &str, wrap_w: u16) -> u16 {
     morpheus_tui::core::renderables::markdown::estimate_height(text, wrap_w).max(1)
 }
 
 /// The pane header's agent name: bold, painted with the agent's OWN logo
-/// palette (`subagent::palette`) — gradient marks (Gemini's sparkle,
+/// palette (`subagent::palette`) - gradient marks (Gemini's sparkle,
 /// Devin's tri-color) sweep their colors across the glyphs, single-color
 /// marks (Claude's terracotta, Kilo's acid yellow) paint solid. `morpheus` and
 /// agents outside the catalog keep the theme's text colors: no invented
@@ -2827,7 +2827,7 @@ fn draw_agent_name(
 /// The style of ONE glyph column of an agent's brand name, shared by the
 /// split-pane headers and the right panel's subagent list (the bound
 /// `/agents` agents get the same full-color logo there; normal subagents
-/// pass `None`'s palette branch and stay in the theme's own colors —
+/// pass `None`'s palette branch and stay in the theme's own colors -
 /// opaque, never a half-brand tint).
 ///
 /// A brand mark never dissolves into the surface: when the sampled color's
@@ -2870,19 +2870,19 @@ pub(crate) fn brand_fg(agent: &str, t: f32, theme: &Theme, focused: bool) -> Sty
 
 /// The `│` INPUT rail marking a turn's INPUT (the user's echo in an
 /// `/agents` pane, the main agent's echoed prompt in a right-panel
-/// subagent window) — ONE glyph, paint-only, drawn in the column LEFT of
+/// subagent window) - ONE glyph, paint-only, drawn in the column LEFT of
 /// the content: the same marking on both surfaces, so "who is speaking"
 /// reads identically in the split and in the panel. The STYLE is the
 /// caller's tone decision (the pane paints the user's rail in the agent's
 /// brand color and another agent's input in the theme's secondary tone;
-/// the right panel's echoed prompt is always the main agent's —
-/// secondary) — the GLYPH, the position and the paint-only contract live
+/// the right panel's echoed prompt is always the main agent's -
+/// secondary) - the GLYPH, the position and the paint-only contract live
 /// in this one function. Input text renders WITHOUT the rail in its
-/// selection regions — copying an input copies exactly what was typed,
+/// selection regions - copying an input copies exactly what was typed,
 /// no decoration prefix.
 ///
 /// Shared by BOTH render paths (this module's pane renderer and the
-/// right panel's window renderer) — a future restyle changes this one
+/// right panel's window renderer) - a future restyle changes this one
 /// function, never a per-surface copy.
 pub(crate) fn subagent_input_rail(buf: &mut Buffer, x: u16, y: u16, style: Style) {
     if let Some(rail) = buf.cell_mut((x, y)) {
@@ -2891,7 +2891,7 @@ pub(crate) fn subagent_input_rail(buf: &mut Buffer, x: u16, y: u16, style: Style
     }
 }
 
-/// One BOLD brand style per glyph of an agent's display name — the exact
+/// One BOLD brand style per glyph of an agent's display name - the exact
 /// sweep [`draw_agent_name`] paints (gradient marks walk their colors
 /// left to right, single-color marks stay solid, unknown agents keep the
 /// theme's text). Shared by the pane header and the `/agents` prompt
@@ -2935,7 +2935,7 @@ fn draw_text(buf: &mut Buffer, text: &str, x: u16, y: u16, max_w: u16, style: St
 /// (the chat's flow-based algorithm, scoped to the ANCHOR pane so a drag
 /// never paints into a neighbour). Both endpoints live in content space
 /// and are projected with the CURRENT render scroll, so the visual band
-/// follows the content when it scrolls mid-drag — the chat's contract.
+/// follows the content when it scrolls mid-drag - the chat's contract.
 /// Painted after the pane content so it inverts the final cells.
 fn highlight_selection(buf: &mut Buffer, state: &AgentsSplitState) {
     let Some((sx, _sy, fx, _fy)) = state.drag_selection else {
@@ -2985,7 +2985,7 @@ fn highlight_selection(buf: &mut Buffer, state: &AgentsSplitState) {
 
     for cy in start_y..=end_y {
         // Content row under this screen row. Rows outside the true content
-        // span (selection clamped off-screen) are not part of it — skip.
+        // span (selection clamped off-screen) are not part of it - skip.
         let row_content = i32::from(cy)
             .saturating_sub(body_top)
             .saturating_add(i32::from(pane.effective_scroll));
@@ -3029,7 +3029,7 @@ mod tests {
     }
 
     /// `from_ref` seeds the ACP session id only for bound panes; a fresh
-    /// pick stays sessionless. (Moved from the former tui/types.rs tests —
+    /// pick stays sessionless. (Moved from the former tui/types.rs tests -
     /// it exercises `AgentPane`, which lives here.)
     #[test]
     fn from_ref_seeds_the_session_id_only_for_bound_panes() {
@@ -3068,7 +3068,7 @@ mod tests {
         // The manager keeps the TUI's own commands alongside it.
         assert!(entries.iter().any(|e| e.name == "models"));
 
-        // An ACP pane lists it too — same entry, same description.
+        // An ACP pane lists it too - same entry, same description.
         state.focused = Some(1);
         let (entries, _) = state.slash_source().expect("the agent pane serves a list");
         let worktree = entries
@@ -3208,7 +3208,7 @@ mod tests {
 
     #[test]
     fn new_keeps_picker_order_and_never_injects_the_manager_pane() {
-        // Used to insert a forced `morpheus` pane 0 — the Morpheus Manager block
+        // Used to insert a forced `morpheus` pane 0 - the Morpheus Manager block
         // then existed in /agents without the user ever picking morpheus. The
         // split must be a plain reflection of the picker's marks.
         let state = AgentsSplitState::new(vec!["kilo".into(), "claude".into()]);
@@ -3244,7 +3244,7 @@ mod tests {
     #[test]
     fn focus_hotkey_targets_panes_by_position() {
         let mut state = AgentsSplitState::new(vec!["claude".into(), "kilo".into()]);
-        // '1' targets the first pane (claude), '2' the second (kilo) —
+        // '1' targets the first pane (claude), '2' the second (kilo) -
         // hotkeys count panes 1-based; '0' is the main agent, never a pane.
         assert_eq!(state.focus_hotkey('2'), Some(1));
         assert_eq!(state.focused, Some(1));
@@ -3333,7 +3333,7 @@ mod tests {
 
     /// Regression: the terminal report must NOT duplicate the streamed
     /// answer. `AgentsPaneDone.output` is the SAME text the stream already
-    /// played into the pane (the `TurnClosure` contract — the report is the
+    /// played into the pane (the `TurnClosure` contract - the report is the
     /// last streamed message segment); delivering it as another `Message`
     /// event let the coalescer's backscan merge it into that same entry and
     /// the pane read "…hoje?Tudo bem! Como posso ajudar hoje?". `finish_turn`
@@ -3366,7 +3366,7 @@ mod tests {
         );
 
         // The streamed entry was dropped (the report carries it) and the
-        // report landed ONCE — the timeline never contains a doubled
+        // report landed ONCE - the timeline never contains a doubled
         // answer.
         let doubled = state.panes[0]
             .activity
@@ -3429,8 +3429,8 @@ mod tests {
     }
 
     /// Regression (the panes' garbled order): two tool-less turns through
-    /// the full pane path — echo, stream, `finish_turn`, echo, stream,
-    /// `finish_turn` — must read as a linear chronological flow like the
+    /// the full pane path - echo, stream, `finish_turn`, echo, stream,
+    /// `finish_turn` - must read as a linear chronological flow like the
     /// normal chat. The second answer used to skip over its own prompt and
     /// merge into the first turn's report block, so the pane showed one
     /// atropelada paragraph instead of prompt/answer/prompt/answer.
@@ -3456,7 +3456,7 @@ mod tests {
             "tudo bem! como posso ajudar?",
             morpheus::harness::agent_coworkers::AgentCoworkerTurnEnd::EndTurn,
         );
-        // Turn 2 (no tool call in between — the old merge crossed here).
+        // Turn 2 (no tool call in between - the old merge crossed here).
         state.echo_turn_input(0, "qual seu nome?", true);
         state.apply_event(
             0,
@@ -3483,7 +3483,7 @@ mod tests {
         assert_eq!(
             rows.iter().map(|(user, _)| *user).collect::<Vec<_>>(),
             vec![true, false, true, false],
-            "prompt, answer, prompt, answer — in arrival order: {rows:?}"
+            "prompt, answer, prompt, answer - in arrival order: {rows:?}"
         );
         assert!(
             rows[1].1.contains("como posso ajudar?"),
@@ -3500,10 +3500,10 @@ mod tests {
     }
 
     /// The input's `│` rail is paint-only: drag-selecting an input copies
-    /// exactly what was typed, never the decoration — the chat's
+    /// exactly what was typed, never the decoration - the chat's
     /// content-only region contract (its rails sit outside the regions).
-    /// The sent-prompt FRAME on a pane input: the extracted chat box —
-    /// `│` rails on BOTH sides of the input block plus the panel band —
+    /// The sent-prompt FRAME on a pane input: the extracted chat box -
+    /// `│` rails on BOTH sides of the input block plus the panel band -
     /// with the USER's echo wearing the pane agent's brand tone and an
     /// `agents_call` input wearing the theme's secondary. The shape is the
     /// component's contract; the rail TONE is the speaker.
@@ -3559,7 +3559,7 @@ mod tests {
         let mut state = AgentsSplitState::new(vec!["kilo".into()]);
         // An answer FIRST, so the input box sits past content row 0 and its
         // top pad row has a real content coordinate (the first box's top
-        // pad clamps at 0 — there is no row above the timeline start).
+        // pad clamps at 0 - there is no row above the timeline start).
         state.apply_event(
             0,
             &SubagentEvent::Message {
@@ -3609,7 +3609,7 @@ mod tests {
     /// renderer actually draws. The old full-width measurement under-counted
     /// a wrapped prompt: the sticky bottom sat too high, the band's bottom
     /// pad row clipped (the "sent band truncated by the pane's bottom
-    /// padding" report) while the hover highlight — the box's whole span —
+    /// padding" report) while the hover highlight - the box's whole span -
     /// still lit it (the "highlight taller than the band" report). The two
     /// reports were one bug.
     #[test]
@@ -3624,7 +3624,7 @@ mod tests {
             .join("\n");
         state.apply_event(0, &SubagentEvent::Message { text: big });
         // A 55-char prompt: one row at the full width, TWO at the drawn
-        // width — the exact disagreement that clipped the band.
+        // width - the exact disagreement that clipped the band.
         state.echo_turn_input(0, &"x".repeat(55), true);
         let area = Rect::new(0, 0, 60, 14);
         let mut buf = Buffer::empty(area);
@@ -3638,7 +3638,7 @@ mod tests {
             .expect("the tail input registered")
             .clone();
         // Sticky bottom: the box's LAST row (its bottom pad) must be the
-        // pane's last drawable body row — nothing clipped below the window
+        // pane's last drawable body row - nothing clipped below the window
         // (the row after it is the pane's own breathing row).
         let last_row_screen =
             i32::from(rect.y + 1) + hit.span.end - 1 - i32::from(effective_scroll);
@@ -3649,7 +3649,7 @@ mod tests {
         );
         // The hover highlight covers EXACTLY the painted band: the frame
         // and the highlight derive from the same measured extent, so a
-        // drift — highlight taller or band shorter — is the bug either way.
+        // drift - highlight taller or band shorter - is the bug either way.
         let hover_row = hit.span.end - 1;
         let hover_y = (i32::from(rect.y + 1) + hover_row - i32::from(effective_scroll)) as u16;
         assert!(state.update_hover(rect.x + 4, hover_y), "hover registers");
@@ -3772,7 +3772,7 @@ mod tests {
     }
 
     /// The input's `│` rail is paint-only: drag-selecting an input copies
-    /// exactly what was typed, never the decoration — the chat's
+    /// exactly what was typed, never the decoration - the chat's
     /// content-only region contract (its rails sit outside the regions).
     #[test]
     fn selecting_a_pane_input_copies_no_rail() {
@@ -3845,7 +3845,7 @@ mod tests {
 
     /// Per-pane scroll pill: a scrolled-up pane shows the shared `⮟`
     /// component, and clicking it jumps back to the live tail (re-engaging
-    /// `auto_follow`) — the chat pill's contract, per pane.
+    /// `auto_follow`) - the chat pill's contract, per pane.
     #[test]
     fn pane_pill_shows_when_scrolled_up_and_click_jumps_to_live() {
         let theme = test_theme();
@@ -3883,7 +3883,7 @@ mod tests {
 
     /// Selection regions cover the whole drag span even when it scrolled
     /// out of view: rows inside the span report regions during the frame
-    /// (the chat rebuilds regions for the span on release instead — same
+    /// (the chat rebuilds regions for the span on release instead - same
     /// coverage), so the release copies off-screen rows too.
     #[test]
     fn selection_span_reports_regions_beyond_the_viewport() {
@@ -4008,8 +4008,8 @@ mod tests {
     }
 
     /// A rehydrating pane's header paints ONLY the simple braille spinner
-    /// (`component::spinner`) at the pane's right edge — no label, no extra
-    /// chrome — and consecutive renders advance the frame. A
+    /// (`component::spinner`) at the pane's right edge - no label, no extra
+    /// chrome - and consecutive renders advance the frame. A
     /// non-rehydrating pane paints nothing.
     #[test]
     fn render_rehydrating_header_spins_alone() {
@@ -4134,7 +4134,7 @@ mod tests {
 
         // Focus kilo: claude's name dims toward the background (the focus
         // highlight belongs to whoever owns it), or its contrast-lifted
-        // variant on a theme where the raw color would dissolve — the same
+        // variant on a theme where the raw color would dissolve - the same
         // formula the painter applies.
         assert_eq!(state.focus_hotkey('2'), Some(1));
         let mut buf = Buffer::empty(area);
@@ -4308,7 +4308,7 @@ mod tests {
         };
 
         // 30 columns: the 35-cell full pair cannot fit, the 12-cell
-        // compact one does — right-aligned, logo intact.
+        // compact one does - right-aligned, logo intact.
         let area = Rect::new(0, 0, 30, 10);
         let mut state = AgentsSplitState::new(vec!["kilo".into()]);
         state.panes[0].activity.usage = Some((100_000, 9_612));
@@ -4347,7 +4347,7 @@ mod tests {
             "the compact percentage reads bold too"
         );
 
-        // 12 columns: not even the compact pair fits — name only.
+        // 12 columns: not even the compact pair fits - name only.
         let area = Rect::new(0, 0, 12, 10);
         let mut state = AgentsSplitState::new(vec!["kilo".into()]);
         state.panes[0].activity.usage = Some((100_000, 9_612));
@@ -4392,7 +4392,7 @@ mod tests {
     /// A multi-stop gradient mark sweeps its colors across the glyphs: the
     /// first and last glyph take the mark's endpoint colors (post
     /// contrast-adjustment) and an interior glyph differs from both. This
-    /// pins the `t = i / (count - 1)` walk in `draw_agent_name` — the path
+    /// pins the `t = i / (count - 1)` walk in `draw_agent_name` - the path
     /// `palette.sample` only exercises indirectly elsewhere.
     #[test]
     fn gradient_mark_sweeps_across_the_glyphs() {
@@ -4421,7 +4421,7 @@ mod tests {
             fgs.iter().any(|fg| *fg != fgs[0]),
             "gradient glyphs must vary: {fgs:?}"
         );
-        // The walk starts at the palette's first stop — the raw primary
+        // The walk starts at the palette's first stop - the raw primary
         // (or its contrast-lifted variant, the same formula the painter
         // applies; keep this assertion in sync with `draw_agent_name`).
         let palette = palette_for("devin").expect("devin palette");
@@ -4451,7 +4451,7 @@ mod tests {
     }
 
     /// The pane's own pending queues paint the SAME strip the chat does,
-    /// bottom-anchored above the pane's reserved edge — a message queued for a
+    /// bottom-anchored above the pane's reserved edge - a message queued for a
     /// busy pane is visible in that pane, with its queue's cap label, for BOTH
     /// pane kinds (nothing here depends on morpheus). The strip keeps its rows out
     /// of the activity window, so no line ever paints under a band.
@@ -4584,7 +4584,7 @@ mod tests {
     /// Issue 2: an internal sub-agent's `fs_edit` must paint its REAL
     /// unified diff inside the pane (the chat's `DiffRenderable` panel,
     /// blitted from the shared cell cache) and label the row with the REAL
-    /// tool name — not the category short form. Rendered end-to-end
+    /// tool name - not the category short form. Rendered end-to-end
     /// through `render` so the scroll window, the cache insert and the
     /// blit are all exercised together.
     #[test]
@@ -4646,7 +4646,7 @@ mod tests {
         );
         // The diff panel painted through the shared `DiffRenderable`: the
         // `+`/`-` code lines with the hunk header and the line-number
-        // gutter (`2 +     new();` — gutter + sign + code).
+        // gutter (`2 +     new();` - gutter + sign + code).
         assert!(
             all.contains("@@ -1,2 +1,3 @@"),
             "hunk header visible: {all:?}"
@@ -4670,8 +4670,8 @@ mod tests {
     /// The running tool-call row highlights through the luminous-sweep
     /// spinner (the chat's and the right panel's activity highlight): the
     /// render creates ONE spinner entry per InProgress call, keyed
-    /// `{pane_index}:{call_id}`, and a completed call leaves the map —
-    /// pruned after the frame — so nothing keeps animating state alive.
+    /// `{pane_index}:{call_id}`, and a completed call leaves the map -
+    /// pruned after the frame - so nothing keeps animating state alive.
     #[test]
     fn running_tool_call_highlights_and_completing_prunes_the_spinner() {
         let theme = test_theme();
@@ -4733,7 +4733,7 @@ mod tests {
     /// equals its base. The first cut fed `brand_rgba(agent, …, focused)`
     /// (the UNFOCUSED brand is blended 45% into the background) as accent
     /// over the muted base, and the manager pane's `morpheus` has no palette at
-    /// all (`brand_rgba` returns `theme.text`) — both pairings made the
+    /// all (`brand_rgba` returns `theme.text`) - both pairings made the
     /// beam's lerp mathematically colorless, so the highlight painted
     /// exactly like plain text (the user-visible "nothing changed").
     /// Regression pins the pairing: brand accent (undimmed) over muted
@@ -4791,7 +4791,7 @@ mod tests {
     }
 
     /// The worktree badge paints on the pane's RESERVED footer row
-    /// (`view_h = body_h - 1`), left-aligned — a pinned pane announces
+    /// (`view_h = body_h - 1`), left-aligned - a pinned pane announces
     /// where it works without touching the crowded header; an unpinned
     /// pane keeps the row blank.
     #[test]
@@ -4857,14 +4857,14 @@ mod zoom_tests {
         // Expand (Ctrl+O): the focused pane takes the area.
         assert!(s.toggle_maximized(), "expansion must engage");
         assert_eq!(s.maximized, Some(1));
-        // First Esc: `restore_maximized` consumes it and restores the grid —
+        // First Esc: `restore_maximized` consumes it and restores the grid -
         // the caller must NOT park on this press.
         assert!(
             s.restore_maximized(),
             "the first Esc only restores the grid"
         );
         assert_eq!(s.maximized, None, "grid restored");
-        // Second Esc: the grid is up, nothing to restore — `false` hands the
+        // Second Esc: the grid is up, nothing to restore - `false` hands the
         // key to the caller, whose next branch parks the split (leaves to
         // the chat). The toggle must never be what the Esc runs: with the
         // grid up a toggle would RE-EXPAND and the user could never leave.
@@ -4882,7 +4882,7 @@ mod zoom_tests {
     }
 
     /// A hotkey to another pane ends the expansion (grid returns, target
-    /// focused) — one gesture back to the grid.
+    /// focused) - one gesture back to the grid.
     #[test]
     fn hotkey_ends_the_expansion() {
         let mut s = split();
@@ -4961,7 +4961,7 @@ mod hide_tests {
     }
 
     /// Inserting a pane places it at (or clamped to) the requested index and
-    /// takes the focus — the restored pane is the one the user just acted on.
+    /// takes the focus - the restored pane is the one the user just acted on.
     #[test]
     fn insert_pane_places_and_focuses() {
         let mut s = AgentsSplitState::new(vec!["a".into(), "c".into()]);

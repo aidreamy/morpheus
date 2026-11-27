@@ -2,7 +2,7 @@
 //!
 //! The v1 surface is exactly what has a consumer (see the approved schema):
 //! `hello`, `decision/decide`, `health`, `shutdown`. `decide` mirrors
-//! [`morpheus_onnx::DecisionModel::decide`] with NO translation — `state` and
+//! [`morpheus_onnx::DecisionModel::decide`] with NO translation - `state` and
 //! `questions` are opaque JSON in, the model's raw result object out. The
 //! parameters the only consumer never passes (`lang`, `max_len`,
 //! `head_max_len`) and the batch method with no caller are deliberately
@@ -12,7 +12,7 @@
 use serde::{Deserialize, Serialize};
 use serde_json::{Map, Value};
 
-/// The daemon's name — the socket file stem and the activation key.
+/// The daemon's name - the socket file stem and the activation key.
 pub const NAME: &str = "decision";
 
 /// Protocol version. Monotonic; a major bump means an incompatible change.
@@ -28,7 +28,7 @@ pub mod method {
 
 /// Application error codes (JSON-RPC reserved codes live in `ipc::RpcError`).
 ///
-/// Every one of them maps to the consumer's fail-open policy — the audit is
+/// Every one of them maps to the consumer's fail-open policy - the audit is
 /// an improver, never a single point of failure.
 pub mod code {
     /// A method arrived before `hello`, or the protocol version is
@@ -56,7 +56,7 @@ pub mod code {
 /// 2. **Custom object**: `{"custom": {"repo": "...", "subfolder": null}}`.
 /// 3. **The config shape** (`morpheus::setup::DecisionModel`, tagged by
 ///    `kind`, snake case): `{"kind": "custom", "repo": ..., "subfolder":
-///    ...}` — accepted on input so the harness converts config → wire by
+///    ...}` - accepted on input so the harness converts config → wire by
 ///    serde alone, with no translation map and no TUI dependency.
 ///
 /// Serialization emits shapes 1/2 (the flat wire form); deserialization
@@ -190,7 +190,7 @@ impl Kind {
 pub struct HelloParams {
     /// The client's protocol version.
     pub protocol: u32,
-    /// The connecting process — diagnostics only.
+    /// The connecting process - diagnostics only.
     pub pid: u32,
 }
 
@@ -200,13 +200,13 @@ pub struct HelloResult {
     /// The daemon's protocol version; a major mismatch makes the client
     /// fail open for the session.
     pub protocol: u32,
-    /// Always [`NAME`] — guards against a foreign daemon on our socket.
+    /// Always [`NAME`] - guards against a foreign daemon on our socket.
     pub daemon: String,
     /// The daemon binary's version.
     pub version: String,
 }
 
-/// `decision/decide` params — [`morpheus_onnx::DecisionModel::decide`] verbatim.
+/// `decision/decide` params - [`morpheus_onnx::DecisionModel::decide`] verbatim.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DecideParams {
     /// Which checkpoint to run.
@@ -218,14 +218,14 @@ pub struct DecideParams {
 }
 
 /// `decision/decide` result: the model's raw result object (`answers`,
-/// `usage`), uninterpreted here — the semantics live with the consumer.
+/// `usage`), uninterpreted here - the semantics live with the consumer.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct DecideResult {
     /// The full result object, unchanged.
     pub result: Value,
 }
 
-/// `health` result — the observability that proves the sharing is real
+/// `health` result - the observability that proves the sharing is real
 /// (one resident, many consumers).
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HealthResult {
@@ -252,7 +252,7 @@ mod tests {
     use super::*;
 
     /// Shape 3: the config shape (`DecisionModel`, tagged by `kind`) must
-    /// deserialize — the harness converts config → wire by serde alone.
+    /// deserialize - the harness converts config → wire by serde alone.
     #[test]
     fn kind_parses_the_config_shape() {
         let config_value = serde_json::json!({
@@ -271,7 +271,7 @@ mod tests {
         assert_eq!(named, Kind::Multilingual);
     }
 
-    /// Shape 1 (the approved `decide` wire shape): a flat string — and
+    /// Shape 1 (the approved `decide` wire shape): a flat string - and
     /// serializing ALWAYS emits it for named kinds, never the config tag.
     #[test]
     fn named_kinds_wire_as_flat_strings() {

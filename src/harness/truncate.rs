@@ -2,15 +2,15 @@
 //!
 //! Strategy (head / middle / tail):
 //!
-//! - keep the **head** — the command's intent, headers, early errors (or the
+//! - keep the **head** - the command's intent, headers, early errors (or the
 //!   start of a fetched article);
-//! - keep the **tail** — the final lines and the exit status (or the
+//! - keep the **tail** - the final lines and the exit status (or the
 //!   conclusion);
 //! - when the output exceeds the token budget, the **middle** is written
 //!   verbatim to a scratch log at `<OS temp>/morpheus/<content-hash>.log` and
 //!   replaced in the model-facing text with a structured notice pointing at
 //!   the file. The model can then read the omitted section back gradually
-//!   with `fs_read` (using `offset`/`limit`) or `find_grep` — no re-execution,
+//!   with `fs_read` (using `offset`/`limit`) or `find_grep` - no re-execution,
 //!   no information loss.
 //!
 //! Used by `bash_run` ([`MAX_TOOL_OUTPUT_TOKENS`]) and `web_fetch`
@@ -35,7 +35,7 @@ static TMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 ///
 /// Above this, the output is truncated (head + tail kept, middle → scratch
 /// log). Estimated with the generic OpenAI `cl100k_base` tokenizer
-/// ([`estimate_tokens`]) — the de-facto standard for cross-model estimation.
+/// ([`estimate_tokens`]) - the de-facto standard for cross-model estimation.
 pub const MAX_TOOL_OUTPUT_TOKENS: usize = 3000;
 
 /// Token budget for the model-facing version of a single `web_fetch` result.
@@ -48,7 +48,7 @@ pub const MAX_TOOL_OUTPUT_TOKENS: usize = 3000;
 pub const WEB_FETCH_MAX_TOKENS: usize = 12_000;
 
 // Soft-cap note: the model-facing text may exceed `MAX_TOOL_OUTPUT_TOKENS` by
-// a small margin — the per-line budget rounding plus the ~100-token notice.
+// a small margin - the per-line budget rounding plus the ~100-token notice.
 // This is intentional: the budget guards against runaway context growth, not
 // against a few dozen extra tokens.
 
@@ -75,7 +75,7 @@ pub fn truncate_tool_output(output: &str) -> TruncatedOutput {
 ///
 /// Outputs at or under `max_tokens` pass through verbatim. Larger outputs
 /// keep whole lines from the start and end of the output within head/tail
-/// budgets derived from `max_tokens` (2/3 head, 1/3 tail — the beginning
+/// budgets derived from `max_tokens` (2/3 head, 1/3 tail - the beginning
 /// carries the intent/headers/early content, the end the conclusion/exit
 /// status); the middle is written to the scratch log and replaced with a
 /// notice pointing at it.
@@ -88,7 +88,7 @@ pub fn truncate_tool_output_with_budget(output: &str, max_tokens: usize) -> Trun
             truncated: false,
         };
     }
-    // Head 2/3, tail 1/3 of the budget — reproduces the fixed 2000/1000
+    // Head 2/3, tail 1/3 of the budget - reproduces the fixed 2000/1000
     // split of the 3000-token bash budget exactly.
     let head_budget = max_tokens * 2 / 3;
     let tail_budget = max_tokens - head_budget;
@@ -127,7 +127,7 @@ pub fn truncate_tool_output_with_budget(output: &str, max_tokens: usize) -> Trun
 
     // Degenerate case: a handful of giant lines exceed both budgets and the
     // head/tail regions overlap (e.g. a single minified line larger than the
-    // whole budget). Fall back to proportional byte slicing — cutting mid-line
+    // whole budget). Fall back to proportional byte slicing - cutting mid-line
     // is unavoidable for a single line larger than the budget.
     let (head_end, tail_start) = if head_end < tail_start {
         (head_end, tail_start)
@@ -140,7 +140,7 @@ pub fn truncate_tool_output_with_budget(output: &str, max_tokens: usize) -> Trun
         if head < tail {
             (head, tail)
         } else {
-            // Pathologically small for its token count — give up gracefully.
+            // Pathologically small for its token count - give up gracefully.
             return TruncatedOutput {
                 text: output.to_string(),
                 log_path: None,
@@ -201,7 +201,7 @@ fn truncation_notice(
 /// The harness scratch directory (`<OS temp>/morpheus`) for truncated-output logs.
 ///
 /// Uses the same constant as the path guard's scratch exemption, so the writer
-/// and the guards can never drift apart — the model can always read the logs
+/// and the guards can never drift apart - the model can always read the logs
 /// back with `fs_read` / `find_grep` without permission friction.
 #[must_use]
 pub fn scratch_log_dir() -> PathBuf {
@@ -219,7 +219,7 @@ fn write_middle_log(middle: &str) -> Option<PathBuf> {
     let path = dir.join(format!("{:016x}.log", xxh64(middle.as_bytes(), 0)));
     // Content-addressed name shared by every morpheus process on the machine
     // (dedup by design). Write to a temp name and rename so a concurrent
-    // reader never observes a half-written (or empty) file — `fs::write`
+    // reader never observes a half-written (or empty) file - `fs::write`
     // truncates first, so a racing reader could read an empty log.
     let tmp = dir.join(format!(
         "{:016x}.{}.{}.tmp",
@@ -236,7 +236,7 @@ fn write_middle_log(middle: &str) -> Option<PathBuf> {
 mod tests {
     use super::*;
 
-    /// Serialize the tests that truncate the SAME `big_output()` — they all
+    /// Serialize the tests that truncate the SAME `big_output()` - they all
     /// content-hash to one shared scratch log, and each deletes it at the
     /// end: run in parallel, one test would delete the log another is
     /// still about to read. One mutex, same pattern the panes registry
@@ -333,7 +333,7 @@ mod tests {
 
     /// The budget-variant wrapper must reproduce the fixed-budget behavior
     /// exactly when called with [`MAX_TOOL_OUTPUT_TOKENS`] (head 2/3, tail
-    /// 1/3 of the budget — the historical 2000/1000 split).
+    /// 1/3 of the budget - the historical 2000/1000 split).
     #[test]
     fn budget_variant_matches_fixed_budget() {
         let _lock = truncate_lock();
@@ -348,7 +348,7 @@ mod tests {
     }
 
     /// The web budget is deliberately generous: ordinary content passes
-    /// through whole; only ridiculously dense content is truncated — and
+    /// through whole; only ridiculously dense content is truncated - and
     /// even then a large head + tail survive around the notice.
     #[test]
     fn web_budget_passes_ordinary_content_and_truncates_dense() {
@@ -358,7 +358,7 @@ mod tests {
         assert!(!r.truncated);
         assert_eq!(r.text, small);
 
-        // big_output() ≈ 13k estimated tokens — above the 12k web budget.
+        // big_output() ≈ 13k estimated tokens - above the 12k web budget.
         let out = big_output();
         let r = truncate_tool_output_with_budget(&out, WEB_FETCH_MAX_TOKENS);
         assert!(r.truncated, "dense content must be truncated");

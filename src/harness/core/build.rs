@@ -78,7 +78,7 @@ impl Harness {
             checkup: None,
             // Measured, not conventional: the confidence-floor sweep over the
             // `loop_termination` corpus (`confidence_floor_sweep` in
-            // crates/morpheus-onnx/tests/eval/loop_termination.rs) — 0.75 keeps
+            // crates/morpheus-onnx/tests/eval/loop_termination.rs) - 0.75 keeps
             // the sweep's optimum (23/24 correct) on the zero-false-continue
             // edge: no legitimate ending is vetoed, the single error is one
             // missed stop. Lower floors trade that for false continues
@@ -132,7 +132,7 @@ impl Harness {
         harness.refresh_tool_omissions();
         harness.install_summary_annotator();
         // The /agents coworker tool is registered ONLY when coworkers exist: with
-        // no agents bound to the session the harness — and its header —
+        // no agents bound to the session the harness - and its header -
         // stays byte-identical with the pre-feature one. No tool, no
         // context block, no interpolated noise for something that does
         // not exist.
@@ -192,7 +192,7 @@ impl Harness {
     }
 
     /// Attach the decision-model audit seam (`harness::checkup`). The
-    /// harness never chooses which model to load — the app layer hands over
+    /// harness never chooses which model to load - the app layer hands over
     /// the ready, shared resident; without one the loop is unaudited.
     #[must_use]
     pub fn with_checkup(mut self, checkup: Arc<dyn super::checkup::Checkup>) -> Self {
@@ -314,7 +314,7 @@ impl Harness {
         // A duplex transport serves exactly one dial, so hand it out once.
         // A second dial (era flip/retry) fails here with
         // `Connect("test transport already consumed")`, which carries no
-        // era evidence and replaces the original `EraStale` — test-only
+        // era evidence and replaces the original `EraStale` - test-only
         // masking, never hit in production where factories spawn fresh
         // transports per dial.
         let mut transport = Some(transport);
@@ -364,9 +364,9 @@ impl Harness {
     /// Mark this harness as an INTERNAL SUB-AGENT (a nested harness).
     ///
     /// Set by [`Self::run_internal_subagent`] on the nested harness. A
-    /// nested loop (a) rejects background `subagent_call` spawns — matching
+    /// nested loop (a) rejects background `subagent_call` spawns - matching
     /// Claude Code's non-interactive nesting rule, where a headless sub-agent
-    /// cannot outlive its parent to deliver a notification — and (b) never
+    /// cannot outlive its parent to deliver a notification - and (b) never
     /// drains background completion notifications, so a notification meant
     /// for the top-level agent's context is never swallowed by a sub-agent.
     #[must_use]
@@ -378,7 +378,7 @@ impl Harness {
     /// Mark this harness as the MANAGER loop (the `/agents` split's `morpheus`
     /// coworker, at any position):
     /// its `agents_call` requests are tagged [`super::agent_coworkers::MANAGER`] so a
-    /// background coworker report is drained only by this loop — the main
+    /// background coworker report is drained only by this loop - the main
     /// chat loop must never inject a report the manager asked for, and
     /// vice versa. Default is [`super::agent_coworkers::MAIN`] (the normal loop).
     #[must_use]
@@ -394,7 +394,7 @@ impl Harness {
     /// `format_header_context`). The reported replication bug lived exactly
     /// here: a morpheus coworker ran the manager instructions + the tool, so one
     /// delegation from the main agent made the coworker's own manager loop
-    /// re-delegate to EVERY sibling — the call propagated to all the morpheus
+    /// re-delegate to EVERY sibling - the call propagated to all the morpheus
     /// agents instead of staying in the addressed one. Coordination belongs
     /// to the TOP-LEVEL agent alone; a coworker does its work and reports back.
     /// `None` for the MAIN loop, which owns no coworker and keeps the tool.
@@ -410,11 +410,11 @@ impl Harness {
                 .retain(|tool| tool.name != "agents_worktree");
             // Compaction belongs to the TOP-LEVEL coordinator alone: a coworker
             // must never compact a sibling's context (the same
-            // anti-replication invariant that strips the two tools above —
+            // anti-replication invariant that strips the two tools above -
             // one delegation would fan the compact out to every coworker).
             self.harness_tools
                 .retain(|tool| tool.name != "agents_compact");
-            // Panes never create or list the board — only claim and update.
+            // Panes never create or list the board - only claim and update.
             self.harness_tools
                 .retain(|tool| tool.name != "agents_task_create");
             self.harness_tools
@@ -426,7 +426,7 @@ impl Harness {
             // tool list used to enforce that by disabling the tool per
             // coworker, but a coworker harness assembled anywhere else
             // would inherit the model's ability to end its own turn with no
-            // report — and the resume logic would then read that self-stop
+            // report - and the resume logic would then read that self-stop
             // as a user stop and correctly refuse, closing the turn with
             // nothing. Stripping it HERE binds the invariant to the coworker
             // ROLE, where it belongs.

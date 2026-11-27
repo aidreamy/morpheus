@@ -7,7 +7,7 @@
 
 use serde::{Deserialize, Serialize};
 
-/// The daemon's name — the socket file stem and the activation key.
+/// The daemon's name - the socket file stem and the activation key.
 pub const NAME: &str = "tts";
 
 /// Protocol version. Monotonic; a major bump means an incompatible change.
@@ -41,7 +41,7 @@ pub mod code {
 pub struct HelloParams {
     /// The client's protocol version.
     pub protocol: u32,
-    /// The connecting process — diagnostics only.
+    /// The connecting process - diagnostics only.
     pub pid: u32,
 }
 
@@ -50,7 +50,7 @@ pub struct HelloParams {
 pub struct HelloResult {
     /// The daemon's protocol version.
     pub protocol: u32,
-    /// Always [`NAME`] — guards against a foreign daemon on our socket.
+    /// Always [`NAME`] - guards against a foreign daemon on our socket.
     pub daemon: String,
     /// The daemon binary's version.
     pub version: String,
@@ -102,7 +102,7 @@ pub struct SynthesizeResult {
     pub bass: Vec<f32>,
 }
 
-/// `health` result — proves the resident model is shared.
+/// `health` result - proves the resident model is shared.
 #[derive(Debug, Serialize, Deserialize)]
 pub struct HealthResult {
     /// Seconds since daemon start.

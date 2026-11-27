@@ -3,7 +3,7 @@
 use aiface::connector::ChatMessage;
 
 /// Fingerprint of ONE wire request: the model it was sent to, the system
-/// prompt hash and the per-message hash chain — the exact material the
+/// prompt hash and the per-message hash chain - the exact material the
 /// provider's exact-prefix cache keys on. See [`PrefixCacheProbe`].
 pub(super) struct RequestFingerprint {
     model: String,
@@ -19,12 +19,12 @@ pub(super) struct RequestFingerprint {
 /// first divergent position classifies the cache outcome:
 ///
 /// - system prompt diverged (position 0) → the whole conversation prefix
-///   is re-billed — counted in `full_breaks` (the pathological case this
+///   is re-billed - counted in `full_breaks` (the pathological case this
 ///   probe exists to catch: dynamic content interpolated into the header);
 /// - the message HISTORY diverged before its last message → mid-history
-///   mutation, cache lost from there on — counted in `mid_history_mutations`
+///   mutation, cache lost from there on - counted in `mid_history_mutations`
 ///   (also pathological: history items are append-only by design);
-/// - the history SHRANK → compaction/revert rewrote it legitimately —
+/// - the history SHRANK → compaction/revert rewrote it legitimately -
 ///   counted separately in `history_shrinks`, never conflated with the
 ///   pathological counters;
 /// - divergence at the last message (steering/tail blocks churn per
@@ -37,8 +37,8 @@ pub(super) struct RequestFingerprint {
 /// previous fingerprint actually diverges at that position, so heuristic
 /// false positives ("the TODO block changed, therefore the cache broke")
 /// are impossible by construction. Two caveats to keep the counters honest:
-/// the probe is keyed by model — a model switch resets the snapshot instead
-/// of comparing incompatible prefixes — and `MID_HISTORY_MUTATION` also
+/// the probe is keyed by model - a model switch resets the snapshot instead
+/// of comparing incompatible prefixes - and `MID_HISTORY_MUTATION` also
 /// counts USER-driven history rewrites (revert/fork/session restore), which
 /// the probe cannot distinguish from a model-side mutation; read that
 /// counter with the session's user actions in mind.
@@ -47,7 +47,7 @@ pub(super) struct RequestFingerprint {
 /// (role, content, tool-call identity, tool-result id, image payloads).
 /// `thinking_blocks`/`thought_signature` are deliberately excluded: they are
 /// immutable per item (write-once at the item's birth, replayed verbatim),
-/// so a divergence confined to them cannot occur in a live session — and
+/// so a divergence confined to them cannot occur in a live session - and
 /// including them would couple the probe to per-provider wire quirks.
 #[derive(Default)]
 pub(super) struct PrefixCacheProbe {

@@ -1,4 +1,4 @@
-//! The prelude resolves every advertised name — `use morpheus_onnx::prelude::*;`
+//! The prelude resolves every advertised name - `use morpheus_onnx::prelude::*;`
 //! is the one-import surface.
 
 use serde_json::{Map, Value, json};

@@ -1,4 +1,4 @@
-//! Daemons — out-of-process services shared by every morpheus instance.
+//! Daemons - out-of-process services shared by every morpheus instance.
 //!
 //! The app is assembled per turn and is routinely open in several instances
 //! at once; any expensive resident resource (a ~1.3 GB ONNX graph and its
@@ -29,7 +29,7 @@
 //! One domain, one subdirectory, one binary, one socket:
 //!
 //! 1. Create `src/daemon/<name>/` with `protocol.rs` (a `Params` enum
-//!    tagged by method — see `decision/protocol.rs`), `server.rs` (routing
+//!    tagged by method - see `decision/protocol.rs`), `server.rs` (routing
 //!    for that protocol), and `client.rs` (the seam-side adapter).
 //! 2. Register `[[bin]] name = "morpheus-<name>d",
 //!    path = "src/daemon/<name>/main.rs"` in `Cargo.toml`.
@@ -44,7 +44,7 @@
 //! compiles when either the decision engine (`onnx`) or the voice engine
 //! (`speak`) is enabled, and each daemon subdirectory keeps its own gate. A
 //! build with neither feature compiles none of this (no dead code, no
-//! warnings — the module tree IS the feature boundary).
+//! warnings - the module tree IS the feature boundary).
 //!
 //! ## Platforms
 //!

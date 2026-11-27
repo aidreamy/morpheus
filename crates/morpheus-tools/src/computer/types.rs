@@ -9,7 +9,7 @@ pub enum AppsTarget {
     #[default]
     All,
     /// The application that currently holds the system foreground, plus the
-    /// element inside it holding keyboard focus — the cheap "where do my
+    /// element inside it holding keyboard focus - the cheap "where do my
     /// keystrokes go?" check before `computer_keyboard`.
     Focused,
 }
@@ -45,9 +45,9 @@ pub enum SnapshotFormat {
 #[derive(Debug, Clone, Default, Deserialize, JsonSchema)]
 pub struct ComputerSnapshot {
     /// Application name (exact match, e.g. `"Safari"`). Provide `name` or
-    /// `pid` — exactly one.
+    /// `pid` - exactly one.
     pub name: Option<String>,
-    /// Application process ID. Provide `name` or `pid` — exactly one.
+    /// Application process ID. Provide `name` or `pid` - exactly one.
     pub pid: Option<u32>,
     /// Optional CSS-like selector to snapshot only the matching subtree
     /// instead of the whole application, e.g. `"window[name='Main'] > group"`.
@@ -101,7 +101,7 @@ pub struct FocusedElement {
     /// field).
     pub value: Option<String>,
     /// Path of roles from the application root down to the focused element
-    /// (inclusive), e.g. `["window", "group", "text_field"]` — context for
+    /// (inclusive), e.g. `["window", "group", "text_field"]` - context for
     /// locating the field without another snapshot.
     pub path: Vec<String>,
 }
@@ -134,19 +134,19 @@ pub enum WindowAction {
     /// Dock).
     Maximize,
     /// Fill the whole screen (fullscreen-style; the platform's native
-    /// when supported — never aWM hand-rolled simulation).
+    /// when supported - never aWM hand-rolled simulation).
     EnterFullscreen,
     /// Restore from minimized / maximized / fullscreen to the previous
     /// geometry.
     Restore,
-    /// Close the window. Unsaved-change prompts are the APP's own dialogs —
+    /// Close the window. Unsaved-change prompts are the APP's own dialogs -
     /// they open as new windows/tree nodes, re-list to see them.
     Close,
     /// Move the window's top-left corner to `x`/`y` (desktop pixels; may be
     /// negative on multi-monitor layouts).
     Move,
     /// Resize the window to `width` × `height` (desktop pixels; excludes
-    /// nothing — it is the OUTER size).
+    /// nothing - it is the OUTER size).
     Resize,
 }
 
@@ -168,7 +168,7 @@ pub struct WindowBounds {
 /// `computer_windows`.
 #[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct WindowInfo {
-    /// Element role — `window`, or `dialog` for native dialogs.
+    /// Element role - `window`, or `dialog` for native dialogs.
     pub role: String,
     /// Window title (a native dialog's caption), when it has one.
     pub name: Option<String>,
@@ -218,23 +218,23 @@ pub struct WindowManageOutput {
 #[derive(Debug, Clone, Serialize)]
 #[serde(untagged)]
 pub enum WindowsResult {
-    /// No `action` — the application's window listing.
+    /// No `action` - the application's window listing.
     List(WindowsOutput),
     /// An `action` was performed on one window.
     Manage(WindowManageOutput),
 }
 
-/// Input for `computer_windows` — list ONE application's windows, or
+/// Input for `computer_windows` - list ONE application's windows, or
 /// perform an action on one of them.
 #[derive(Debug, Clone, Default, Deserialize, JsonSchema)]
 pub struct ComputerWindows {
     /// Application name (exact match, e.g. `"Safari"`). Provide `name` or
-    /// `pid` — exactly one.
+    /// `pid` - exactly one.
     pub name: Option<String>,
-    /// Application process ID. Provide `name` or `pid` — exactly one.
+    /// Application process ID. Provide `name` or `pid` - exactly one.
     pub pid: Option<u32>,
     /// CSS-like selector for ONE window or dialog, e.g.
-    /// `"dialog[name='Erasing…']"` — which window an `action` operates on
+    /// `"dialog[name='Erasing…']"` - which window an `action` operates on
     /// (default: the app's first window). In list mode it narrows the
     /// listing to the matched element.
     pub selector: Option<String>,
@@ -242,7 +242,7 @@ pub struct ComputerWindows {
     /// (default 1).
     pub nth: Option<usize>,
     /// Omitted (default): list every window. Set: perform the action on one
-    /// window — activate/minimize/maximize/enter_fullscreen/restore/close,
+    /// window - activate/minimize/maximize/enter_fullscreen/restore/close,
     /// or move (needs `x`/`y`) / resize (needs `width`/`height`).
     pub action: Option<WindowAction>,
     /// New top-left X for `move` (desktop pixels).
@@ -274,17 +274,17 @@ pub struct ComputerScreenshot {
     /// `"window[name='Main'] > group"`. Requires `app` or `pid`.
     ///
     /// With `annotate: true` this changes meaning: it selects which elements
-    /// get annotated boxes (default `"*"` — every element of the app), and
+    /// get annotated boxes (default `"*"` - every element of the app), and
     /// the legend maps each tag to a round-trippable selector. Comma
     /// alternations (`"button, link"`) are rejected in both modes.
     pub selector: Option<String>,
     /// 1-based match index when `selector` matches multiple elements
-    /// (default 1). Not applicable to annotated captures — the legend
+    /// (default 1). Not applicable to annotated captures - the legend
     /// covers every match; narrow `selector` instead.
     pub nth: Option<usize>,
     /// Draw a labeled box on every matching element and return a legend
     /// mapping each tag (`B7`) back to a selector (`*:nth(7)`) that
-    /// `computer_act` accepts directly — visual grounding without pixel
+    /// `computer_act` accepts directly - visual grounding without pixel
     /// coordinates. Requires `app` or `pid` (annotation groups must be
     /// application-scoped) and is mutually exclusive with `region`.
     /// Default `false`.
@@ -297,7 +297,7 @@ pub struct ComputerScreenshot {
     /// How long to wait for the app to appear (element capture only), in
     /// milliseconds. Default 3000.
     pub timeout_ms: Option<u64>,
-    /// ALSO write the PNG to this file path (any capture form) — relative
+    /// ALSO write the PNG to this file path (any capture form) - relative
     /// paths resolve against morpheus's working directory; the file is
     /// overwritten. The image still returns inline so you can see it.
     /// Outside any project root the harness asks for approval.
@@ -314,7 +314,7 @@ pub struct ComputerScreenshot {
 /// Output of `computer_screenshot`.
 ///
 /// The PNG travels inline via [`ScreenshotOutput::images`] (base64
-/// `ImageBlock`s) — no file references.
+/// `ImageBlock`s) - no file references.
 #[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct ScreenshotOutput {
     /// Width of the DELIVERED image, in pixels (after any downscale).
@@ -323,9 +323,9 @@ pub struct ScreenshotOutput {
     /// Height of the DELIVERED image, in pixels.
     pub height: u32,
     /// Desktop-coordinate origin of the image: the desktop point under the
-    /// delivered image's pixel (0, 0) — `(x, y)`.
+    /// delivered image's pixel (0, 0) - `(x, y)`.
     pub desktop_origin: (i32, i32),
-    /// Desktop pixels per delivered image pixel — `(dx, dy)`. Map an image
+    /// Desktop pixels per delivered image pixel - `(dx, dy)`. Map an image
     /// coordinate back to the screen as
     /// `desktop = desktop_origin + image_coord * desktop_scale`.
     pub desktop_scale: (f64, f64),
@@ -333,11 +333,11 @@ pub struct ScreenshotOutput {
     pub bytes: usize,
     /// Legend of the annotated capture: one entry per drawn box, mapping the
     /// tag drawn on the image (`B7`) to a selector that resolves the
-    /// element — pass it to `computer_act` as-is. Empty for plain
+    /// element - pass it to `computer_act` as-is. Empty for plain
     /// captures.
     pub legend: Vec<LegendEntryOutput>,
     /// Elements that matched the annotation selector but could not be
-    /// drawn, each with the reason — the picture and the legend never
+    /// drawn, each with the reason - the picture and the legend never
     /// disagree silently. Empty for plain captures.
     pub omitted: Vec<OmissionOutput>,
     /// How many matched elements were not described at all because the
@@ -356,9 +356,9 @@ pub struct ScreenshotOutput {
 /// selector that reaches the element it labels.
 #[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct LegendEntryOutput {
-    /// What is drawn in the box — `"B7"`.
+    /// What is drawn in the box - `"B7"`.
     pub tag: String,
-    /// Selector usable as-is against the annotation scope —
+    /// Selector usable as-is against the annotation scope -
     /// `"button[name='Export']:nth(7)"`. This round-trip is the point: read
     /// the tag off the image, act on the selector.
     pub selector: String,
@@ -564,7 +564,7 @@ impl ElementStates {
 /// One element of the rendered snapshot: role, name, value, current states
 /// and children.
 ///
-/// This is the tool's own tree — xa11y's `TreeNode` carries no states, and
+/// This is the tool's own tree - xa11y's `TreeNode` carries no states, and
 /// the builder below reads them from the same `ElementData` the node's
 /// identity comes from, so building here adds zero extra provider round
 /// trips per node.
@@ -576,15 +576,15 @@ pub struct StateNode {
     pub name: Option<String>,
     /// Current value, when the element has one.
     pub value: Option<String>,
-    /// Supplementary description (tooltip, help text), when present — often
+    /// Supplementary description (tooltip, help text), when present - often
     /// the only text that distinguishes two same-named controls.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub description: Option<String>,
     /// Platform-assigned stable identifier (`stable_id` selector attribute),
-    /// when present — resolves the same element across snapshots.
+    /// when present - resolves the same element across snapshots.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub stable_id: Option<String>,
-    /// Actions the platform says the element supports — the exact verb
+    /// Actions the platform says the element supports - the exact verb
     /// names `perform_action` accepts.
     #[serde(skip_serializing_if = "Vec::is_empty")]
     pub actions: Vec<String>,
@@ -639,9 +639,9 @@ pub enum ActAction {
     PerformAction,
 }
 
-/// Input for `computer_act` — ONE step of a semantic pipeline: either an
+/// Input for `computer_act` - ONE step of a semantic pipeline: either an
 /// accessibility action on the element matched by `selector`, a keyboard
-/// action (`key`/`text`), or a `wait` pause — chained via `then` with
+/// action (`key`/`text`), or a `wait` pause - chained via `then` with
 /// shell `&&` semantics.
 #[derive(Debug, Clone, Default, Deserialize, JsonSchema)]
 pub struct ComputerAct {
@@ -663,7 +663,7 @@ pub struct ComputerAct {
     pub value: Option<String>,
     /// Number for `set_numeric_value`.
     pub numeric_value: Option<f64>,
-    /// `[start, end]` (0-based; `end` EXCLUSIVE — `[0, 3]` selects three
+    /// `[start, end]` (0-based; `end` EXCLUSIVE - `[0, 3]` selects three
     /// characters, matching the AT-SPI convention) for `select_text`.
     pub range: Option<Vec<u32>>,
     /// How long to wait for the app AND a visible+enabled element match, in
@@ -673,11 +673,11 @@ pub struct ComputerAct {
     /// Target an OS SHELL SURFACE instead of an application (mutually
     /// exclusive with `name`/`pid`): the menu bar, Dock/taskbar/panel, tray
     /// status items, the desktop, or a flyout open right now. Semantic
-    /// steps only — a surface has no process to type into; keyboard steps
+    /// steps only - a surface has no process to type into; keyboard steps
     /// in the same chain still need an element step to have set focus.
     pub surface: Option<SurfaceKind>,
     // ── Keyboard fields (shared engine with computer_control) ──
-    /// Key to tap, by name: single characters (lowercase — for uppercase
+    /// Key to tap, by name: single characters (lowercase - for uppercase
     /// hold `shift`) or named keys (`enter`, `escape`, `tab`, `space`,
     /// `backspace`, `delete`, `insert`, `up`, `down`, `left`, `right`,
     /// `home`, `end`, `pageup`, `pagedown`, `f1`..`f12`). Types into
@@ -687,7 +687,7 @@ pub struct ComputerAct {
     /// with `key`.
     pub text: Option<String>,
     /// Modifier keys held while tapping `key` (`shift`, `ctrl`, `alt`,
-    /// `meta`) — e.g. key `a` + `held: ["ctrl"]` = select all. `text`
+    /// `meta`) - e.g. key `a` + `held: ["ctrl"]` = select all. `text`
     /// rejects `held`.
     pub held: Option<Vec<String>>,
     /// Milliseconds to WAIT as a STANDALONE step (no other fields): gives
@@ -697,9 +697,9 @@ pub struct ComputerAct {
     /// fields): modifier names (`shift`, `ctrl`, `alt`, `meta`) or ordinary
     /// key names (`a`, `enter`, `space`…). E.g. `hold ["shift"]`, then a
     /// click step, then `release ["shift"]`. Keys stay down across steps
-    /// and calls until a later `release` — release what you hold.
+    /// and calls until a later `release` - release what you hold.
     pub hold: Option<Vec<String>>,
-    /// Keys to RELEASE (pressed by an earlier `hold`) — STANDALONE step.
+    /// Keys to RELEASE (pressed by an earlier `hold`) - STANDALONE step.
     pub release: Option<Vec<String>>,
     /// Optional NEXT step of the pipeline, executed only if this step
     /// succeeded. Same shape as this step, recursively.
@@ -742,19 +742,19 @@ pub enum WaitState {
     Unfocused,
 }
 
-/// Input for `computer_wait` — block until a condition in a target
+/// Input for `computer_wait` - block until a condition in a target
 /// application is met, then time out with a diagnosis.
 ///
 /// Three modes (mutually exclusive): an ELEMENT STATE (`selector` +
 /// `state`, default `visible`), a VALUE condition (`selector` +
 /// `value`/`value_contains`), or an app-scoped GRAPHICAL EVENT (`event`
-/// with exactly one of `name`/`pid` — no selector).
+/// with exactly one of `name`/`pid` - no selector).
 #[derive(Debug, Clone, Default, Deserialize, JsonSchema)]
 pub struct ComputerWait {
     /// Application name (exact match, e.g. `"Safari"`). Provide `name` or
-    /// `pid` — exactly one, unless `surface` is used.
+    /// `pid` - exactly one, unless `surface` is used.
     pub name: Option<String>,
-    /// Application process ID. Provide `name` or `pid` — exactly one, unless
+    /// Application process ID. Provide `name` or `pid` - exactly one, unless
     /// `surface` is used.
     pub pid: Option<u32>,
     /// Target an OS SHELL SURFACE instead of an application (mutually
@@ -780,7 +780,7 @@ pub struct ComputerWait {
     /// with `state`/`value`/`value_contains`.
     pub numeric_value_gte: Option<f64>,
     /// Wait for a GRAPHICAL EVENT in the application INSTEAD of an element
-    /// condition — app-scoped: needs exactly one of `name`/`pid`, takes no
+    /// condition - app-scoped: needs exactly one of `name`/`pid`, takes no
     /// `selector`/`nth`/`state`/`value`. The platform's event stream
     /// answers "wait until something happens" without a poll loop.
     pub event: Option<WaitEvent>,
@@ -798,7 +798,7 @@ pub enum WaitEvent {
     /// for the window to appear").
     #[default]
     WindowOpened,
-    /// One of the app's windows was closed (a dialog accepted/cancelled —
+    /// One of the app's windows was closed (a dialog accepted/cancelled -
     /// pair with the window's `close` action).
     WindowClosed,
     /// An app window gained the system foreground. Not emitted on Windows
@@ -817,7 +817,7 @@ pub enum WaitEvent {
     /// An element's name/label changed.
     NameChanged,
     /// An element gained or lost a boolean state flag (enabled, checked,
-    /// busy, minimized… — the target identifies the element; the flag and
+    /// busy, minimized… - the target identifies the element; the flag and
     /// its new value are not reported in the wire output).
     StateChanged,
     /// Elements were added/removed or the tree was invalidated (list
@@ -830,7 +830,7 @@ pub enum WaitEvent {
     /// A menu was dismissed.
     MenuClosed,
     /// The app posted an accessibility announcement / alert (live region).
-    /// No text payload — re-query a nearby alert for contents.
+    /// No text payload - re-query a nearby alert for contents.
     Announcement,
 }
 
@@ -838,11 +838,11 @@ pub enum WaitEvent {
 #[derive(Debug, Clone, Serialize, JsonSchema)]
 pub struct WaitOutput {
     /// Whether the condition was met before the timeout (always `true` in
-    /// the success response — a timeout is an error carrying the diagnosis).
+    /// the success response - a timeout is an error carrying the diagnosis).
     pub met: bool,
     /// How long the call actually waited, in milliseconds.
     pub elapsed_ms: u64,
-    /// The state the element was in when the condition was met — a
+    /// The state the element was in when the condition was met - a
     /// convenience sanity check for the model (e.g. a `detached` wait's
     /// element is gone; an `enabled` wait's element reports enabled).
     pub observed: WaitObservation,
@@ -889,7 +889,7 @@ pub struct WaitedEventTarget {
     pub value: Option<String>,
 }
 
-/// Output of `computer_wait` — one shape per mode.
+/// Output of `computer_wait` - one shape per mode.
 ///
 /// Untagged: the model sees the plain `WaitOutput` (element condition) or
 /// `EventWaitOutput` (event) JSON, never the enum wrapper.
@@ -902,7 +902,7 @@ pub enum WaitResult {
     Event(WaitedEvent),
 }
 
-/// Which OS shell surface to target instead of an application — the parts
+/// Which OS shell surface to target instead of an application - the parts
 /// of the desktop OUTSIDE any app: menu bar, Dock/taskbar/panel, tray
 /// status items, the desktop itself, transient flyouts (Notification
 /// Center, Quick Settings, shell context menus). Mirrors xa11y's
@@ -916,7 +916,7 @@ pub enum SurfaceKind {
     #[default]
     MenuBar,
     /// System status items / tray icons (macOS menu-bar extras, Windows
-    /// tray overflow needs a press first — content only exists while the
+    /// tray overflow needs a press first - content only exists while the
     /// overflow is open).
     StatusItems,
     /// The Windows taskbar.
@@ -928,7 +928,7 @@ pub enum SurfaceKind {
     /// The desktop itself (icons, wallpaper-level widgets).
     Desktop,
     /// Transient shell flyouts open RIGHT NOW: Notification Center, Quick
-    /// Settings, shell context menus. They exist only while open — the
+    /// Settings, shell context menus. They exist only while open - the
     /// caller performs the press that opens them on a real element first,
     /// then re-enumerates.
     Flyout,
@@ -950,14 +950,14 @@ pub enum PointerAction {
     /// Move the cursor to (`x`, `y`) without clicking.
     Move,
     /// Press a mouse button down at the current position (`button`, default
-    /// left) — pair with `up` for custom drags.
+    /// left) - pair with `up` for custom drags.
     Down,
     /// Release a previously pressed mouse button.
     Up,
     /// Scroll by (`dx`, `dy`) wheel steps at (`x`, `y`). Requires `dx`/`dy`.
     Scroll,
     /// Press at the start point, interpolate movement to the end point
-    /// (~60 Hz), release. Requires both endpoints — coordinates (`x`/`y` +
+    /// (~60 Hz), release. Requires both endpoints - coordinates (`x`/`y` +
     /// `x2`/`y2`) or elements (`selector` + `to_selector`), not a mix.
     /// `duration_ms` paces the movement (default 150, min 50).
     Drag,
@@ -984,16 +984,16 @@ pub enum PointerAnchor {
     BottomRight,
 }
 
-/// Input for `computer_control` — one step of a desktop-control pipeline:
-/// EITHER a pointer action (click/scroll/move/drag — `key`/`text` absent)
+/// Input for `computer_control` - one step of a desktop-control pipeline:
+/// EITHER a pointer action (click/scroll/move/drag - `key`/`text` absent)
 /// OR a keyboard action (`key` or `text`), at raw coordinates or on an
 /// accessibility-tree element.
 ///
 /// A step may chain the NEXT step via `then`: the steps run sequentially in
 /// a single call, each only if the previous succeeded (shell `&&` semantics)
-/// — the first failing step aborts the chain with the point of failure.
+/// - the first failing step aborts the chain with the point of failure.
 /// Targeting is PER STEP: the canonical pattern is `click` an element (the
-/// real click moves OS keyboard focus — the one mechanism that works on
+/// real click moves OS keyboard focus - the one mechanism that works on
 /// every toolkit) and `then` type into the focused field. `up` needs no
 /// target.
 #[derive(Debug, Clone, Default, Deserialize, JsonSchema)]
@@ -1003,8 +1003,8 @@ pub struct ComputerControl {
     pub x: Option<i32>,
     /// Y coordinate in desktop pixels (coordinate form; also the drag START).
     pub y: Option<i32>,
-    /// Pointer action (default `click`). Ignored — and rejected together
-    /// with any other pointer field — when the step is a keyboard step
+    /// Pointer action (default `click`). Ignored - and rejected together
+    /// with any other pointer field - when the step is a keyboard step
     /// (`key`/`text`).
     pub action: Option<PointerAction>,
     /// Button for `down`/`up` (`left` default, `right`, `middle`).
@@ -1014,7 +1014,7 @@ pub struct ComputerControl {
     /// Vertical scroll delta (wheel steps) for `scroll`; positive scrolls down.
     pub dy: Option<i32>,
     /// Targeting PER STEP: application name (exact match) scoping
-    /// `selector`. Provide `app` or `pid` — exactly one, only together with
+    /// `selector`. Provide `app` or `pid` - exactly one, only together with
     /// `selector`.
     pub app: Option<String>,
     /// Application process ID for the element form. Per step.
@@ -1027,7 +1027,7 @@ pub struct ComputerControl {
     /// step.
     pub surface: Option<SurfaceKind>,
     /// CSS-like selector of the element this step acts on, e.g.
-    /// `"button[name='OK']"` — the point resolves from the element's CURRENT
+    /// `"button[name='OK']"` - the point resolves from the element's CURRENT
     /// bounds when the step runs, never stale. A `click` on an element moves
     /// OS keyboard focus to it, which is how the next step's typing finds
     /// the right field. Per step.
@@ -1042,7 +1042,7 @@ pub struct ComputerControl {
     /// `count: 2` is a double-click.
     pub count: Option<u32>,
     /// Modifier keys for THIS step: held during a click or drag, or held
-    /// while tapping `key` (`shift`, `ctrl`, `alt`, `meta`) — e.g. `click` +
+    /// while tapping `key` (`shift`, `ctrl`, `alt`, `meta`) - e.g. `click` +
     /// `held: ["ctrl"]` = ctrl+click; key `a` + `held: ["ctrl"]` = select
     /// all. `text` rejects `held`.
     pub held: Option<Vec<String>>,
@@ -1050,7 +1050,7 @@ pub struct ComputerControl {
     pub x2: Option<i32>,
     /// End Y for `drag`.
     pub y2: Option<i32>,
-    /// End element selector for `drag` (CSS-like selector on the same app) —
+    /// End element selector for `drag` (CSS-like selector on the same app) -
     /// the element form for the drag's end point. Mutually exclusive with
     /// `x2`/`y2`.
     pub to_selector: Option<String>,
@@ -1058,7 +1058,7 @@ pub struct ComputerControl {
     /// min 50). Backends interpolate the pointer path across this time.
     pub duration_ms: Option<u64>,
     // ── Keyboard fields ──
-    /// Key to tap, by name: single characters (`a`, `5`, `.` — lowercase;
+    /// Key to tap, by name: single characters (`a`, `5`, `.` - lowercase;
     /// for uppercase hold `shift`), or `enter`, `escape`, `tab`, `space`,
     /// `backspace`, `delete`, `insert`, `up`, `down`, `left`, `right`,
     /// `home`, `end`, `pageup`, `pagedown`, `f1`..`f12`. Typing goes into
@@ -1070,17 +1070,17 @@ pub struct ComputerControl {
     pub text: Option<String>,
     /// Milliseconds to WAIT as a STANDALONE step (no other fields): gives
     /// the app time to open a dialog or create an ephemeral field before
-    /// the next step acts — e.g. click the menu item that opens a rename
+    /// the next step acts - e.g. click the menu item that opens a rename
     /// box, then `{"wait": 600}`, then type into it. Capped at 10 s.
     pub wait: Option<u64>,
     /// Keys to press DOWN and KEEP held as a STANDALONE step (no other
     /// fields): modifier names (`shift`, `ctrl`, `alt`, `meta`) or ordinary
     /// key names (`a`, `enter`, `space`…). E.g. `hold ["shift"]`, then a
     /// click step, then `release ["shift"]` = shift + click across steps.
-    /// Keys stay down across steps and calls until a later `release` —
+    /// Keys stay down across steps and calls until a later `release` -
     /// release what you hold.
     pub hold: Option<Vec<String>>,
-    /// Keys to RELEASE (pressed by an earlier `hold`) — STANDALONE step.
+    /// Keys to RELEASE (pressed by an earlier `hold`) - STANDALONE step.
     pub release: Option<Vec<String>>,
     /// Optional NEXT step of the pipeline, executed only if this step
     /// succeeded (e.g. click `text_field` → then text `"olá"` → then key

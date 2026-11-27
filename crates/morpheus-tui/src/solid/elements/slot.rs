@@ -9,7 +9,7 @@ use crate::core::renderable::Renderable;
 
 static NEXT_SLOT_NUM: AtomicU64 = AtomicU64::new(1);
 
-/// A renderable that rejects child mutations — it acts as a leaf placeholder.
+/// A renderable that rejects child mutations - it acts as a leaf placeholder.
 struct SlotBaseRenderable {
     id: String,
     num: u64,

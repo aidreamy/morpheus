@@ -1,7 +1,7 @@
 //! `lsp_rename` engine: two-phase rename with disk application.
 //!
 //! Phase 1 (`confirm: false`, the default) returns an **applied: false**
-//! plan — every file, every edit position — and touches nothing. Phase 2
+//! plan - every file, every edit position - and touches nothing. Phase 2
 //! (`confirm: true`) applies the exact same server answer to disk and
 //! re-opens affected files so servers stay in sync.
 //!
@@ -127,7 +127,7 @@ fn render_plan(files: &[RenameFilePlan], total_edits: usize, applied: bool) -> S
         ));
     } else {
         lines.push(format!(
-            "Rename plan — {total_edits} edit(s) across {} file(s). \
+            "Rename plan - {total_edits} edit(s) across {} file(s). \
              Re-call with `confirm: true` to apply:",
             files.len()
         ));

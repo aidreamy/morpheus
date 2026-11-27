@@ -57,13 +57,13 @@ Rules:
 - Never cite item numbers (e.g. `item #3`): the referenced items may no longer exist in the agent's view, so the number means nothing to a later reader. Identify the source by quoting (or paraphrasing exactly) its actual text instead. Never invent provenance or infer completion from an intention.
 - A later supported invalidation supersedes an older checkpoint. Keep changed-file references, but mark stale contents and require a fresh read before editing.
 - Preserve conflicts explicitly when the evidence does not establish the current state.
-- Use terse bullets, not prose paragraphs — except code, which is ALWAYS copied verbatim inside Markdown code fences.
+- Use terse bullets, not prose paragraphs - except code, which is ALWAYS copied verbatim inside Markdown code fences.
 - Preserve exact file paths, hashline anchors (¶path#TAG), line numbers, symbols, commands, error strings, URLs, and identifiers when known.
-- Carry code VERBATIM: quote the important code blocks, function signatures and error messages exactly as they appear in the transcript. Never paraphrase code — a paraphrased block cannot be applied or edited.
+- Carry code VERBATIM: quote the important code blocks, function signatures and error messages exactly as they appear in the transcript. Never paraphrase code - a paraphrased block cannot be applied or edited.
 - The summary must let the agent resume editing where it stopped: for every file the next step touches, keep the hashline anchor of its last read/written state and the specific lines/symbols involved.
 - Do not mention the summary process or that context was compacted.";
 
-/// The SYSTEM prompt of the LLM summarizer — its OWN instructions, completely
+/// The SYSTEM prompt of the LLM summarizer - its OWN instructions, completely
 /// separate from the agent loop's fixed system prompt in `core.rs`. The
 /// summarizer is a dedicated agent with its own context and its own rules
 /// (opencode-style): it never sees the main system prompt, the tool
@@ -75,7 +75,7 @@ a single anchored Markdown summary that lets the session continue seamlessly.
 Rules:
 - Follow the template exactly; never add sections, never change their order.
 - Preserve exact file paths, hashline anchors (¶path#TAG), line numbers, symbols, commands, error strings, URLs, and identifiers when known.
-- Carry code VERBATIM: quote the important code blocks, function signatures and error messages exactly as they appear in the transcript (inside fenced blocks). The agent edits files by hashline anchor and line number — paraphrased code cannot be used.
+- Carry code VERBATIM: quote the important code blocks, function signatures and error messages exactly as they appear in the transcript (inside fenced blocks). The agent edits files by hashline anchor and line number - paraphrased code cannot be used.
 - Prefer a few exact code blocks over prose descriptions of the same code.
 - Keep facts precise; do not invent details that are not in the transcript.
 - In update mode, preserve still-true details, remove stale details, and merge in the new facts.
@@ -97,7 +97,7 @@ pub(super) fn serialize_item(item: &ContextItem) -> String {
         ContextItem::ToolCall {
             name, arguments, ..
         } => format!("[Assistant tool call]: {name}({arguments})"),
-        // Tool results are passed VERBATIM — the tools bound their own output,
+        // Tool results are passed VERBATIM - the tools bound their own output,
         // and truncating a payload the model still needs only forces a
         // costlier re-read of the source.
         ContextItem::ToolResult { content, .. } => format!("[Tool result]: {content}"),
@@ -125,7 +125,7 @@ pub(super) fn serialize_item(item: &ContextItem) -> String {
 /// from the serialized conversation, or update the previous summary when one
 /// exists (avoiding the summary-of-summary quality loss).
 ///
-/// The previous summary is NOT embedded here — it stays in the timeline as the
+/// The previous summary is NOT embedded here - it stays in the timeline as the
 /// FIRST line of the transcript (`[Previous summary]: …`, index 0), and update
 /// mode only references it by that label. One copy, never duplicated: the
 /// model sees the anchor exactly where the timeline naturally starts, followed
@@ -141,7 +141,7 @@ pub(super) fn build_llm_prompt(has_previous_summary: bool, context: &str) -> Str
     format!("{instruction}\n\n{SUMMARY_TEMPLATE}\n\n{context}")
 }
 
-/// The SYSTEM prompt of the split summarizer — the dedicated agent that
+/// The SYSTEM prompt of the split summarizer - the dedicated agent that
 /// processes the timeline in sequential chunks for the split-and-concatenate
 /// contingency. Unlike [`SUMMARIZER_SYSTEM`] (one-shot over the whole
 /// timeline), this one must keep the final buffer continuous: every
@@ -154,7 +154,7 @@ final anchored summary.
 Rules:
 - First chunk: build the anchored summary following the template exactly.
 - Continuation chunks: extend the summary naturally from the tail of the
-  previous summary shown in [Continuation context] — keep its structure and
+  previous summary shown in [Continuation context] - keep its structure and
   style, add the new facts, never restate what is already covered. The final
   result must read as ONE continuous document with no visible seam.
 - Preserve exact file paths, hashline anchors (¶path#TAG), line numbers,
@@ -163,15 +163,15 @@ Rules:
   and error messages exactly as they appear (inside fenced blocks). Never
   paraphrase code.
 - Keep facts precise; do not invent details that are not in the chunk.
-- When a token limit is given, respect it strictly — prefer terse bullets.
+- When a token limit is given, respect it strictly - prefer terse bullets.
 - Do not mention the summary process or that context was compacted.";
 
 /// Build the split-and-concatenate prompt for one chunk.
 ///
 /// The FIRST chunk carries the full [`SUMMARY_TEMPLATE`] so it produces the
 /// anchored skeleton; every continuation chunk gets the tail of the previous
-/// summary as a continuity snippet and is told to extend it — never restart
-/// the template — so the concatenated buffer reads seamlessly.
+/// summary as a continuity snippet and is told to extend it - never restart
+/// the template - so the concatenated buffer reads seamlessly.
 ///
 /// The token-limit line is only included when the buffer accumulation becomes
 /// concerning ([`SPLIT_WARN_PCT`] of the ceiling): before that the model is
@@ -193,9 +193,9 @@ pub(super) fn build_split_prompt(
         out.push_str(
             "Continue the anchored summary you started in the previous call.\n\
              Preserve its section structure and style; extend the existing sections with the new \
-             facts. Do NOT restart the template from scratch — the final summary must read as ONE \
+             facts. Do NOT restart the template from scratch - the final summary must read as ONE \
              continuous document.\n\n\
-             [Continuation context — the tail of your previous summary]:\n",
+             [Continuation context - the tail of your previous summary]:\n",
         );
         out.push_str(continuity);
         out.push('\n');
@@ -204,7 +204,7 @@ pub(super) fn build_split_prompt(
         out.push_str(&format!(
             "\nTOKEN LIMIT: {buffer_tokens} tokens are already summarized and the final \
              summary must stay within budget. Compress the chunk below to AT MOST ~{target} \
-             tokens — terse bullets, only the essential facts, paths, hashline anchors and code.\n"
+             tokens - terse bullets, only the essential facts, paths, hashline anchors and code.\n"
         ));
     }
     out.push_str(&format!(

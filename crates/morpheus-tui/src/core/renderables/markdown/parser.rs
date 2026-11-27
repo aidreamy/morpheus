@@ -20,8 +20,8 @@ pub(crate) enum BlockKind {
     /// label row, which doubles as the visual gap above the code.
     CodeBlock,
     /// Fenced/indented code block WITHOUT an info string ("```"): it paints
-    /// its own blank top-padding row instead of a label, so — like the tagged
-    /// variant — it owns its top gap and must not be given ANOTHER one by
+    /// its own blank top-padding row instead of a label, so - like the tagged
+    /// variant - it owns its top gap and must not be given ANOTHER one by
     /// the inter-block separator rule.
     CodeBlockLangless,
     Table,
@@ -65,7 +65,7 @@ impl MdBlocks {
     ///
     /// Trailing newlines are stripped off the previous block first, so the
     /// result is invariant to how much trailing whitespace pulldown's ranges
-    /// happen to swallow — which differs between a fresh parse and an
+    /// happen to swallow - which differs between a fresh parse and an
     /// incremental one whose stable blocks keep their original (shorter)
     /// ranges.
     pub(crate) fn inter_block_gap(&self, prev: &BlockInfo, cur: &BlockInfo) -> usize {
@@ -104,7 +104,7 @@ impl BlockKind {
 /// Language-less code fences are the exception: their renderer paints a
 /// blank top-padding row itself (the twin of their bottom padding), so they
 /// always arrive with their own top gap and must NOT be handed another one
-/// by this rule — otherwise a fence after a separated block would show a
+/// by this rule - otherwise a fence after a separated block would show a
 /// double-height gap. They still SEPARATE from their predecessors visually;
 /// only this rule's contribution is waived because the block owns the gap.
 ///
@@ -207,7 +207,7 @@ fn common_prefix_len(a: &str, b: &str) -> usize {
 /// Strategy:
 /// 1. Compute the common byte prefix between the old and new documents.
 /// 2. Walk the previous blocks and keep those that lie entirely inside the
-///    shared prefix — their bytes cannot have changed.
+///    shared prefix - their bytes cannot have changed.
 /// 3. Back off [`TRAILING_UNSTABLE_BLOCKS`] blocks so incomplete tails
 ///    (streaming) are always re-parsed.
 /// 4. Re-parse only `&new[stable_end..]` and append its blocks.
@@ -376,7 +376,7 @@ mod tests {
         let second = parse_blocks_incremental(edited, Some(&first));
         assert_eq!(second.blocks.len(), 3);
         // The edit is inside the trailing-unstable window, so nothing stays
-        // stable — but the re-parse must still produce identical structure
+        // stable - but the re-parse must still produce identical structure
         // with the edit applied.
         assert_eq!(second.source(&second.blocks[0]), "aaa bbb ccc\n");
         assert_eq!(second.source(&second.blocks[1]), "ddd eee fff\n");

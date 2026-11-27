@@ -23,7 +23,7 @@ pub struct ToolCallData {
     pub arguments: JsonValue,
     /// Gemini 3.x thought signature: the sibling `thoughtSignature` the
     /// model attached to a native `functionCall` part. MUST be replayed
-    /// verbatim when the call is re-sent in the conversation history — the
+    /// verbatim when the call is re-sent in the conversation history - the
     /// Gemini API rejects a functionCall without its original signature with
     /// HTTP 400 (`Function call is missing a thought_signature`). Empty for
     /// inline-JSON calls and for every other provider.
@@ -35,7 +35,7 @@ pub struct ToolCallData {
 /// schema validation the inline-JSON text path performs.
 ///
 /// The provider already split the call into structured fields, so no text
-/// parsing happens — but the envelope is still validated against the
+/// parsing happens - but the envelope is still validated against the
 /// registered schemas, failures are counted, and `last_failed_raw` is
 /// recorded for the correction memory, exactly like a failed inline call.
 #[derive(Debug, Clone)]
@@ -45,7 +45,7 @@ pub struct NativeToolCall {
     /// Tool name.
     pub name: String,
     /// Raw accumulated `arguments` JSON text as the provider streamed it
-    /// (empty when the provider sent no arguments at all — e.g. Ollama).
+    /// (empty when the provider sent no arguments at all - e.g. Ollama).
     pub arguments: String,
     /// Gemini 3.x thought signature (sibling of a native `functionCall`),
     /// replayed verbatim on the follow-up request. Empty for every other
@@ -152,7 +152,7 @@ struct StreamState {
     /// Whether the current run of backticks (if any) began at a line start.
     /// Captured when the first backtick of a run is seen so a mid-line ````
     /// (e.g. prose that merely *quotes* a fence) never toggles the code-block
-    /// state — doing so would swallow a following inline tool call as "fenced
+    /// state - doing so would swallow a following inline tool call as "fenced
     /// display text" and leak its schema to the user.
     fence_at_line_start: bool,
 }
@@ -294,10 +294,10 @@ impl ExtractAction {
 
     /// True when the stream ended with a construct that proves the response
     /// was CUT, regardless of what `finish_reason` claims:
-    /// - `depth > 0`: a `{` was opened but never closed — the tool-call JSON
+    /// - `depth > 0`: a `{` was opened but never closed - the tool-call JSON
     ///   is incomplete, so no call was validated and none will dispatch;
     /// - `pending_tool_call`: a call WAS validated but parked for delivery
-    ///   and the stream ended before the next poll could return it — it
+    ///   and the stream ended before the next poll could return it - it
     ///   would be silently dropped.
     ///
     /// Trailing text after a completed call (`deferred_tail`) is deliberately
@@ -310,7 +310,7 @@ impl ExtractAction {
 
     /// Render the failure warning for a rejected tool call: the configured
     /// label, the human-readable rejection reason, the truncated offending
-    /// raw payload, and — for schema-shaped rejections — the expected argument
+    /// raw payload, and - for schema-shaped rejections - the expected argument
     /// shape (or the available tool set, for unknown-tool calls). Every
     /// failure path (batch, streaming, and native) funnels through this so
     /// the model always sees *what* failed, *why*, and what to send instead.
@@ -353,7 +353,7 @@ impl ExtractAction {
                         );
                     }
                     format!(
-                        "> Expected `{}` arguments — minimal shape: {}\n",
+                        "> Expected `{}` arguments - minimal shape: {}\n",
                         t.name,
                         super::skeleton::schema_skeleton(&t.input_schema)
                     )
@@ -408,7 +408,7 @@ impl ExtractAction {
                 match self.parse_and_validate(candidate) {
                     Ok(tool_call) => items.push(Item::ToolCall(tool_call)),
                     Err(reason) => {
-                        // Invalid unfenced JSON — suppress, show warning instead
+                        // Invalid unfenced JSON - suppress, show warning instead
                         self.tool_failure_count += 1;
                         self.last_failed_raw = candidate.to_string();
                         items.push(Item::Text(self.failure_message(&reason, candidate)));
@@ -428,12 +428,12 @@ impl ExtractAction {
 
     /// Validate a tool call the provider delivered NATIVELY (structured
     /// `tool_calls`/`tool_use`/`functionCall` parts) through the same schema
-    /// funnel as the inline-JSON text path — minus the text parsing.
+    /// funnel as the inline-JSON text path - minus the text parsing.
     ///
-    /// Empty arguments default to `{}` (some providers — e.g. Ollama —
+    /// Empty arguments default to `{}` (some providers - e.g. Ollama -
     /// stream tool calls with no `arguments` at all); non-empty arguments
     /// are passed through as a JSON string so [`validate_tool_call`] can
-    /// attempt a parse, falling back to schema rejection — the model gets
+    /// attempt a parse, falling back to schema rejection - the model gets
     /// the same correction feedback as an inline-JSON failure.
     ///
     /// Returns [`StreamAction::ToolCall`] when the call validates against a
@@ -535,7 +535,7 @@ impl ExtractAction {
                 // Fences only open/close when their opening backtick sits at the
                 // start of a line (mirroring `is_in_code_block`). A ````
                 // quoted in the middle of prose (e.g. an agent describing a
-                // markdown snippet) must NOT flip the code-block state — doing
+                // markdown snippet) must NOT flip the code-block state - doing
                 // so would swallow a following inline tool call as "fenced
                 // display text" and leak its schema to the user.
                 if self.state.fence_count == 0 {
@@ -827,7 +827,7 @@ fn validate_tool_call(
         // Models sometimes double-encode individual fields while the
         // envelope itself is fine (`"questions": "[{...}]"`). Coerce every
         // string-encoded array/object back into its structured form before
-        // validating — and return the coerced value so downstream consumers
+        // validating - and return the coerced value so downstream consumers
         // deserialize the repaired payload, not the raw string.
         let args = repair_string_encoded(&args, &tool.input_schema, &tool.input_schema);
 
@@ -876,11 +876,11 @@ fn validate_tool_call(
     Err(ToolCallRejection::NoToolMatch)
 }
 
-/// Resolve a local `$ref` (`#/$defs/name`) against the document root — the
+/// Resolve a local `$ref` (`#/$defs/name`) against the document root - the
 /// pointer form the pipeline tool schemas use (`allOf: [{$ref: '#/$defs/step'}]`).
 ///
 /// Fail-open by design: an unresolvable pointer yields the raw `{$ref}`
-/// schema, which repairs nothing and validates as anything — the tool's own
+/// schema, which repairs nothing and validates as anything - the tool's own
 /// deserializer still type-checks downstream, and a rejection hint beats a
 /// dropped valid call.
 fn resolve_ref<'a>(schema: &'a JsonValue, root: &'a JsonValue) -> Option<&'a JsonValue> {
@@ -898,8 +898,8 @@ fn resolve_ref<'a>(schema: &'a JsonValue, root: &'a JsonValue) -> Option<&'a Jso
 /// which must hit the cap instead of recursing forever.
 const MAX_REF_HOPS: usize = 4;
 
-/// The schema that actually describes THIS level: a `$ref` followed, and —
-/// when the level carries no properties of its own — the first `allOf`
+/// The schema that actually describes THIS level: a `$ref` followed, and -
+/// when the level carries no properties of its own - the first `allOf`
 /// branch (the `allOf: [{$ref: '#/$defs/step'}]` idiom the pipeline tool
 /// schemas use, same convention [`schema_skeleton`] renders). Without this
 /// dispatch, `repair_string_encoded` sees a properties-less top level and
@@ -920,7 +920,7 @@ fn effective_schema_bounded<'a>(
 ) -> &'a JsonValue {
     let resolved = if ref_hops >= MAX_REF_HOPS {
         // Cap reached: hand back the level as-is rather than follow another
-        // hop — the schema's own `type`/`properties` (if any) still apply.
+        // hop - the schema's own `type`/`properties` (if any) still apply.
         schema
     } else {
         resolve_ref(schema, root).unwrap_or(schema)
@@ -944,7 +944,7 @@ fn effective_schema_bounded<'a>(
 /// kept only when it parses to the expected kind, and a stringified scalar
 /// (`"numeric_value": "70"`) is parsed into the schema's number/boolean
 /// type. This repairs the common model mistakes of double-encoding a single
-/// field (`{"questions": "[{...}]"}`) or quoting a scalar — without burning
+/// field (`{"questions": "[{...}]"}`) or quoting a scalar - without burning
 /// a round-trip on the model. A string that cannot take the schema's type
 /// stays a string and fails validation with the schema hint.
 fn repair_string_encoded(value: &JsonValue, schema: &JsonValue, root: &JsonValue) -> JsonValue {
@@ -954,7 +954,7 @@ fn repair_string_encoded(value: &JsonValue, schema: &JsonValue, root: &JsonValue
     // bare `1310.0` from the float arithmetic models do on the coordinates
     // (screenshot returns a fractional `desktop_scale`). JSON Schema counts it
     // as an integer and narrowing is exact, but the tool's serde field is
-    // `i32`/`i64`, which rejects a float — so narrow it here and let
+    // `i32`/`i64`, which rejects a float - so narrow it here and let
     // validation and deserialization agree. A fractional value (`1310.5`)
     // keeps its float form and still fails validation with the schema hint.
     if schema.get("type").and_then(JsonValue::as_str) == Some("integer") {
@@ -1053,7 +1053,7 @@ fn validate_against_schema(value: &JsonValue, schema: &JsonValue, root: &JsonVal
 
     // The `allOf: [{$ref: '#/$defs/step'}]` idiom the pipeline tools use:
     // this level may carry no properties of its own while the real shape
-    // (typed fields) lives behind the ref — follow it, so nested field
+    // (typed fields) lives behind the ref - follow it, so nested field
     // types are validated instead of passing through unchecked.
     let schema = effective_schema(schema, root);
 
@@ -1066,7 +1066,7 @@ fn validate_against_schema(value: &JsonValue, schema: &JsonValue, root: &JsonVal
                     }
                 } else {
                     // A `$ref` field (`then: {$ref: '#/$defs/step'}`) has
-                    // neither `const` nor `type` of its own — resolve it
+                    // neither `const` nor `type` of its own - resolve it
                     // before the checks, or the value validates as anything.
                     let field_schema = effective_schema(field_schema, root);
                     if let Some(const_val) = field_schema.get("const")

@@ -47,7 +47,7 @@ async fn main() {
     assert_eq!(read_disk(), v2);
 
     // Roll back with an EMPTY hash: restore the version immediately preceding
-    // the current disk content — v1. The result's `replaced_hash` names what
+    // the current disk content - v1. The result's `replaced_hash` names what
     // was on disk before the restore (v2).
     let rollback1 = fs.rollback(path, "").await.expect("rollback succeeds");
     println!("\n== rollback to previous version ==");

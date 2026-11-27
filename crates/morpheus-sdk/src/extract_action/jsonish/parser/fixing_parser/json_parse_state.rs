@@ -205,7 +205,7 @@ impl JsonParseState {
     /// When the iterator is exhausted without finding a delimiter (stream
     /// incomplete), returns `Close(counter, Incomplete)` where `counter` is the
     /// number of characters consumed. The `counter += 1` before each such return
-    /// accounts for the last character yielded by the iterator — without it, the
+    /// accounts for the last character yielded by the iterator - without it, the
     /// outer loop would re-process that character, causing duplication.
     fn should_close_unescaped_string(
         &mut self,
@@ -946,7 +946,7 @@ mod tests {
             Vec::default(),
         ));
 
-        // Remaining chars: "world" — no ',' or '}' to trigger Complete
+        // Remaining chars: "world" - no ',' or '}' to trigger Complete
         let remaining: Vec<(usize, char)> = vec![(0, 'w'), (1, 'o'), (2, 'r'), (3, 'l'), (4, 'd')];
         let result = state.should_close_unescaped_string(remaining.into_iter().peekable());
 

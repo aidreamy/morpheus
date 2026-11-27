@@ -42,7 +42,7 @@ pub(crate) fn format_tokens(n: u64) -> String {
 }
 
 /// Percentage of `size` already `used`: the harness `display_info` math
-/// (float ratio capped at 100). A zero window reads 0 — never divide by
+/// (float ratio capped at 100). A zero window reads 0 - never divide by
 /// zero, never guess a window.
 pub(crate) fn usage_pct(used: u64, size: u64) -> u8 {
     if size > 0 {
@@ -127,7 +127,7 @@ impl BudgetBlock {
         }
     }
 
-    /// The compact pair: `9.6k/100k 9%` — the same three numbers (used,
+    /// The compact pair: `9.6k/100k 9%` - the same three numbers (used,
     /// budget, percent), no bar, no `tok`, single-space gap.
     fn compact(used: u64, size: u64) -> Self {
         let pct = usage_pct(used, size);
@@ -151,7 +151,7 @@ impl BudgetBlock {
 }
 
 /// Pick the widest variant that fits `avail_w` COLUMNS (horizontal space
-/// only): the full pair, else the compact one, else `None` — the caller
+/// only): the full pair, else the compact one, else `None` - the caller
 /// then paints no budget (the header hides its price the same way when
 /// nothing is known).
 pub(crate) fn budget_block(used: u64, size: u64, avail_w: u16) -> Option<BudgetBlock> {

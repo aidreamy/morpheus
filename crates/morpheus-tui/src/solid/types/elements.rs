@@ -33,7 +33,7 @@ pub trait RenderableConstructor<TOptions, TRenderable> {
 /// a simplified marker trait.
 pub trait GetNonStyledProperties {}
 
-// Widget prop type aliases (placeholders — full definitions added as each
+// Widget prop type aliases (placeholders - full definitions added as each
 // widget (items 18–32) is ported).
 
 // pub type TextProps = ();

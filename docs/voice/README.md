@@ -53,7 +53,7 @@ published name table.
 
 `/download` installs either release into `<cache>/morpheus/models/`, reports
 progress in place and verifies the unpacked directory before marking it
-installed. A manual install works too (`~` is a shell abbreviation only — the
+installed. A manual install works too (`~` is a shell abbreviation only - the
 config expects real paths):
 
 ```bash
@@ -68,13 +68,13 @@ The directory must contain `model.onnx` (or `model.int8.onnx`), `tokens.txt`,
 
 **Which bundle does Morpheus load?**
 
-1. `voice.model_dir`, when it is not empty — used verbatim (an absolute path is
+1. `voice.model_dir`, when it is not empty - used verbatim (an absolute path is
    safest; `~` is *not* expanded);
 2. otherwise `$MORPHEUS_KOKORO_MODEL_DIR`, when set;
 3. otherwise `<cache>/morpheus/models/kokoro-multi-lang-v1_1`. If that
    directory does not exist but another complete bundle is installed beside it,
    that bundle is used instead (v1.1 first, then v1.0). This keeps a v1.0-only
-   installation — the only one with Portuguese — working without an env var.
+   installation - the only one with Portuguese - working without an env var.
 
 The TUI's voice picker lists the configured bundle **and every other complete
 bundle beside it**, so picking a v1.0 Portuguese voice automatically points
@@ -111,12 +111,12 @@ Japanese never goes through espeak-ng.
 
 How the frontend is chosen at load time:
 
-- `voice.language` non-empty — that espeak-ng language is used, except when
+- `voice.language` non-empty - that espeak-ng language is used, except when
   it is the selected voice's own language **and** the bundle has a lexicon for
   it (`en-us`, `en-gb`, `zh`): those stay on the lexicon, the frontend the
   voices were built around. A mismatch is still honored (with a log warning),
   which is the manual escape hatch.
-- `voice.language` empty — English/Chinese speakers keep the bundle lexicon;
+- `voice.language` empty - English/Chinese speakers keep the bundle lexicon;
   any other speaker is phonemized with the language its voice was trained for.
   This is why `"speaker": 42` alone is enough for `pf_dora` (`pt-br`), and why
   the picker stores an empty language when you choose an English or Chinese
@@ -170,7 +170,7 @@ bundle you load:
 The TUI stores the id **together with** `language` and, when the voice belongs
 to another installed bundle, `model_dir`. If you copy a speaker id from this
 page into `setup.json`, set the bundle it came from. A renamed/unknown bundle
-still accepts raw ids — only the names become unavailable.
+still accepts raw ids - only the names become unavailable.
 
 ### `kokoro-multi-lang-v1_1` (103 speakers)
 
@@ -472,13 +472,13 @@ final answer ──> TUI (SpeechState) ──tts/synthesize──> morpheus-ttsd
                      and plays it with the system player (pause/rewind)
 ```
 
-- `src/speak` — the engine. `voice.rs` owns the published speaker tables and
+- `src/speak` - the engine. `voice.rs` owns the published speaker tables and
   the language metadata; `backend/kokoro.rs` resolves the bundle files and the
   frontend; `config.rs`/`engine.rs` expose `SpeakConfig`/`Speak`.
-- `src/daemon/tts` — the resident model, the wire protocol and the client.
+- `src/daemon/tts` - the resident model, the wire protocol and the client.
   The daemon reads the `voice` section once; per-request overrides exist only
   for `voice` and `speed`.
-- `src/tui` — the controls, the picker and playback. Playback lives in the TUI
+- `src/tui` - the controls, the picker and playback. Playback lives in the TUI
   process so `pause`/`rewind` can signal the player.
 
 Known limits:

@@ -47,15 +47,15 @@ const OVERFLOW_TOAST_COOLDOWN: Duration = Duration::from_secs(15);
 /// Handoff/tool-set consistency check: a compaction summary IS the handoff
 /// to a fresh agent, and one produced from an older build's transcript (or
 /// naming a tool the transcript shows being called) can prime the model into
-/// calling a tool that no longer exists — the failure then compounds when
+/// calling a tool that no longer exists - the failure then compounds when
 /// the model invents an argument schema for the removed tool.
 ///
 /// Tool-name shape: an identifier with one of this project's tool-family
 /// prefixes (`fs_`, `plan_`, `bash_`, ...). Argument fields (`file_hash`),
 /// commands, and prose never carry those prefixes, so the false-positive
-/// surface collapses to names that ARE current tools — which the membership
+/// surface collapses to names that ARE current tools - which the membership
 /// check filters out. Known gap (accepted): MCP tool names are server-defined
-/// (often dotted, e.g. `acme.deploy`) and are NOT matched — a summary from a
+/// (often dotted, e.g. `acme.deploy`) and are NOT matched - a summary from a
 /// session with a since-disconnected MCP server sails through; the dispatch
 /// layer's unknown-tool rejection (which echoes the current tool set) is the
 /// backstop for that case. Any `[Tool set notice]` paragraph already present
@@ -113,7 +113,7 @@ pub(super) fn compaction_retry_backoff(attempt: usize) -> Duration {
 
 /// Whether an error string smells like an argument-validation failure
 /// (missing/ill-typed arguments, schema corrections) rather than a runtime
-/// failure — the trigger for echoing the tool's argument schema back.
+/// failure - the trigger for echoing the tool's argument schema back.
 /// The patterns are deliberately narrow so runtime and content errors do
 /// not match: "must be a" (never bare "must", which content rules like
 /// `old_string must be unique` use), "missing field" (serde) / "missing '"
@@ -163,7 +163,7 @@ const CONTEXT_DISCOVERY_TIMEOUT: Duration = Duration::from_secs(3);
 
 /// Process-global cache of discovered context windows, keyed by model name.
 /// Discovery hits public APIs (OpenRouter/Anthropic), so it must happen at
-/// most once per model per process — never once per user message. A FAILED
+/// most once per model per process - never once per user message. A FAILED
 /// discovery is cached as `None` too: an unknown model must not be re-queried
 /// (and re-logged as a warning) on every loop start.
 #[cfg(not(test))]
@@ -176,7 +176,7 @@ static DISCOVERED_WINDOW_CACHE: OnceLock<Mutex<HashMap<String, Option<usize>>>> 
 ///
 /// The compaction trigger is 80% of the context manager's budget: with the
 /// hardcoded 100k default and a 300k-window model, the LLM compaction would
-/// fire at 80k — far below the model's actual capacity — and re-trigger on
+/// fire at 80k - far below the model's actual capacity - and re-trigger on
 /// every overflow (the "infinite summarization" loop). Sizing the budget to
 /// the model's EFFECTIVE window (a conservative fraction of the raw one, see
 /// `effective_context_window`) is what keeps the trigger sane.
@@ -184,7 +184,7 @@ static DISCOVERED_WINDOW_CACHE: OnceLock<Mutex<HashMap<String, Option<usize>>>> 
 pub(super) async fn discovered_context_window(model: Option<&str>) -> Option<usize> {
     let model = model?;
     // A window the user's own provider reported in a previous overflow is the
-    // authoritative maximum — a local read that beats a public-catalog guess
+    // authoritative maximum - a local read that beats a public-catalog guess
     // and costs no network call.
     if let Some(window) = error_catalog_window(model) {
         return Some(window);
@@ -235,7 +235,7 @@ pub(super) enum CompactionErr {
 pub(super) enum CompactionOutcome {
     /// A summary was produced and is ready to be applied.
     Applied,
-    /// A contingency (the hierarchical MapReduce path) brought the total down —
+    /// A contingency (the hierarchical MapReduce path) brought the total down -
     /// the compaction is no longer needed.
     ResolvedByContingency,
     /// The summarizer call failed or produced nothing.
@@ -260,11 +260,11 @@ impl Harness {
     ) -> bool {
         use super::events::{HarnessEvent, LlmCompactionEvent};
         // The stuck state is keyed by MODEL: the constraint is the model's
-        // context window, not the provider's API — a model switch inside the
+        // context window, not the provider's API - a model switch inside the
         // same provider must get a fresh chance.
         let model = self.compaction_model_key();
         // The provider's window already overflowed and the split could not fit
-        // the context: the summarizer call is doomed — skip it and re-surface
+        // the context: the summarizer call is doomed - skip it and re-surface
         // the notification (throttled) instead of burning a paid call per
         // dispatch.
         if self.context_manager.overflow_stuck(&model) {
@@ -274,14 +274,14 @@ impl Harness {
         if self.context_manager.compaction_staging_active() {
             return self.checkpoint_context(tx).await;
         }
-        // Defensive — the harness only calls this after `NeedsLlmCompaction`,
+        // Defensive - the harness only calls this after `NeedsLlmCompaction`,
         // so there is normally something to compact.
         let request = match self.context_manager.llm_compaction_request() {
             Some(request) => request,
             None => return false,
         };
         // Compaction accounting (file log, target `morpheus::harness::context`):
-        // the compaction request's own size — a summary call that re-sends
+        // the compaction request's own size - a summary call that re-sends
         // most of the session is itself a large bill. Logged before the
         // first summarizer attempt so trigger loops are visible.
         log::info!(
@@ -299,7 +299,7 @@ impl Harness {
         let _ = tx.send(HarnessEvent::LlmCompaction {
             event: LlmCompactionEvent::Started,
         });
-        // This call starts a fresh retry budget — a previous call (entry or
+        // This call starts a fresh retry budget - a previous call (entry or
         // mid-loop) must not shorten it.
         self.compaction_generic_retries = 0;
         let mut summary = String::new();
@@ -340,7 +340,7 @@ impl Harness {
                     // The single-shot transcript overflowed the provider. When
                     // the provider reported its window, remember it; then drive
                     // the hierarchical MapReduce contingency (sized against the
-                    // known window or the current budget as a fallback) — it
+                    // known window or the current budget as a fallback) - it
                     // shrinks the WHOLE timeline (every item included).
                     if let Some(w) = window_tokens {
                         self.remember_error_window(w);
@@ -363,7 +363,7 @@ impl Harness {
                     break CompactionOutcome::Failed;
                 }
                 Err(CompactionErr::Incomplete(_reason)) => {
-                    // No toast: the failure is visible in the chat — the
+                    // No toast: the failure is visible in the chat - the
                     // "Summarizing" line freezes on Failed and the loop's
                     // error path renders the provider error inline.
                     break CompactionOutcome::Failed;
@@ -389,11 +389,11 @@ impl Harness {
                     && self.context_manager.apply_llm_summary(summary.to_string());
                 // No toast on failure. Note the budget case emits no error
                 // event at all: the frozen "Summarizing" line is the only
-                // signal in the chat — a toast here would be the sole copy
+                // signal in the chat - a toast here would be the sole copy
                 // of the failure, not a duplicate.
                 ok
             }
-            // The contingency resolved the overflow — a successful pass.
+            // The contingency resolved the overflow - a successful pass.
             CompactionOutcome::ResolvedByContingency => true,
             CompactionOutcome::Failed => false,
         };
@@ -410,7 +410,7 @@ impl Harness {
     /// Install the summary annotator on the context manager so EVERY
     /// compaction commit path (single-shot, MapReduce contingency, legacy
     /// split) gets the same handoff/tool-set consistency check: the closure
-    /// captures a snapshot of the current tool set — compaction runs are
+    /// captures a snapshot of the current tool set - compaction runs are
     /// short-lived and the harness re-installs the annotator on
     /// construction, so the snapshot is fresh for every handoff.
     pub(super) fn install_summary_annotator(&mut self) {
@@ -423,7 +423,7 @@ impl Harness {
 
     /// The ACTIVE model's known context window for the hierarchical MapReduce
     /// contingency: the window reported by the LAST context-window error (the
-    /// most precise) or the last successful discovery. `None` = unknown — the
+    /// most precise) or the last successful discovery. `None` = unknown - the
     /// split is sized against the current token budget instead.
     pub(super) fn known_checkpoint_window(&self) -> Option<usize> {
         if self.summarization_connector.is_some() {
@@ -452,7 +452,7 @@ impl Harness {
 
     /// The user-triggered `/compact`: run the deterministic funnel across
     /// EVERY segment (the trigger floored at zero for this pass) and then the
-    /// LLM summary of whatever remains — the same phases as the automatic 80%
+    /// LLM summary of whatever remains - the same phases as the automatic 80%
     /// compaction, started early and unconditionally by explicit request.
     /// All lifecycle events (phase lines, the "Summarizing" box, streamed
     /// summary tokens, toasts on failure) reuse the automatic path's events,
@@ -475,7 +475,7 @@ impl Harness {
         // races it against the connect future BEFORE connecting, so a flag
         // still set from an earlier interaction (ESC/Interrupt) aborts the
         // manual pass with `CompactionErr::Interrupted` before a single byte
-        // leaves the process — and retrying `/compact` can never succeed.
+        // leaves the process - and retrying `/compact` can never succeed.
         // The flag belongs to the PREVIOUS turn; a compaction that is being
         // started right now must begin from a clean slate. This is the
         // harness-side half of the same contract `start_agent_loop` honours;
@@ -737,7 +737,7 @@ impl Harness {
     /// stays). Persisted staging is resumed exactly where it stopped.
     ///
     /// Returns whether the split was committed. `false` means the context is
-    /// unchanged — the caller marks the overflow stuck and notifies the user.
+    /// unchanged - the caller marks the overflow stuck and notifies the user.
     pub(super) async fn legacy_split_context(
         &mut self,
         tx: &tokio::sync::mpsc::UnboundedSender<super::events::HarnessEvent>,
@@ -795,7 +795,7 @@ impl Harness {
                 Ok(()) => {
                     // All-or-nothing: an empty chunk summary would silently
                     // drop that chunk's content from the final anchor (the
-                    // cursor still advances) — treat it as a failure and
+                    // cursor still advances) - treat it as a failure and
                     // abort, keeping the timeline exactly as it was.
                     if summary.trim().is_empty() {
                         if self.summarization_connector.is_none() {
@@ -809,7 +809,7 @@ impl Harness {
                 }
                 Err(CompactionErr::Interrupted) => {
                     self.compaction_interrupted = true;
-                    // Atomicity: abort — the timeline stays exactly as it was.
+                    // Atomicity: abort - the timeline stays exactly as it was.
                     if self.summarization_connector.is_none() {
                         self.context_manager.abort_split();
                     }
@@ -817,7 +817,7 @@ impl Harness {
                 }
                 Err(CompactionErr::ContextWindow { .. }) => {
                     // A chunk sized to the window should never overflow; the
-                    // window guess was wrong — abort and mark the overflow
+                    // window guess was wrong - abort and mark the overflow
                     // stuck so the caller notifies the user.
                     if self.summarization_connector.is_none() {
                         self.context_manager.abort_split();
@@ -937,13 +937,13 @@ impl Harness {
     /// tokens through `on_token` (which forwards them to the TUI as
     /// [`HarnessEvent::LlmCompactionToken`]). The summarizer is a dedicated
     /// agent: it uses the context manager's OWN system prompt (`system`), not
-    /// the agent loop's fixed system prompt — it never sees the tool
+    /// the agent loop's fixed system prompt - it never sees the tool
     /// definitions or the harness instructions. Mockable in tests exactly
     /// like [`Self::chat`].
     ///
     /// Errors are CLASSIFIED (not flattened to strings) so the caller can
-    /// distinguish a context-window overflow — the one error the split
-    /// contingency is meant to fix — from generic failures and user
+    /// distinguish a context-window overflow - the one error the split
+    /// contingency is meant to fix - from generic failures and user
     /// interruptions.
     pub(super) async fn stream_summarize_for_compaction(
         &mut self,
@@ -1061,7 +1061,7 @@ impl Harness {
             if stop {
                 log::debug!("stream_summarize STOPPED by signal");
                 // Interrupted mid-summary: do NOT half-apply a truncated
-                // summary — surface the interruption so `llm_compact` skips
+                // summary - surface the interruption so `llm_compact` skips
                 // the compaction this round (the context stays as it was).
                 return Err(CompactionErr::Interrupted);
             }

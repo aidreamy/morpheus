@@ -148,7 +148,7 @@ pub fn compile_pattern(
 }
 
 /// Language-specific wrapper template used to turn a multi-node fragment into a
-/// single selectable node. `None` for languages without a template — those keep
+/// single selectable node. `None` for languages without a template - those keep
 /// the original `MultipleNode` error.
 const fn wrapper_template(lang: SupportLang) -> Option<(&'static str, &'static str, &'static str)> {
     // (prefix, suffix, selector-kind); the fragment is spliced between

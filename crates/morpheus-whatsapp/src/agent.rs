@@ -34,7 +34,7 @@ pub trait Agent: Send + Sync {
     /// silent, or an error to log and skip the message. [`serve`] asks
     /// [`WhatsApp::is_prompt`] first, so the agent is not handed
     /// status/broadcast posts, channel messages, protocol chatter, reactions
-    /// or the account's own traffic addressed elsewhere — but *is* handed
+    /// or the account's own traffic addressed elsewhere - but *is* handed
     /// what the user types in this account's own chat. Use
     /// [`WhatsApp::connect`] directly if reactions should reach the agent.
     ///
@@ -82,8 +82,8 @@ impl Agent for Box<dyn Agent> {
 /// a normal `env_logger` setup is enough to link an account.
 ///
 /// Returns `Ok(())` only when the account is logged out (the intended way to
-/// stop). A link that ends for any other reason — a fatal failure such as
-/// another session taking over, or the event stream closing — returns an
+/// stop). A link that ends for any other reason - a fatal failure such as
+/// another session taking over, or the event stream closing - returns an
 /// error, so a supervisor can restart or report it.
 pub async fn serve<A: Agent + 'static>(config: Config, agent: A) -> Result<()> {
     let (whatsapp, mut events) = WhatsApp::connect(config).await?;

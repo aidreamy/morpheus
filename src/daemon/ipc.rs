@@ -5,7 +5,7 @@
 //! One frame carries one JSON-RPC message; the frame is a big-endian `u32`
 //! length prefix followed by that many bytes of UTF-8 JSON (capped, so
 //! garbage cannot force an allocation). JSON-RPC itself is hand-rolled on
-//! serde — the envelope is four fields, and owning it keeps the daemon
+//! serde - the envelope is four fields, and owning it keeps the daemon
 //! layer dependency-free while the `id` correlation and the standard error
 //! object come for free.
 //!
@@ -13,7 +13,7 @@
 //! trait called from the agent loop's blocking thread; an async client
 //! would need a runtime the caller does not have. Daemon traffic is one
 //! small request per turn end, so blocking I/O with socket read timeouts
-//! is the simpler and correct choice on both ends — the server is
+//! is the simpler and correct choice on both ends - the server is
 //! thread-per-connection, the client one socket with timeouts.
 
 use std::io::{Read, Write};
@@ -37,7 +37,7 @@ pub(crate) const CALL_TIMEOUT: Duration = Duration::from_secs(30);
 const MAX_FRAME: u32 = 16 * 1024 * 1024;
 
 /// Wire envelope. `jsonrpc` is always `"2.0"` and is not modelled as a
-/// field the caller can get wrong — [`Message::serialize`] writes it, and
+/// field the caller can get wrong - [`Message::serialize`] writes it, and
 /// parsing rejects anything else. On the wire `result` and `error` are
 /// sibling keys, and the spec forbids both or neither.
 #[derive(Debug)]
@@ -236,7 +236,7 @@ fn is_timeout(e: &std::io::Error) -> bool {
 /// Serve one client connection: read requests, hand each to `handler` with
 /// the connection's per-connection `state` (the handshake flag lives
 /// there), write the response back. Requests are handled **sequentially per
-/// connection** — a client that wants concurrency opens another connection
+/// connection** - a client that wants concurrency opens another connection
 /// (cheap on a UDS).
 pub(crate) fn serve_connection<S, F>(
     mut stream: Stream,
@@ -249,7 +249,7 @@ where
     while let Some(bytes) = read_frame(&mut stream)? {
         let request = match Message::parse(&bytes) {
             Ok(request) => request,
-            // A malformed request still deserves the standard error reply —
+            // A malformed request still deserves the standard error reply -
             // with a null id, since none could be recovered.
             Err(e) => {
                 write_frame(
@@ -272,7 +272,7 @@ where
 pub(crate) struct ClientConnection {
     stream: Stream,
     next_id: u64,
-    /// The daemon name this connection expects to greet — a foreign daemon
+    /// The daemon name this connection expects to greet - a foreign daemon
     /// on our socket path fails the handshake.
     expected_daemon: &'static str,
     expected_protocol: u32,
@@ -281,8 +281,8 @@ pub(crate) struct ClientConnection {
 
 impl ClientConnection {
     /// Take ownership of the socket and apply the CALL BUDGET (M3):
-    /// per-read socket timeouts compose — a frame is a prefix read plus a
-    /// payload read, and a retry doubles them — so a wedged daemon could
+    /// per-read socket timeouts compose - a frame is a prefix read plus a
+    /// payload read, and a retry doubles them - so a wedged daemon could
     /// hold the caller for minutes. The budget caps the connection's
     /// read/write timeouts in one place and bounds the WHOLE call.
     pub(crate) fn with_budget(
@@ -349,7 +349,7 @@ impl ClientConnection {
                 // Protocol mismatch in EITHER direction fails the
                 // connection for good (m7): a newer daemon answers shapes
                 // we do not speak; an OLDER daemon would fail per-call on
-                // unknown methods — noisy retries instead of one clean
+                // unknown methods - noisy retries instead of one clean
                 // fail-open. The version string is deliberately not
                 // compared: a version skew with the same protocol is
                 // supported by definition.
@@ -408,7 +408,7 @@ pub(crate) fn to_value<T: Serialize>(value: &T) -> Result<Value, Ipc> {
     Ok(serde_json::to_value(value)?)
 }
 
-/// Bind the listener for `path` — the bind-as-lock.
+/// Bind the listener for `path` - the bind-as-lock.
 ///
 /// The socket file existing does NOT mean the daemon is dead: it may be a
 /// live daemon another process activated a moment ago. So, in order:

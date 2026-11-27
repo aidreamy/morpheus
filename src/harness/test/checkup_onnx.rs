@@ -4,7 +4,7 @@
 //! test itself skips unless a checkpoint is available. Two sources, in
 //! order of preference:
 //!
-//! 1. `CHECKUP_MODEL_DIR` — a local checkpoint directory (offline, CI-safe).
+//! 1. `CHECKUP_MODEL_DIR` - a local checkpoint directory (offline, CI-safe).
 //! 2. The published English checkpoint from the Hub (first run downloads
 //!    and caches it; later runs hit the cache).
 //!
@@ -25,7 +25,7 @@ use crate::harness::checkup::TerminationDecision;
 
 /// Resolve a checkpoint for the integration test: the local dir when
 /// provided, else the published English checkpoint (Hub-cached;
-/// `convaiinnovations/laya` — the `PINNED_REVISIONS` head).
+/// `convaiinnovations/laya` - the `PINNED_REVISIONS` head).
 fn checkpoint_kind() -> Option<morpheus_onnx::ModelKind> {
     match std::env::var("CHECKUP_MODEL_DIR") {
         Ok(dir) if !dir.is_empty() => Some(morpheus_onnx::ModelKind::Custom {

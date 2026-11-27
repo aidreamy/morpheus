@@ -219,7 +219,7 @@ fn remove_abandoned_inputs_drops_the_orphan_in_a_mixed_parallel_run() {
 #[test]
 fn remove_abandoned_inputs_keeps_completed_chains_and_pending_calls() {
     // A completed chain (call WITH result) followed by a new input is real
-    // work — never removed…
+    // work - never removed…
     let mut cm = cm(10_000);
     cm.add_user("first");
     cm.add_tool_call("done", "fs_read", "{}");
@@ -232,7 +232,7 @@ fn remove_abandoned_inputs_keeps_completed_chains_and_pending_calls() {
 #[test]
 fn remove_abandoned_inputs_never_touches_a_pending_live_call() {
     // A call at the very END of the timeline (result still pending, no new
-    // input yet) is a live run — never touched.
+    // input yet) is a live run - never touched.
     let mut cm = cm(10_000);
     cm.add_user("live");
     cm.add_tool_call("pending", "fs_read", "{}");
@@ -245,7 +245,7 @@ fn a_fresh_input_after_a_compaction_with_nothing_produced_between_is_abandoned()
     // [Compaction, User(a), User(b)]: a Compaction anchor holds the answer to
     // the work that came BEFORE it. A user turn AFTER the anchor with NO
     // output between it and the next input produced nothing (the run was
-    // cancelled before the LLM answered) — the abandoned-input rule applies
+    // cancelled before the LLM answered) - the abandoned-input rule applies
     // and only the newest input survives.
     let mut cm = cm(10_000);
     cm.add_user("real task");
@@ -530,7 +530,7 @@ fn llm_compaction_request_is_none_below_the_trigger_or_empty() {
 #[test]
 fn apply_llm_summary_hides_everything_behind_the_summary() {
     // Append-only: the summary is appended and the pre-existing timeline is
-    // hidden behind the boundary — kept on disk for revert/fork, never shown
+    // hidden behind the boundary - kept on disk for revert/fork, never shown
     // to the model.
     let mut cm = cm(10_000);
     cm.add_user("a");
@@ -724,7 +724,7 @@ fn display_info_reports_tokens_and_budget() {
 #[test]
 fn cached_token_total_stays_in_sync_across_all_mutations() {
     let check = |cm: &ContextManager| {
-        // The cache tracks the VISIBLE total only — hidden items (append-only
+        // The cache tracks the VISIBLE total only - hidden items (append-only
         // history) left it.
         let brute: usize = cm
             .items
@@ -837,7 +837,7 @@ fn from_window_creates_a_valid_context_manager() {
 }
 
 /// Regression band for the 1M-class budget: a healthy 1M discovery must land
-/// in 200k–209,800 (the 20% effective floor over the raw 1M-class range —
+/// in 200k–209,800 (the 20% effective floor over the raw 1M-class range -
 /// the catalog's 1M variants go up to 1,049,000, whose effective value is
 /// 209,800). A report that lands BELOW the band means a non-token number
 /// (e.g. a 413 body's byte payload) or a truncated gateway mirror leaked
@@ -889,13 +889,13 @@ fn provider_window_report_uses_the_full_window_when_effective_is_off() {
 /// `limit.context` values (200,000 … 1,048,576). A first-occurrence
 /// `find_map` over a randomized `HashMap` iteration could hand back the 200k
 /// outlier, and `effective_context_window` then collapsed it to its 20%
-/// floor — 52,729, the observed ~50k budget. The SDK now resolves the model
+/// floor - 52,729, the observed ~50k budget. The SDK now resolves the model
 /// statically to 1M (and deterministically otherwise); this test pins both
 /// the DISEASED value (as the documented signature) and the HEALTHY value
 /// the fixed pipeline must produce.
 #[test]
 fn one_million_pipeline_band_is_pinned_with_the_degradation_signature() {
-    // The disease: a 200k catalog draw collapses to the 20% floor — exactly
+    // The disease: a 200k catalog draw collapses to the 20% floor - exactly
     // the ~52k budget the incident reported. If this value ever becomes the
     // steady-state resolution for a 1M model, the band assertions below will
     // catch it.
@@ -930,7 +930,7 @@ fn one_million_pipeline_band_is_pinned_with_the_degradation_signature() {
 }
 
 #[tokio::test]
-#[ignore = "hits the real discovery APIs (network) — run explicitly"]
+#[ignore = "hits the real discovery APIs (network) - run explicitly"]
 async fn with_discovered_context_resolves_a_known_model() {
     let cm = ContextManager::with_discovered_context("openai/gpt-4o", true).await;
     assert_eq!(
@@ -945,7 +945,7 @@ async fn with_discovered_context_resolves_a_known_model() {
 fn split_chunks_whole_items_in_order_with_continuity_and_commits_atomically() {
     let mut cm = cm(10_000);
     // The first item alone vastly exceeds the chunk budget (window 10k →
-    // budget 2k) — it must still be included whole as the first chunk.
+    // budget 2k) - it must still be included whole as the first chunk.
     cm.add_user(&"abcd efgh ijkl mnop qrst uvwx yz12 3456 7890 ".repeat(2000)); // id 1
     cm.add_assistant("short a", true); // id 2
     cm.add_assistant("short b", true); // id 3
@@ -1010,7 +1010,7 @@ fn split_chunks_whole_items_in_order_with_continuity_and_commits_atomically() {
     assert!(cm.split_all_consumed(), "every item has been summarized");
 
     // The atomic commit appends the buffer as ONE Compaction anchor and hides
-    // the whole pre-existing timeline behind it (append-only — nothing is
+    // the whole pre-existing timeline behind it (append-only - nothing is
     // deleted).
     assert!(cm.commit_split(), "the commit succeeds");
     let items = cm.items_snapshot();
@@ -1201,7 +1201,7 @@ fn manual_compaction_requests_llm_below_the_normal_trigger() {
     let ok = cm.apply_llm_summary("## Objective\n- compacted".into());
     cm.end_manual_compaction();
     assert!(ok);
-    // Append-only: the timeline is NOT folded into one anchor — everything
+    // Append-only: the timeline is NOT folded into one anchor - everything
     // stays, hidden behind the boundary; only the summary is visible.
     assert_eq!(cm.items.len(), 3);
     let msgs = cm.build_messages("");
@@ -1249,7 +1249,7 @@ fn an_api_error_is_display_only_and_never_reaches_the_model() {
 
     // A summarizer prompt never sees the failure either. The budget is tiny
     // on purpose so the compaction guard (`total >= trigger`) actually fires
-    // and the request is really built — a larger budget would return `None`
+    // and the request is really built - a larger budget would return `None`
     // and the assertion below would never run.
     let long_task = "please ".repeat(60) + "fix the build";
     let mut ctx = cm(50);
@@ -1359,7 +1359,7 @@ fn summary_annotator_runs_on_every_commit_path_and_never_accumulates() {
     );
 
     // Re-compaction in update mode: the summarizer carries the old notice
-    // line into the new summary — the annotator must strip it and append
+    // line into the new summary - the annotator must strip it and append
     // exactly one fresh notice instead of stacking.
     let carried = format!("{committed}\n\nmore context");
     assert!(manager.apply_llm_summary(carried));
@@ -1497,7 +1497,7 @@ fn turn_user_thread_cap_keeps_first_and_last_never_duplicates() {
         mgr.add_assistant("ack", false);
     }
     // Six turns over the cap of 4: the FIRST (original intent) plus the
-    // LAST three — the boundary arm that used to duplicate turn 0 must not.
+    // LAST three - the boundary arm that used to duplicate turn 0 must not.
     let thread = mgr.turn_user_thread();
     assert_eq!(thread.len(), 4);
     assert_eq!(thread[0], "request 0", "original intent is always kept");
@@ -1515,7 +1515,7 @@ fn turn_user_thread_exact_cap_is_untouched() {
         mgr.add_user(&format!("request {i}"));
         mgr.add_assistant("ack", false);
     }
-    // Exactly AT the cap the whole thread passes through in order — the
+    // Exactly AT the cap the whole thread passes through in order - the
     // first turn must not appear twice (the 0..=cap arm, not the tail arm).
     assert_eq!(
         mgr.turn_user_thread(),
@@ -1575,7 +1575,7 @@ fn assistant_reasoning_survives_the_save_restore_roundtrip() {
     }
 
     // The loop closes (promoting the draft in place) and a FOLLOWING turn
-    // runs — exactly the shape `run_agent_loop` produces.
+    // runs - exactly the shape `run_agent_loop` produces.
     cm.close_loop();
     cm.add_user("and sunsets?");
     cm.add_assistant("Longer path, red light survives.", false);
@@ -1739,7 +1739,7 @@ fn reasoning_never_enters_the_model_payload_or_the_budget() {
     assert_eq!(
         msgs_with[1].content.as_deref(),
         Some("the answer"),
-        "the payload text is the response only — no thinking text"
+        "the payload text is the response only - no thinking text"
     );
     let rendered_with: Vec<String> = msgs_with
         .iter()

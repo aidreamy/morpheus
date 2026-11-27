@@ -37,7 +37,7 @@ fn release_tag_version(tag: &str) -> Option<&str> {
     if let Some(suffix) = suffix {
         // `v1.2.3+meta` and `v1.2.3_rc1` are refused by both installers: only
         // the part after `-` may carry a non-numeric shape (`v1.2.3-rc1+meta`
-        // is fine — the installers' `(-.*)?` accepts it).
+        // is fine - the installers' `(-.*)?` accepts it).
         if suffix.is_empty()
             || !suffix
                 .chars()
@@ -73,7 +73,7 @@ pub struct LatestRelease {
 #[derive(Debug, Clone)]
 pub enum UpdateEvent {
     /// Boot check finished. `None` = up to date or the check failed
-    /// (offline, rate limit) — in both cases the banner stays hidden.
+    /// (offline, rate limit) - in both cases the banner stays hidden.
     CheckFinished(Option<LatestRelease>),
 }
 
@@ -173,7 +173,7 @@ pub async fn fetch_latest_tag() -> Option<LatestRelease> {
 
 /// Query the GitHub releases API for the latest published release.
 /// Returns `None` on any network/parse error (the banner simply stays
-/// hidden — a failed check must never degrade the app) and when the running
+/// hidden - a failed check must never degrade the app) and when the running
 /// version is already current.
 pub async fn fetch_latest_release() -> Option<LatestRelease> {
     let release = fetch_latest_tag().await?;
@@ -184,7 +184,7 @@ pub async fn fetch_latest_release() -> Option<LatestRelease> {
 /// the release-tag form (`v0.2.3`).
 ///
 /// Mirrors the installers' own check (`^v?[0-9]+\.[0-9]+\.[0-9]+(-.*)?$`), so
-/// a value that passes here is one `download.sh`/`download.ps1` accepts —
+/// a value that passes here is one `download.sh`/`download.ps1` accepts -
 /// the tag is then pinned into the installer URL and `MORPHEUS_VERSION`.
 pub fn normalize_tag(input: &str) -> Option<String> {
     let trimmed = input.trim();
@@ -196,7 +196,7 @@ pub fn normalize_tag(input: &str) -> Option<String> {
 /// toast so the user can update by hand from their own terminal (the ⧉
 /// button copies it).
 ///
-/// It is the CLI's own command — the same code path the in-app updater runs,
+/// It is the CLI's own command - the same code path the in-app updater runs,
 /// so there is exactly one documented way to install a release and no
 /// OS-specific shell one-liner to keep in sync with the installers.
 pub fn manual_update_command(latest_tag: &str) -> Option<String> {
@@ -259,7 +259,7 @@ pub fn spawn_update_pipeline(latest_tag: &str) {
 
     match command.spawn() {
         Ok(child) => log::info!(
-            "update pipeline spawned (pid {}, target {latest_tag}); closing morpheus — reopen morpheus once the update finishes",
+            "update pipeline spawned (pid {}, target {latest_tag}); closing morpheus - reopen morpheus once the update finishes",
             child.id()
         ),
         Err(err) => log::error!("failed to start update pipeline: {err}"),

@@ -1,4 +1,4 @@
-//! Settings router — a selectable list of configuration categories.
+//! Settings router - a selectable list of configuration categories.
 //!
 //! Unlike the other flat-list routers (`tools`, `add_provider`), each option
 //! carries an explanatory description rendered directly above it, telling
@@ -41,7 +41,7 @@ const BOX_PAD: usize = SECTION_PAD as usize;
 /// mouse hit zones must agree on this width.
 const SUMMARIZER_CONTROLS: &str = "[ ↑ ] [ ↓ ] [ × ]";
 /// The 🗑 remove glyph drawn at the right edge of MCP/ACP sub-rows. The
-/// hit zone is TWO columns — glyph + the cleared cell after it — the same
+/// hit zone is TWO columns - glyph + the cleared cell after it - the same
 /// width the sessions list reserves (`SessionListLayout::TRASH_W`), so
 /// emoji-wide terminals still land inside the target.
 const TRASH_GLYPH: &str = "🗑";
@@ -62,7 +62,7 @@ struct SettingsItem {
 }
 
 /// What an item renders as and does on activation. Keeping the behaviour in
-/// the catalog means adding a setting is ONE struct literal — never edits
+/// the catalog means adding a setting is ONE struct literal - never edits
 /// scattered across render, enable-check and activation dispatch.
 #[derive(PartialEq, Eq)]
 enum SettingKind {
@@ -167,7 +167,7 @@ const AUTOMATION: SettingsSection = SettingsSection {
             kind: SettingKind::HookList(POST_TOOL_USE_EVENT),
         },
         // The termination checkup only exists in binaries with the ONNX
-        // runtime: no runtime in the build, no item in the TUI — the same
+        // runtime: no runtime in the build, no item in the TUI - the same
         // pattern the `embed` feature uses.
         #[cfg(feature = "onnx")]
         SettingsItem {
@@ -582,7 +582,7 @@ pub fn validate_hook(
 /// (it keys the `subagent_call` tool's agent enum) and must not shadow a
 /// built-in agent or another registered entry; the command must be a
 /// non-empty launch line (`command args…`). `editing` is the index being
-/// edited — that entry is exempt from the duplicate-name check so an edit
+/// edited - that entry is exempt from the duplicate-name check so an edit
 /// can keep its own name.
 ///
 /// # Errors
@@ -628,7 +628,7 @@ pub fn validate_acp_agent(
 
 /// Validate one custom provider registration (name, base URL, family).
 /// The family is free text on the form and normalized here; only
-/// `openai-compatible` is accepted today — the error names the supported
+/// `openai-compatible` is accepted today - the error names the supported
 /// families so a future variant is discoverable from the form itself.
 /// Mirrors [`validate_acp_agent`]: single-word name, no duplicate among the
 /// user's entries; built-in collisions and URL shape are the SDK
@@ -818,7 +818,7 @@ fn build_layout(setup: &Setup, width: u16) -> Vec<LayoutLine> {
     });
     y += 1;
     // `SettingsRow::Category` indices are the item's position in the flat
-    // display order — the same enumeration `all_items()` produces.
+    // display order - the same enumeration `all_items()` produces.
     let mut item_index = 0usize;
     let section_count = sections().len();
     for (section_index, section) in sections().iter().enumerate() {
@@ -1100,7 +1100,7 @@ pub enum SettingsAction {
 /// (`DialogType::McpForm`). Held by the `App` while no dialog is open so
 /// an accidental close (Esc, click outside, any dismiss) never loses
 /// what was already typed: reopening the form prefills from here. The
-/// draft is cleared only when a save succeeds (Enter) — or when the user
+/// draft is cleared only when a save succeeds (Enter) - or when the user
 /// erases the fields themselves, which simply re-syncs blanks into it.
 #[derive(Clone, Default, PartialEq, Eq)]
 pub struct McpFormDraft {
@@ -1176,7 +1176,7 @@ impl SettingsView {
     /// section blocks: the viewport pins the selected block's closing
     /// border (`╰…╯`) at the bottom edge, so scrolling slides the entire
     /// box up instead of cutting it in half. A block taller than the
-    /// viewport falls back to pinning the selected row itself — the only
+    /// viewport falls back to pinning the selected row itself - the only
     /// way to keep it on screen.
     fn viewport_offset(&self, area: Rect, setup: &Setup) -> u16 {
         let layout = build_layout(setup, area.width);
@@ -1226,7 +1226,7 @@ impl SettingsView {
         setup: &mut Setup,
     ) -> Option<SettingsAction> {
         // The caller has already moved the selection onto the clicked row,
-        // so the sub-row 🗑 glyph test runs against the selected row — the
+        // so the sub-row 🗑 glyph test runs against the selected row - the
         // same "selection first, then hit zone" contract the summarizer
         // controls below use.
         if matches!(
@@ -1309,7 +1309,7 @@ impl SettingsView {
                         return Some(SettingsAction::OpenSummarizationModel { index: None });
                     }
                     // Value rows open their own input box instead of
-                    // toggling a switch — the value is a free-form user
+                    // toggling a switch - the value is a free-form user
                     // choice, not a hardcoded cycle.
                     SettingKind::Choice(ChoiceInput::Cache(setting)) => {
                         return Some(SettingsAction::OpenCacheInput { setting });
@@ -1561,7 +1561,7 @@ impl SettingsView {
         // inside the contour's left edge.
         let box_x = area.x + (area.width.saturating_sub(max_row_w as u16)) / 2;
         let row_x = box_x + BOX_PAD as u16;
-        // Only option/sub rows are clickable — never titles or descriptions.
+        // Only option/sub rows are clickable - never titles or descriptions.
         let hit_x = mouse.x >= row_x
             && mouse.x < box_x + max_row_w as u16
             && mouse.y >= area.y
@@ -1603,8 +1603,8 @@ impl SettingsView {
         let selected_idx = self.selection.selected_index;
         let offset = self.viewport_offset(area, setup);
         // Column alignment for the MCP/ACP sub-lists: the target/launch
-        // preview starts at ONE shared column — after the list's longest
-        // name plus a two-column gap — instead of a dash-separated run-on
+        // preview starts at ONE shared column - after the list's longest
+        // name plus a two-column gap - instead of a dash-separated run-on
         // after each name.
         let mcp_name_w = setup
             .mcp
@@ -1651,7 +1651,7 @@ impl SettingsView {
                         rows.get(selected_idx) == Some(&SettingsRow::SummarizationModel(*index));
                     let entry = &setup.routing.summarization_models[*index];
                     // Controls hug the box's right inner edge, inside the
-                    // contour — never outside it.
+                    // contour - never outside it.
                     let controls = (box_x + max_w as u16)
                         .saturating_sub(SUMMARIZER_CONTROLS.width() as u16 + BOX_PAD as u16)
                         .max(row_x);
@@ -1769,7 +1769,7 @@ impl SettingsView {
                     );
                     if !entry.name.is_empty() && !entry.command.is_empty() {
                         let preview =
-                            format!(" — {}", truncate(&entry.command, COMMAND_PREVIEW_LEN));
+                            format!(" - {}", truncate(&entry.command, COMMAND_PREVIEW_LEN));
                         let cmd_x = (row_x + 4).saturating_add(name_line.chars().count() as u16);
                         draw_text(buf, &preview, cmd_x, y, area, Style::default().fg(muted));
                     }
@@ -1870,13 +1870,12 @@ impl SettingsView {
                     };
                     // Availability is a PATH fact, not a toggle: instead of
                     // a switch glyph, an installed agent renders in the
-                    // normal text color and a MISSING one in muted — the
+                    // normal text color and a MISSING one in muted - the
                     // same "present vs. unavailable" treatment the tool
                     // description uses, and visually distinct from the
                     // ✔/✗ toggles above. The name keeps the sub-row indent
                     // (+4) shared with the other lists and "+ Add agent".
-                    let installed =
-                        morpheus_agents::acp::custom_agent_installed(&entry.name);
+                    let installed = morpheus_agents::acp::custom_agent_installed(&entry.name);
                     let name_color = if installed { fg } else { muted };
                     // 🗑 remove glyph hugs the box's right inner edge (the
                     // summarizer rows' controls slot); name and preview are
@@ -1936,7 +1935,7 @@ impl SettingsView {
                     // Reachability is a key fact, not a toggle: like the
                     // ACP list, an endpoint with a resolvable credential
                     // renders in the normal text color and one without in
-                    // muted — no ✔/✗ glyph. The name keeps the sub-row
+                    // muted - no ✔/✗ glyph. The name keeps the sub-row
                     // indent (+4) shared with the other lists.
                     let keyring_ready = aiface::connector::has_api_key(
                         &entry.name,
@@ -2094,7 +2093,7 @@ fn max_row_width(setup: &Setup, width: u16) -> usize {
                 continue;
             }
             for entry in hook_entries(setup, event) {
-                // Full drawn line: indent + "• " + name [+ " — command…"].
+                // Full drawn line: indent + "• " + name [+ " - command…"].
                 // Capped like the descriptions, so a very long hook name
                 // cannot push the contour past a tiny terminal.
                 let name = hook_display_name(entry);
@@ -2111,7 +2110,7 @@ fn max_row_width(setup: &Setup, width: u16) -> usize {
     }
     // MCP server rows (indented like hook sub-rows). The preview column
     // starts after the list's longest name + gap (the render's shared
-    // column), and runs to the 🗑 slot at the box's right inner edge —
+    // column), and runs to the 🗑 slot at the box's right inner edge -
     // mirror the drawn widths exactly or the contour can clip a row.
     let mcp_name_w = setup
         .mcp
@@ -2193,7 +2192,7 @@ fn trash_x_for_row(box_x: u16, max_w: u16, row_x: u16) -> u16 {
         .max(row_x)
 }
 
-/// Draw the 🗑 remove glyph at `(x, y)` and clear the cell after it — one
+/// Draw the 🗑 remove glyph at `(x, y)` and clear the cell after it - one
 /// span drives both writes and the hit-test, so a visible glyph is always
 /// clickable and vice versa (the sessions-list contract).
 fn draw_trash(buf: &mut Buffer, x: u16, y: u16, area: Rect, muted: Color) {
@@ -2205,7 +2204,7 @@ fn draw_trash(buf: &mut Buffer, x: u16, y: u16, area: Rect, muted: Color) {
 }
 
 /// Hit-test a click against a sub-row's 🗑 slot: the exact columns the
-/// slot occupies — never a half-row region (the sessions-list contract).
+/// slot occupies - never a half-row region (the sessions-list contract).
 pub fn trash_hit(mouse_x: u16, box_x: u16, max_w: u16, row_x: u16) -> bool {
     let trash_x = trash_x_for_row(box_x, max_w, row_x);
     mouse_x >= trash_x && mouse_x < trash_x + TRASH_W
@@ -2390,7 +2389,7 @@ mod tests {
         assert!(block_bottom >= sel_y, "layout closes every box");
 
         // Fallback: a block taller than the viewport (30 summarization
-        // models inside the Automation box) pins the selected row instead —
+        // models inside the Automation box) pins the selected row instead -
         // the row stays visible even though the block cannot be framed.
         let mut setup = Setup::default();
         setup.routing.summarization_models = (0..30)
@@ -2768,7 +2767,7 @@ mod tests {
         let mut setup = setup_with_hooks(true, &[("a", "cmd a")]);
         let mut view = SettingsView::new();
         // Start on the pre-tool Add-hook row and walk up to the hook
-        // toggle (row identity, not a fixed step count — the layout above
+        // toggle (row identity, not a fixed step count - the layout above
         // the Automation items may change without retargeting this test).
         view.selection.selected_index = selectable_rows(&setup)
             .iter()
@@ -3248,7 +3247,7 @@ mod tests {
     /// before the next section's description. Standalone switches (no hook
     /// sub-list) used to be glued together because the gap only existed
     /// inside the enabled-hook branch. Also asserts the layout's `y` values
-    /// are strictly sequential — a dropped `y += 1` elsewhere (e.g. after
+    /// are strictly sequential - a dropped `y += 1` elsewhere (e.g. after
     /// the AddHook row) would make two lines share a row and silently eat a
     /// gap while every successor check still passed.
     #[test]
@@ -3337,7 +3336,7 @@ mod tests {
             .map(|y| format!("{}\n", line_text(&buf, area, y)))
             .collect();
         assert!(all.contains("✔ PreToolUse hooks"));
-        assert!(all.contains("• block rm — exit 2"));
+        assert!(all.contains("• block rm - exit 2"));
         assert!(all.contains("+ Add hook"));
         assert!(all.contains("PostToolUse hooks"));
     }
@@ -3391,7 +3390,7 @@ mod tests {
         );
 
         // Disabled: the list re-centers; whatever sits under the old hook Y
-        // must be a category row — never a phantom hook/add entry.
+        // must be a category row - never a phantom hook/add entry.
         let disabled = setup_with_hooks(false, &[("block rm", "exit 2")]);
         let res = view.handle_mouse(&mouse_at(row_x + 6, hook_y), area, &disabled);
         assert!(
@@ -3625,7 +3624,7 @@ mod tests {
     }
 
     /// Visual dump of the rendered screen (run with --nocapture). Ignored
-    /// harness for eyeballing the section contours and padding — keep it
+    /// harness for eyeballing the section contours and padding - keep it
     /// when tweaking BOX_PAD or the border geometry.
     #[test]
     #[ignore]

@@ -2,7 +2,7 @@ use super::super::{Fs, ReplaceEdit};
 use morpheus_sdk::rollback;
 use std::path::PathBuf;
 
-/// Shared scratch root for all replace fixtures — created once per test
+/// Shared scratch root for all replace fixtures - created once per test
 /// process, under the OS temp dir. Tests never touch a real project tree.
 fn fixtures_root() -> &'static PathBuf {
     static ROOT: std::sync::LazyLock<PathBuf> = std::sync::LazyLock::new(|| {
@@ -247,7 +247,7 @@ async fn batch_failure_keeps_applied_and_reports_skipped() {
 }
 
 /// A stale tag with an external edit between read and edit is rejected with
-/// the mismatch diagnostic — the same behavior as the `targets` engine, whose
+/// the mismatch diagnostic - the same behavior as the `targets` engine, whose
 /// recovery declines this shape (probe-verified parity).
 #[tokio::test]
 async fn stale_tag_is_rejected_like_the_targets_engine() {

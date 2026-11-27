@@ -1,6 +1,6 @@
 //! Storage seam for the hashline patcher. [`Filesystem`] is intentionally
 //!
-//! minimal — `read_text`, `write_text`, `exists` — so any backing store can be
+//! minimal - `read_text`, `write_text`, `exists` - so any backing store can be
 //! adapted: disk, memory, S3, an LSP text-document protocol, a Git tree, a
 //! VFS, etc.
 //!
@@ -92,7 +92,7 @@ pub fn is_not_found(error: &(dyn std::error::Error + 'static)) -> bool {
 /// Implement for new backends; this module ships [`InMemoryFilesystem`] and
 /// [`DiskFilesystem`] for the most common cases.
 ///
-/// Implementations work with raw text — the patcher handles BOM stripping and
+/// Implementations work with raw text - the patcher handles BOM stripping and
 /// line-ending normalization itself. `read_text` MUST return a
 /// [`NotFoundError`] (or any error for which [`is_not_found`] returns true)
 /// when the path doesn't exist; that's how the patcher detects a create-vs-

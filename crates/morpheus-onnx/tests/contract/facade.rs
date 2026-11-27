@@ -6,7 +6,7 @@ use morpheus_onnx::error::Error;
 use morpheus_onnx::{Router, load};
 
 /// The load error for a missing local path carries the upstream text and
-/// names the path — the same message `agent.load` produces.
+/// names the path - the same message `agent.load` produces.
 #[test]
 fn a_missing_local_path_fails_with_the_upstream_text() {
     let err = load(
@@ -112,7 +112,7 @@ fn the_router_constructs_offline() {
     assert_eq!(router.loaded().len(), 0, "lazy: nothing resident");
 }
 
-/// A `DecisionModel` handle can be cloned and moved across threads — the
+/// A `DecisionModel` handle can be cloned and moved across threads - the
 /// `Send + Sync` contract the facade documents.
 #[test]
 fn the_model_trait_is_send_sync() {

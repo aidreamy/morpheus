@@ -1,4 +1,4 @@
-//! AST-driven file edit engine — `ast_edit` powered by the `morpheus_sdk::ast`
+//! AST-driven file edit engine - `ast_edit` powered by the `morpheus_sdk::ast`
 //! (ast-grep) structural matching engine.
 //!
 //! This is the second, *structural* editing strategy behind
@@ -248,7 +248,7 @@ async fn rewrite_file(abs: &Path, ops: &[AstEditOp]) -> Result<FileEditOutcome, 
 
     for op in ops {
         // Compile every pattern ast-grep derives for this op (a normal pattern
-        // plus, for Rust, a statement-level contextual pattern — see
+        // plus, for Rust, a statement-level contextual pattern - see
         // `compile_search_patterns`). Each derived pattern is applied in
         // sequence with a re-parse in between.
         let patterns = match compile_search_patterns(&op.pat, lang) {

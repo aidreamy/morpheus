@@ -34,13 +34,13 @@ pub enum PermissionCheck {
 /// Extract all paths from tool arguments for permission checking.
 ///
 /// Supports the following argument shapes:
-/// - `{ "path": "..." }` — the advertised flat single-file form (fs_read,
+/// - `{ "path": "..." }` - the advertised flat single-file form (fs_read,
 ///   fs_write, fs_edit, fs_edit_lines, fs_ast_edit, fs_rollback)
-/// - `{ "targets": [{ "path": "..." }, ...] }` — the legacy batch form, kept
+/// - `{ "targets": [{ "path": "..." }, ...] }` - the legacy batch form, kept
 ///   for single-element compatibility (fs_read, fs_write, fs_edit,
 ///   fs_edit_lines, fs_ast_edit)
 /// - `{ "path": "..." }` / `{ "paths": [...] }` (find_glob, find_grep)
-/// - `{ "save_path": "..." }` (computer_screenshot) — the optional file
+/// - `{ "save_path": "..." }` (computer_screenshot) - the optional file
 ///   write destination, which must go through the same outside-cwd
 ///   approval as any other file write
 pub(crate) fn extract_paths_from_args(tool_name: &str, args: &Value) -> Vec<String> {
@@ -62,7 +62,7 @@ pub(crate) fn extract_paths_from_args(tool_name: &str, args: &Value) -> Vec<Stri
             }
         }
         // find_glob / find_grep: the single `path` plus every entry of the
-        // optional `paths` array — each target is a real path the tool opens,
+        // optional `paths` array - each target is a real path the tool opens,
         // so the approval check must see all of them.
         "find_glob" | "find_grep" => {
             let mut out: Vec<String> = args
@@ -89,7 +89,7 @@ pub(crate) fn extract_paths_from_args(tool_name: &str, args: &Value) -> Vec<Stri
 /// True when `path` lives under the harness scratch directory
 /// (`<OS temp>/morpheus`), where truncated tool-output logs are written.
 ///
-/// Scratch logs are ephemeral by definition — reading them back is part of
+/// Scratch logs are ephemeral by definition - reading them back is part of
 /// the truncation contract (the model is told to inspect them), so they must
 /// never trigger the approval dialog. The PathGuard applies the same
 /// exemption, keeping both layers consistent.
@@ -123,8 +123,8 @@ fn needs_path_approval(paths: &[String], project_root: Option<&Path>) -> Option<
                 None => false,
                 Some(root) => match path.canonicalize() {
                     Ok(p) => p.starts_with(root),
-                    // The target may NOT EXIST YET — a write destination
-                    // such as a `computer_screenshot` save_path — and
+                    // The target may NOT EXIST YET - a write destination
+                    // such as a `computer_screenshot` save_path - and
                     // canonicalize fails on non-existent paths. A raw
                     // spelling that sits textually under the canonical
                     // root counts as inside: a not-created-yet file must
@@ -166,7 +166,7 @@ fn textually_inside(path: &Path, root: &Path) -> bool {
         return false;
     }
     // Exact match (the target IS the root) or the character right after
-    // the root is a path separator — a component boundary, so a SIBLING
+    // the root is a path separator - a component boundary, so a SIBLING
     // directory (`root\foo` vs `rootbar\file`) never matches a prefix
     // by accident.
     if file.len() == root.len() {
@@ -177,7 +177,7 @@ fn textually_inside(path: &Path, root: &Path) -> bool {
 
 /// Check whether a tool call needs user permission before dispatch.
 ///
-/// The harness acts as a guardrail — it checks **mode** (Ask/Build/Yolo)
+/// The harness acts as a guardrail - it checks **mode** (Ask/Build/Yolo)
 /// and asks the user for approval on certain tool operations.
 ///
 /// Tools that always need user approval (regardless of path):
@@ -185,21 +185,21 @@ fn textually_inside(path: &Path, root: &Path) -> bool {
 /// - `fs_edit`, `fs_edit_lines`, `fs_ast_edit`, `fs_rollback` (write/restore file
 ///   operations)
 /// - `computer_act`, `computer_control` (synthetic input acts on the
-///   whole desktop — outside any project-root sandbox)
+///   whole desktop - outside any project-root sandbox)
 ///
 /// Tree-grounded computer tools with a coordinate form (`computer_screenshot`,
 /// `computer_control`):
-/// the COORDINATE form is outright DENIED in Build mode — the Build approval
+/// the COORDINATE form is outright DENIED in Build mode - the Build approval
 /// dialog hands focus to the TUI and the user may move the pointer while
 /// answering, so any coordinate measured before the dialog can be stale.
 /// The tree-grounded form of each (annotate=true capture; app/pid + selector
-/// pointer targets) is allowed — it resolves from the a11y tree at dispatch
+/// pointer targets) is allowed - it resolves from the a11y tree at dispatch
 /// time, so no coordinate can go stale. Coordinate forms are fully available
 /// in Yolo/Command mode, where dispatches run without an interactive dialog.
 ///
 /// `computer_windows` is gated PER CALL: listing windows (no `action`) is
 /// read-only and allowed in every mode, including Ask; an `action` call
-/// (minimize/maximize/close/move/resize) changes desktop state — it asks in
+/// (minimize/maximize/close/move/resize) changes desktop state - it asks in
 /// Build mode and is denied in Ask mode, like the synthetic-input tools. A
 /// `computer_screenshot` call with `save_path` is a file write like any
 /// other: the path check below asks for approval when the destination is
@@ -214,7 +214,7 @@ fn textually_inside(path: &Path, root: &Path) -> bool {
 /// [`PathGuard`](morpheus_tools::util::path_guard::PathGuard) via
 /// [`resolve()`](morpheus_tools::util::path_guard::PathGuard::resolve).
 ///
-/// `project_root` is optional — when `None`, all absolute paths trigger
+/// `project_root` is optional - when `None`, all absolute paths trigger
 /// the permission dialog (defensive default).
 #[must_use]
 pub fn check_tool_permission(
@@ -228,7 +228,7 @@ pub fn check_tool_permission(
         return PermissionCheck::Allowed;
     }
 
-    // Command mode: the USER typed the command directly — the TUI is a plain
+    // Command mode: the USER typed the command directly - the TUI is a plain
     // terminal and every dispatch is user-initiated. No dialog can be shown
     // (there is no agent loop asking); treat everything as pre-approved,
     // exactly like Yolo.
@@ -244,14 +244,14 @@ pub fn check_tool_permission(
     // Manager mode: the write/edit tools are denied outright (the tool
     // registration already hides them; this is the defense-in-depth net
     // for a stale registration) and `bash_run` is fenced per-command by
-    // the mode's bash blocklist — reading stays, mutating does not.
+    // the mode's bash blocklist - reading stays, mutating does not.
     // Everything ELSE is permissive like Yolo (no approval dialog): the
     // manager coordinates agents that already run unattended, so a dialog
     // would stall the orchestration with a question no one needs to answer.
     if mode == Mode::Manager {
         if is_manager_restricted(tool_name) {
             return PermissionCheck::Denied(format!(
-                "`{tool_name}` is not available in Manager mode — delegate the file work \
+                "`{tool_name}` is not available in Manager mode - delegate the file work \
                  to a sub-agent or coworker pane"
             ));
         }
@@ -260,7 +260,7 @@ pub fn check_tool_permission(
             if is_manager_blocked_bash(command) {
                 return PermissionCheck::Denied(format!(
                     "this command writes to the filesystem and is not available in Manager \
-                     mode — use it read-only (or delegate the change), got: {command}"
+                     mode - use it read-only (or delegate the change), got: {command}"
                 ));
             }
         }
@@ -269,13 +269,13 @@ pub fn check_tool_permission(
 
     // computer_windows (per call, not per tool): listing windows is pure
     // read-only observation, but an `action` call changes window state
-    // (minimize/maximize/close/move/resize) — NOT read-only, so Ask mode
+    // (minimize/maximize/close/move/resize) - NOT read-only, so Ask mode
     // denies it outright rather than routing it to the approval dialog
     // Ask mode does not have.
     if mode == Mode::Ask && tool_name == "computer_windows" && args.get("action").is_some() {
         return PermissionCheck::Denied(
             "`computer_windows` with `action` is not available in Ask mode \
-             (it changes window state) — list the windows instead, or switch to Build mode"
+             (it changes window state) - list the windows instead, or switch to Build mode"
                 .to_string(),
         );
     }
@@ -284,32 +284,32 @@ pub fn check_tool_permission(
     // (defense in depth): the Build approval dialog hands focus to the TUI
     // and the user may move the pointer while answering, so any coordinate
     // measured before the dialog can be stale by the time the action runs.
-    // Deny outright instead of asking — an approval would re-create the
+    // Deny outright instead of asking - an approval would re-create the
     // exact pointer-drift problem this guardrail exists to prevent.
     //
     // computer_screenshot is the exception: with `annotate: true` it is
     // selector-grounded (the model acts via computer_act with the legend's
-    // selectors, never via pixels), so no coordinate can go stale — Build
+    // selectors, never via pixels), so no coordinate can go stale - Build
     // allows exactly that form and denies the plain capture, which hands
     // the model pixel coordinates.
     if mode == Mode::Build {
         // Pointer: the element form (`app`/`pid` + `selector`) resolves the
-        // point from the a11y tree at dispatch time — no coordinate can go
+        // point from the a11y tree at dispatch time - no coordinate can go
         // stale while the approval dialog is open, so it may ASK like any
         // other synthetic-input tool. The coordinate form (`x`/`y`, incl.
-        // coordinate drag endpoints) is position-dependent: deny outright —
+        // coordinate drag endpoints) is position-dependent: deny outright -
         // an approval would re-create the exact pointer-drift problem this
         // guardrail exists to prevent.
         // computer_control: the chain is checked AS A WHOLE before any
         // decision. A coordinate step ANYWHERE in it is position-dependent:
-        // deny outright — an approval would re-create the exact
+        // deny outright - an approval would re-create the exact
         // pointer-drift problem this guardrail exists to prevent. A chain
         // containing an element step may ask like any synthetic-input tool:
         // its real click moves OS keyboard focus AFTER the user answers the
         // dialog, which is exactly what makes the chained typing land on
         // the target. A chain that types (key/text) but never clicks an
         // element would send the text into whatever holds focus after the
-        // dialog — the TUI input box (observed in the field) — so it is
+        // dialog - the TUI input box (observed in the field) - so it is
         // denied with guidance toward the click-first pattern.
         if tool_name == "computer_control" {
             let mut step = Some(args);
@@ -325,7 +325,7 @@ pub fn check_tool_permission(
                 {
                     return PermissionCheck::Denied(format!(
                         "`computer_control` step {index} uses pixel coordinates: coordinates go \
-                         stale when the Build approval dialog moves the pointer — target the \
+                         stale when the Build approval dialog moves the pointer - target the \
                          element instead (`app`/`pid`/`surface` + `selector`), or switch to \
                          Yolo/Command mode"
                     ));
@@ -334,13 +334,13 @@ pub fn check_tool_permission(
                 // lands on the target when an EARLIER step's element click
                 // has already moved OS keyboard focus. Typing before any
                 // element step would reach whatever holds focus when
-                // dispatch starts — the TUI input box after the approval
-                // dialog (observed in the field) — so it is denied wherever
+                // dispatch starts - the TUI input box after the approval
+                // dialog (observed in the field) - so it is denied wherever
                 // in the chain it appears.
                 if is_keyboard && !element_seen {
                     return PermissionCheck::Denied(
                         "`computer_control` types into whatever element holds keyboard focus, \
-                         and no earlier step in the chain clicks an element to set focus — \
+                         and no earlier step in the chain clicks an element to set focus - \
                          the text would land in the morpheus input box. Start with a click on \
                          the target element (`app`/`pid`/`surface` + `selector`) and chain \
                          the typing via `then`, or switch to Yolo/Command mode"
@@ -380,7 +380,7 @@ pub fn check_tool_permission(
                 });
             }
             // Targetless pointer steps only (e.g. a lone `up`): still
-            // synthetic desktop input — ask like any other.
+            // synthetic desktop input - ask like any other.
             return PermissionCheck::NeedsApproval(PermissionRequest {
                 tool: "computer_control".to_string(),
                 description: "synthetic pointer/keyboard input on the desktop".to_string(),
@@ -390,11 +390,11 @@ pub fn check_tool_permission(
         // computer_act: the chain is checked AS A WHOLE, same policy shape
         // as computer_control. A chain whose keyboard steps all come AFTER
         // an element (semantic) step may ask like any synthetic-input tool
-        // — the element action moves OS keyboard focus BEFORE the typing
+        // - the element action moves OS keyboard focus BEFORE the typing
         // runs, which is what makes the chained typing land on the target.
         // A keyboard step with NO earlier element step (regardless of what
         // comes later) would send the text into whatever holds focus after
-        // the dialog — the TUI input box (observed in the field) — so it
+        // the dialog - the TUI input box (observed in the field) - so it
         // is denied with guidance toward the element-first pattern (a
         // semantic press is NOT a reliable focus mover on every toolkit;
         // only a real click is).
@@ -406,7 +406,7 @@ pub fn check_tool_permission(
                 if is_keyboard && !element_seen {
                     return PermissionCheck::Denied(
                         "`computer_act` types into whatever element holds keyboard focus, \
-                         and no earlier step in the chain acts on an element to set focus — \
+                         and no earlier step in the chain acts on an element to set focus - \
                          the text would land in the morpheus input box. Start with an element \
                          step (`name`/`pid`/`surface` + `selector`) and chain the typing \
                          via `then`; if the typing still misses the field, click it with \
@@ -447,7 +447,7 @@ pub fn check_tool_permission(
                 });
             }
             // Wait-only (or otherwise targetless) chain: still synthetic
-            // desktop input — ask like any other.
+            // desktop input - ask like any other.
             return PermissionCheck::NeedsApproval(PermissionRequest {
                 tool: "computer_act".to_string(),
                 description: "synthetic input on the desktop (wait-only chain)".to_string(),
@@ -463,13 +463,13 @@ pub fn check_tool_permission(
             return PermissionCheck::Denied(
                 "`computer_screenshot` as a plain capture hands the model pixel \
                  coordinates that go stale when the Build approval dialog moves the \
-                 pointer — use annotate=true for a selector-grounded capture (boxes + \
+                 pointer - use annotate=true for a selector-grounded capture (boxes + \
                  legend of selectors), or switch to Yolo/Command mode"
                     .to_string(),
             );
         }
         // computer_windows (per call): listing is read-only and falls
-        // through; an `action` call changes window state — ask like any
+        // through; an `action` call changes window state - ask like any
         // other synthetic desktop interaction. (A `save_path` capture, on
         // the other hand, only writes a file: the path check below covers
         // the outside-cwd case, no window policy involved.)
@@ -549,7 +549,7 @@ pub fn check_tool_permission(
             });
         }
         // Synthetic desktop input: acts on whatever the OS currently has
-        // focused/under the cursor — there is no project-root sandbox to
+        // focused/under the cursor - there is no project-root sandbox to
         // fall back on, so every call asks (like bash_run). In Build mode
         // the chain-walk above has already returned; this arm serves
         // Yolo/Command mode.
@@ -576,7 +576,7 @@ pub fn check_tool_permission(
     // fs_read, find_glob, find_grep: ask for confirmation when the
     // requested path is absolute and outside the project root.
     // When inside cwd (relative or absolute within root), let them
-    // pass through — PathGuard handles the actual validation.
+    // pass through - PathGuard handles the actual validation.
     let paths = extract_paths_from_args(tool_name, args);
     if !paths.is_empty() {
         if let Some((description, args_str)) = needs_path_approval(&paths, project_root) {
@@ -586,12 +586,12 @@ pub fn check_tool_permission(
                 args: args_str,
             });
         }
-        // All paths are relative or inside root — allow and let PathGuard
+        // All paths are relative or inside root - allow and let PathGuard
         // handle validation.
         return PermissionCheck::Allowed;
     }
 
-    // Everything else passes through — path validation is handled by
+    // Everything else passes through - path validation is handled by
     // PathGuard::resolve() inside the tool itself.
     PermissionCheck::Allowed
 }
@@ -599,7 +599,7 @@ pub fn check_tool_permission(
 /// Returns `true` for tools that are restricted in Ask mode (write/execute/external).
 /// The synthetic-input computer tools are included: even though their schemas are
 /// hidden in Ask mode, a call supplied despite that (stale handoff, hallucination)
-/// must be outright DENIED — Ask mode is read-only, and an approval dialog would
+/// must be outright DENIED - Ask mode is read-only, and an approval dialog would
 /// defeat the mode's contract.
 fn is_restricted_in_ask_mode(name: &str) -> bool {
     matches!(

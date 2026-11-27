@@ -1,4 +1,4 @@
-//! Lifecycle hooks — user-defined shell commands that fire around each tool
+//! Lifecycle hooks - user-defined shell commands that fire around each tool
 //! call (`PreToolUse` before, `PostToolUse` after a successful execution),
 //! returning decisions that control agent behavior.
 //!
@@ -313,9 +313,9 @@ fn shallow_merge(base: &str, patch: &str) -> Result<String, String> {
 /// Lifecycle points where hooks can fire.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum HookEvent {
-    /// Before a tool call — can deny, allow or rewrite its input.
+    /// Before a tool call - can deny, allow or rewrite its input.
     PreToolUse,
-    /// After a tool call completed successfully — can inject context into
+    /// After a tool call completed successfully - can inject context into
     /// the result or halt the turn.
     PostToolUse,
 }
@@ -486,7 +486,7 @@ impl HookRunner {
         };
 
         // Deliver the JSON payload on its own thread, AFTER the stdout/stderr
-        // readers exist: a payload larger than the pipe buffer (64 KiB —
+        // readers exist: a payload larger than the pipe buffer (64 KiB -
         // realistic for PostToolUse, which embeds tool_output) must never
         // block the timeout loop below. Dropping the handle closes stdin so
         // scripts reading to EOF (`jq`, `grep`, …) terminate.

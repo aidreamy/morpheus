@@ -1,10 +1,10 @@
-//! `morpheus update` — install the latest (or a pinned) release.
+//! `morpheus update` - install the latest (or a pinned) release.
 //!
 //! The work is delegated to the release installer (`download.sh` /
 //! `download.ps1`), exactly as a manual install would: it knows the archive
 //! layout, the DLLs and the uninstaller that ships next to the binary, and it
 //! is versioned WITH the release it installs. What this module adds is the
-//! standard command line around it — version resolution, confirmation and
+//! standard command line around it - version resolution, confirmation and
 //! `MORPHEUS_VERSION`/`MORPHEUS_VARIANT` pinned to the running build.
 //!
 //! The installer is downloaded into a private temp file and executed directly
@@ -59,7 +59,7 @@ pub async fn run(options: UpdateOptions) -> i32 {
             eprintln!(
                 "{}",
                 palette.error(
-                    "refusing to update without confirmation — pass --yes for a non-interactive run"
+                    "refusing to update without confirmation - pass --yes for a non-interactive run"
                 )
             );
             return 2;
@@ -82,7 +82,7 @@ pub async fn run(options: UpdateOptions) -> i32 {
     println!(
         "{}",
         palette.success(&format!(
-            "Update started — morpheus is exiting; reopen it to use {target}."
+            "Update started - morpheus is exiting; reopen it to use {target}."
         ))
     );
     0
@@ -97,7 +97,7 @@ async fn resolve_target(options: &UpdateOptions, palette: &Palette) -> Result<Op
                 eprintln!(
                     "{}",
                     palette.error(&format!(
-                        "invalid version '{raw}' — expected a release like v0.2.3"
+                        "invalid version '{raw}' - expected a release like v0.2.3"
                     ))
                 );
                 Err(2)
@@ -110,7 +110,7 @@ async fn resolve_target(options: &UpdateOptions, palette: &Palette) -> Result<Op
         eprintln!(
             "{}",
             palette.error(
-                "could not reach the GitHub releases API — pass a version explicitly, e.g. `morpheus update v0.2.3`"
+                "could not reach the GitHub releases API - pass a version explicitly, e.g. `morpheus update v0.2.3`"
             )
         );
         return Err(1);
@@ -246,7 +246,7 @@ async fn install(target: &str) -> Result<(), String> {
     }
 }
 
-/// The release variant this binary was built from — the installers default to
+/// The release variant this binary was built from - the installers default to
 /// `slim`, which would silently drop local RAG from an `embed` build.
 fn variant() -> &'static str {
     if cfg!(feature = "embed") {

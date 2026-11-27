@@ -35,7 +35,7 @@ const fn option_description(target: QueueTarget) -> &'static str {
     }
 }
 
-/// The full row set: every target with a LIVE loop takes both queues — the
+/// The full row set: every target with a LIVE loop takes both queues - the
 /// main agent's session, a morpheus pane's harness loop and an ACP agent's turn
 /// (its next request goes out at the prompt boundary, the moment the current
 /// prompt completes). [`LOOP_ONLY`] is what a target with no live loop gets
@@ -49,8 +49,8 @@ const LOOP_ONLY: [QueueTarget; 1] = [QueueTarget::NextLoop];
 /// dialog (left border, panel background, footer hints) so the two share a
 /// visual language.
 ///
-/// ONE dialog serves both targets: the MAIN agent's session queues, and —
-/// through [`Self::open_for_pane`] — the queues of a single `/agents` pane
+/// ONE dialog serves both targets: the MAIN agent's session queues, and -
+/// through [`Self::open_for_pane`] - the queues of a single `/agents` pane
 /// that is busy. Both targets offer BOTH queues on the same terms (see
 /// [`BOTH`]); the pane flavor drops the "next request" row only when that
 /// pane has no live loop at all, so the dialog can never name a delivery it
@@ -91,7 +91,7 @@ impl QueueChoiceDialog {
         }
     }
 
-    /// Open the dialog for the given message preview — the MAIN agent's
+    /// Open the dialog for the given message preview - the MAIN agent's
     /// session queues, both targets on offer.
     pub fn open(&mut self, preview: impl Into<String>) {
         self.preview = preview.into();
@@ -102,13 +102,13 @@ impl QueueChoiceDialog {
         self.visible = true;
     }
 
-    /// Open the dialog for ONE `/agents` pane's queues — the same two targets
+    /// Open the dialog for ONE `/agents` pane's queues - the same two targets
     /// the main agent's session offers, for BOTH pane kinds.
     ///
     /// `live_loop` is `false` only when that pane has no loop to be the next
     /// request OF (its bound history is still replaying, or its session is
     /// being compacted): then only the next-loop row is offered (and selected
-    /// by default). A RUNNING pane always offers both, morpheus or ACP — what
+    /// by default). A RUNNING pane always offers both, morpheus or ACP - what
     /// differs is only WHEN the next request can be delivered (mid-turn for a
     /// morpheus harness, at the prompt boundary for an ACP agent), which is the
     /// turn's business, not the user's choice.
@@ -226,7 +226,7 @@ impl QueueChoiceDialog {
             }
         }
         // Footer hints: "enter confirm" spans [inner_x, inner_x+13) and
-        // "esc dismiss" spans [inner_x+13, inner_x+21) — must mirror `render`.
+        // "esc dismiss" spans [inner_x+13, inner_x+21) - must mirror `render`.
         let footer_y = area.y + height.saturating_sub(2);
         if y_click == footer_y {
             if x >= inner_x && x < inner_x + 13 {

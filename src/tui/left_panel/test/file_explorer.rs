@@ -207,7 +207,7 @@ fn modified_file_renders_in_warning_color_with_lsp_error_marker() {
     assert_eq!(row[5].0, '✗');
     assert_eq!(row[5].1.fg, Some(error));
 
-    // Row 1 is b.rs (not selected): clean — plain text color, no marker.
+    // Row 1 is b.rs (not selected): clean - plain text color, no marker.
     let row_b = row_cells(&buf, 3, 5, 13);
     assert_eq!(row_b[0].0, 'b');
     assert_eq!(row_b[0].1.fg, Some(text));
@@ -239,7 +239,7 @@ fn directory_renders_aggregated_state_before_expansion() {
     view.render(&mut buf, area, &theme, &statuses);
 
     // The `src` row (row 0, selected: bold) is collapsed, yet carries
-    // the aggregated `✗` marker after its name — the pre-expansion
+    // the aggregated `✗` marker after its name - the pre-expansion
     // signal. Name starts at x=5 (gutter + arrow + space).
     let error = rgba_color(theme.error);
     let row = row_cells(&buf, 2, 5, 13);
@@ -251,7 +251,7 @@ fn directory_renders_aggregated_state_before_expansion() {
 }
 
 /// Render into a fresh buffer and return it plus the panel geometry.
-/// Statuses default to "clean" — status-color behavior has its own
+/// Statuses default to "clean" - status-color behavior has its own
 /// dedicated tests below.
 fn rendered(view: &mut FileExplorerView, width: u16, height: u16) -> (Buffer, Rect) {
     let area = Rect::new(0, 0, width, height);

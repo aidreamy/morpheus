@@ -20,7 +20,7 @@ ort = { version = "=2.0.0-rc.13", default-features = false, features = ["ndarray
 tokenizers = { version = "0.23.2", default-features = false, features = ["onig"] }
 # Hub downloads (ONNXAgent load path). The sync/ureq API; without the
 # native-tls feature hf-hub 0.5 builds its ureq agent on Rustls, matching
-# ort's tls-rustls — no OpenSSL in this crate's graph. (The workspace `embed`
+# ort's tls-rustls - no OpenSSL in this crate's graph. (The workspace `embed`
 # feature re-adds native-tls via fastembed 7's default feature set; feature
 # unification keeps it a single hf-hub build either way.)
 hf-hub = { version = "0.5", default-features = false, features = ["ureq"] }
@@ -33,7 +33,7 @@ tempfile = "3"
 # the workspace lockfile.
 sha2 = "0.10"
 hex = "0.4"
-# PredictContext.run_id (hooks.rs) — uuid4().hex, matching the upstream format.
+# PredictContext.run_id (hooks.rs) - uuid4().hex, matching the upstream format.
 uuid = { version = "1", default-features = false, features = ["v4"] }
 # preserve_order keeps serde_json::Map insertion-ordered, mirroring Python dict
 # ordering that the question/criteria rendering depends on.

@@ -1,4 +1,4 @@
-//! Post-action feedback component — what the UI looks like AFTER a step ran.
+//! Post-action feedback component - what the UI looks like AFTER a step ran.
 //!
 //! A step report says what was sent; this component says whether anything
 //! happened: the target's fresh state (or that it is gone), the application
@@ -21,7 +21,7 @@ use super::types::SurfaceKind;
 const LOOKUP_TIMEOUT: Duration = Duration::from_millis(500);
 
 /// The foreground query is the one re-read that runs on EVERY step, so it
-/// gets a single attempt instead of a poll — "where is focus now" has no
+/// gets a single attempt instead of a poll - "where is focus now" has no
 /// meaningful wait.
 const FOREGROUND_TIMEOUT: Duration = Duration::ZERO;
 
@@ -71,11 +71,14 @@ fn target_state(target: &Target<'_>, selector: &str) -> String {
 }
 
 /// Render the target's fresh state from its wait result.
-pub(super) fn render_target_state(selector: &str, waited: xa11y::Result<Option<xa11y::Element>>) -> String {
+pub(super) fn render_target_state(
+    selector: &str,
+    waited: xa11y::Result<Option<xa11y::Element>>,
+) -> String {
     match waited {
         Ok(Some(element)) => state_line(selector, element.data()),
         // A miss is meaningful: the control stopped existing (a dialog closed,
-        // a row was replaced) — exactly what a trained eye would notice. The
+        // a row was replaced) - exactly what a trained eye would notice. The
         // wait only returns this once the target stayed missing for the whole
         // observation window.
         Ok(None) | Err(xa11y::Error::Timeout { .. }) => format!("`{selector}` is gone"),
@@ -104,7 +107,7 @@ pub(super) fn state_line(selector: &str, data: &xa11y::ElementData) -> String {
     format!("`{selector}` now {state}")
 }
 
-/// Foreground application and the element inside it holding keyboard focus —
+/// Foreground application and the element inside it holding keyboard focus -
 /// where the next keystroke will land.
 fn foreground() -> Option<String> {
     let app = App::foreground(FOREGROUND_TIMEOUT).ok()?;

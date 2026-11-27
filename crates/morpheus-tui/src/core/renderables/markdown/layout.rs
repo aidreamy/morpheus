@@ -8,8 +8,8 @@ use super::parser::{BlockKind, needs_inter_block_margin};
 /// height before rendering.
 ///
 /// The estimate is produced by measuring each top-level markdown block with
-/// the renderer's own block pipeline ([`super::md`]) — see
-/// [`estimate_height_impl`] — so it is exact by construction: any change to
+/// the renderer's own block pipeline ([`super::md`]) - see
+/// [`estimate_height_impl`] - so it is exact by construction: any change to
 /// the renderer's wrapping or spacing automatically applies to this estimate.
 /// Results are memoized in an LRU keyed by (content, width).
 #[must_use]
@@ -28,7 +28,7 @@ pub fn estimate_height_interior_slice(text: &str, max_w: u16) -> u16 {
 
 /// Blank separator rows owed at a SLICE boundary of one streamed document:
 /// the inter-block margin between the block ending just before `boundary`
-/// and whatever block follows it. Mirrors the renderer's top-level rule —
+/// and whatever block follows it. Mirrors the renderer's top-level rule -
 /// separated kinds (headings, lists, fences, tables, quotes, rules) always
 /// space from their neighbours; adjacent paragraphs only after an explicit
 /// blank line. The result is 0 or 1.

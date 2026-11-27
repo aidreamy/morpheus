@@ -17,7 +17,7 @@ use tokio::sync::mpsc::UnboundedSender;
 /// Which surface started a device sign-in. The pump routes the outcome to
 /// the right display: the gateway offer box owns the whole Session flow
 /// (parked message, model picker, takeover) while the ADD Provider box
-/// only needs its dialog updated and a toast — the UI thread stays
+/// only needs its dialog updated and a toast - the UI thread stays
 /// stateless about WHICH flow is running (no extra App field to forget
 /// to reset), because every event names its origin.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -35,7 +35,7 @@ pub(super) enum SignInOrigin {
 pub(super) enum DeviceSignInEvent {
     /// The device transaction started: hold the verification URL and user
     /// code on the requesting surface so they stay VISIBLE for as long as
-    /// the sign-in runs — a transient toast is not enough; the Charm page
+    /// the sign-in runs - a transient toast is not enough; the Charm page
     /// asks for the code after login, minutes later.
     Started {
         origin: SignInOrigin,
@@ -68,30 +68,30 @@ fn provider_display(provider: &str) -> String {
 
 impl App {
     /// Routes where the free-gateway recommendation dialog is rendered and
-    /// takes input: Session only. Every trigger lives there — a parked
+    /// takes input: Session only. Every trigger lives there - a parked
     /// message sent without credentials, or a keyless/keyed provider whose
     /// request just failed with an auth-shaped error. The offer renders
     /// inline over the empty session view. Render and input guards MUST use
-    /// this — a plain `is_session` check duplicated by hand would drift.
+    /// this - a plain `is_session` check duplicated by hand would drift.
     pub(super) fn gateway_dialog_route(&self) -> bool {
         matches!(self.mode(), AppMode::Session)
     }
 
     /// Whether the one-time gateway offer was already answered on this
-    /// install — and, when it was, WHICH answer was given. The marker file
+    /// install - and, when it was, WHICH answer was given. The marker file
     /// stores the answer itself (`declined` / `authorized`): a plain
     /// existence check cannot distinguish "never ask again" from "already
     /// using the gateway, may re-offer if its credential dies".
     ///
     /// The marker is INSTALL-WIDE and provider-neutral by contract: one
     /// offer per install, whichever gateway the user picked. Authorizing
-    /// GitHub Copilot mutes the first-run offer for Charm too — the tabs
+    /// GitHub Copilot mutes the first-run offer for Charm too - the tabs
     /// exist so the user picks freely at offer time, not so the offer
     /// replays once per gateway. The `gateway_died` gate re-opens the offer
     /// for ANY offered provider whose credential dies (the current
     /// provider's sign-in is the repair). One accepted edge: an install
     /// that authorized a gateway but then points a KEYLESS non-gateway
-    /// provider gets raw send failures, not a re-offer — the one-time
+    /// provider gets raw send failures, not a re-offer - the one-time
     /// contract wins over re-prompting.
     const GATEWAY_MARKER_DECLINED: &[u8] = b"declined";
     const GATEWAY_MARKER_AUTHORIZED: &[u8] = b"authorized";
@@ -124,9 +124,9 @@ impl App {
 
     /// Which gateway recommendations to offer (one per tab), if any.
     ///
-    /// Two offer paths: (1) the active provider is keyless — the primary
+    /// Two offer paths: (1) the active provider is keyless - the primary
     /// first-run scenario; (2) the provider HAS credentials but just failed
-    /// with an auth-shaped error (`auth_failure`) — a broken or revoked key
+    /// with an auth-shaped error (`auth_failure`) - a broken or revoked key
     /// makes the free gateway the sensible fallback. The user's own key is
     /// NEVER touched on path 2; a sign-in only replaces the tokens of the
     /// provider it signed in to.
@@ -138,7 +138,7 @@ impl App {
             return None;
         }
         // The one-time offer is ONE per install: an answered dialog (decline
-        // or opt-in) burned the marker, and it must never come back — not
+        // or opt-in) burned the marker, and it must never come back - not
         // on the next launch, not on a later error. Auth-shaped failures
         // re-offer ONLY when the gateway credential itself is dead (cleared
         // below); a healthy install stays silent.
@@ -155,7 +155,7 @@ impl App {
         None
     }
 
-    /// Put a parked message back into the prompt input — used whenever the
+    /// Put a parked message back into the prompt input - used whenever the
     /// dialog closes WITHOUT an opt-in so the user never loses what they typed.
     pub(in crate::app) fn restore_pending_gateway_message(&mut self) {
         if let Some(msg) = self.pending_gateway_message.take() {
@@ -168,7 +168,7 @@ impl App {
     ///
     /// Decline: record the choice (never ask again this run) and put the
     /// parked message back. Opt-in: run the ACTIVE tab's device sign-in in
-    /// the background — the parked message replays once the token is in the
+    /// the background - the parked message replays once the token is in the
     /// keyring, or goes back untouched on failure.
     pub(in crate::app) fn commit_gateway_choice(&mut self) {
         let opted_in = self.free_gateway_dialog.selected == 0;
@@ -177,7 +177,7 @@ impl App {
             self.gateway_declined = true;
             // The decline is a FINAL answer, not a per-run preference: burn
             // the one-time marker so the offer never comes back after an
-            // app restart (the in-memory latch alone dies with the process —
+            // app restart (the in-memory latch alone dies with the process -
             // that regression let the box reappear on every launch).
             self.burn_gateway_offer_marker(Self::GATEWAY_MARKER_DECLINED);
             self.restore_pending_gateway_message();
@@ -190,12 +190,12 @@ impl App {
             return;
         }
 
-        // Opted in: keep the box EXACTLY where it is (Connecting phase —
+        // Opted in: keep the box EXACTLY where it is (Connecting phase -
         // the options rows give way to a hint) and start the device flow
         // for the ACTIVE tab's provider. Hiding here would visibly close
         // and reopen it a frame later.
         let Some(offer) = self.free_gateway_dialog.active_offer() else {
-            // Single-content mode (no offers): nothing to dispatch on —
+            // Single-content mode (no offers): nothing to dispatch on -
             // restore the message instead of silently dropping it.
             self.free_gateway_dialog.hide();
             self.restore_pending_gateway_message();
@@ -212,7 +212,7 @@ impl App {
     /// `ProviderDialog` origin so the pump routes the outcome back to the
     /// API-key dialog instead of the Session route. `provider` comes from
     /// the dialog's own state (an owned `String`) and must be one of the
-    /// providers with a device flow — anything else surfaces as a Failed
+    /// providers with a device flow - anything else surfaces as a Failed
     /// event rather than silently doing nothing.
     pub(in crate::app) fn start_provider_device_login(&mut self, provider: &str) {
         spawn_device_sign_in(
@@ -224,9 +224,9 @@ impl App {
     }
 
     /// Open the device sign-in display for `provider` and start its
-    /// background flow — the ONE entry both Login-button triggers (click
+    /// background flow - the ONE entry both Login-button triggers (click
     /// and Tab) share. The DeviceLogin box is PUSHED on top of the API-key
-    /// input it was launched from — never a `replace`, which would wipe the
+    /// input it was launched from - never a `replace`, which would wipe the
     /// whole stack and destroy the half-typed key the user may still want
     /// to paste manually; the pump moves the box to Authorizing when the
     /// transaction starts.
@@ -262,7 +262,7 @@ impl App {
 
     /// Keyboard while the device sign-in box is up: it is a passive
     /// progress display, so Esc pops it (the background flow keeps polling
-    /// and its outcome reports via toast — the gateway offer box's same
+    /// and its outcome reports via toast - the gateway offer box's same
     /// Esc-does-not-cancel contract) and every other key is swallowed.
     pub(in crate::app) fn handle_device_login_key(&mut self, key: KeyCode) {
         if key == KeyCode::Esc {
@@ -295,7 +295,7 @@ impl App {
     }
 
     /// Resolve the `Authorized` completion of a Login-button sign-in: pop
-    /// the DeviceLogin box (only when IT is still the live one — an Esc'd
+    /// the DeviceLogin box (only when IT is still the live one - an Esc'd
     /// box's outcome reports via toast instead) and confirm the save.
     pub(in crate::app) fn provider_login_authorized(&mut self, provider: &str) {
         self.gateway_signing_in = false;
@@ -325,7 +325,7 @@ impl App {
 
     /// Resolve the `Failed` completion of a Login-button sign-in: pop the
     /// DeviceLogin box when it is still live, returning to the API-key
-    /// input the user came from (it was only PUSHED over — the half-typed
+    /// input the user came from (it was only PUSHED over - the half-typed
     /// key and the manual paste path survive) and surface the redacted
     /// error.
     pub(in crate::app) fn provider_login_failed(&mut self, provider: &str, error: &str) {
@@ -347,7 +347,7 @@ impl App {
     pub(in crate::app) fn pump_gateway_events(&mut self) {
         // A gateway-authorized model pick resolved since the last frame
         // (commit or cancel popped the picker): the parked message can
-        // finally run — with the model the user just picked, or the
+        // finally run - with the model the user just picked, or the
         // provider default when they cancelled. Sending it any EARLIER ran
         // it under the open picker with a model the user never confirmed.
         if self.gateway_model_pick && !self.is_model_dialog_visible() {
@@ -391,7 +391,7 @@ impl App {
                         // code + URL (drag-copyable), exactly like the
                         // gateway offer box. A dialog that is no longer the
                         // DeviceLogin box for THIS provider (Esc'd, or the
-                        // user moved on) has nothing to update — the flow
+                        // user moved on) has nothing to update - the flow
                         // keeps polling and its outcome still reports via
                         // toast; the screen is never forced back.
                         if self.current_device_login_provider().as_deref()
@@ -403,12 +403,12 @@ impl App {
                     }
                     // The dialog ITSELF becomes the sign-in display: its
                     // Yes/No options give way to the device code + URL,
-                    // drag-copyable, for the whole sign-in. No toast — the
+                    // drag-copyable, for the whole sign-in. No toast - the
                     // box already shows the URL and the code; a toast on
                     // top would only repeat them. If the user Esc'd the box
                     // away during Connecting, respect that: the flow keeps
                     // polling in the background and its outcome still
-                    // reports via toast — never force the box back open.
+                    // reports via toast - never force the box back open.
                     if self.free_gateway_dialog.visible {
                         self.free_gateway_dialog.begin_authorizing(&url, &user_code);
                     }
@@ -421,11 +421,11 @@ impl App {
                     self.gateway_signing_in = false;
                     // The offer was ANSWERED (opt-in → success): record it
                     // so a later boot knows the install already uses the
-                    // gateway — re-offers are then reserved for a DEAD
+                    // gateway - re-offers are then reserved for a DEAD
                     // credential, never for a transient error.
                     self.burn_gateway_offer_marker(Self::GATEWAY_MARKER_AUTHORIZED);
                     // Whether the user kept the sign-in box up: an Esc
-                    // mid-flow asked the screen back — the outcome must not
+                    // mid-flow asked the screen back - the outcome must not
                     // steal it again with a fresh modal one event later.
                     let box_was_open = self.free_gateway_dialog.visible;
                     self.free_gateway_dialog.hide();
@@ -436,7 +436,7 @@ impl App {
                     let idle_session = matches!(self.mode(), AppMode::Session)
                         && !matches!(self.state.status, crate::types::SessionStatus::Working);
                     // Model picker ONLY when the user kept the box up, no
-                    // other modal owns the screen, and nothing is running —
+                    // other modal owns the screen, and nothing is running -
                     // `open_model_dialog` REPLACES the dialog stack, so an
                     // ungated call would clobber a theme picker / confirm
                     // the user has open, and an Esc'd sign-in must not pop
@@ -444,7 +444,7 @@ impl App {
                     // gate above). Otherwise the toast carries the hint.
                     let show_models = box_was_open && !self.dialog.visible() && idle_session;
                     // Route the (re)played message through the newly
-                    // authorized gateway (provider default model) — but
+                    // authorized gateway (provider default model) - but
                     // ONLY when this completion actually takes over the
                     // UI right now. The sign-in runs in the background: a
                     // user who Esc'd the box and picked another model (or
@@ -456,13 +456,13 @@ impl App {
                     if taking_over {
                         self.llm_config.provider = provider.clone();
                         self.llm_config.model = None;
-                        // The old reasoning belongs to the previous model —
+                        // The old reasoning belongs to the previous model -
                         // a fresh gateway default starts unscoped.
                         self.llm_config.reasoning = None;
                     }
                     // A parked message + picker is the "authorized, now pick
                     // a model" moment: the message must WAIT until the pick
-                    // resolves — sending it under the dialog streamed the
+                    // resolves - sending it under the dialog streamed the
                     // reply with the provider default model, and the user's
                     // pick landed too late to matter.
                     self.gateway_model_pick = show_models && self.pending_gateway_message.is_some();
@@ -471,7 +471,7 @@ impl App {
                     if show_models {
                         // Straight into model selection: the gateway just
                         // came online, so its models are the natural next
-                        // pick — the SAME box the /models slash command
+                        // pick - the SAME box the /models slash command
                         // opens.
                         self.open_model_dialog();
                     }
@@ -550,18 +550,18 @@ impl App {
     /// Offer a free-gateway recommendation after a FAILED send.
     ///
     /// Two offer paths:
-    /// 1. The FIRST failure of the install (marker not yet burned) — offer
+    /// 1. The FIRST failure of the install (marker not yet burned) - offer
     ///    whatever the error shape. This is the "at least once during the
     ///    app's life" guarantee: a user whose very first send fails sees the
     ///    recommendation, not just a raw error.
     /// 2. A DEAD gateway credential on an install already using one of the
-    ///    offered gateways — a revoked/expired token is exactly what
+    ///    offered gateways - a revoked/expired token is exactly what
     ///    re-running that provider's sign-in fixes, so the offer may come
     ///    back ONLY for that. Transient errors (network, 5xx) must not nag,
     ///    and heuristics NEVER delete stored credentials: a "billing"
     ///    substring in an error must not wipe a valid keyring entry (that
     ///    regression silently destroyed working Charm credentials).
-    ///    Re-running the opt-in overwrites the keyring entries — that IS
+    ///    Re-running the opt-in overwrites the keyring entries - that IS
     ///    the recovery path, destructive cleanup is not.
     ///
     /// A running local server needs no credentials and must never be offered
@@ -578,7 +578,7 @@ impl App {
         let auth_failure = is_auth_shaped_error(error);
         // An already-answered install stays quiet UNLESS this install uses
         // one of the offered gateways itself (marker = authorized) AND the
-        // error looks like its credential died — the one state re-running
+        // error looks like its credential died - the one state re-running
         // that sign-in fixes.
         let marker = Self::gateway_offer_marker();
         let gateway_died = marker.as_deref() == Some(Self::GATEWAY_MARKER_AUTHORIZED)
@@ -590,7 +590,7 @@ impl App {
             return;
         }
         // A sign-in still polling owns the flow: never re-offer underneath
-        // it — an Esc'd-but-polling flow (the box dismissed, the device
+        // it - an Esc'd-but-polling flow (the box dismissed, the device
         // transaction alive) would otherwise get its flow disturbed by a
         // 401 that arrived mid-poll.
         if self.gateway_signing_in {
@@ -606,7 +606,7 @@ impl App {
             // dialog closed by Esc/disk-error leaves the offer due.
             self.free_gateway_dialog.show_offers(offers);
             // A dead-credential re-offer lands on the tab of the gateway
-            // that just died — the one the user needs to re-run — not on
+            // that just died - the one the user needs to re-run - not on
             // whichever tab happens to be first.
             if gateway_died {
                 self.free_gateway_dialog
@@ -618,7 +618,7 @@ impl App {
 
 /// Whether a failed-send error string looks like a credential failure: 401
 /// (unauthorized), 403 (forbidden), revoked/expired token, or an exhausted
-/// quota — all shapes a free gateway fixes. Heuristic on purpose: it only
+/// quota - all shapes a free gateway fixes. Heuristic on purpose: it only
 /// widens a UX re-offer, never changes protocol behavior.
 fn is_auth_shaped_error(error: &str) -> bool {
     let error = error.to_ascii_lowercase();
@@ -631,7 +631,7 @@ fn is_auth_shaped_error(error: &str) -> bool {
         "invalid api key",
         "invalid_grant",
         "token expired",
-        // Quota EXHAUSTION (billing), not a 429 rate limit — the latter is
+        // Quota EXHAUSTION (billing), not a 429 rate limit - the latter is
         // transient and the free gateway does not fix it.
         "insufficient_quota",
         "quota exceeded",
@@ -641,7 +641,7 @@ fn is_auth_shaped_error(error: &str) -> bool {
     .any(|marker| error.contains(marker))
 }
 
-/// Spawn a device sign-in on the shared agent runtime — the ONE entry point
+/// Spawn a device sign-in on the shared agent runtime - the ONE entry point
 /// both origins go through (the free-gateway offer opt-in and the ADD
 /// Provider Login button). The UI thread has no ambient tokio context, and
 /// the sign-in must survive any turn teardown.
@@ -658,7 +658,7 @@ fn spawn_device_sign_in(
         .get_or_init(|| tokio::runtime::Runtime::new().expect("shared agent runtime"));
     runtime.spawn(async move {
         // The INNER spawn converts a panic inside the sign-in future into a
-        // JoinError — and therefore a Failed event — instead of killing the
+        // JoinError - and therefore a Failed event - instead of killing the
         // outer task silently and leaving `gateway_signing_in` stuck true
         // (the box would hang in "Starting sign-in…" forever).
         let inner_tx = tx.clone();
@@ -687,7 +687,7 @@ fn spawn_device_sign_in(
 /// verification URL + user code (manual fallback), hand the URL to the
 /// system browser, poll until approved and store the resulting tokens in
 /// the OS keyring under the provider's own env-var name. Runs on the
-/// shared agent runtime — keyring access is blocking and must stay off
+/// shared agent runtime - keyring access is blocking and must stay off
 /// the UI thread.
 async fn device_sign_in_inner(
     origin: SignInOrigin,
@@ -716,7 +716,7 @@ async fn device_sign_in_inner(
     // Preserve the refresh token under its own entry: the access token WILL
     // expire (and Charm's exchange may even return one born expired when it
     // omits both expiries), and this is the credential a future automatic
-    // refresh — or manual recovery — needs. A failed write is not fatal
+    // refresh - or manual recovery - needs. A failed write is not fatal
     // (the access token works now) but must not vanish silently: without
     // the refresh entry the session is doomed to a manual re-sign-in with
     // no diagnostic anywhere.
@@ -735,7 +735,7 @@ async fn device_sign_in_inner(
 }
 
 /// Charm's device sign-in. Charm's device protocol is its own (JSON bodies,
-/// an exchange step) — the provider-specific adapter owns it; this only
+/// an exchange step) - the provider-specific adapter owns it; this only
 /// surfaces the codes and drives the browser.
 async fn charm_device_sign_in(
     origin: SignInOrigin,
@@ -779,7 +779,7 @@ async fn copilot_device_sign_in(
 }
 
 /// The shared visible-start of every device flow: the requesting surface
-/// shows the code + URL (manual fallback FIRST — the browser launch below
+/// shows the code + URL (manual fallback FIRST - the browser launch below
 /// is best-effort and may never open on headless/SSH/sandboxed setups),
 /// then the system browser opens the verification page.
 fn announce_device_transaction(

@@ -285,7 +285,7 @@ async fn bash_run_chunk_boundaries_do_not_corrupt_output() {
 
 /// stdin regression: in PTY mode the child's stdin is the PTY slave and
 /// nothing feeds it, so a command that reads stdin (`cat`, `ssh`, a prompt)
-/// blocks until reaped — the piped path got EOF from `Stdio::null()`. The
+/// blocks until reaped - the piped path got EOF from `Stdio::null()`. The
 /// tool guards this with the liveness watchdog (no output/CPU/I-O progress
 /// for 120s -> killed; the mechanism is covered by `test_spawn_bash_pty_timeout*`
 /// and the `test_liveness_*` tests at the stream level); here we assert a

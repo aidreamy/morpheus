@@ -15,10 +15,10 @@ pub(super) fn init_terminal() -> io::Result<Terminal<CrosstermBackend<io::Stdout
         crossterm::event::EnableMouseCapture,
     )?;
     // Bracketed paste stays enabled on ALL platforms, Windows included: with
-    // the patched crossterm (see `[patch.crates-io]` in Cargo.toml —
+    // the patched crossterm (see `[patch.crates-io]` in Cargo.toml -
     // upstream PR crossterm-rs/crossterm#1030) `EnableBracketedPaste` scopes
     // ENABLE_VIRTUAL_TERMINAL_INPUT to its own lifetime, so modern Windows
-    // terminals deliver a real `Event::Paste` exactly like Unix — the prompt
+    // terminals deliver a real `Event::Paste` exactly like Unix - the prompt
     // placeholder lands atomically with zero streaming. Stock crossterm
     // could not decode the markers (#737) and the request even corrupted
     // pasted newlines into Ctrl+Enter (#962); both are fixed by the patch.
@@ -28,10 +28,10 @@ pub(super) fn init_terminal() -> io::Result<Terminal<CrosstermBackend<io::Stdout
     // This allows detecting modifier+key combinations like Ctrl+Backspace.
     //
     // REPORT_ALL_KEYS_AS_ESCAPE_CODES rides in the SAME push (one push, one
-    // pop — the restore path below pops exactly once): without it, keys
+    // pop - the restore path below pops exactly once): without it, keys
     // with no legacy byte encoding never arrive with their modifiers.
-    // `Ctrl+Backspace` is the prime case — plain terminals deliver a bare
-    // `0x08` (indistinguishable from Backspace) — and the same applies to
+    // `Ctrl+Backspace` is the prime case - plain terminals deliver a bare
+    // `0x08` (indistinguishable from Backspace) - and the same applies to
     // the Alt+digit /agents pane hotkeys and the Enter/arrow chords the
     // keymap distinguishes. With the full protocol, supporting terminals
     // send `CSI 13;2u`-style sequences, which crossterm parses with the

@@ -1,10 +1,10 @@
 //! Dispatch for the `/agents` split-pane mode: one submitted prompt goes to
-//! the FOCUSED pane — or, when `Alt+0` left NO pane focused, to the MAIN
+//! the FOCUSED pane - or, when `Alt+0` left NO pane focused, to the MAIN
 //! agent itself (the normal-mode loop, unchanged). External agent CLIs each
-//! get an independent ACP turn (`morpheus_agents::acp::call` — the
+//! get an independent ACP turn (`morpheus_agents::acp::call` - the
 //! same one-shot contract the prompt corrector uses); each morpheus pane (at
 //! any split position) runs the MAIN agent itself on its own real morpheus
-//! session — persisted in the session store (visible in the history panel)
+//! session - persisted in the session store (visible in the history panel)
 //! with the mode's normal prompt minus the self-review loop, and without
 //! the workspace-mutating tools delegated work never needs.
 //!
@@ -32,8 +32,8 @@ use crate::ui::toast::{ToastOptions, ToastVariant};
 use crossterm::event::KeyCode;
 
 /// Sync the slash menu's command source to the split's focus: a FOCUSED
-/// pane serves its own (blocklist-filtered) command list — or its spinner
-/// row while the snapshot probe is still in flight — and NO focus returns
+/// pane serves its own (blocklist-filtered) command list - or its spinner
+/// row while the snapshot probe is still in flight - and NO focus returns
 /// the morpheus set (the main agent's commands). Only the LIVE split counts:
 /// a parked split's stale `focused` must not hijack the menu (its prompt
 /// routing goes to the main agent). Idempotent by content: an unchanged
@@ -61,7 +61,7 @@ pub(super) fn sync_slash_source(app: &mut App) {
     }
 }
 
-/// Menu-source equality by (name, desc) pairs — a cheap change detector so
+/// Menu-source equality by (name, desc) pairs - a cheap change detector so
 /// repeated syncs never reset the user's selection/filter position.
 fn slash_lists_equal(
     a: &[crate::ui::slash_menu::SlashCommand],
@@ -78,15 +78,15 @@ fn slash_lists_equal(
 /// when consumed (the caller closes the menu and clears the draft); `false`
 /// means "not this layer's" and the App handles it.
 ///
-/// The cases, in order — this order IS the contract:
+/// The cases, in order - this order IS the contract:
 ///
 /// 1. **Global** (`themes`, `background`, `bell`, `spinner`,
 ///    `settings`, `router`, `providers`, `new`, `rename`, `undo`, `agents`):
 ///    app/TUI state, of which there is exactly one instance per process.
-///    Never handed to a pane, whoever is focused — a `/background` picked on
+///    Never handed to a pane, whoever is focused - a `/background` picked on
 ///    a claude pane is still this one terminal's background.
 /// 2. **Agent**, and applied by morpheus itself: `/worktree`, the pane's cwd
-///    binding. Consumed here for ANY pane kind — the MANAGER included, since
+///    binding. Consumed here for ANY pane kind - the MANAGER included, since
 ///    a bound morpheus pane runs its turns in the checkout exactly like a bound
 ///    ACP pane.
 /// 3. **Agent**, on a MANAGER pane: the manager's agent IS the main loop, so
@@ -98,7 +98,7 @@ fn slash_lists_equal(
 ///    harness commands …) is sent to the pane VERBATIM as its next prompt
 ///    (`/name`) and the harness interprets its own command.
 ///
-/// Unfocused, or no live split: `false` — the App handles the command, which
+/// Unfocused, or no live split: `false` - the App handles the command, which
 /// for an Agent-scoped one means the main agent, the only agent that exists
 /// in that situation.
 pub(super) fn route_agent_slash_command(
@@ -115,16 +115,16 @@ pub(super) fn route_agent_slash_command(
     let Some(pane) = split.panes.get(focused) else {
         return false;
     };
-    // 1. Global: one instance per process — always the App's.
+    // 1. Global: one instance per process - always the App's.
     if command_scope(&cmd.name) == CommandScope::Global {
         return false;
     }
     if cmd.name == "worktree" {
         // 2. morpheus's own git-style command: intercepted BEFORE the manager
         // guard and the passthrough (the worktree binding is morpheus-side,
-        // never the agent's own) — its row is listed in EVERY pane's menu,
+        // never the agent's own) - its row is listed in EVERY pane's menu,
         // so a pick here must always be consumed, refusals included. The
-        // typed argument tail rides the prompt — read it here, then apply.
+        // typed argument tail rides the prompt - read it here, then apply.
         let tail =
             crate::ui::slash_menu::SlashMenu::command_arg_tail(&app.prompt_view.input, &cmd.name);
         apply_worktree_command(app, tail.as_deref());
@@ -132,11 +132,11 @@ pub(super) fn route_agent_slash_command(
     }
     // 2b. The manager pane's /models: the pane's OWN model picker. The
     // manager's agent is this app's own loop, so the fall-through below
-    // would open the GLOBAL picker and move every agent's model with it —
+    // would open the GLOBAL picker and move every agent's model with it -
     // but the split's contract is per-pane agents: a pick here lands on
     // THIS pane's session only (the pane's own selection plus its session
     // markers, never the global config). External agents keep their own
-    // config-dialog path (the `resolve` branch below) — the picker here is
+    // config-dialog path (the `resolve` branch below) - the picker here is
     // the morpheus pane's, which has no ACP config options to offer.
     if cmd.name == "models" && pane.agent == MANAGER_LABEL {
         app.open_pane_model_dialog(focused);
@@ -161,13 +161,13 @@ pub(super) fn route_agent_slash_command(
 /// Parse and apply the `/worktree` arguments on the focused pane (git-style,
 /// no dialogs):
 ///
-/// - `add <path> <branch>` — worktree at `<path>` on a new branch, based on
+/// - `add <path> <branch>` - worktree at `<path>` on a new branch, based on
 ///   the pane's current HEAD;
-/// - `add <branch>` — same, at the default temp path (the slug of the
+/// - `add <branch>` - same, at the default temp path (the slug of the
 ///   branch under `<OS temp>/morpheus-worktrees/`);
-/// - `exit` — drop the pane's worktree binding and return it to the
+/// - `exit` - drop the pane's worktree binding and return it to the
 ///   session's cwd. Nothing is removed: the worktree directory and its
-///   branch survive (the name deliberately does not suggest deletion —
+///   branch survive (the name deliberately does not suggest deletion -
 ///   only the pane's cwd binding is dropped).
 ///
 /// Anything else (no args, unknown subcommand) is refused with a usage
@@ -208,14 +208,14 @@ pub(super) fn apply_worktree_command(app: &mut App, tail: Option<&str>) {
 /// (`add [<path>] <branch>` / `exit` / `list`).
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum WorktreeCommand {
-    /// `add [<path>] <branch>` — `path` is `None` for the managed temp root.
+    /// `add [<path>] <branch>` - `path` is `None` for the managed temp root.
     Add {
         path: Option<String>,
         branch: String,
     },
-    /// `exit` — drop the binding; nothing on disk is touched.
+    /// `exit` - drop the binding; nothing on disk is touched.
     Exit,
-    /// `list` — show the repository's worktrees, marking the bound one.
+    /// `list` - show the repository's worktrees, marking the bound one.
     List,
 }
 
@@ -223,7 +223,7 @@ enum WorktreeCommand {
 ///
 /// `split_whitespace` is not enough here: a worktree path may contain a
 /// space, and `/worktree list` deliberately prints copyable paths. Without
-/// quoting, a copied `/tmp/my tree` could not be pasted back into `add` —
+/// quoting, a copied `/tmp/my tree` could not be pasted back into `add` -
 /// it would parse as two tokens and refuse with a branch/path error that
 /// says nothing about the real problem. `"<path with spaces>"` round-trips.
 ///
@@ -271,7 +271,7 @@ fn split_args(tail: &str) -> Option<Vec<String>> {
     Some(out)
 }
 
-/// Parse the argument tail. `None` means malformed — the caller shows the
+/// Parse the argument tail. `None` means malformed - the caller shows the
 /// usage toast (an empty tail is malformed: the command takes arguments).
 ///
 /// A path containing spaces is written quoted: `/worktree add "/tmp/my
@@ -300,7 +300,7 @@ fn parse_worktree_command(tail: Option<&str>) -> Option<WorktreeCommand> {
 ///
 /// - Every `DialogType` variant is dismissed and driven by its OWN
 ///   `handle_*_dialog_key` in `keys.rs`; there is no generic close. A new
-///   variant would be a box the user could not leave — worse than a
+///   variant would be a box the user could not leave - worse than a
 ///   transient one.
 /// - The row count is unbounded (~35 checkouts on a working machine), and
 ///   the toast renderer already word-wraps over as many rows as the screen
@@ -345,8 +345,8 @@ fn show_worktree_list(app: &mut App, bound: Option<&std::path::Path>) {
                 let marker = if is_bound { "→ " } else { "  " };
                 // The marker is part of the COPYABLE text too: the clipboard
                 // is how a user takes a path from here into `add`.
-                shown.push_str(&format!("{marker}{} — {branch}", entry.path.display()));
-                plain.push_str(&format!("{} — {branch}", entry.path.display()));
+                shown.push_str(&format!("{marker}{} - {branch}", entry.path.display()));
+                plain.push_str(&format!("{} - {branch}", entry.path.display()));
                 if entry.is_main {
                     shown.push_str(" (main checkout)");
                     plain.push_str(" (main checkout)");
@@ -388,12 +388,12 @@ fn show_worktree_list(app: &mut App, bound: Option<&std::path::Path>) {
     }
 }
 
-/// The `/worktree` usage toast — the command takes arguments, so an empty
+/// The `/worktree` usage toast - the command takes arguments, so an empty
 /// or malformed tail is a refusal, not a silent no-op.
 fn worktree_usage_toast(app: &mut App) {
     app.toast_state.show(ToastOptions {
         title: Some("Worktree".into()),
-        message: "Usage: /worktree add [<path>] <branch> — or /worktree exit, \"/worktree list\""
+        message: "Usage: /worktree add [<path>] <branch> - or /worktree exit, \"/worktree list\""
             .into(),
         variant: ToastVariant::Warning,
         duration_ms: 6000,
@@ -401,7 +401,7 @@ fn worktree_usage_toast(app: &mut App) {
 }
 
 /// Assign the focused pane a worktree: create it (from the session repo's
-/// current HEAD), stamp the binding (`assigned_by: User` — a slash
+/// current HEAD), stamp the binding (`assigned_by: User` - a slash
 /// command IS the user acting), flag the handoff (the pane's next turn
 /// carries the context summary across the cwd move) and re-sync +
 /// persist. A git refusal or an unusable path surfaces as a toast.
@@ -428,15 +428,15 @@ fn assign_focused_pane_worktree(app: &mut App, path: Option<&str>, branch: &str)
     ) {
         Ok((worktree, binding)) => {
             // Refuse a checkout ANOTHER agent already works in. Two loops in
-            // one tree edit each other's files — the failure pane isolation
-            // exists to prevent — and this became reachable once adoption
+            // one tree edit each other's files - the failure pane isolation
+            // exists to prevent - and this became reachable once adoption
             // replaced the `PathExists` refusal that used to block a second
             // bind at the same path.
             if let Some(holder) = worktree_holder(app, &worktree.path, Some(pane_index), false) {
                 app.toast_state.show(ToastOptions {
                     title: Some("Worktree".into()),
                     message: format!(
-                        "{holder} already works in {} — two agents in one checkout edit each \
+                        "{holder} already works in {} - two agents in one checkout edit each \
                          other's files; pick another path",
                         worktree.path.display()
                     ),
@@ -467,7 +467,7 @@ fn assign_focused_pane_worktree(app: &mut App, path: Option<&str>, branch: &str)
         }
         // Only the REFUSAL speaks: a CREATION is evident from the pane's
         // badge and from the absence of an error toast. An ADOPTION speaks
-        // too (see `adoption_toast`) — re-entering a checkout the user
+        // too (see `adoption_toast`) - re-entering a checkout the user
         // forgot about must not look like nothing happened.
         Err(error) => app.toast_state.show(ToastOptions {
             title: Some("Worktree".into()),
@@ -504,7 +504,7 @@ fn adoption_toast(
 /// so a second `add` on the SAME pane stays allowed (it is how a pane moves
 /// between checkouts).
 ///
-/// Two loops in one checkout edit each other's files — the exact failure
+/// Two loops in one checkout edit each other's files - the exact failure
 /// pane isolation exists to prevent. `PathExists` used to make this
 /// unreachable by ACCIDENT: a second bind at the same path simply failed,
 /// with a message about the directory, not about the other agent. Adoption
@@ -560,7 +560,7 @@ fn worktree_holder(
 /// The MAIN agent's effective working directory: its `/worktree` binding
 /// when pinned, the session's startup cwd otherwise. `working_directory` is
 /// set once in `App::new` and never mutated by the running app, so it IS the
-/// original cwd — `/worktree exit` needs no saved copy, it just drops the
+/// original cwd - `/worktree exit` needs no saved copy, it just drops the
 /// binding.
 ///
 /// Deliberately SEPARATE from `pane_effective_cwd`: the main agent is not a
@@ -576,7 +576,7 @@ pub(super) fn main_agent_effective_cwd(app: &App) -> PathBuf {
 /// Pin the MAIN agent into a worktree (`/worktree add` with no `/agents`
 /// split open). Same engine, same `assigned_by: User` (a slash command IS
 /// the user acting) and same all-or-nothing refusal handling as the pane
-/// path — only the binding's home differs: the session, not a pane slot.
+/// path - only the binding's home differs: the session, not a pane slot.
 fn assign_main_agent_worktree(app: &mut App, path: Option<&str>, branch: &str) {
     // The repo is ALWAYS the startup cwd, never the current binding: a
     // second `add` must branch off the real repository, not off the
@@ -598,7 +598,7 @@ fn assign_main_agent_worktree(app: &mut App, path: Option<&str>, branch: &str) {
                 app.toast_state.show(ToastOptions {
                     title: Some("Worktree".into()),
                     message: format!(
-                        "{holder} already works in {} — two agents in one checkout edit each \
+                        "{holder} already works in {} - two agents in one checkout edit each \
                          other's files; pick another path",
                         worktree.path.display()
                     ),
@@ -687,7 +687,7 @@ pub(super) fn apply_main_agent_worktree_command(app: &mut App, tail: Option<&str
 
 /// Drop the focused pane's worktree binding (`/worktree exit`): the pane
 /// returns to the session's cwd on its next turn. Nothing on disk is
-/// touched — the worktree directory and its branch survive; only the
+/// touched - the worktree directory and its branch survive; only the
 /// binding is dropped (the name "exit" must not suggest deletion).
 fn clear_focused_pane_worktree(app: &mut App) {
     let Some((pane_index, split)) = focused_agent_pane_mut(app) else {
@@ -712,9 +712,9 @@ fn clear_focused_pane_worktree(app: &mut App) {
 
 impl App {
     /// The App-side `agents_worktree` assign: create the worktree (temp
-    /// root — the agent NEVER picks a path), stamp the binding
+    /// root - the agent NEVER picks a path), stamp the binding
     /// `AssignedBy::Agent`, flag the handoff (the pane's next turn carries
-    /// the context summary across the cwd move) and re-sync + persist —
+    /// the context summary across the cwd move) and re-sync + persist -
     /// the SAME side effects as the user's `/worktree add`, difference
     /// being only who is asking. The `Result` IS the op's outcome text for
     /// the asking loop's delivery.
@@ -730,7 +730,7 @@ impl App {
         // The agent NEVER picks a path, so its ask always lands in the
         // managed temp root and always CREATES: `create_or_adopt` is used
         // for the one code path, and the `Binding` is asserted here rather
-        // than ignored — an agent ask that silently adopted somebody's
+        // than ignored - an agent ask that silently adopted somebody's
         // checkout would be a bug, not a feature.
         let outcome = match morpheus::git::worktree::create_or_adopt(
             &repo,
@@ -780,7 +780,7 @@ impl App {
     }
 
     /// The App-side `agents_worktree` clear: drop the pane's binding (the
-    /// pane returns to the session's cwd on its next turn) — nothing on
+    /// pane returns to the session's cwd on its next turn) - nothing on
     /// disk is touched, the worktree directory and its branch survive.
     /// Same side effects and outcome shape as the assign twin.
     fn clear_pane_worktree_for_agent(&mut self, pane_index: usize) -> Result<String, String> {
@@ -803,9 +803,9 @@ impl App {
             });
         }
         if was_pinned {
-            Ok("binding cleared — the pane works in the session's working directory again; the worktree and its branch were kept on disk".to_string())
+            Ok("binding cleared - the pane works in the session's working directory again; the worktree and its branch were kept on disk".to_string())
         } else {
-            Err("the pane was not in a worktree — nothing to clear".to_string())
+            Err("the pane was not in a worktree - nothing to clear".to_string())
         }
     }
 
@@ -813,12 +813,12 @@ impl App {
     /// permission box. `Allow`/`AllowOnce` approve (`Allow` also records a
     /// session-wide grant so later asks skip the box); `Deny` is the
     /// DECLINE: the op dies with a plain refusal outcome (the pane keeps
-    /// ITS binding — the user's supremacy is the whole point) and NO
+    /// ITS binding - the user's supremacy is the whole point) and NO
     /// binding side effect. Either way the inline box closes and the drain
     /// resumes on the next frame. The pane INDEX is re-resolved from the
     /// op's registry id AT ANSWER TIME: a split that changed while the box
     /// was open (pane closed, panes reordered) must never redirect the
-    /// binding to a different pane — a vanished target fails the op
+    /// binding to a different pane - a vanished target fails the op
     /// cleanly instead.
     pub(in crate::app) fn resolve_pending_worktree_permission(
         &mut self,
@@ -862,11 +862,11 @@ impl App {
                 }
             }
             (true, None) => Err(format!(
-                "pane '{}' no longer exists — the binding cannot change",
+                "pane '{}' no longer exists - the binding cannot change",
                 op.coworker
             )),
             (false, _) => Err(format!(
-                "the user DECLINED this ask — pane '{}' keeps its current worktree binding; \
+                "the user DECLINED this ask - pane '{}' keeps its current worktree binding; \
                  do not retry the same ask",
                 op.coworker
             )),
@@ -893,7 +893,7 @@ impl App {
 }
 
 /// The split + pane index for an AGENT-driven worktree change, resolved
-/// from whichever slot owns the panes (live OR parked — the parked split
+/// from whichever slot owns the panes (live OR parked - the parked split
 /// keeps serving `agents_call`, so an agent ask can legitimately target a
 /// pane while the mode is closed, and the confirmation resolver resolves
 /// its index through the same `either_split` view). Every pane kind is
@@ -915,7 +915,7 @@ fn focused_agent_pane_at_mut(app: &mut App, pane: usize) -> Option<(usize, &mut 
 /// the SAME write-back the picker/teardown paths use (`to_ref` carries the
 /// `PaneWorktree` through `AgentPaneRef::Bound`, so a cold restore
 /// re-attaches the pane already pinned). The hidden stack rides along
-/// unchanged — the delta is the pane set's worktree fields only.
+/// unchanged - the delta is the pane set's worktree fields only.
 fn persist_worktree_change(app: &mut App) {
     let mode_open = app.agents_split.is_some();
     let panes = either_split(&app.agents_split, &app.parked_agents_split).map(|split| {
@@ -933,7 +933,7 @@ fn persist_worktree_change(app: &mut App) {
     app.save_agents_metadata(panes, mode_open, hidden);
 }
 
-/// The LIVE split's focused pane for mutation — the worktree command is a
+/// The LIVE split's focused pane for mutation - the worktree command is a
 /// LIVE-pane command (a parked split cannot take focus, so nothing else
 /// can reach it). `None` when no pane is focused. The MANAGER pane is a
 /// valid target: its turns run morpheus's own loop, whose assembly takes the
@@ -948,11 +948,11 @@ fn focused_agent_pane_mut(app: &mut App) -> Option<(usize, &mut AgentsSplitState
 
 /// Focus arrived on pane `pane` (hotkey or click): when the pane has never
 /// collected its agent's command/config snapshot, spawn the on-demand ACP
-/// probe (`session_snapshot` — resume + observe, never prompts) and flag
+/// probe (`session_snapshot` - resume + observe, never prompts) and flag
 /// the slash menu's spinner until the result lands. The manager pane is
 /// skipped: it is morpheus itself, and the morpheus command set already serves the
 /// menu (its slash commands are the TUI's own, not an ACP publication).
-/// The LIVE split only — a parked pane cannot take focus.
+/// The LIVE split only - a parked pane cannot take focus.
 pub(super) fn ensure_pane_snapshot(app: &mut App, pane: usize) {
     let Some(split) = app.agents_split.as_mut() else {
         return;
@@ -971,7 +971,7 @@ pub(super) fn ensure_pane_snapshot(app: &mut App, pane: usize) {
         return;
     }
     // The probe observes the pane's EFFECTIVE cwd (worktree when pinned):
-    // commands/config options are per-connection, per-cwd state — the
+    // commands/config options are per-connection, per-cwd state - the
     // same resolution the turn dispatch applies (`pane_effective_cwd`).
     let pane_probe_cwd = pane_effective_cwd(p, &app.state.working_directory);
     let agent = p.agent.clone();
@@ -1034,7 +1034,7 @@ pub(super) fn ensure_pane_snapshot(app: &mut App, pane: usize) {
 /// serving turns with the mode closed, so every pane reader resolves
 /// whichever slot currently owns the panes.
 ///
-/// Free functions — not methods — on purpose: the borrow covers only the
+/// Free functions - not methods - on purpose: the borrow covers only the
 /// two slots, while callers routinely hold the split across mutations of
 /// the rest of `App` (e.g. the right-panel mirrors).
 pub(super) fn either_split<'a>(
@@ -1053,14 +1053,14 @@ pub(super) fn either_split_mut<'a>(
 }
 
 impl App {
-    /// Refresh the slash menu from its input — ALWAYS after re-deriving the
+    /// Refresh the slash menu from its input - ALWAYS after re-deriving the
     /// source. Every site that used to call `slash_menu.update(...)` directly
     /// routes through here instead: with the menu open, the source must be
     /// re-derived against the CURRENT split state on EVERY recalculation, not
     /// only on focus changes. This closes the leak class where a stale source
     /// (the split opened/closed/parked between two menu updates) let the morpheus
-    /// command list render over a focused agent pane — or an agent's list over
-    /// the main agent — and a pick then executed against the WRONG harness.
+    /// command list render over a focused agent pane - or an agent's list over
+    /// the main agent - and a pick then executed against the WRONG harness.
     pub(in crate::app) fn slash_menu_refresh(&mut self) {
         sync_slash_source(self);
         self.slash_menu.update(&self.prompt_view.input);
@@ -1070,7 +1070,7 @@ impl App {
     /// queued messages and `/agents` pane dispatches), oldest first.
     ///
     /// A session recorded before the history was persisted carries only its
-    /// transcript, so an empty list is seeded from the user messages once —
+    /// transcript, so an empty list is seeded from the user messages once -
     /// in memory only; the next recorded input persists the seed together
     /// with itself. Reading the SESSION (not an App-level buffer) is what
     /// makes the list survive a restart and a session switch.
@@ -1131,11 +1131,11 @@ impl App {
     /// `reason`, its in-flight `agents_call` request fails (the requester's
     /// busy-guard unblocks), and the shared mirror seals as failed. A real
     /// terminal Done from a turn still winding down arrives against an IDLE
-    /// pane and is dropped by the handler's pane-idle guard — no double
+    /// pane and is dropped by the handler's pane-idle guard - no double
     /// closure, no re-binding, no double-completed request.
     ///
     /// Recovery never depends on the turn thread answering: the stop
-    /// signal is stored first (best-effort graceful cancel — ACP sends
+    /// signal is stored first (best-effort graceful cancel - ACP sends
     /// `session/cancel`, the manager loop breaks out), then the state is
     /// closed unconditionally. This is the pane's ONLY keyboard stop path.
     fn force_close_pane(&mut self, pane: usize, reason: &str) {
@@ -1172,8 +1172,8 @@ impl App {
         // Retire the turn this pane was running: the stop is best-effort
         // (the ACP call sends `session/cancel` and the manager loop breaks
         // out of its next check), so the thread keeps winding down for a
-        // while. Bumping the generation HERE — before the queues below can
-        // dispatch the pane's next turn in this same frame — is what keeps
+        // while. Bumping the generation HERE - before the queues below can
+        // dispatch the pane's next turn in this same frame - is what keeps
         // that winding-down turn's late events and terminal Done from being
         // applied to the turn that replaced it.
         let _ = split.begin_turn(pane);
@@ -1184,7 +1184,7 @@ impl App {
         split.clear_permission(pane);
         // Ctrl+X IS the user's stop: `cancelled` here is the one place the
         // word is literal (see `AgentCoworkerTurnEnd`). The forced close must not
-        // pretend the pane failed on its own — that is exactly the
+        // pretend the pane failed on its own - that is exactly the
         // conflation this vocabulary removes.
         split.finish_turn(
             pane,
@@ -1193,19 +1193,19 @@ impl App {
         );
         // The force-close DROPS the winding-down turn's terminal Done (the
         // pane-idle gate in the event handler), which used to drop its
-        // session binding with it — the stale-binding bug (issue 1,
+        // session binding with it - the stale-binding bug (issue 1,
         // variant C). The turn's gate-free fact is absorbed HERE so the
         // pane (and its persisted ref) carries the session the turn
         // actually drove.
         self.absorb_pane_session_bindings();
         if let Some(id) = registry_id {
             // Ctrl+X is the user's stop: report it as `cancelled`, never as
-            // an infrastructure error — `report_block`'s `Cancelled`
+            // an infrastructure error - `report_block`'s `Cancelled`
             // guidance is what stops the requester from re-running the pane
             // the user just halted. The requester tag honors the wake
             // promise (a MAIN-requested background call parks a delivery
             // and must wake the idle main agent), and the freed pane's next
-            // queued message dispatches in this same frame — the same
+            // queued message dispatches in this same frame - the same
             // follow-through as the normal `AgentsPaneDone` handler.
             let requester =
                 morpheus::harness::agent_coworkers::cancel_serving(&id, reason.to_string());
@@ -1215,7 +1215,7 @@ impl App {
             self.serve_agents_pane_queues();
             // Absorb ONCE MORE after the dispatch: the first absorb above
             // ran before any queued message was served, but the winding-
-            // down turn's fact may land in between — and `dispatch_to_pane`
+            // down turn's fact may land in between - and `dispatch_to_pane`
             // snapshots `p.session_id` as its resume id. Without this
             // second pass, a queued request served in that window could
             // resume the STALE session (issue 1's stale-resume window
@@ -1232,7 +1232,7 @@ impl App {
     /// Answer the FOCUSED pane's pending permission request from the
     /// keyboard: navigate with Up/Down (the box's highlighted row lives on
     /// the pane state), Enter sends the selected option's id, Esc sends
-    /// the ACP `Cancelled` semantic. Returns whether a box was pending —
+    /// the ACP `Cancelled` semantic. Returns whether a box was pending -
     /// the caller consumes the key only then (sovereign over the prompt
     /// and every other handler, like the main dialog's gate).
     pub(super) fn pane_permission_key(&mut self, key: KeyCode) -> bool {
@@ -1308,10 +1308,10 @@ impl App {
 
     /// Ctrl+X on the split: force-close the FOCUSED pane's turn. With
     /// split-Esc park-only, a pane whose stream
-    /// stalled silently had no keyboard path out — the pane sat `running`
+    /// stalled silently had no keyboard path out - the pane sat `running`
     /// forever and the dispatch gate refused every new prompt. Ctrl+X is
     /// that path: the pane goes idle immediately and accepts prompts again.
-    /// An idle focused pane (or no pane focused — the MAIN agent, which
+    /// An idle focused pane (or no pane focused - the MAIN agent, which
     /// plain Esc interrupts in the normal view) is a no-op.
     pub(super) fn interrupt_focused_pane(&mut self) {
         let Some(focused) = self.agents_split.as_ref().and_then(|split| split.focused) else {
@@ -1320,7 +1320,7 @@ impl App {
         self.force_close_pane(focused, "interrupted by the user (Ctrl+X)");
     }
 
-    /// Send a submitted prompt to the FOCUSED pane of the active split —
+    /// Send a submitted prompt to the FOCUSED pane of the active split -
     /// or, when NO pane holds the focus (`Alt+0`), to the MAIN agent
     /// itself (the same normal-mode loop, running as manager while the
     /// split is open). The focus IS the routing decision: the digit
@@ -1334,7 +1334,7 @@ impl App {
             return;
         };
         let Some(focused) = split.focused else {
-            // Unfocused (`Alt+0`): the message goes to the MAIN agent —
+            // Unfocused (`Alt+0`): the message goes to the MAIN agent -
             // the plain normal-mode loop on the current session (unchanged
             // by the split; no manager prompt or tool set).
             self.submit_prompt_message(msg);
@@ -1344,7 +1344,7 @@ impl App {
         // pending images up front so a refused submission cannot leak them.
         self.pending_user_images.clear();
         // A compaction in flight has the SAME exclusivity as a running
-        // turn — worse: its persist would race the turn's persist over the
+        // turn - worse: its persist would race the turn's persist over the
         // same session record. The user's prompt is refused with the same
         // toast shape the busy gate uses (finding 1).
         if let Some(pane) = split.focused_pane()
@@ -1353,7 +1353,7 @@ impl App {
             self.toast_state.show(ToastOptions {
                 title: Some("Agents".into()),
                 message: format!(
-                    "'{}' is being compacted — try again when it finishes.",
+                    "'{}' is being compacted - try again when it finishes.",
                     pane.id
                 ),
                 variant: ToastVariant::Warning,
@@ -1365,7 +1365,7 @@ impl App {
             // Same gate the `/new` command applies to a working loop: a
             // second dispatch while that pane's turn is live would
             // interleave two streams inside one pane. (Issue 3 made
-            // split-Esc park-only — it no longer stops a pane's turn — so
+            // split-Esc park-only - it no longer stops a pane's turn - so
             // the toast must not claim Esc stops anything.)
             self.toast_state.show(ToastOptions {
                 title: Some("Agents".into()),
@@ -1382,7 +1382,7 @@ impl App {
             // half-replayed state). It is a one-pass, seconds-scale wait.
             self.toast_state.show(ToastOptions {
                 title: Some("Agents".into()),
-                message: "Restoring this agent's history — try again in a moment.".into(),
+                message: "Restoring this agent's history - try again in a moment.".into(),
                 variant: ToastVariant::Info,
                 duration_ms: 4000,
             });
@@ -1392,12 +1392,12 @@ impl App {
         self.dispatch_to_pane(focused, msg, false);
     }
 
-    /// The focused pane's stable id — plus whether it has a LIVE loop — WHEN
+    /// The focused pane's stable id - plus whether it has a LIVE loop - WHEN
     /// that pane cannot take a submission right now, or `None` when no pane is
     /// focused or the focused pane is free.
     ///
     /// "Busy" is the union of the three states that refuse a turn: a live
-    /// turn, a compaction in flight (same session-record exclusivity — its
+    /// turn, a compaction in flight (same session-record exclusivity - its
     /// persist would race the turn's) and a cold-restore replay (the bound
     /// history is still arriving). The submit paths QUEUE the message for all
     /// three instead of refusing it.
@@ -1405,7 +1405,7 @@ impl App {
     /// "Live loop" (the second field) is what makes the dialog offer the
     /// "next request" row: a running pane has a loop that the message can
     /// become the next request of, whatever kind of agent runs it. A pane
-    /// that is only compacting or replaying has none — its next turn is a
+    /// that is only compacting or replaying has none - its next turn is a
     /// fresh loop, so only "next loop" applies there.
     pub(super) fn focused_busy_pane(&self) -> Option<(u64, bool)> {
         let pane = self.agents_split.as_ref()?.focused_pane()?;
@@ -1415,19 +1415,19 @@ impl App {
         busy.then_some((pane.id, pane.running))
     }
 
-    /// Dispatch ONE message to pane `pane` as its next turn — the shared
+    /// Dispatch ONE message to pane `pane` as its next turn - the shared
     /// entry point for BOTH senders: the user's submit (the focused pane,
     /// `from_agent = false`) and the `agents_call` queue service (an agent's
     /// input that waited for the pane to free, `from_agent = true`). The
     /// turn's input echoes into the pane's timeline as a FRESH entry right
-    /// before the turn starts — the user's prompt with the brand rail,
-    /// another agent's input with the distinct rail — so the pane shows WHO
+    /// before the turn starts - the user's prompt with the brand rail,
+    /// another agent's input with the distinct rail - so the pane shows WHO
     /// is speaking even while the turn's stream has yet to produce its
     /// first chunk.
     fn dispatch_to_pane(&mut self, pane: usize, msg: String, from_agent: bool) {
         // Snapshot everything the spawned turn needs BEFORE any effect
         // below: the agent name, resume id and the manager pane's connector
-        // config (only when the focused pane IS the manager pane — the connector
+        // config (only when the focused pane IS the manager pane - the connector
         // resolution runs lazily so a split of ACP agents alone never
         // computes it).
         let Some((agent, resume, picks, pane_cwd, handoff, rewind, coworker_identity)) =
@@ -1439,14 +1439,14 @@ impl App {
                         p.session_id.clone(),
                         // The pane's IDENTITY (`AgentPane::id`): the
                         // awareness preamble keys its once-per-generation
-                        // bookkeeping on it — a label recycled by a
+                        // bookkeeping on it - a label recycled by a
                         // sibling's removal must announce from scratch
                         // (Issue 3).
                         // The user's picks from the /agents config boxes,
                         // mirrored into the pane's config cache (the box
                         // confirm writes the pick onto the cached option's
                         // current AND records the id in `picked_config_ids`).
-                        // Only USER-PICKED ids ride the turn — ACP config
+                        // Only USER-PICKED ids ride the turn - ACP config
                         // options are per-connection state, so
                         // `apply_session_picks` re-applies them inside the
                         // turn's own connection. Untouched options keep the
@@ -1466,7 +1466,7 @@ impl App {
                         // The pane's EFFECTIVE cwd: the worktree path when
                         // the pane is pinned (`/worktree`), the session's
                         // working directory otherwise. Every layer of the
-                        // isolation model rides THIS single resolution —
+                        // isolation model rides THIS single resolution -
                         // the ACP session cwd, the MANAGER turn's
                         // `HarnessAssembly::cwd` (harness root, MorpheusTools
                         // root, LSP, hooks) and the fs sandbox root all
@@ -1495,7 +1495,7 @@ impl App {
         // ACP session modes (similarity stems, `agent_command_map`). The
         // binding re-applies EVERY turn (per-connection session state), so
         // the map result at dispatch time is what this turn binds. `None`:
-        // an unmapped morpheus mode, or an agent that advertises no modes — the
+        // an unmapped morpheus mode, or an agent that advertises no modes - the
         // agent keeps its own current (the Command-mode omission's
         // counterpart). Yolo deliberately maps to nothing: the split's
         // auto-approve IS the Yolo contract, and the permission-widening
@@ -1511,7 +1511,7 @@ impl App {
         // The registry id this pane answers to while THIS turn runs. For the
         // manager pane it is the id `agents_call` would use to reach it; the
         // manager harness carries it so it refuses to address itself (a
-        // self-call would queue behind the very turn making it — deadlock).
+        // self-call would queue behind the very turn making it - deadlock).
         // The ACP branch uses the same id for the awareness preamble
         // (`agent_coworkers::take_preamble` keys the announced-generation bookkeeping
         // by it), so it is computed for EVERY pane, not just the manager.
@@ -1524,7 +1524,7 @@ impl App {
         };
         // Fallible pre-flight BEFORE any bookkeeping: minting (or reusing)
         // the manager pane's own morpheus session can fail (I/O), and a refused
-        // turn must leave the pane idle — never stranded `running` with a
+        // turn must leave the pane idle - never stranded `running` with a
         // spinner and a mirror spinning.
         let manager_session: Option<String> = if is_manager_pane {
             let Some(id) = self.ensure_manager_pane_session(pane) else {
@@ -1539,14 +1539,14 @@ impl App {
         // speaking even while the turn's stream has yet to produce its
         // first chunk: the user's own prompt with the brand rail, another
         // agent's queued input with the distinct rail. After the guards
-        // above — a refused turn must not write to the timeline either.
+        // above - a refused turn must not write to the timeline either.
         // The echo goes wherever the pane lives (live or parked).
         let handoff_consumed = handoff.is_some();
         let rewind_consumed = rewind.is_some();
         if let Some(split) = either_split_mut(&mut self.agents_split, &mut self.parked_agents_split)
         {
             split.echo_turn_input(pane, &msg, !from_agent);
-            // The handoff block rode THIS turn's input — consume the flag
+            // The handoff block rode THIS turn's input - consume the flag
             // so later turns go out without it (a new `/worktree` add/exit
             // re-flags it).
             if handoff_consumed {
@@ -1562,13 +1562,13 @@ impl App {
         // main loop reads: the session route (provider + model, `auto`
         // resolved through the full fallback chain by the assembly) plus the
         // router's fallbacks. The old hand-cut subset forced Native and
-        // froze the first fallback — the assembly honors the user's choices.
+        // froze the first fallback - the assembly honors the user's choices.
         // An EMPTY provider degrades to the router's first fallback (the
         // deleted `daemon_connector`'s behavior): an unconfigured manager route
         // must not fail the pane when a working fallback exists.
         // The pane's OWN model selection (the per-pane /models pick) wins
         // over the global config; a pane that never picked falls back to it
-        // — the global model at spawn time, the pre-feature behavior.
+        // - the global model at spawn time, the pre-feature behavior.
         // `auto` (empty provider) degrades to the fallback chain below,
         // exactly like the global config's auto.
         let pane_selection = if is_manager_pane {
@@ -1617,7 +1617,7 @@ impl App {
         let skills_config = self.setup.skills.clone();
         // The SAME user knobs the main loop's assembly reads (the assembly's
         // contract): reasoning effort, tool-call delivery mode, cache
-        // settings, MCP servers, the effective-context budget and RAG —
+        // settings, MCP servers, the effective-context budget and RAG -
         // cloned before the turn thread moves in.
         // A pane with its own model selection runs ITS reasoning level too:
         // the selection is the (provider, model, reasoning) triple, and a
@@ -1636,7 +1636,7 @@ impl App {
         let self_tool_call_mode = self.llm_config.tool_call_mode;
         let self_base_urls = local_base_urls.clone();
         // The pane's effective cwd (worktree path when pinned), resolved in
-        // the snapshot above — NOT the session's working directory. The
+        // the snapshot above - NOT the session's working directory. The
         // manager pane rides the SAME resolution as an ACP pane: its
         // binding feeds the assembly's `cwd` below (harness root, `MorpheusTools`
         // root, LSP, hooks), so `/worktree add` on a morpheus pane really moves
@@ -1677,7 +1677,7 @@ impl App {
         let steer = is_manager_pane.then(morpheus::harness::queued_input::QueuedInput::default);
         let signal = Arc::new(AtomicBool::new(false));
         // The TURN stamp: every event of this turn carries it, and a
-        // force-closed turn's generation is never reused — so its late
+        // force-closed turn's generation is never reused - so its late
         // events (a stop is best-effort; the thread keeps winding down) can
         // never close the LIVE turn that started in the meantime.
         let turn = either_split_mut(&mut self.agents_split, &mut self.parked_agents_split)
@@ -1712,18 +1712,18 @@ impl App {
             .unwrap_or_default();
         // Dispatch-time split-slot generation: stamped into every event of
         // THIS turn, so a slot swap while it runs (fresh confirm, switch,
-        // close) invalidates its terminal delivery — the handler drops
+        // close) invalidates its terminal delivery - the handler drops
         // stale-epoch events instead of binding them into a replacement.
         let epoch = self.agents_pane_epoch;
         let event_tx = self.event_tx.clone();
         if is_manager_pane {
             // The morpheus pane: the MAIN agent itself, running delegated work
-            // on its OWN morpheus session — a real, persisted session (visible
+            // on its OWN morpheus session - a real, persisted session (visible
             // in the history panel, openable like any other), not a
             // throwaway nested harness. Its tool set is the user's mode
             // minus what a pane cannot do (see
             // `morpheus::coordinator::policy`): the workspace-mutating tools are
-            // NOT removed — only `Mode::Manager` owns that restriction. The
+            // NOT removed - only `Mode::Manager` owns that restriction. The
             // session was bound by the pre-flight above (a second ensure
             // would just re-read it), so this only unwraps.
             let Some(morpheus_session) = manager_session else {
@@ -1732,14 +1732,14 @@ impl App {
             let context = self.session_store.load_context(&morpheus_session);
             // The cwd may have MOVED under this pane (`/worktree add|exit`
             // re-flags the handoff): the manager loop carries no prompt-side
-            // preamble layer — its sibling awareness rides the harness's
-            // panes context block — so the handoff block is the ONE thing
+            // preamble layer - its sibling awareness rides the harness's
+            // panes context block - so the handoff block is the ONE thing
             // prepended here. Without it the first post-move turn would
             // start in a new checkout with no word about what it was doing.
             let input = match handoff {
                 Some(summary) => {
                     format!(
-                        "[workspace moved] Your working directory changed to {} — \
+                        "[workspace moved] Your working directory changed to {} - \
                          work only inside it. What you were doing, carried over:\n\n{summary}\n\n",
                         cwd_string
                     )
@@ -1748,12 +1748,12 @@ impl App {
             };
             // The manager runs the user's real mode (the mapped ACP mode
             // above only concerns EXTERNAL agents; this pane needs no
-            // mapping — it runs the actual harness). The permission channel
+            // mapping - it runs the actual harness). The permission channel
             // rides the mode exactly like the ACP panes': a non-Yolo mode
             // wires the harness loop's `PermissionRequest` events into the
             // pane's permission box (the bridge maps them); Yolo keeps the
             // throwaway channel (the loop auto-approves in Yolo mode
-            // without ever emitting the request — but a channel that goes
+            // without ever emitting the request - but a channel that goes
             // nowhere is the safe default either way). Manager counts as
             // Yolo here: its guardrails auto-allow everything beyond its
             // own deny-lists, so no request can ever be emitted.
@@ -1776,11 +1776,11 @@ impl App {
             };
             std::thread::spawn(move || {
                 // The pane's ONE assembly: the assembly's inputs, with the
-                // pane's declared deviations from the main loop — the
+                // pane's declared deviations from the main loop - the
                 // mode's normal prompt minus the self-review loop, the
                 // MANAGER requester tag, the bound pane id (strips
                 // `agents_call`), the pane's OWN steering queue (the user's
-                // "next request" messages — see `pane_steer`), NO decision
+                // "next request" messages - see `pane_steer`), NO decision
                 // audit (not distributed) and the pane's OWN session id as
                 // the cache-affinity key.
                 let assembly = morpheus::assembly::HarnessAssembly {
@@ -1804,13 +1804,13 @@ impl App {
                     ),
                     // The MODE's normal prompt minus the self-review loop:
                     // a pane does delegated work whose deliverable is the
-                    // task report — it does not run the review sub-agent
+                    // task report - it does not run the review sub-agent
                     // (`subagent_call` is foreground-only here and a pane
                     // must not nest reviews over its delegator's head).
                     // Build/Yolo/Command map to the Build BASE (the full
                     // Build prompt minus `INSTRUCTIONS_BUILD_SELF_REVIEW`),
                     // with Yolo interpolated by the cwd-containment block
-                    // (`INSTRUCTIONS_YOLO_BASE`) — tool freedom is intended,
+                    // (`INSTRUCTIONS_YOLO_BASE`) - tool freedom is intended,
                     // directory drift is not; Ask never had a review
                     // section, so it stays whole.
                     instructions: Some(match own_mode {
@@ -1864,13 +1864,13 @@ impl App {
             // siblings rides the prompt itself: `take_preamble` hands back
             // the peer listing ONLY when the pane's announcement went
             // stale (first turn, or the pane set/worktrees changed since
-            // the last one) — otherwise the input goes out untouched.
+            // the last one) - otherwise the input goes out untouched.
             // A pending worktree HANDOFF rides BEFORE the preamble: the
             // agent first learns where it now works and what it was
             // doing, then who its siblings are.
             let handoff_block = handoff.map(|summary| {
                 format!(
-                    "[workspace moved] Your working directory changed to {} — \
+                    "[workspace moved] Your working directory changed to {} - \
                          work only inside it. What you were doing, carried over:\n\n{summary}\n\n",
                     cwd.display()
                 )
@@ -1882,14 +1882,14 @@ impl App {
             let rewind_block = rewind.map(|summary| {
                 format!(
                     "[conversation rewound] The user rolled this conversation back to an \
-                     earlier point. Everything after that point was discarded — treat the \
+                     earlier point. Everything after that point was discarded - treat the \
                      history below as the whole conversation so far:\n\n{summary}\n\n"
                 )
             });
             // Both blocks can be pending on the same turn (a revert right
             // after a worktree move, before the first turn), and each says
             // something the other does not: WHERE the pane works, and WHAT
-            // the conversation is. Carry both — the flags below are cleared
+            // the conversation is. Carry both - the flags below are cleared
             // because the text really rode out, so dropping one here would
             // lose it for good.
             let carried_block = match (handoff_block, rewind_block) {
@@ -1939,36 +1939,28 @@ impl App {
             match (&existing, live.is_some()) {
                 (Some(_), true) => log::debug!("ACP pane {pane_id}: reuse live session"),
                 (Some(handle), false) if !handle.is_alive() => {
-                    log::debug!("ACP pane {pane_id}: rebuild — the previous session is gone");
+                    log::debug!("ACP pane {pane_id}: rebuild - the previous session is gone");
                 }
                 (Some(_), false) => {
-                    log::debug!("ACP pane {pane_id}: rebuild — the workspace changed");
+                    log::debug!("ACP pane {pane_id}: rebuild - the workspace changed");
                 }
-                (None, _) => log::debug!("ACP pane {pane_id}: open — no live session"),
+                (None, _) => log::debug!("ACP pane {pane_id}: open - no live session"),
             }
             if live.is_none() {
                 // A stale handle (dead, or rooted elsewhere) is closed before
-                // the replacement opens — one owner per pane (N1).
-                if let Some(stale) = either_split_mut(
-                    &mut self.agents_split,
-                    &mut self.parked_agents_split,
-                )
-                .and_then(|split| split.panes.get_mut(pane))
-                .and_then(|p| p.acp_session.take())
+                // the replacement opens - one owner per pane (N1).
+                if let Some(stale) =
+                    either_split_mut(&mut self.agents_split, &mut self.parked_agents_split)
+                        .and_then(|split| split.panes.get_mut(pane))
+                        .and_then(|p| p.acp_session.take())
                 {
                     stale.shutdown();
                 }
-                match morpheus_agents::acp::open_session(
-                    &agent,
-                    resume.clone(),
-                    cwd.clone(),
-                ) {
+                match morpheus_agents::acp::open_session(&agent, resume.clone(), cwd.clone()) {
                     Ok(handle) => {
-                        if let Some(p) = either_split_mut(
-                            &mut self.agents_split,
-                            &mut self.parked_agents_split,
-                        )
-                        .and_then(|split| split.panes.get_mut(pane))
+                        if let Some(p) =
+                            either_split_mut(&mut self.agents_split, &mut self.parked_agents_split)
+                                .and_then(|split| split.panes.get_mut(pane))
                         {
                             p.acp_session = Some(handle.clone());
                         }
@@ -2034,7 +2026,7 @@ impl App {
                 // fallback) is a property of the turn, not of the Done's
                 // routing. The Done handler's gates (unknown pane id, stale
                 // epoch, already-idle pane) may legitimately DROP the event
-                // — a pane force-closed by Ctrl+X or hidden mid-turn — and
+                // - a pane force-closed by Ctrl+X or hidden mid-turn - and
                 // with it the binding; the App's absorb pass still finds the
                 // fact here and promotes the pane (live, parked OR hidden).
                 // Preserves the deliberate no-propagate-on-error contract: a
@@ -2059,13 +2051,13 @@ impl App {
     /// mensagem para um agente em um pane, ele precisa ter um output no
     /// futuro"). A pane turn whose `agents_call` request was made by the
     /// MAIN loop resolves the promise here: when the main loop is NOT
-    /// running (it ended before the report arrived — it may even have been
+    /// running (it ended before the report arrived - it may even have been
     /// stopped), the parked deliveries are drained and become the input of
-    /// a FRESH main-agent turn — the main agent is woken to receive the
+    /// a FRESH main-agent turn - the main agent is woken to receive the
     /// report. A USER-initiated pane turn tracks no request
     /// (`complete_request` → `None`) and wakes nothing: the pane works in
     /// harmony with a running or idle main agent. A live main loop is left
-    /// alone — it drains its deliveries at its own natural points (the
+    /// alone - it drains its deliveries at its own natural points (the
     /// per-iteration drain and the pre-Done busy-guard).
     pub(super) fn wake_main_agent_if_promised(&mut self, requester: Option<&'static str>) {
         if requester != Some(morpheus::harness::agent_coworkers::MAIN) {
@@ -2075,7 +2067,7 @@ impl App {
             return;
         }
         // The USER's stop is ABSOLUTE: a `Cancelled` delivery is the registry's
-        // record of a turn the user stopped (Ctrl+X) — waking the main agent
+        // record of a turn the user stopped (Ctrl+X) - waking the main agent
         // with it would override the interrupt with a synthetic turn. Cancelled
         // deliveries are consumed and DISCARDED here (not left parked: a later
         // unrelated wake must never deliver a stale cancellation).
@@ -2095,7 +2087,7 @@ impl App {
         })
         .collect();
         if notes.is_empty() {
-            // Nothing parked (a wait-mode resolution whose receiver died —
+            // Nothing parked (a wait-mode resolution whose receiver died -
             // the requester's turn was stopped): no promise left to keep.
             return;
         }
@@ -2107,17 +2099,17 @@ impl App {
     /// improper-stop fix deliberately left out): a MAIN-agent turn that
     /// ended while its OWN todo list still shows open work is re-woken with
     /// the EXACT message the harness's natural-stop gate resumes a
-    /// report-owing turn with (`guards::todo_rerun_message`) — the list is
+    /// report-owing turn with (`guards::todo_rerun_message`) - the list is
     /// the record that gate trusts, so the wake must speak the same words.
     ///
     /// The trigger is the one the improper-stop fix could not cover: the
     /// agent coordinating `/agents` panes parks its turn to be woken, and a
-    /// stale todo that survived a completed turn is nobody's improper stop —
+    /// stale todo that survived a completed turn is nobody's improper stop -
     /// it is just unfinished bookkeeping. Waking here avoids keeping the
     /// main agent running the whole time it is only coordinating.
     ///
     /// Conditions, each exact:
-    /// - the main agent is IDLE (no loop running — a working loop drains its
+    /// - the main agent is IDLE (no loop running - a working loop drains its
     ///   own todo state in-turn, the wake must never interleave);
     /// - NO agent is running anywhere (no main loop, no pane turn): the wake
     ///   must not race a pane whose report is about to land;
@@ -2125,7 +2117,7 @@ impl App {
     /// - the open listing CHANGED since the previous wake: an agent that
     ///   stopped without reconciling anything must not be re-woken forever;
     /// - the wake budget still has a unit (a listing that changes every
-    ///   turn — a status toggle, a reworded item — would otherwise read as
+    ///   turn - a status toggle, a reworded item - would otherwise read as
     ///   "changed" forever); any non-wake loop start resets it;
     /// - Command mode is OFF: there the input is dispatched to `bash_run`
     ///   verbatim, and the steering text (with its free-text item
@@ -2149,7 +2141,7 @@ impl App {
         // Keyless install with the free-gateway offer pending: the offer
         // dialog must decide first. A wake parked behind the opt-in would
         // replay its steering through the replay path as a VISIBLE user
-        // message — the one start path the transcript-skip cannot cover.
+        // message - the one start path the transcript-skip cannot cover.
         if self.gateway_recommendation_offers(false).is_some() {
             return;
         }
@@ -2202,7 +2194,7 @@ impl App {
 
     /// Whether ANY agent turn is running: the main loop (`Working`) or any
     /// `/agents` pane turn (live or parked split). The pending-todos wake
-    /// must not fire while an agent is active — the report of a running
+    /// must not fire while an agent is active - the report of a running
     /// pane is the fresher material, and a working main loop reconciles its
     /// own list.
     fn any_agent_running(&self) -> bool {
@@ -2213,27 +2205,27 @@ impl App {
 
     /// Absorb the session-binding FACTS the pane turns recorded gate-free
     /// (see `morpheus::harness::agent_coworkers::record_session_binding`): promote the
-    /// matching pane object — LIVE, PARKED or HIDDEN — to the session the
+    /// matching pane object - LIVE, PARKED or HIDDEN - to the session the
     /// turn actually drove.
     ///
     /// This is the reconciliation half that decouples binding capture from
     /// the `AgentsPaneDone` routing: the Done handler's gates (unknown pane
-    /// id, stale epoch, already-idle pane) stay untouched — they protect
-    /// the event stream (no double closure, no cross-pane injection) — but
+    /// id, stale epoch, already-idle pane) stay untouched - they protect
+    /// the event stream (no double closure, no cross-pane injection) - but
     /// they may drop the event that used to be the binding's only vehicle.
     /// A fact is a property of the turn, not a routing decision, so it
     /// lands here instead:
     /// - a pane id that answers to a LIVE or PARKED pane binds it (the
     ///   same single `bind_agents_pane_session` promotion the happy-path
-    ///   Done handler runs — dedup inside, so a Done that DID land just
+    ///   Done handler runs - dedup inside, so a Done that DID land just
     ///   no-ops here);
     /// - a pane id that answers to a HIDDEN-stack entry (the pane was
     ///   hidden while its first turn was still running) promotes the
-    ///   persisted `Name` ref to `Bound` in place — the restore path then
+    ///   persisted `Name` ref to `Bound` in place - the restore path then
     ///   rebuilds the pane already bound and its replay rehydrates the
     ///   timeline;
     /// - a pane id that answers to NOTHING (a pane a rebuild dropped, or a
-    ///   pre-`pane_id` legacy hidden entry) drops the fact — the same
+    ///   pre-`pane_id` legacy hidden entry) drops the fact - the same
     ///   anti-contamination verdict the event gates reach, reached
     ///   structurally.
     pub(super) fn absorb_pane_session_bindings(&mut self) {
@@ -2244,7 +2236,7 @@ impl App {
         let mut hidden_dirty = false;
         for (pane_id, session_id) in facts {
             // `0` = never stamped (tests, pre-field legacy entries): no
-            // identity to route by — drop the fact.
+            // identity to route by - drop the fact.
             if pane_id == 0 {
                 continue;
             }
@@ -2253,7 +2245,7 @@ impl App {
             let index = either_split(&self.agents_split, &self.parked_agents_split)
                 .and_then(|split| split.pane_index_by_id(pane_id));
             if let Some(index) = index {
-                // The same promotion the Done handler runs — reused
+                // The same promotion the Done handler runs - reused
                 // verbatim. ONE write path: `bind_agents_pane_session` both
                 // seeds the live pane's resume id (deduped) and promotes
                 // the persisted entry; the absorb adds no parallel write.
@@ -2283,7 +2275,7 @@ impl App {
             hidden_dirty = true;
         }
         // ONE save for the whole pass (the hidden-stack path has no per-entry
-        // writer of its own — unlike the live path, whose
+        // writer of its own - unlike the live path, whose
         // `bind_agents_pane_session` already persists).
         if hidden_dirty {
             self.save_current_agents_metadata();
@@ -2291,7 +2283,7 @@ impl App {
     }
 
     /// Feed the RUNNING morpheus panes' "next request" queues into their live
-    /// turns — the pane-level twin of [`App::pump_queued_messages`].
+    /// turns - the pane-level twin of [`App::pump_queued_messages`].
     ///
     /// A message goes to the pane's steering handle (the harness drains it
     /// before the turn's next request) and echoes into the pane's timeline
@@ -2332,7 +2324,7 @@ impl App {
     /// `next request` is served FIRST (the message the user wanted as the
     /// pane's very next request), then `next loop` (a fresh working stretch).
     /// For a morpheus pane the `next request` queue normally never reaches this
-    /// pass while the turn runs — [`Self::pump_agents_pane_queued_requests`]
+    /// pass while the turn runs - [`Self::pump_agents_pane_queued_requests`]
     /// already fed it into the harness, which drains it before its next
     /// request. An ACP pane has no prompt in flight to inject into, so its
     /// `next request` messages are consumed HERE, at the turn boundary: the
@@ -2340,8 +2332,8 @@ impl App {
     /// message would otherwise have to wait a whole pass, and could lose its
     /// place to other work).
     ///
-    /// Called from the frame tick (a message queued while every pane idles —
-    /// or one whose pane went away mid-queue — must not wait for an event that
+    /// Called from the frame tick (a message queued while every pane idles -
+    /// or one whose pane went away mid-queue - must not wait for an event that
     /// never comes) and right after a pane frees (the `AgentsPaneDone`
     /// handler). The user's queue OUTRANKS any queued `agents_call` request:
     /// starting a turn here leaves the pane running, so
@@ -2351,7 +2343,7 @@ impl App {
     /// Before starting anything this pass settles the leftovers: a message the
     /// finished turn never drained out of its steering handle is put back by
     /// the queue (nothing is stranded between turn end and the handle being
-    /// dropped — the drain is atomic under the handle's own lock). It keeps its
+    /// dropped - the drain is atomic under the handle's own lock). It keeps its
     /// `next request` standing: the pane is free, so that message IS the next
     /// request of the stretch that just closed.
     pub(super) fn serve_agents_pane_user_queues(&mut self) -> bool {
@@ -2409,7 +2401,7 @@ impl App {
             self.dispatch_to_pane(pane, text.clone(), false);
             // The dispatch can bail after the guards (a pane session that
             // failed to mint, a pane that vanished): a message the user
-            // queued must not vanish with it — put it back at the head.
+            // queued must not vanish with it - put it back at the head.
             let running = either_split(&self.agents_split, &self.parked_agents_split)
                 .and_then(|split| split.panes.get(pane))
                 .is_some_and(|p| p.running);
@@ -2432,7 +2424,7 @@ impl App {
 
     /// Dispatch every queued `agents_call` request whose target pane is
     /// idle. Called from the frame tick (a request enqueued while every
-    /// pane idles would otherwise wait for a pane event that never comes —
+    /// pane idles would otherwise wait for a pane event that never comes -
     /// the requester's busy-guard would hang) and right after a pane frees
     /// (the `AgentsPaneDone` handler). One request per pane per pass: the
     /// dispatch marks the pane running, so the rest of its queue drains on
@@ -2448,7 +2440,7 @@ impl App {
                 .enumerate()
                 // A running pane serves later (the queue holds), a
                 // rehydrating pane first finishes its replay. The morpheus pane
-                // is a normal queue target — its own turn's `agents_call` to
+                // is a normal queue target - its own turn's `agents_call` to
                 // itself is rejected at the tool layer (see
                 // `Harness::with_own_coworker_id`), so a queued request always
                 // belongs to a pane that CAN free itself.
@@ -2471,14 +2463,14 @@ impl App {
         }
     }
 
-    /// The `agents_worktree` op drain — the App-side half of the tool: pops
+    /// The `agents_worktree` op drain - the App-side half of the tool: pops
     /// parked asks from the pane registry, supervises them and executes
     /// them with the SAME engine calls and side effects as the user's own
     /// `/worktree` command, tagging the binding `AssignedBy::Agent`.
     /// Supervision (design decision 3): an ask that would change or clear a
     /// worktree the USER assigned opens the session permission box (Allow /
-    /// Allow Once / Deny) — the user's supremacy over their own binding
-    /// holds even in Yolo mode — and the drain parks until the box resolves
+    /// Allow Once / Deny) - the user's supremacy over their own binding
+    /// holds even in Yolo mode - and the drain parks until the box resolves
     /// it (`pending_worktree_confirmation`). Any other ask executes
     /// immediately. The paused tool call consumes the outcome itself
     /// (`take_ready_worktree_delivery`), so it becomes the tool result; a
@@ -2486,7 +2478,7 @@ impl App {
     /// for an ask interrupted by a stop request.
     pub(super) fn serve_agents_pane_worktree_ops(&mut self) {
         // A permission box for an earlier ask is on screen: it is the
-        // sovereign ask — the user's answer resolves it and the drain
+        // sovereign ask - the user's answer resolves it and the drain
         // resumes on a later frame. Nothing else pops meanwhile.
         if self.pending_worktree_confirmation.is_some() {
             return;
@@ -2502,7 +2494,7 @@ impl App {
         };
         // Resolve the target pane by registry id (the tool speaks ids, the
         // split speaks indexes). A pane that vanished since the ask was
-        // parked fails the op — the registry's `set_coworkers` cleanup usually
+        // parked fails the op - the registry's `set_coworkers` cleanup usually
         // gets there first; this is the same net result.
         // Resolve the target by the op's stamped IDENTITY (`pane_index_by_id`):
         // a label recycled onto another pane by a sibling's removal must not
@@ -2537,7 +2529,7 @@ impl App {
             // The user's binding, the user's call: open the SESSION
             // permission box (the same inline `PermissionDialog` the main
             // loop's permission requests use) so the user can allow for
-            // the whole session, allow once, or deny — and park the op
+            // the whole session, allow once, or deny - and park the op
             // until the answer. The `tool` field marks the ask as a
             // worktree change, so the key/mouse resolution routes the
             // answer here instead of into the main loop's `perm_tx`
@@ -2570,7 +2562,7 @@ impl App {
             self.permission_dialog.selected = 1;
             let op = morpheus::harness::agent_coworkers::pop_worktree_op();
             if let Some(op) = op {
-                // The index was only the resolution vehicle — the op's
+                // The index was only the resolution vehicle - the op's
                 // registry id is the durable handle (re-resolved at
                 // answer time, issue 1 of the review).
                 self.pending_worktree_confirmation = Some(op);
@@ -2593,7 +2585,7 @@ impl App {
     }
 
     /// The App-side `agents_compact` drain: pop parked compaction asks and
-    /// execute them — running the TARGET pane's own session through
+    /// execute them - running the TARGET pane's own session through
     /// `build_manual_compaction_harness` + `compact_on_demand`, the EXACT
     /// mechanism the user's `/compact` slash command drives on a session.
     /// Nothing here is compact-specific: the harness is built once, the
@@ -2601,11 +2593,11 @@ impl App {
     /// runs, and the compacted snapshot is persisted back to the pane's
     /// session record.
     ///
-    /// Guards, in order — a refused ask completes with its reason instead
+    /// Guards, in order - a refused ask completes with its reason instead
     /// of parking forever:
     ///
     /// - a pane busy with a live turn (compaction would race the loop's
-    ///   context manager — the same "between messages" rule `/compact`
+    ///   context manager - the same "between messages" rule `/compact`
     ///   applies to the main session);
     /// - a pane whose bound session has no context records yet (nothing to
     ///   compact).
@@ -2644,7 +2636,7 @@ impl App {
         };
         if running {
             // Do NOT pop: the ask stays parked and this drain retries on a
-            // later frame — the pane frees and the compaction runs then,
+            // later frame - the pane frees and the compaction runs then,
             // instead of failing an ask the model correctly made.
             return;
         }
@@ -2654,7 +2646,7 @@ impl App {
                 morpheus::harness::agent_coworkers::complete_compact_op(
                     &op,
                     Err(format!(
-                        "pane '{}' has no bound session yet — nothing to compact",
+                        "pane '{}' has no bound session yet - nothing to compact",
                         op.coworker
                     )),
                 );
@@ -2667,14 +2659,14 @@ impl App {
         let Some(ctx_state) = self.session_store.load_context(&session_id) else {
             morpheus::harness::agent_coworkers::complete_compact_op(
                 &op,
-                Err("nothing to compact yet — the pane's session has no context records".into()),
+                Err("nothing to compact yet - the pane's session has no context records".into()),
             );
             return;
         };
         // The SAME inputs the user's `/compact` passes: the pane's session
         // is a real morpheus session, so it compacts through the identical
         // connector resolution and cache affinity (keyed to the PANE's own
-        // session id — never the main session's).
+        // session id - never the main session's).
         let provider = self.llm_config.provider.clone();
         let model = self.llm_config.model.clone();
         let base_url = self.base_url_for(&provider);
@@ -2690,11 +2682,11 @@ impl App {
         self.tokio_handle.spawn(async move {
             // A DEDICATED event channel, deliberately NOT the app's: the
             // compaction's lifecycle events (ContextInfo, ContextSnapshot,
-            // the streamed summary tokens) belong to the PANE's session —
+            // the streamed summary tokens) belong to the PANE's session -
             // forwarded to the app channel they would land in the MAIN
             // session's handlers (its footer, and `persist_incrementally`
             // would save the pane's compacted context into the main
-            // session record — the exact cross-session leak this feature
+            // session record - the exact cross-session leak this feature
             // must never commit). The main `/compact` forwards them
             // because the session it compacts IS the main one; here they
             // are drained and dropped after the run, the tool result
@@ -2719,7 +2711,7 @@ impl App {
                     if ok == morpheus::harness::ManualCompactionOutcome::Compacted {
                         // Persist the compacted context back to the PANE's
                         // session record (the same path the manager loop
-                        // saves with) — the pane's next turn restores from
+                        // saves with) - the pane's next turn restores from
                         // here. Read from the harness BEFORE dropping it.
                         let context = harness.context_manager.save_state();
                         drop(harness);
@@ -2760,7 +2752,7 @@ impl App {
                          {reason} Nothing changed."
                     ),
                     None => format!(
-                        "The compaction of pane '{pane}' failed — the summarization \
+                        "The compaction of pane '{pane}' failed - the summarization \
                          call did not complete. Nothing changed."
                     ),
                 }),
@@ -2773,7 +2765,7 @@ impl App {
     }
 
     /// The manager pane's OWN morpheus session id, minted on first use: the
-    /// pane is not a throwaway nested harness — it is a real session in the
+    /// pane is not a throwaway nested harness - it is a real session in the
     /// store (the history panel lists it from birth, and reopening it
     /// restores the manager's conversation). The claim open-locks the id,
     /// so a second process can never adopt it.
@@ -2787,7 +2779,7 @@ impl App {
         // A pane with its own model selection stamps it on the fresh shell:
         // the session's model markers exist from birth (the SAME fields the
         // main session records), so a restart resumes the pane on ITS model
-        // via the marker precedence below — the shell save after this block
+        // via the marker precedence below - the shell save after this block
         // carries them.
         let pane_selection = either_split(&self.agents_split, &self.parked_agents_split)
             .and_then(|split| split.panes.get(pane))
@@ -2809,7 +2801,7 @@ impl App {
             // rather than run an unpersisted manager session.
             self.toast_state.show(ToastOptions {
                 title: Some("Agents".into()),
-                message: "Could not create the manager session — try again.".into(),
+                message: "Could not create the manager session - try again.".into(),
                 variant: ToastVariant::Error,
                 duration_ms: 4000,
             });
@@ -2845,7 +2837,7 @@ impl App {
     /// The manager pane's OWN model selection, with the session markers'
     /// precedence: the pane's committed per-pane pick wins; absent one, the
     /// pane's morpheus session carries the same provider/model/reasoning markers
-    /// the main session does (a pick made in a previous run comes back —
+    /// the main session does (a pick made in a previous run comes back -
     /// the SAME precedence `restore_current_session_model` honors when the
     /// main view re-enters a session); `None` = the pane has no selection
     /// and inherits the global config at spawn time.
@@ -2858,13 +2850,13 @@ impl App {
         }
         let session = self.session_store.load_session(pane.session_id.as_ref()?)?;
         match (session.provider, session.model) {
-            // A recorded explicit selection fully replaces the route — the
+            // A recorded explicit selection fully replaces the route - the
             // reasoning could legitimately be `None` (the model's default),
             // which must clear a leftover effort from the global config.
             (Some(provider), Some(model)) => {
                 Some(PaneModelSelection::new(provider, model, session.reasoning))
             }
-            // A recorded `auto` selection has no provider to pin — the
+            // A recorded `auto` selection has no provider to pin - the
             // fallback chain stays the source of truth.
             (None, Some(model)) if model == "auto" => Some(PaneModelSelection::new(
                 String::new(),
@@ -2878,18 +2870,18 @@ impl App {
     }
 
     /// The focused pane's PROMPT-BADGE triple (provider, model, reasoning),
-    /// resolved for EVERY pane kind — strictly from IN-MEMORY pane state
+    /// resolved for EVERY pane kind - strictly from IN-MEMORY pane state
     /// (render calls this every frame; a session-file read here would parse
     /// the pane's JSONL per repaint). External ACP panes read the pane's
-    /// `session_info` — the harness's own `SessionModel` report — and yield
+    /// `session_info` - the harness's own `SessionModel` report - and yield
     /// `None` when nothing was reported yet (the badge shows only the
     /// brand name). The manager (morpheus) pane is the main agent itself: its
     /// bridge never emits a `SessionModel` event, so its badge resolves
-    /// from the pane's OWN selection (`model_selection` — committed by the
+    /// from the pane's OWN selection (`model_selection` - committed by the
     /// per-pane picker, hydrated from the session markers on every split
     /// rebuild by `hydrate_manager_pane_model_selections`). Without this a
     /// committed per-pane pick changed the pane's TURNS while the badge
-    /// kept showing the main agent's global model — the pick looked broken.
+    /// kept showing the main agent's global model - the pick looked broken.
     pub(in crate::app) fn effective_pane_prompt_info(
         &self,
         pane: usize,
@@ -2904,17 +2896,17 @@ impl App {
     }
 
     /// Hydrate every manager (morpheus) pane's OWN model selection from its
-    /// bound session's markers, ONE disk read per pane per call — never per
+    /// bound session's markers, ONE disk read per pane per call - never per
     /// frame (the render badge reads the in-memory `model_selection` the
     /// hydration lands in). A pane that already carries a selection (the
     /// picker's commit, or a previous hydration) is left untouched. Called
-    /// on every split (re)build — session switch, fresh confirm, park
-    /// re-attach — so a pick made in a previous run (or in another session
+    /// on every split (re)build - session switch, fresh confirm, park
+    /// re-attach - so a pick made in a previous run (or in another session
     /// view) shows on the pane's badge the moment the split takes the
     /// screen, exactly like the dispatch route resolves it.
     pub(in crate::app) fn hydrate_manager_pane_model_selections(&mut self) {
         // Phase 1 (shared borrow): the manager panes still missing a
-        // selection, keyed by index — with the selections resolved from
+        // selection, keyed by index - with the selections resolved from
         // their sessions. The store reads happen here, BEFORE the mutable
         // phase: `load_session` borrows `self` immutably and cannot run
         // under the split's `&mut` below.
@@ -2933,7 +2925,7 @@ impl App {
             }
         }
         // Phase 2 (exclusive borrow): the selection AND the badge chrome
-        // land together — the pane's serving pair exists from the hydration
+        // land together - the pane's serving pair exists from the hydration
         // on, so the pick shows without waiting for a turn report.
         if let Some(split) = either_split_mut(&mut self.agents_split, &mut self.parked_agents_split)
         {
@@ -2959,7 +2951,7 @@ impl App {
     /// `AgentsPaneReplayed` clears the pane's `rehydrating` flag.
     ///
     /// Called from the split (re)open paths for a `Bound` pane whose
-    /// timeline is empty — the post-reboot state. A failed pass (harness
+    /// timeline is empty - the post-reboot state. A failed pass (harness
     /// gone, no `loadSession` support) delivers `ok: false` and the pane
     /// stays on its empty live timeline; the next prompt falls back to
     /// `session/new` through the normal turn path.
@@ -2993,7 +2985,7 @@ impl App {
             return;
         };
         // Re-borrow mutably to set the in-flight flag (the read above is
-        // done — the session id snapshot moved out).
+        // done - the session id snapshot moved out).
         let agent = self
             .agents_split
             .as_mut()
@@ -3005,11 +2997,11 @@ impl App {
         let Some((agent, pane_id)) = agent else {
             return;
         };
-        // The manager pane is NOT an ACP client — its bound session is a
+        // The manager pane is NOT an ACP client - its bound session is a
         // real morpheus session in THIS app's store, so cold-restore reads the
         // session directly (no `session/load` round-trip): the persisted
-        // CONTEXT — the same authoritative snapshot a resume would restore
-        // into a fresh harness — replays as the pane's typed event stream
+        // CONTEXT - the same authoritative snapshot a resume would restore
+        // into a fresh harness - replays as the pane's typed event stream
         // through the SAME pane-event channel, then the terminal replayed
         // event clears the in-flight flag.
         if agent == MANAGER_LABEL {
@@ -3020,7 +3012,7 @@ impl App {
             } else {
                 // Sessions persisted before the context snapshot existed in
                 // the store (or display-only shells) carry none: degrade to
-                // the old display projection — prose-only, but never empty
+                // the old display projection - prose-only, but never empty
                 // when the session had text.
                 if let Some(session) = self.session_store.load_session(&session_id) {
                     for message in &session.messages {
@@ -3096,7 +3088,7 @@ impl App {
         // exercised by feeding `HarnessEvent`s straight into the app's
         // event channel (the same way the pane lifecycle tests drive
         // turns). The in-flight flag stays set until a synthetic
-        // `AgentsPaneReplayed` arrives — which is exactly what those
+        // `AgentsPaneReplayed` arrives - which is exactly what those
         // tests assert on.
         #[cfg(not(test))]
         tokio_handle.spawn(async move {
@@ -3154,7 +3146,7 @@ impl App {
 /// One worktree HANDOFF summary line from a pane timeline entry: the
 /// recent user messages and agent replies that describe what the pane was
 /// doing, so a cwd move never silently orphans its working context. Bounded
-/// (the block rides the NEXT prompt once — a transcript would defeat it);
+/// (the block rides the NEXT prompt once - a transcript would defeat it);
 /// tool-call entries contribute their `detail` (the path/query/command the
 /// call targeted) rather than their output tails.
 fn pane_handoff_summary_line(entry: &SubagentTimelineEntry) -> Option<String> {
@@ -3173,7 +3165,7 @@ fn pane_handoff_summary_line(entry: &SubagentTimelineEntry) -> Option<String> {
             let detail = call.detail.as_deref().unwrap_or_default();
             format!("tool {}: {}", call.title.trim(), detail.trim())
         }
-        // Thoughts and plans are the agent's own scratchpad — the carried
+        // Thoughts and plans are the agent's own scratchpad - the carried
         // context is the WORK, not the narration.
         _ => return None,
     };
@@ -3188,7 +3180,7 @@ fn pane_handoff_summary_line(entry: &SubagentTimelineEntry) -> Option<String> {
 }
 
 /// Build the worktree handoff block from a pane's local timeline: the LAST
-/// few meaningful entries (`pane_handoff_summary_line`), newest last — the
+/// few meaningful entries (`pane_handoff_summary_line`), newest last - the
 /// same order the pane renders. An empty or all-noise timeline yields an
 /// empty string: the block still announces the move, just carries nothing.
 pub(in crate::app) fn pane_handoff_summary(timeline: &[SubagentTimelineEntry]) -> String {
@@ -3205,13 +3197,13 @@ pub(in crate::app) fn pane_handoff_summary(timeline: &[SubagentTimelineEntry]) -
         .join("\n")
 }
 
-/// A pane's EFFECTIVE working directory — the ONE resolution every
+/// A pane's EFFECTIVE working directory - the ONE resolution every
 /// consumer reads: the worktree path when the pane is pinned (`/worktree`),
 /// the session's working directory otherwise. The ACP turn's
 /// `acp::call(cwd)`, the MANAGER turn's `HarnessAssembly::cwd` (harness
 /// root, `MorpheusTools` root, LSP, hooks) and the focus-time snapshot probe
 /// all funnel through it, so a binding is either honored by every layer or
-/// by none — the manager pane included (a morpheus pane is a pane like any
+/// by none - the manager pane included (a morpheus pane is a pane like any
 /// other here; only the `agents_worktree` TOOL refuses to target one).
 pub(super) fn pane_effective_cwd(pane: &AgentPane, session_cwd: &str) -> PathBuf {
     morpheus::coordinator::turn::effective_cwd(
@@ -3222,7 +3214,7 @@ pub(super) fn pane_effective_cwd(pane: &AgentPane, session_cwd: &str) -> PathBuf
 
 /// One manager-pane turn: the pane's harness assembled through the ONE
 /// assembly (`morpheus::assembly::assemble`), whose plain event stream is bridged
-/// into the SAME typed `SubagentEvent` stream the external ACP panes emit —
+/// into the SAME typed `SubagentEvent` stream the external ACP panes emit -
 /// both pane flavors render identically. The final report (the loop's
 /// closure) arrives as `AgentsPaneDone`.
 #[allow(clippy::too_many_arguments)]
@@ -3236,9 +3228,7 @@ fn run_manager_turn(
     turn: u64,
     input: String,
     permission_rx: Option<
-        tokio::sync::mpsc::UnboundedReceiver<
-            morpheus_agents::events::PanePermissionAnswer,
-        >,
+        tokio::sync::mpsc::UnboundedReceiver<morpheus_agents::events::PanePermissionAnswer>,
     >,
     stop_signal: Arc<AtomicBool>,
     // The pane's steering queue: the user's "next request" messages, drained
@@ -3252,7 +3242,7 @@ fn run_manager_turn(
 ) {
     // The panic path (outside the closure) still needs a sender: the
     // original moves into the closure below. The session id is cloned for
-    // the same reason — the panic Done must carry the binding too (issue 6:
+    // the same reason - the panic Done must carry the binding too (issue 6:
     // a panicked FIRST turn must still leave the pane bound on disk).
     let panic_tx = event_tx.clone();
     let panic_session = session_id.clone();
@@ -3275,10 +3265,10 @@ fn run_manager_turn(
                 tokio::sync::mpsc::unbounded_channel::<morpheus::harness::HarnessEvent>();
 
             // THE assembly (`morpheus::assembly::assemble`): the pane assembles
-            // through the SAME path the main loop does — connector with the
+            // through the SAME path the main loop does - connector with the
             // user's tool-call mode + reasoning resolution, prompt-cache
             // headers keyed to the PANE's own session, MCP boot, RAG,
-            // effective-context budget, skills — with its role declared as
+            // effective-context budget, skills - with its role declared as
             // parameters (pane instructions, MANAGER requester tag, bound
             // pane id, no queued input, no audit). An assembly failure
             // closes the pane's turn with it instead of an Error event (the
@@ -3301,7 +3291,7 @@ fn run_manager_turn(
                         output: error,
                         stop_reason: "error".to_string(),
                         // The manager session was already minted and its
-                        // shell persisted by the pre-flight — the binding
+                        // shell persisted by the pre-flight - the binding
                         // must reach the metadata even on a failed first
                         // turn, or a reboot would rebuild the pane UNBOUND
                         // (issue 6).
@@ -3323,15 +3313,13 @@ fn run_manager_turn(
                     while let Some(answer) = permission_rx.recv().await {
                         // The manager's own box offers exactly the three
                         // options the bridge synthesized (`allow`,
-                        // `allow_once`, `deny`) — matched EXACTLY, never by
+                        // `allow_once`, `deny`) - matched EXACTLY, never by
                         // substring (a label like "don't always allow" must
                         // not read as an allow). An unknown id denies: an
                         // option this build didn't offer has no trustworthy
                         // allow semantics.
                         let action = match answer {
-                            morpheus_agents::events::PanePermissionAnswer::Selected(
-                                id,
-                            ) => {
+                            morpheus_agents::events::PanePermissionAnswer::Selected(id) => {
                                 match id.as_str() {
                                     "allow" => morpheus::harness::PermissionAction::Allow,
                                     "deny" => morpheus::harness::PermissionAction::Deny,
@@ -3361,7 +3349,7 @@ fn run_manager_turn(
             // It used to fall into `_ => Vec::new()` alongside every
             // display-only event, which threw the information away and left
             // the turn's close unable to say anything but "stopped or
-            // errored" — the reason a cancelled-looking message appeared for
+            // errored" - the reason a cancelled-looking message appeared for
             // turns nobody cancelled. `Arc<Mutex<_>>` because the future
             // below is `move`d into the bridge task while the close reads it
             // after the join.
@@ -3375,7 +3363,7 @@ fn run_manager_turn(
                 while let Some(event) = loop_rx.recv().await {
                     // The terminal event: record WHY the loop ended, then let
                     // the display mapping below decide whether it also has a
-                    // visual representation (none of the three does — the
+                    // visual representation (none of the three does - the
                     // pane renders its own close).
                     match &event {
                         HarnessEvent::Done {
@@ -3437,7 +3425,7 @@ fn run_manager_turn(
                             // The loop awaits a permission decision: the
                             // pane's box opens (the SAME
                             // `SubagentEvent::PermissionRequest` the ACP
-                            // panes emit — one UI answers both). The
+                            // panes emit - one UI answers both). The
                             // synthetic call id is unique per request (the
                             // box answers through the pane's channel, not
                             // by patching a row).
@@ -3505,7 +3493,7 @@ fn run_manager_turn(
             // The report is the loop's closure (its last post-tool-call
             // message). A loop that closed without one still OWES a report
             // (see `AgentCoworkerTurnEnd`), so the last assistant text is used as the
-            // fallback — the same policy the ACP panes' `TurnClosure`
+            // fallback - the same policy the ACP panes' `TurnClosure`
             // already applies (its `previous` segment).
             //
             // `last_assistant_text` (not `final_answer`) is what makes the
@@ -3519,7 +3507,7 @@ fn run_manager_turn(
             let fallback = manager.context_manager.last_assistant_text();
             // Persist the manager session BEFORE dropping the harness: the
             // context snapshot must be taken while the manager still owns
-            // it. The pane is a REAL morpheus session — the history panel lists
+            // it. The pane is a REAL morpheus session - the history panel lists
             // it and reopening it restores the conversation.
             let context_state = manager.context_manager.save_state();
             let display = manager_context_display(&context_state);
@@ -3545,7 +3533,7 @@ fn run_manager_turn(
                 // The morpheus pane's session id IS the bound session: carried
                 // here so the Done handler seeds `pane.session_id` AND
                 // promotes the persisted pane ref to `Bound { agent: morpheus,
-                // session_id }` — without it the binding never reached
+                // session_id }` - without it the binding never reached
                 // disk and a reboot rebuilt the pane UNBOUND (empty chat,
                 // issue 6), even though the manager session itself was
                 // fully persisted in the store.
@@ -3576,19 +3564,19 @@ fn run_manager_turn(
 /// Project a manager context snapshot into the DISPLAY messages the session
 /// store persists: user prompts (synthetic provenance kept) and assistant
 /// text/closures, each carrying its DISPLAY-ONLY reasoning (`None` for user
-/// prompts and reasoning-less responses — see
+/// prompts and reasoning-less responses - see
 /// [`morpheus::harness::context::ContextItem::Assistant::reasoning`]). Tool
-/// calls/results are structural context, not display prose — the pane's live
+/// calls/results are structural context, not display prose - the pane's live
 /// timeline already showed them.
 /// Rebuild the manager pane's replayed event stream from the session's
-/// persisted CONTEXT — the same authoritative snapshot `run_manager_turn`
+/// persisted CONTEXT - the same authoritative snapshot `run_manager_turn`
 /// restores into a fresh harness on resume.
 ///
 /// The old cold-restore replayed the session's DISPLAY projection instead:
 /// `manager_context_display` persists only User/Assistant prose (text +
-/// reasoning), so every `ContextItem::ToolCall`/`ToolResult` — the tool rows
+/// reasoning), so every `ContextItem::ToolCall`/`ToolResult` - the tool rows
 /// and output tails that make up most of a working manager pane's visible
-/// history — was silently dropped from the rebuilt timeline. The bug
+/// history - was silently dropped from the rebuilt timeline. The bug
 /// surfaced when adding a pane: `open_agents_split` rebuilds the split from
 /// scratch (`AgentsSplitState::new`), `trigger_agents_pane_replays` refills
 /// every bound pane with an empty timeline, and the morpheus pane came back
@@ -3604,7 +3592,7 @@ fn run_manager_turn(
 /// - `Assistant`/`Closure` → the item's reasoning first (the live loop
 ///   streams reasoning BEFORE the text), then the text as `Message`.
 /// - `ToolCall` → an `InProgress` row with the tool's real name and its raw
-///   arguments as the initial tail — the same shape the bridge synthesizes.
+///   arguments as the initial tail - the same shape the bridge synthesizes.
 /// - `ToolResult` → a `ToolCallUpdate` patching the call row (paired by
 ///   the exact `call_id`, stronger than the live bridge's FIFO contract)
 ///   to `Completed` with its output tail and, for the edit family, the
@@ -3618,7 +3606,7 @@ fn run_manager_turn(
 /// NO model-visibility filtering here: the pane timeline is a TRANSCRIPT
 /// (what streamed live into it), not the model view. Useless-chain sweeps,
 /// cancelled-run debris and compaction boundaries only hide items from the
-/// MODEL — the user watched every one of them stream into the pane, so the
+/// MODEL - the user watched every one of them stream into the pane, so the
 /// rebuilt timeline keeps them; masking likewise never rewrote the row.
 pub(in crate::app) fn manager_context_replay_events(
     context: &morpheus::harness::context::ContextManagerState,
@@ -3630,7 +3618,7 @@ pub(in crate::app) fn manager_context_replay_events(
     // name (the edit-family diff summary is derived from it). A result
     // pairs back through this map; an unpaired result (its call was hidden
     // or absent) lands nowhere, exactly like the live bridge's FIFO
-    // contract — and the TUI's apply locates the row to patch BY ID, so
+    // contract - and the TUI's apply locates the row to patch BY ID, so
     // the update never needs an index.
     let mut announced: std::collections::HashMap<String, String> = std::collections::HashMap::new();
     for item in &context.items {
@@ -3699,9 +3687,7 @@ pub(in crate::app) fn manager_context_replay_events(
                     content: ToolOutputBlock {
                         text: morpheus_agents::internal::output_tail(content),
                         skipped: 0,
-                        diff: morpheus_agents::internal::diff_summary_from_result(
-                            tool, content,
-                        ),
+                        diff: morpheus_agents::internal::diff_summary_from_result(tool, content),
                     },
                 });
             }
@@ -3733,7 +3719,7 @@ pub(in crate::app) fn manager_context_replay_events(
 /// message id through those boundaries. The old prose-only projection
 /// (User/Assistant/Closure, tool calls dropped) broke the invariant on any
 /// turn that used a tool, so `update_ctx_ids` refused to guess and left the
-/// map empty — every Revert/Fork on a real manager session failed with
+/// map empty - every Revert/Fork on a real manager session failed with
 /// "Could not record the revert" / "Could not create the branch".
 ///
 /// The projection is also what the history view shows when the manager
@@ -3831,7 +3817,7 @@ pub(in crate::app) fn manager_context_display(
     // A call whose result never arrived was cut off mid-dispatch (the turn
     // was interrupted): it is the LAST item of the snapshot, so leaving it
     // `Completed` would claim an outcome that never happened. A call in the
-    // MIDDLE without a result lost it to a sweep — those did complete, so
+    // MIDDLE without a result lost it to a sweep - those did complete, so
     // only the trailing one is demoted.
     if let Some(ContextItem::ToolCall { .. }) = context.items.back()
         && let Some((_, parts)) = display.last_mut()
@@ -3983,7 +3969,7 @@ mod tests {
 
     /// A path with a space in it is the reason quoting exists: `/worktree
     /// list` prints copyable paths, so a listing row must be pasteable back
-    /// into `add`. Splitting on whitespace made that impossible — the path
+    /// into `add`. Splitting on whitespace made that impossible - the path
     /// broke into two tokens and the refusal that followed named a branch
     /// and a path the user never typed.
     #[test]

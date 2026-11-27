@@ -7,7 +7,7 @@
 //! 3. Model re-calls with `apply_index` to apply the chosen fix to disk
 //!
 //! Without this, the model would need to manually figure out the fix from
-//! the diagnostic message — slower and more error-prone.
+//! the diagnostic message - slower and more error-prone.
 
 use std::{path::Path, sync::Arc, time::Duration};
 
@@ -87,7 +87,7 @@ pub async fn run_code_actions(
                 CodeActionOrCommand::CodeAction(action) => {
                     let edit = action.edit.as_ref().ok_or_else(|| {
                         format!(
-                            "action `{}` carries a command, not an edit — cannot auto-apply",
+                            "action `{}` carries a command, not an edit - cannot auto-apply",
                             action.title
                         )
                     })?;

@@ -24,7 +24,7 @@ impl SessionView {
     /// bordered title row with a live/elapsed stopwatch, and the streamed
     /// summary body. Collapsed, the body is a fixed-height preview that shows
     /// only the LAST lines (the top lines visually leave the box as the stream
-    /// grows — an LRU-like scroll-up; nothing is actually removed). Expanded,
+    /// grows - an LRU-like scroll-up; nothing is actually removed). Expanded,
     /// the box grows to fit the whole text. Returns the rendered height.
     #[allow(clippy::too_many_arguments)]
     pub(super) fn render_summarizing_box(
@@ -77,7 +77,7 @@ impl SessionView {
             title_style,
         );
 
-        // Markdown-rendered body — the same renderer as the chat Text parts,
+        // Markdown-rendered body - the same renderer as the chat Text parts,
         // so the raw markdown syntax never reaches the screen. The bg is the
         // box's own `background_panel` (NOT the chat `background`): the border
         // box already fills its whole area with the panel color, so painting
@@ -94,7 +94,7 @@ impl SessionView {
         if overflow {
             // Collapsed preview: the box shows the LAST
             // `SUMMARIZING_COLLAPSED_LINES` rows of the laid-out markdown (the
-            // top rows leave the view as the stream grows — the LRU/scroll-up
+            // top rows leave the view as the stream grows - the LRU/scroll-up
             // effect). Markdown only lays out from the top, so the full body
             // is rendered into a scratch buffer first and only the final rows
             // are blitted into the box.
@@ -211,7 +211,7 @@ impl SessionView {
                         // The glyph scan ignores the code block's padding rows
                         // (top gap, bottom padding and blank separator), so
                         // advancing purely by the scan would make the next
-                        // part/message overlap them — which visually erases the
+                        // part/message overlap them - which visually erases the
                         // block's bottom padding (code blocks without a
                         // language tag ended up with 2 blank rows on top and
                         // none at the bottom). The estimate mirrors the
@@ -268,7 +268,7 @@ impl SessionView {
                     // so the drawn box plus margins matches the cached height.
                     let is_block = Self::tool_is_block(tool);
 
-                    // Top margin — always added for block tools (the estimate
+                    // Top margin - always added for block tools (the estimate
                     // reserves it even for the first part of the message), but
                     // skip if there isn't room for at least 1 row after it.
                     if is_block && y + 1 < bottom {
@@ -299,7 +299,7 @@ impl SessionView {
                     }
 
                     // Passive LSP findings: a "+"/"- LSP" affordance in the
-                    // Thought style, collapsed by default — a click expands
+                    // Thought style, collapsed by default - a click expands
                     // one clipped line per finding below the code/diff block.
                     if let Some(notes) = &tool.lsp_notes
                         && matches!(tool.status, ToolStatus::Completed)
@@ -519,7 +519,7 @@ impl SessionView {
         let max_w = area.width.saturating_sub(6).max(2);
 
         if is_error {
-            // The sent-prompt frame in the error tone — the SAME extracted
+            // The sent-prompt frame in the error tone - the SAME extracted
             // component the user message uses.
             crate::component::prompt_message_box::render(buf, area, theme.error, theme);
 

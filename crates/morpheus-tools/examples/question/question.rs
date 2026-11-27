@@ -1,6 +1,6 @@
 //! Demonstrate `question`: the market-standard wire format, the lenient
 //! decoding of model emission variants, and the validation contract behind
-//! `ask`. The example is deterministic — `ask` validates the batch and
+//! `ask`. The example is deterministic - `ask` validates the batch and
 //! echoes the questions back; the user interaction itself happens in the
 //! UI layer.
 //!

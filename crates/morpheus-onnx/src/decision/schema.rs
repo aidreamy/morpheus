@@ -4,7 +4,7 @@
 //! enum choice, a boolean, or a bounded integer scale. Anything that cannot
 //! be answered from a fixed option set (free strings, arrays, nested
 //! objects) is rejected with an error that names the path. The pydantic
-//! helpers have no Rust counterpart — Rust callers hand a
+//! helpers have no Rust counterpart - Rust callers hand a
 //! `serde_json::Value` schema directly.
 
 use serde_json::{Map, Value};
@@ -63,8 +63,8 @@ pub struct DecisionResult {
 /// One planned schema field: its name, the question kind it maps to, the
 /// generated question, and (choice/score) the projection data.
 ///
-/// `options` mirrors the upstream `_Field.options` — choice `(label, value)`
-/// pairs in enum order — and `minimum` is the score level-0 value.
+/// `options` mirrors the upstream `_Field.options` - choice `(label, value)`
+/// pairs in enum order - and `minimum` is the score level-0 value.
 #[derive(Debug, Clone)]
 pub struct Field {
     pub name: String,
@@ -495,7 +495,7 @@ fn details(
     }
 }
 
-/// Python `round(x, 4)` on the values this code path produces — now shared
+/// Python `round(x, 4)` on the values this code path produces - now shared
 /// with the ONNX decode path as `crate::pycompat::round4`.
 fn round4(x: f64) -> f64 {
     crate::pycompat::round4(x)

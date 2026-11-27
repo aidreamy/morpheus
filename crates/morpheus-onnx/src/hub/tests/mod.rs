@@ -1,5 +1,5 @@
 //! Ported tests: the portable parts of `tests/test_revision_pinning.py` from
-//! the laya repository — `resolve_revision`, `snapshot_revision`,
+//! the laya repository - `resolve_revision`, `snapshot_revision`,
 //! `verify_digests`. The Router and torch-Agent pinning cases arrive with
 //! their phases.
 
@@ -133,7 +133,7 @@ fn digest_map_can_come_from_environment() {
     // (today none does).
     let key = "LAYA_SHA256_DIGESTS";
     let saved = std::env::var(key).ok();
-    // SAFETY: see the comment above — no other test in this binary touches
+    // SAFETY: see the comment above - no other test in this binary touches
     // the environment.
     unsafe {
         std::env::set_var(key, format!(r#"{{"weights.bin": "{}"}}"#, digest));

@@ -27,7 +27,7 @@ fn en_from_prose_keeps_the_request() {
     ] {
         assert!(
             clean(body).contains("refund"),
-            "en/`From:` prose keeps the request: {label} — got {:?}",
+            "en/`From:` prose keeps the request: {label} - got {:?}",
             clean(body)
         );
     }
@@ -122,7 +122,7 @@ fn en_bare_from_with_no_header_neighbour_is_kept() {
     ] {
         assert!(
             clean(body).contains("refund"),
-            "en/bare `From:` with no header neighbour is kept: {label} — got {:?}",
+            "en/bare `From:` with no header neighbour is kept: {label} - got {:?}",
             clean(body)
         );
     }

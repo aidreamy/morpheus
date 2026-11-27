@@ -106,7 +106,7 @@ async fn run_tui(options: cli::LaunchOptions) {
         && !app.open_session_at_startup(&session_id)
     {
         eprintln!(
-            "morpheus: session {session_id} is already open in another morpheus process — starting a new session."
+            "morpheus: session {session_id} is already open in another morpheus process - starting a new session."
         );
     }
     app.show_welcome_toast();

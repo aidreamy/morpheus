@@ -259,7 +259,7 @@ impl EventStream {
 /// also sends comment lines such as `: ping`, and keeps connections open
 /// with no payload). Chunks arrive at arbitrary byte boundaries, so the
 /// decoder only ever parses COMPLETE frames and keeps the remainder buffered
-/// — a multi-byte UTF-8 sequence split across two chunks is therefore never
+/// - a multi-byte UTF-8 sequence split across two chunks is therefore never
 /// decoded as a replacement character.
 #[derive(Debug, Default)]
 pub struct SseDecoder {

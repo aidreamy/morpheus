@@ -1,4 +1,4 @@
-//! Animated agent spinner — bass equalizer.
+//! Animated agent spinner - bass equalizer.
 //!
 //! Renders a row of vertical bars whose heights rise and fall like a music
 //! equalizer driven by a bass rhythm, followed by a label and an animated
@@ -14,7 +14,7 @@
 //! bar from hash noise, so no two bars share a rise/fall pattern. Each bar
 //! also receives random updrafts: unpredictable, snappy surges upward
 //! followed by gentle sinks. On top of that, random *floor holds* pin a
-//! single bar — or a whole group of adjacent bars — dead still at the floor
+//! single bar - or a whole group of adjacent bars - dead still at the floor
 //! for 1 to 7 full wave loops at a time, the way a real bass line leaves
 //! most of the band resting while one note punches through. Each bar's
 //! tone is shaded darker as it rises and lighter as it falls, so the colour
@@ -31,7 +31,7 @@ use crate::theme::{Theme, rgba_color};
 /// Number of equalizer bars in the row.
 const NUM_BARS: usize = 8;
 
-/// Block glyphs from shortest to tallest — one per height level.
+/// Block glyphs from shortest to tallest - one per height level.
 const BLOCK_CHARS: &[char] = &['▁', '▂', '▃', '▄', '▅', '▆', '▇', '█'];
 
 /// Character shown for a bar that has not yet been born.
@@ -44,7 +44,7 @@ const BIRTH_DELAY_MAX: u32 = 20;
 const BIRTH_GROW_FRAMES: u32 = 12;
 
 /// Simulated time advanced per animation frame. At 30 fps this makes the
-/// slow wave complete a cycle in ~1.4 s — a relaxed "bass" pulse.
+/// slow wave complete a cycle in ~1.4 s - a relaxed "bass" pulse.
 const TIME_STEP: f32 = 0.1;
 
 /// Angular frequency of the slow bass wave (rad per simulated time unit).
@@ -83,7 +83,7 @@ const WOBBLE_AMPLITUDE: f32 = 0.22;
 // A percussive pulse layered on top of the waves: every beat the whole row
 // takes a sharp hit that decays exponentially, weighted from the left edge
 // (where the bass lives) toward the right. This is what turns the
-// continuous waves into something that reads as *music* — a tempo.
+// continuous waves into something that reads as *music* - a tempo.
 
 /// Frames between kicks. At 30 fps, 23 → ~78 BPM, a laid-back groove.
 const KICK_INTERVAL: u32 = 23;
@@ -147,7 +147,7 @@ const fn activity_frames(activity: crate::types::AgentActivity) -> &'static [&'s
 }
 
 // ── Floor holds ────────────────────────────────────────────────────────────
-// Random rounds in which a bar — or a group of adjacent bars — is pinned
+// Random rounds in which a bar - or a group of adjacent bars - is pinned
 // dead still at the floor, the way a bass line rests between notes.
 
 /// Frames in one full loop ("rodada") of the slow bass wave
@@ -171,7 +171,7 @@ const HOLD_EPOCH_PROBABILITY: f32 = 0.55;
 /// (1 → a lone bar rests; larger → a whole group drops out together).
 const HOLD_GROUP_MAX: usize = 4;
 
-/// Height a held bar is pinned to — just above the floor glyph so the bar
+/// Height a held bar is pinned to - just above the floor glyph so the bar
 /// stays visible but clearly silent.
 const HOLD_FLOOR_HEIGHT: f32 = 0.05;
 
@@ -226,7 +226,7 @@ fn seeded_rng(seed: u64) -> impl Iterator<Item = u64> {
 /// updraft targets so surges are unpredictable per bar and segment while
 /// staying fully deterministic (pure function of the seed, column and
 /// segment index). NOTE: `(h >> 11) as f32` carries only ~24-bit mantissa
-/// resolution — fine visually; the `[0,1)` range promise is about bounds,
+/// resolution - fine visually; the `[0,1)` range promise is about bounds,
 /// not precision.
 #[allow(clippy::cast_precision_loss)]
 fn noise01(seed: u64, col: u64, seg: u64) -> f32 {
@@ -278,7 +278,7 @@ pub struct AgentSpinnerBass {
     /// Number of equalizer bars.
     bar_count: usize,
     /// The single base colour for every bar (the active prompt mode). Bars
-    /// differ only in shade — lighter near the floor, darker at the top —
+    /// differ only in shade - lighter near the floor, darker at the top -
     /// never in hue.
     bar_color_base: RGBA,
     /// Frame at which each bar is born during the birth animation.
@@ -333,7 +333,7 @@ impl AgentSpinnerBass {
             frames_elapsed: 0,
             status_step: 0,
             // Spun up on the default (working) sequence; `set_activity`
-            // switches — and restarts — the sequence as the loop's activity
+            // switches - and restarts - the sequence as the loop's activity
             // changes.
             frames: activity_frames(crate::types::AgentActivity::Working),
             initialized: false,
@@ -347,7 +347,7 @@ impl AgentSpinnerBass {
     /// Drive the bars from real audio levels (one per bar, `0.0..=1.0`).
     ///
     /// While this is set the component no longer runs its random wave/kick/
-    /// hold animation — every bar's height is exactly the level read from the
+    /// hold animation - every bar's height is exactly the level read from the
     /// voice. `None` hands control back to the decorative animation.
     pub fn set_bass_levels(&mut self, levels: Option<Vec<f32>>) {
         self.bass_levels = levels;
@@ -379,7 +379,7 @@ impl AgentSpinnerBass {
     }
 
     /// Reset the spinner to its initial state, restarting the birth animation.
-    /// The label and glyph sequence are preserved — they describe the loop's
+    /// The label and glyph sequence are preserved - they describe the loop's
     /// activity, which survives a reset; construct a fresh spinner for a new
     /// activity (as `start_agent_loop` does).
     pub const fn reset(&mut self) {
@@ -498,7 +498,7 @@ impl AgentSpinnerBass {
     /// Raw floor-hold draw for epoch `epoch` (a block of `HOLD_LOOPS_MAX`
     /// loop-rounds): if the dice give this epoch a hold, return its column
     /// span and its `(offset, rounds)` position inside the epoch, clipped so
-    /// the hold always ends within its own epoch. Pure hash noise —
+    /// the hold always ends within its own epoch. Pure hash noise -
     /// unpredictable per epoch, yet reproducible.
     fn hold_draw(&self, epoch: u32) -> Option<HoldDraw> {
         let tag = self.seed ^ HOLD_SEED_TAG;
@@ -532,7 +532,7 @@ impl AgentSpinnerBass {
     }
 
     /// The hold in force for epoch `epoch`, if any: the raw draw, suppressed
-    /// when it would abut the previous epoch's hold — a hold starting at the
+    /// when it would abut the previous epoch's hold - a hold starting at the
     /// epoch's first round right after one that ran to the epoch's last
     /// round. Together with the per-epoch clipping in `hold_draw` this
     /// guarantees no rest ever outlasts `HOLD_LOOPS_MAX` loops.
@@ -581,8 +581,8 @@ impl AgentSpinnerBass {
     ///
     /// The lift follows a piecewise curve between random targets refreshed
     /// every `UPDRAFT_INTERVAL` frames, phase-shifted per bar so segments
-    /// never align across the row. Rising is deliberately snappy — most of
-    /// the surge happens in the first frames of a segment — while sinking
+    /// never align across the row. Rising is deliberately snappy - most of
+    /// the surge happens in the first frames of a segment - while sinking
     /// is a gentle quadratic ease, so the upward moves read as random
     /// bursts rather than another smooth wave.
     fn updraft(&self, col: usize, frame: u32) -> f32 {
@@ -608,7 +608,7 @@ impl AgentSpinnerBass {
     /// `[0.0, KICK_AMPLITUDE]`.
     ///
     /// A steady beat: every `KICK_INTERVAL` frames the row takes a sharp
-    /// hit — a fast attack (`KICK_ATTACK_FRAMES`) followed by an
+    /// hit - a fast attack (`KICK_ATTACK_FRAMES`) followed by an
     /// exponential decay (`KICK_DECAY_FRAMES`), exactly like a drum hit.
     /// Each further column to the right feels the hit proportionally less
     /// (`KICK_FALLOFF_PER_COLUMN`), so the punch is anchored on the left
@@ -631,7 +631,7 @@ impl AgentSpinnerBass {
     /// When the bar is floor-held it is pinned dead still just above the
     /// floor glyph (its exact level is drawn once per hold, so a held group
     /// rests at slightly staggered floor levels). Otherwise it plays the
-    /// shared waves — phase-detuned per bar — plus an independently detuned
+    /// shared waves - phase-detuned per bar - plus an independently detuned
     /// wobble whose amplitude grows with the bar's height, and a random
     /// updraft on top: snappy, unpredictable surges upward (also scaled by
     /// height) so upward moves never settle into a fixed rhythm.
@@ -702,7 +702,7 @@ impl AgentSpinnerBass {
     }
 
     /// Colour for bar `col` at frame `frame`: the single theme colour
-    /// shaded by the bar's current height — a lighter tone near the floor
+    /// shaded by the bar's current height - a lighter tone near the floor
     /// and a darker tone at the top, so the tone tracks the rhythm. There
     /// is deliberately no per-column gradient: two bars at the same height
     /// always share the exact same colour.
@@ -738,7 +738,7 @@ impl AgentSpinnerBass {
         // 2. Gap between equalizer and label. All `x` offsets use
         // `saturating_add` (terminal coords are `u16`; `x` near `MAX` must
         // clamp, never wrap). Out-of-bounds cells are safely clipped by
-        // `cell_mut` returning `None` — narrow terminals truncate, never
+        // `cell_mut` returning `None` - narrow terminals truncate, never
         // panic. `width()` is advisory for layout; `render` itself clips.
         if self.label_width > 0 {
             let gap_x = x.saturating_add(self.bar_count as u16);
@@ -865,7 +865,7 @@ mod tests {
         assert_eq!(spinner.label, "working");
 
         // The animation is undisturbed: the clock did not move (set_activity
-        // only swaps the label — no reset, no frame skip).
+        // only swaps the label - no reset, no frame skip).
         assert_eq!(spinner.frames_elapsed, frames_before);
         assert_eq!(spinner.bar_char(0, spinner.frames_elapsed), bar_before);
         assert!(spinner.is_initialized(), "birth animation must not restart");
@@ -1009,11 +1009,11 @@ mod tests {
 
         // Wobble and updraft both scale with the bar's base height, so a
         // bar near the floor barely deviates from the shared wave while a
-        // tall bar deviates visibly — i.e. the upper group moves
+        // tall bar deviates visibly - i.e. the upper group moves
         // independently. Floor-held bars are skipped: they are pinned by
         // design, so their deviation from the wave says nothing about the
         // wobble. The kick is added to the bound for low bars: by design a
-        // beat hits the whole row (including resting bars) — that shared
+        // beat hits the whole row (including resting bars) - that shared
         // percussive lift is what reads as a tempo, not as independent
         // wobble.
         let max_low_deviation =
@@ -1077,11 +1077,11 @@ mod tests {
             }
         }
         assert!(saw_lift, "updrafts never lifted meaningfully");
-        assert!(saw_calm, "updrafts were never calm — they read as a wave");
+        assert!(saw_calm, "updrafts were never calm - they read as a wave");
         assert!(saw_snap, "updrafts never surged snappily upward");
         assert!(
             saw_bars_diverge,
-            "neighbouring updrafts never diverged — segments aligned"
+            "neighbouring updrafts never diverged - segments aligned"
         );
     }
 
@@ -1122,7 +1122,7 @@ mod tests {
         }
         assert!(saw_hold, "no bar was ever floor-held");
 
-        // While held, a bar must sit pinned at its per-hold floor level —
+        // While held, a bar must sit pinned at its per-hold floor level -
         // dead still, not following the waves.
         for col in 0..NUM_BARS {
             for round in 0..total_rounds {
@@ -1269,9 +1269,9 @@ mod tests {
             spinner.advance();
         }
 
-        // Working cycles its own sequence (· • ● • ·) in exact order —
+        // Working cycles its own sequence (· • ● • ·) in exact order -
         // never the old dots. The warmup left the step counter mid-cycle,
-        // so restart the sequence to frame 0 first (switch away and back —
+        // so restart the sequence to frame 0 first (switch away and back -
         // the same path a real status change takes).
         spinner.set_activity(AgentActivity::Searching);
         spinner.set_activity(AgentActivity::Working);

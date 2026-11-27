@@ -1,4 +1,4 @@
-//! Animated agent spinner — a direct port of the charmbracelet/crush `anim`.
+//! Animated agent spinner - a direct port of the charmbracelet/crush `anim`.
 //!
 //! This is a faithful port of `internal/ui/anim/anim.go` from
 //! `charmbracelet/crush`, in the exact configuration its UI uses
@@ -9,18 +9,18 @@
 //! - **15 scrambled columns** cycling the original's rune band
 //!   `0123456789abcdefABCDEF~!@#$£€%^&*()+=_`, one glyph per animation
 //!   frame, drawn from a gradient that cycles through the theme colors
-//! - **CycleColors ramp**: `makeGradientRamp(width*3, A, B, A, B)` — a
+//! - **CycleColors ramp**: `makeGradientRamp(width*3, A, B, A, B)` - a
 //!   four-stop HCL ramp (blending in CIE-L*C*h° to stay in gamut) that the
 //!   frames slide through via a per-frame `offset`, looping every
 //!   `width*2` frames
 //! - **Staggered birth**: each column has a deterministic birth step in
-//!   `[0, maxBirthSteps)` — seeded by `xxh3(id + "|" + cacheKey)` through
-//!   Go's `math/rand/v2` PCG — so columns pop in one by one over ~1 s
+//!   `[0, maxBirthSteps)` - seeded by `xxh3(id + "|" + cacheKey)` through
+//!   Go's `math/rand/v2` PCG - so columns pop in one by one over ~1 s
 //! - **Animated ellipsis**: `.`, `..`, `...`, `` cycling every 8 frames
 //!   (400 ms at 20 fps) after the label, once initialized
 //! - **Timing**: the original ticks at 50 ms/frame (20 fps); morpheus drives
 //!   `advance()` per 30 fps animation tick, so each original frame is
-//!   applied on `ticks × 2/3` — the exact same wall-clock pacing.
+//!   applied on `ticks × 2/3` - the exact same wall-clock pacing.
 //!
 //! Deliberate divergences (all documented at the site):
 //! - Go's `Width()` over-reports by one gap+label (it double-counts the
@@ -53,17 +53,17 @@ const INITIAL_CHAR: char = '.';
 /// Gap between the scramble and the label (`labelGap = " "`).
 const LABEL_GAP_WIDTH: usize = 1;
 
-/// Frames per ellipsis step (`ellipsisAnimSpeed = 8` — 400 ms at 20 fps).
+/// Frames per ellipsis step (`ellipsisAnimSpeed = 8` - 400 ms at 20 fps).
 const ELLIPSIS_ANIM_SPEED: u32 = 8;
 
-/// Maximum birth delay in frames (`maxBirthSteps = 20` — ~1 s at 20 fps).
+/// Maximum birth delay in frames (`maxBirthSteps = 20` - ~1 s at 20 fps).
 const MAX_BIRTH_STEPS: u32 = 20;
 
 /// Frames prerendered when color cycling is off (`prerenderedFrames = 10`);
 /// unused at the crush call site (CycleColors: true) but ported for parity.
 const PRERENDERED_FRAMES: usize = 10;
 
-/// Default number of cycling chars (`defaultNumCyclingChars = 10`) — the
+/// Default number of cycling chars (`defaultNumCyclingChars = 10`) - the
 /// fallback when `Size < 1`. Unused (Size is always 15) but ported.
 const DEFAULT_NUM_CYCLING_CHARS: usize = 10;
 
@@ -76,7 +76,7 @@ const AVAILABLE_RUNES: &[char] = &[
 /// The ellipsis cycle (`ellipsisFrames`), verbatim.
 const ELLIPSIS_FRAMES: &[&str] = &[".", "..", "...", ""];
 
-/// Fixed instance id (see module docs — Go uses an atomic counter).
+/// Fixed instance id (see module docs - Go uses an atomic counter).
 const INSTANCE_ID: &str = "morpheus-agent";
 
 // ── Go PCG (math/rand/v2 pcg.go) ───────────────────────────────────────────
@@ -177,7 +177,7 @@ struct CfColor {
 
 const D65: [f64; 3] = [0.95047, 1.00000, 1.08883];
 
-/// `clamp01` — go-colorful's exact definition (`max(0, min(v, 1))`); the
+/// `clamp01` - go-colorful's exact definition (`max(0, min(v, 1))`); the
 /// clippy `clamp` rewrite would change NaN semantics from the original.
 #[allow(clippy::manual_clamp)]
 fn clamp01(v: f64) -> f64 {
@@ -199,7 +199,7 @@ impl CfColor {
         }
     }
 
-    /// `RGB255` (round, not truncate — same as Go's `uint8(v*255+0.5)`).
+    /// `RGB255` (round, not truncate - same as Go's `uint8(v*255+0.5)`).
     fn to_rgba(self) -> RGBA {
         let r = (self.r * 255.0 + 0.5) as u8;
         let g = (self.g * 255.0 + 0.5) as u8;
@@ -232,7 +232,7 @@ impl CfColor {
         }
     }
 
-    /// `LinearRgbToXyz` (sRGB D65 matrix, verbatim constants — the full
+    /// `LinearRgbToXyz` (sRGB D65 matrix, verbatim constants - the full
     /// float64 precision is deliberate; clippy's truncation would perturb
     /// the ported math).
     #[allow(clippy::excessive_precision)]
@@ -250,7 +250,7 @@ impl CfColor {
         )
     }
 
-    /// `XyzToLinearRgb` (verbatim constants — see `linear_rgb_to_xyz`).
+    /// `XyzToLinearRgb` (verbatim constants - see `linear_rgb_to_xyz`).
     #[allow(clippy::excessive_precision)]
     fn xyz_to_linear_rgb(x: f64, y: f64, z: f64) -> (f64, f64, f64) {
         (
@@ -301,7 +301,7 @@ impl CfColor {
     }
 
     /// `LabToHcl` (with go-colorful's floating-point workaround; the
-    /// Rad2Deg constant keeps go-colorful's full precision — see
+    /// Rad2Deg constant keeps go-colorful's full precision - see
     /// `linear_rgb_to_xyz`).
     #[allow(clippy::excessive_precision)]
     fn lab_to_hcl(l: f64, a: f64, b: f64) -> (f64, f64, f64) {
@@ -399,13 +399,13 @@ fn make_gradient_ramp(size: usize, stops: &[CfColor]) -> Vec<CfColor> {
 // ── Frame prerendering ─────────────────────────────────────────────────────
 
 /// One prerendered cell: character + color. `None` mirrors the original's
-/// skipped columns (`continue` before drawing) — nothing is written there.
+/// skipped columns (`continue` before drawing) - nothing is written there.
 type Cell = Option<(char, RGBA)>;
 
 /// `settingsHash`: the cache/seed key built from the same fields in the
 /// same order as anim.go (`Size-Label-LabelColor-GradColorA-GradColorB-
 /// CycleColors-SuffixColor`). Colors stringify as `#rrggbb` (Go's `%v` on
-/// `color.RGBA` differs, but the key never crosses processes — it only
+/// `color.RGBA` differs, but the key never crosses processes - it only
 /// feeds PCG seeding); the suffix color falls back to the label color
 /// (anim.go's `SuffixColor == nil` fallback), and there is no suffix
 /// function in morpheus.
@@ -521,7 +521,7 @@ impl AgentSpinnerCrush {
 
     /// `buildFrames`: regenerate the prerendered frames and (if the column
     /// count changed) the birth schedule. Seed the rune picker off the
-    /// settings hash so the frames are a pure function of the settings —
+    /// settings hash so the frames are a pure function of the settings -
     /// identical settings produce byte-identical glyphs.
     fn build_frames(&mut self) {
         let cache_key = settings_hash(
@@ -556,7 +556,7 @@ impl AgentSpinnerCrush {
                     continue; // skip if we run out of colors
                 }
                 // j <= cyclingCharWidth rides the ramp (the gap column at
-                // j == cycling_char_width included — anim.go's condition).
+                // j == cycling_char_width included - anim.go's condition).
                 let color = if j <= self.cycling_char_width {
                     ramp[j + offset].to_rgba()
                 } else {
@@ -620,7 +620,7 @@ impl AgentSpinnerCrush {
 
     /// Current crush frame index at the original's 20 fps pacing: ticks are
     /// 1000/30 ms apart, so `frames = ticks × (1000/30) / 50 = ticks × 2/3`
-    /// (exact integer math — tick 3 = 100 ms = frame 2).
+    /// (exact integer math - tick 3 = 100 ms = frame 2).
     const fn crush_frame(ticks: u32) -> u32 {
         ticks / 3 * 2 + (ticks % 3) * 2 / 3
     }
@@ -637,7 +637,7 @@ impl AgentSpinnerCrush {
     }
 
     /// Reset the spinner to its initial state, restarting the birth
-    /// animation. The label and gradient survive — they describe the loop's
+    /// animation. The label and gradient survive - they describe the loop's
     /// activity and theme.
     pub fn reset(&mut self) {
         self.step = 0;
@@ -666,13 +666,13 @@ impl AgentSpinnerCrush {
     }
 
     /// The original has no per-prompt-mode colour concept (the gradient is
-    /// `GradColorA`/`GradColorB` only) — a no-op, kept for the shared
+    /// `GradColorA`/`GradColorB` only) - a no-op, kept for the shared
     /// spinner surface.
     pub fn set_mode_color(&mut self, _color: RGBA) {}
 
     /// Update the theme colours (`SetColors`): rebuild the prerendered
     /// frames from the new gradient/label colours while the step counters
-    /// keep advancing — a theme swap mid-animation does not restart.
+    /// keep advancing - a theme swap mid-animation does not restart.
     pub fn update_theme(&mut self, theme: &Theme) {
         self.label_color = theme.text_muted;
         self.grad_a = theme.primary;
@@ -680,7 +680,7 @@ impl AgentSpinnerCrush {
         self.build_frames();
     }
 
-    /// Total width in terminal cells — the RENDERED width: scramble + gap
+    /// Total width in terminal cells - the RENDERED width: scramble + gap
     /// + label + widest ellipsis frame.
     ///
     /// (anim.go's `Width()` double-counts the gap+label on top of
@@ -699,7 +699,7 @@ impl AgentSpinnerCrush {
     }
 
     /// Whether the birth window has elapsed (every column's birth step has
-    /// been reached — anim.go's `initialized`).
+    /// been reached - anim.go's `initialized`).
     pub const fn is_initialized(&self) -> bool {
         self.initialized
     }
@@ -712,7 +712,7 @@ impl AgentSpinnerCrush {
 
     // ── Rendering ──────────────────────────────────────────────────────
 
-    /// Render the spinner into the buffer at position `(x, y)` — the
+    /// Render the spinner into the buffer at position `(x, y)` - the
     /// column walk of `Anim.Render`, including the birth phase, the label
     /// gap and the animated ellipsis.
     pub fn render(&self, buf: &mut Buffer, x: u16, y: u16) {
@@ -1127,8 +1127,8 @@ mod tests {
         let label_x = (SIZE + LABEL_GAP_WIDTH) as u16;
         assert_eq!(buf[(label_x, 0)].symbol(), "w");
         // The ellipsis appends DIRECTLY after the label (Go's Render
-        // concatenates it): its slot starts at x + a.width — the internal
-        // scramble+gap+label span (23 for "working"), never past it — and
+        // concatenates it): its slot starts at x + a.width - the internal
+        // scramble+gap+label span (23 for "working"), never past it - and
         // width() adds the 3-cell slot on top (26). Regression guard for
         // the double-counted gap+label offset.
         assert_eq!(spinner.width, SIZE + LABEL_GAP_WIDTH + 7);

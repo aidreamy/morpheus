@@ -38,7 +38,7 @@ pub struct RuntimeConfig {
     pub anthropic_ttl_1h: bool,
     pub openai_cache_retention: Option<String>,
     pub disabled_tools: HashSet<String>,
-    /// The mode a fresh chat starts in — the user's last global selection,
+    /// The mode a fresh chat starts in - the user's last global selection,
     /// exactly like the TUI restores it.
     pub initial_mode: Mode,
     /// Who may reach the agent (`setup.json` → `whatsapp`).
@@ -63,9 +63,7 @@ impl RuntimeConfig {
         // assembled, and the LSP switch is a process-wide flag. Doing this
         // here (rather than in `from_setup`) keeps the pure resolver
         // testable.
-        for error in
-            morpheus_agents::acp::register_custom_agents_lossy(&setup.acp_agent_pairs())
-        {
+        for error in morpheus_agents::acp::register_custom_agents_lossy(&setup.acp_agent_pairs()) {
             log::warn!("user-registered ACP agent skipped: {error}");
         }
         if let Err(error) = aiface::connector::register_custom_providers(

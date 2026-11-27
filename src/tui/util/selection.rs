@@ -40,7 +40,7 @@ pub fn clipboard_available() -> bool {
 /// Read the system clipboard's TEXT content. Returns `None` when the
 /// clipboard is unavailable, the read fails, or the content is not text.
 ///
-/// Used by the Ctrl+V paste handler (keys.rs) — the opencode mini-port: on
+/// Used by the Ctrl+V paste handler (keys.rs) - the opencode mini-port: on
 /// Windows the terminal usually does not emit a bracketed paste for Ctrl+V,
 /// so the key event is the paste signal and the text must come from the
 /// clipboard directly.

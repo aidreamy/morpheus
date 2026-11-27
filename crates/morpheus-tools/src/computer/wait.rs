@@ -1,4 +1,4 @@
-//! `computer_wait` — block until a condition is met, or time out with a
+//! `computer_wait` - block until a condition is met, or time out with a
 //! diagnosis.
 //!
 //! This is a standalone OBSERVATION tool (like [`super::apps`] and
@@ -12,7 +12,7 @@
 //!   decide the next move without another probe.
 //! - EVENT conditions (`event` + app scope only): subscribe to the
 //!   platform's accessibility event stream for that app and block until
-//!   the first matching event arrives — "wait until a window opens" or
+//!   the first matching event arrives - "wait until a window opens" or
 //!   "wait until focus moves inside the app" answerable in ONE call,
 //!   without any polling at all.
 //!
@@ -61,7 +61,7 @@ pub fn validate(input: &ComputerWait) -> Result<(), String> {
             .is_none()
         {
             return Err(format!(
-                "{TOOL}: {tool_field} requires `selector` — the element to watch, \
+                "{TOOL}: {tool_field} requires `selector` - the element to watch, \
                  e.g. progress_bar[name='Exporting…']"
             ));
         }
@@ -71,10 +71,10 @@ pub fn validate(input: &ComputerWait) -> Result<(), String> {
     if input.event.is_some() {
         if input.surface.is_some() {
             return Err(format!(
-                "{TOOL}: an `event` wait is app-scoped — it takes no `surface`"
+                "{TOOL}: an `event` wait is app-scoped - it takes no `surface`"
             ));
         }
-        // Event mode: app-scoped only — every element field is at best
+        // Event mode: app-scoped only - every element field is at best
         // ambiguous, at worst silently meaningless.
         let extra: Vec<&str> = [
             (input.selector.is_some(), "`selector`"),
@@ -90,7 +90,7 @@ pub fn validate(input: &ComputerWait) -> Result<(), String> {
         .collect();
         if !extra.is_empty() {
             return Err(format!(
-                "{TOOL}: an `event` wait is app-scoped — it takes no {}",
+                "{TOOL}: an `event` wait is app-scoped - it takes no {}",
                 extra.join(", ")
             ));
         }
@@ -111,7 +111,7 @@ pub fn validate(input: &ComputerWait) -> Result<(), String> {
             if input.state.is_some() {
                 return Err(format!(
                     "{TOOL}: `value`/`value_contains`/`numeric_value_gte` and `state` cannot \
-                     share a call — wait for the value OR the state (call twice if you need both)"
+                     share a call - wait for the value OR the state (call twice if you need both)"
                 ));
             }
         } else {
@@ -128,7 +128,7 @@ pub fn validate(input: &ComputerWait) -> Result<(), String> {
     if input.surface.is_some() {
         if has_name || input.pid.is_some() {
             return Err(format!(
-                "{TOOL}: target ONE of `name`/`pid`/`surface` — they cannot share a call"
+                "{TOOL}: target ONE of `name`/`pid`/`surface` - they cannot share a call"
             ));
         }
     } else {
@@ -146,7 +146,7 @@ pub fn validate(input: &ComputerWait) -> Result<(), String> {
     }
     if input.timeout_ms.is_some_and(|ms| ms > MAX_WAIT_MS) {
         return Err(format!(
-            "{TOOL}: `timeout_ms` is capped at {MAX_WAIT_MS} ms per call — \
+            "{TOOL}: `timeout_ms` is capped at {MAX_WAIT_MS} ms per call - \
              chain calls for longer waits"
         ));
     }
@@ -158,7 +158,7 @@ pub fn validate(input: &ComputerWait) -> Result<(), String> {
 /// # Errors
 ///
 /// Returns `Err` for invalid input, an app that never surfaces, a selector
-/// that never matches, or — the point of the tool — a condition not met
+/// that never matches, or - the point of the tool - a condition not met
 /// within the timeout. The timeout error embeds xa11y's `Diagnosis` (what
 /// was waited for + the last observed state), so the failure message alone
 /// answers "why didn't it happen?".
@@ -183,7 +183,7 @@ fn wait_blocking(input: &ComputerWait) -> Result<WaitResult, String> {
     // it can never eat the budget the condition needs.
     let app_timeout = timeout.min(Duration::from_millis(super::snapshot::DEFAULT_TIMEOUT_MS));
 
-    // Event mode: subscribe BEFORE the element machinery — the
+    // Event mode: subscribe BEFORE the element machinery - the
     // subscription only carries events RECEIVED from now on, so it must
     // be up while the budget runs.
     if let Some(event) = input.event {
@@ -205,7 +205,7 @@ fn wait_blocking(input: &ComputerWait) -> Result<WaitResult, String> {
             .locator(selector.trim())
             .nth(input.nth.unwrap_or(1))
     };
-    // Value mode: a predicate over the element's value — exact or
+    // Value mode: a predicate over the element's value - exact or
     // substring. xa11y's WAIT semantics handle the matching polling; the
     // success payload carries the fresh element the condition was met on.
     if let Some(path) = &input.value {
@@ -228,7 +228,7 @@ fn wait_blocking(input: &ComputerWait) -> Result<WaitResult, String> {
     }
 
     let state = wait_state(input.state.unwrap_or_default());
-    // The element wait gets whatever budget the app lookup left — the
+    // The element wait gets whatever budget the app lookup left - the
     // TOTAL stays within the caller's timeout_ms (xa11y's poll loop
     // evaluates the predicate at least once even at Duration::ZERO, and
     // overshoots by at most one ~100 ms poll).
@@ -269,7 +269,7 @@ fn wait_for_event(
 ///
 /// `EventKind::StateChanged` carries a payload (`flag`, `value`), so a
 /// plain equality check would only match ONE specific change (say,
-/// "enabled became false") — a `state_changed` wait must match ANY state
+/// "enabled became false") - a `state_changed` wait must match ANY state
 /// change. Every other kind is compared exactly.
 pub(crate) fn event_matches(wanted: &EventKind, seen: &EventKind) -> bool {
     match (wanted, seen) {
@@ -278,7 +278,7 @@ pub(crate) fn event_matches(wanted: &EventKind, seen: &EventKind) -> bool {
     }
 }
 
-/// Map the wire event enum onto xa11y's vocabulary — total, so a missed
+/// Map the wire event enum onto xa11y's vocabulary - total, so a missed
 /// arm fails compilation rather than waiting for the wrong event. The
 /// `StateChanged` payload is a placeholder; [`event_matches`] ignores it
 /// (any state change counts).
@@ -304,7 +304,7 @@ pub(crate) fn event_kind(event: WaitEvent) -> EventKind {
     }
 }
 
-/// Wire-facing name of a delivered event kind — the schema vocabulary the
+/// Wire-facing name of a delivered event kind - the schema vocabulary the
 /// caller sent and expects echoed back.
 pub(crate) fn event_kind_wire(kind: &EventKind) -> String {
     match kind {
@@ -350,7 +350,7 @@ fn wait_value(
 }
 
 /// Block until the locator's element reports a NUMERIC value at or above
-/// `threshold` — the slider/progress-bar counterpart of a text value wait.
+/// `threshold` - the slider/progress-bar counterpart of a text value wait.
 fn wait_numeric(
     locator: Locator,
     threshold: f64,
@@ -400,12 +400,12 @@ pub(crate) fn wait_state(state: WaitState) -> ElementState {
     }
 }
 
-/// Core wait over an already-built locator — the seam the mock-provider
+/// Core wait over an already-built locator - the seam the mock-provider
 /// tests use (they build a `Locator` directly instead of resolving an
 /// app by name against the live desktop).
 ///
 /// `started` is the wall clock of the WHOLE call (app resolution
-/// included), so `elapsed_ms` answers "how long did this call take" —
+/// included), so `elapsed_ms` answers "how long did this call take" -
 /// the contract the model reasons about when budgeting its next steps.
 ///
 /// On timeout the xa11y error's `Display` already embeds the `Diagnosis`

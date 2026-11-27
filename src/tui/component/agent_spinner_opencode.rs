@@ -1,26 +1,26 @@
-//! Animated agent spinner — a direct port of the opencode TUI scanner.
+//! Animated agent spinner - a direct port of the opencode TUI scanner.
 //!
 //! This is a faithful port of `packages/tui/src/ui/spinner.ts`
-//! from `anomalyco/opencode` in its **blocks** style — the exact
+//! from `anomalyco/opencode` in its **blocks** style - the exact
 //! configuration the prompt uses (`createFrames({ style: "blocks",
 //! inactiveFactor: 0.6, minAlpha: 0.3 })` driven at `interval={40}`):
 //!
 //! - **Bidirectional scan**: forward across `width` cells (one frame per
 //!   cell), hold `holdEnd` (9) frames at the right edge, backward across
-//!   `width − 1` frames, hold `holdStart` (30) frames at the left edge —
+//!   `width − 1` frames, hold `holdStart` (30) frames at the left edge -
 //!   a 54-frame cycle, identical to the original.
 //! - **Blocks glyphs**: active cells render `■`, inactive cells `⬝`,
 //!   exactly the original's blocks character pair.
 //! - **Alpha-falloff trail** (`deriveTrailColors`): the lead at alpha 1.0,
 //!   one bloom step at alpha 0.9 with a 1.15× brightness kick, then an
-//!   exponential `0.65^(i−1)` decay — composited over the theme background
+//!   exponential `0.65^(i−1)` decay - composited over the theme background
 //!   because a terminal has no real alpha.
 //! - **Global fade** (`createKnightRiderTrail`): inactive dots fade
 //!   linearly down to `minAlpha` (0.3) across each hold and back up across
 //!   each sweep, scaled by the `inactiveFactor` (0.6) base alpha.
 //! - **Timing**: the original ticks at 40 ms/frame (25 fps); morpheus drives
 //!   `advance()` per 30 fps animation tick, so the scan frame index is
-//!   `ticks × 5 / 6` — the exact same wall-clock pacing.
+//!   `ticks × 5 / 6` - the exact same wall-clock pacing.
 //!
 //! Everything around the scanner row (label, per-activity status glyphs,
 //! mode colour, deterministic render) follows the shared agent-spinner
@@ -67,7 +67,7 @@ const TOTAL_FRAMES: u32 = SWEEP_FORWARD + HOLD_END + SWEEP_BACK + HOLD_START;
 
 /// morpheus advances one animation tick per 30 fps frame (`render.rs`), while
 /// the original ticks at `interval={40}` (25 fps). The scan frame index is
-/// therefore `ticks × 5/6` — exact integer math: tick 6 = 200 ms =
+/// therefore `ticks × 5/6` - exact integer math: tick 6 = 200 ms =
 /// scan frame 5.
 const TICKS_PER_SCAN_FRAME: u32 = 5;
 
@@ -98,7 +98,7 @@ struct ScannerState {
     is_moving_forward: bool,
 }
 
-/// `getScannerState(frameIndex, totalChars, options)` — bidirectional arm.
+/// `getScannerState(frameIndex, totalChars, options)` - bidirectional arm.
 fn scanner_state(frame_index: u32) -> ScannerState {
     let frame = frame_index % TOTAL_FRAMES;
     if frame < SWEEP_FORWARD {
@@ -149,7 +149,7 @@ fn scanner_state(frame_index: u32) -> ScannerState {
     }
 }
 
-/// `calculateColorIndex` — directional distance (the trail runs behind the
+/// `calculateColorIndex` - directional distance (the trail runs behind the
 /// movement direction); during a hold the index is shifted out by the hold
 /// progress so the band slides off the row exactly like the original.
 fn color_index(frame_index: u32, char_index: i32) -> i32 {
@@ -198,7 +198,7 @@ fn fade_factor(state: &ScannerState) -> f32 {
 
 /// `deriveTrailColors(brightColor, 6)`: the lead at full strength, one
 /// bloom step (0.9 alpha, 1.15× brightness), then exponential `0.65^(i−1)`
-/// alpha decay. Returns `(rgb, alpha)` pairs — the alpha is applied at
+/// alpha decay. Returns `(rgb, alpha)` pairs - the alpha is applied at
 /// composite time over the theme background, since a terminal cell has no
 /// real alpha channel.
 #[allow(clippy::cast_precision_loss)]
@@ -252,7 +252,7 @@ fn composite(bg: RGBA, fg: RGBA, alpha: f32) -> RGBA {
 /// deterministic render).
 pub struct AgentSpinnerOpencode {
     /// Animation ticks elapsed (30 fps); the scan frame index is
-    /// `ticks × 5 / 6` — the original's 40 ms pacing.
+    /// `ticks × 5 / 6` - the original's 40 ms pacing.
     ticks_elapsed: u32,
     /// Current status-glyph step (ticks at `STATUS_ANIM_SPEED`).
     status_step: u32,
@@ -370,7 +370,7 @@ impl AgentSpinnerOpencode {
 
     /// Current scan frame index at the original's 40 ms pacing: ticks are
     /// 1000/30 ms apart, so `frames = ticks × (1000/30) / 40 = ticks × 5/6`
-    /// (exact integer math — tick 6 = 200 ms = frame 5).
+    /// (exact integer math - tick 6 = 200 ms = frame 5).
     pub const fn scan_frame(&self) -> u32 {
         self.ticks_elapsed / 6 * TICKS_PER_SCAN_FRAME
             + (self.ticks_elapsed % 6) * TICKS_PER_SCAN_FRAME / 6

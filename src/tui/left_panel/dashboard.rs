@@ -20,7 +20,7 @@ pub struct DashboardData {
     /// Tokens used by the current session (real API usage).
     pub session_tokens: u64,
     /// REAL cost of the current session as reported by the provider
-    /// (`None` when the provider does not report costs — no price row,
+    /// (`None` when the provider does not report costs - no price row,
     /// never an estimate).
     pub session_cost: Option<f64>,
     /// Spend for the selected period (per provider + total).
@@ -30,7 +30,7 @@ pub struct DashboardData {
 }
 
 /// Pick a highlight (background) color for a period so the active range is
-/// instantly distinguishable — each period gets its own accent. Returns the
+/// instantly distinguishable - each period gets its own accent. Returns the
 /// `RGBA` so the render can also derive a contrasting foreground from it.
 fn period_highlight(
     period: crate::usage::UsagePeriod,
@@ -143,15 +143,15 @@ pub fn render(buf: &mut Buffer, area: Rect, data: &DashboardData, theme: &Theme)
     );
     y += 1;
     // Cost policy: only the provider's REAL reported cost is shown, always
-    // in USD — the dashboard's dollar totals must stay comparable across
+    // in USD - the dashboard's dollar totals must stay comparable across
     // providers, so native prepaid units (Charm Hypercredits) are NOT
     // rendered here; the session header shows the ◆ balance instead.
-    // A provider without cost reporting gets a muted `—` — no estimate is
+    // A provider without cost reporting gets a muted `-` - no estimate is
     // ever fabricated, and the absence is NOT a warning (it is the
     // documented behavior for providers that don't vouch for a price).
     let (cost_str, cost_style) = match data.session_cost {
         Some(c) => (format_usd(c), Style::default().fg(text)),
-        None => ("—".to_string(), Style::default().fg(muted)),
+        None => ("-".to_string(), Style::default().fg(muted)),
     };
     draw_text(
         buf,

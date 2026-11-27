@@ -47,7 +47,7 @@ impl BassEnvelope {
 /// Lowest band cutoff in Hz.
 const MIN_CUTOFF_HZ: f32 = 60.0;
 
-/// Highest band cutoff in Hz — still well inside the bass/bass-drum range, so
+/// Highest band cutoff in Hz - still well inside the bass/bass-drum range, so
 /// consonants and sibilance do not drive the bars.
 const MAX_CUTOFF_HZ: f32 = 400.0;
 
@@ -72,7 +72,7 @@ pub fn bass_envelope(samples: &[f32], sample_rate: u32, fps: u32, bars: usize) -
 
     // Log-spaced low-pass cutoffs: bar 0 is the deepest bass, the last bar
     // the upper edge of the low range. Each bar's signal is the difference
-    // between neighbouring low-pass outputs — a band-pass — not the low-pass
+    // between neighbouring low-pass outputs - a band-pass - not the low-pass
     // itself: the latter would make every wider band contain all the energy
     // of the narrower ones, so the bars could only ever grow to the right.
     let mut alphas = Vec::with_capacity(bars);

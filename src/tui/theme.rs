@@ -17,7 +17,7 @@ pub fn rgba_color(rgba: RGBA) -> Color {
 }
 
 /// Linear blend of two colors: `t = 0` returns `base`, `t = 1` returns
-/// `accent`. The shared mixing primitive for the TUI's tinted layers —
+/// `accent`. The shared mixing primitive for the TUI's tinted layers -
 /// the right panel's severity tints and header band, the slash menu's row
 /// fill, and the derived muted-text slot all pre-blend over their
 /// background this way, since ratatui has no real alpha.
@@ -84,16 +84,16 @@ pub fn blend_color(fg: Color, bg: Color, amount: f64) -> Color {
 /// How far the muted-text slot lifts off the element background toward the
 /// text color. The right panel's header buttons and their delimiters rest
 /// on exactly this blend (`blend(background_element, text, MUTED_LIFT)`),
-/// and [`Theme::text_muted`] — the color of the header's "← esc" back link
-/// and every other secondary text — is DERIVED from the same formula, so
+/// and [`Theme::text_muted`] - the color of the header's "← esc" back link
+/// and every other secondary text - is DERIVED from the same formula, so
 /// the two families stay the same color by construction instead of by
 /// maintained coincidence.
 pub const MUTED_LIFT: f32 = 0.25;
 
 /// How far the `/agents` split pane's background floats above the theme
 /// background, expressed as a fraction of the 0–255 channel scale.
-/// Calibrated on the morpheus reference pair — background `#07070A` → pane
-/// `#0A0A0D`, a +3 step per channel — the lift is `3/255` (~1.2%) of the
+/// Calibrated on the morpheus reference pair - background `#07070A` → pane
+/// `#0A0A0D`, a +3 step per channel - the lift is `3/255` (~1.2%) of the
 /// scale, the same whisper in every theme: the fill derives from each
 /// theme's OWN `background` (a light theme lifts off its light
 /// background exactly as far as a dark one lifts off black) instead of
@@ -103,7 +103,7 @@ pub const AGENTS_PANE_LIFT: f32 = 3.0 / 255.0;
 impl Theme {
     /// Background fill of an `/agents` split pane: this theme's
     /// `background` lifted by [`AGENTS_PANE_LIFT`] per channel,
-    /// saturating at 255. Fully opaque (alpha 255) — the fill exists for
+    /// saturating at 255. Fully opaque (alpha 255) - the fill exists for
     /// a visible-but-whisper separation, which a transparent answer
     /// (`rgba_color` maps alpha 0 to `Color::Reset`) could never give.
     pub fn agents_pane_background(&self) -> RGBA {
@@ -146,7 +146,7 @@ pub struct Theme {
     pub diff_removed_line_number_bg: RGBA,
     /// Background of the box frame that wraps a rendered diff block (the
     /// edit tool's unified/split diff body). `None` (every theme except
-    /// morpheus) falls back to `background_panel` — the historical behavior.
+    /// morpheus) falls back to `background_panel` - the historical behavior.
     /// morpheus sets this to `background` so the diff box disappears into the
     /// transcript background instead of showing as a black panel
     /// (morpheus's `background_panel` is pure `#000000`).
@@ -180,7 +180,7 @@ pub struct Theme {
     pub queue_next_loop: RGBA,
     /// Background color of a "next request" pending-queue row.
     pub queue_next_request: RGBA,
-    /// Ink of the session wallpaper — the ASCII background layer drawn behind
+    /// Ink of the session wallpaper - the ASCII background layer drawn behind
     /// the chat. This slot exists so a theme can dim the artwork independently
     /// of the text (e.g. a near-background watermark on morpheus).
     pub session_logo: RGBA,
@@ -190,7 +190,7 @@ pub struct Theme {
     pub mode_build: Option<RGBA>,
     /// Foreground of the `✧ Thought` / `✦ Thought` reasoning header. Defaults
     /// to `accent` (the historical behavior); themes override it when the
-    /// accent tone would fight the panel — e.g. morpheus keeps `accent` gold for
+    /// accent tone would fight the panel - e.g. morpheus keeps `accent` gold for
     /// actions but draws the thought header in violet, the color of
     /// introspection.
     pub reasoning_header: RGBA,
@@ -321,7 +321,7 @@ impl ThemeRegistry {
     }
 }
 
-// Theme definitions — ported from opencode TUI
+// Theme definitions - ported from opencode TUI
 //
 // Helper to build full Theme
 /// Ink for the session wallpaper: the theme's primary pulled most of the way
@@ -478,20 +478,20 @@ fn full_theme(
 /// Indigo sits between blue (rationality, focus, calm) and violet
 /// (creativity, intuition), which fits a long-session coding tool: quiet,
 /// low-glare, and serious without reading as cold corporate navy. Accents are
-/// deliberately few — periwinkle for actions, lavender for structure, and a
+/// deliberately few - periwinkle for actions, lavender for structure, and a
 /// warm gold used sparingly as the complement (60-30-10: indigo dominates,
 /// violet supports, gold only where the eye must land). Semantic green /
 /// amber / rose and a crisp sky-blue info stay saturated enough to read as
 /// state on the dark surface.
 ///
-/// The *tertiary* layer — markdown and syntax, the small details that cover
-/// the most screen area — stays in the blue band (hue ~205-220) so it reads
+/// The *tertiary* layer - markdown and syntax, the small details that cover
+/// the most screen area - stays in the blue band (hue ~205-220) so it reads
 /// as the same night sky as the hue-240 chrome, just cooler where attention
 /// is wanted. Depth comes from lightness (`#E8E8F8` body → `#A6C8FF`
 /// headings → `#7FB0F0` links), not from new hues: one brightness step per
 /// role is enough on a near-black surface and keeps red/green/amber reserved
 /// for state. The `Thought` header deliberately does *not* reuse the heading
-/// blue — it uses a deeper, grayer sky blue (`#7CB8E8`) so a reflection block
+/// blue - it uses a deeper, grayer sky blue (`#7CB8E8`) so a reflection block
 /// never competes with a section title.
 fn indigo() -> Theme {
     let mut t = full_theme(
@@ -539,7 +539,7 @@ fn morpheus() -> Theme {
         "#E8F0FF",
     );
     // Muted accents: amber emphasis, teal enumeration; the old purple
-    // family is now slate on the session-logo hue (240°), almost neutral —
+    // family is now slate on the session-logo hue (240°), almost neutral -
     // primary, borders, links, keyword, function and type included.
     // Headings and unordered-list bullets stay out of the pink family: a
     // muted slate just above the disabled shade (text_muted #474955) so
@@ -559,7 +559,7 @@ fn morpheus() -> Theme {
     t.syntax_operator = RGBA::from_hex("#64F0DC");
     // Prompt/input-box fill matches the markdown code-block background: the
     // palette derives that from `background` (`bg*9/10 + 8` per channel,
-    // markdown/styles.rs) — #07070A → #0E0E11.
+    // markdown/styles.rs) - #07070A → #0E0E11.
     t.background_element = RGBA::from_hex("#0E0E11");
     // Static session logo as a near-background watermark: almost
     // `background` (#07070A), diverging just enough to be noticed.
@@ -571,7 +571,7 @@ fn morpheus() -> Theme {
     t.queue_next_request = RGBA::from_hex("#123A38");
     // Diff blocks (unified and split) blend into the transcript: the box
     // frame takes the chat `background` instead of `background_panel`
-    // (#000000). morpheus-only — see `Theme::diff_panel_background`.
+    // (#000000). morpheus-only - see `Theme::diff_panel_background`.
     t.diff_panel_background = Some(t.background);
     t
 }

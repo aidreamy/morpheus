@@ -28,12 +28,12 @@ mod screenshot_annotate_tests {
         let err = screenshot(&input).await.unwrap_err();
         // With rootless targeting now legal (review round 1: full display
         // and `region` are real forms), the ANNOTATE clause is what fires
-        // for a targetless annotate — its "requires" wording is what the
+        // for a targetless annotate - its "requires" wording is what the
         // model sees.
         assert!(err.contains("requires `app`, `pid` or `surface`"), "{err}");
     }
 
-    /// `nth` has no meaning for annotated captures — the legend covers every
+    /// `nth` has no meaning for annotated captures - the legend covers every
     /// match. Rejected before any capture.
     #[tokio::test]
     async fn annotate_rejects_nth() {
@@ -54,7 +54,7 @@ mod screenshot_annotate_tests {
     }
 
     /// Plain element capture keeps its old constraint: `app`/`pid` without
-    /// `selector` is a scope leak and must still fail — only `annotate`
+    /// `selector` is a scope leak and must still fail - only `annotate`
     /// unlocks the `app`-without-`selector` form.
     #[tokio::test]
     async fn plain_app_without_selector_still_rejected() {
@@ -68,7 +68,7 @@ mod screenshot_annotate_tests {
 
     /// Alternation selectors are rejected up front (appending `:nth(n)` to a
     /// group would bind to its last clause alone, so legend selectors would
-    /// name a different element than the box they label) — before the app
+    /// name a different element than the box they label) - before the app
     /// even resolves.
     #[tokio::test]
     async fn annotate_rejects_alternation_selector() {
@@ -79,7 +79,7 @@ mod screenshot_annotate_tests {
     }
 
     /// A comma INSIDE a quoted attribute value is not an alternation
-    /// separator — `button[name='Save, As']` must reach xa11y (it fails on
+    /// separator - `button[name='Save, As']` must reach xa11y (it fails on
     /// the unknown app, NOT on an alternation error).
     #[tokio::test]
     async fn comma_inside_quoted_name_is_not_an_alternation() {
@@ -146,7 +146,7 @@ mod screenshot_annotate_tests {
         assert!(text.contains("saved to: C:/tmp/shot.png"), "{text}");
     }
 
-    /// A blank `save_path` is a caller typo, not a "no file" intent —
+    /// A blank `save_path` is a caller typo, not a "no file" intent -
     /// rejected before any platform work.
     #[tokio::test]
     async fn blank_save_path_is_rejected() {
@@ -164,7 +164,7 @@ mod screenshot_annotate_tests {
     }
 
     /// `save_png` creates missing parent directories, overwrites an
-    /// existing file, and echoes the CALLER-ISSUED path verbatim — only
+    /// existing file, and echoes the CALLER-ISSUED path verbatim - only
     /// the filesystem ops trim; the `saved_to` value must not.
     #[test]
     fn save_png_creates_parents_overwrites_and_echoes_raw() {
@@ -246,7 +246,7 @@ mod screenshot_annotate_tests {
     }
 
     /// A capture whose every match was omitted has an EMPTY legend but must
-    /// still say why — omission reporting is independent of the legend block
+    /// still say why - omission reporting is independent of the legend block
     /// (picture and legend cannot silently disagree).
     #[test]
     fn empty_legend_still_reports_omissions_and_truncation() {

@@ -21,7 +21,7 @@ pub struct Voice {
 
 /// One speaker with the metadata a picker needs: the espeak-ng language it
 /// was trained for, its gender and the bundle that owns it. `voices.bin`
-/// carries none of this — it is derived from the published name prefixes
+/// carries none of this - it is derived from the published name prefixes
 /// (`pf_` = Portuguese female, `am_` = American male, ...).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct VoiceEntry {
@@ -234,7 +234,7 @@ pub fn entry(model_dir: &Path, speaker: i32) -> Option<VoiceEntry> {
 /// lexicon for it (Portuguese, Spanish, French, Hindi, Italian, Japanese).
 ///
 /// `None` when the bundle is unknown, the speaker is out of the published
-/// tables, or the voice is English/Chinese — those keep the bundle's own
+/// tables, or the voice is English/Chinese - those keep the bundle's own
 /// lexicon frontend. This is what lets `setup.json` select a Portuguese voice
 /// with only `"speaker": 42`; an explicit `voice.language` always wins over
 /// it.

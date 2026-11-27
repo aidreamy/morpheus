@@ -8,8 +8,8 @@
 //!
 //! The model sees a single `subagent_call` tool, but the harness dispatches
 //! it to two implementations (see [`SubAgent`]): an external agent harness,
-//! with agent message chunks streamed in real time — only the LAST message
-//! (post-tool-calls) becomes the returned report (see [`closure`]) — or,
+//! with agent message chunks streamed in real time - only the LAST message
+//! (post-tool-calls) becomes the returned report (see [`closure`]) - or,
 //! when `agent` is omitted/empty, an internal agent (a nested harness that
 //! reports only its final answer).
 //!
@@ -17,7 +17,7 @@
 //! [Agent Client Protocol (ACP)](https://agentclientprotocol.com/) as a full
 //! client turn (initialize → `session/new` or `session/resume` →
 //! `session/prompt`), except OpenCode, whose own server is used natively (see
-//! [`opencode`]) — the caller's API is identical either way.
+//! [`opencode`]) - the caller's API is identical either way.
 //!
 //! Two turn behaviors apply to the external path:
 //!
@@ -26,13 +26,13 @@
 //!   resume), keeping the sub-agent's context across calls; `false` starts
 //!   a brand-new session. A failed or timed-out turn stores nothing.
 //! - **Cancellation** (Phase 5): the agent loop's shared stop flag is raced
-//!   against the prompt await — a trigger sends `session/cancel` and the
+//!   against the prompt await - a trigger sends `session/cancel` and the
 //!   turn ends with the agent's own `StopReason::Cancelled`, preserving the
 //!   output streamed so far.
 //!
 //! # Supported agents
 //!
-//! Each agent must speak ACP over stdio — the protocol contract replaces the
+//! Each agent must speak ACP over stdio - the protocol contract replaces the
 //! fragile per-CLI flag scraping. See [`acp::ACP_AGENTS`] for the registry.
 //! Agents without ACP support are not registered.
 //!
@@ -78,7 +78,7 @@ pub mod model_picks;
 pub mod opencode;
 /// Brand palettes of the supported ACP sub-agents, for the TUI to paint
 /// each agent with its own logo colors. Pure RGB triples, no TUI
-/// dependency — see [`palette`].
+/// dependency - see [`palette`].
 pub mod palette;
 /// Kernel-pinned filesystem sandbox for the ACP `fs/*` handlers (Unix only;
 /// other platforms use the validate-then-serve fallback in [`acp`]).
@@ -106,7 +106,7 @@ pub type ToolDescription = serde_json::Value;
 
 /// Tool for calling sub-agents.
 ///
-/// A SINGLE visible tool dispatches to two implementations — the model
+/// A SINGLE visible tool dispatches to two implementations - the model
 /// sees only one: an external ACP agent harness when `agent` is provided,
 /// or an internal agent (a nested harness: fresh empty context,
 /// auto-approve, no persistence, final report only) when `agent` is omitted
@@ -138,7 +138,7 @@ pub struct SubAgent {
     /// Last ACP session id per agent name (Phase 4): the session each
     /// harness returned from `session/new`, resumed by the next call with
     /// `continue_session` (the default) so the sub-agent keeps its context
-    /// across calls. Failed turns store nothing — a session whose
+    /// across calls. Failed turns store nothing - a session whose
     /// turn errored is not trusted.
     ///
     /// Behind an `Arc` so a BACKGROUND turn (spawned detached on the
@@ -148,7 +148,7 @@ pub struct SubAgent {
     ///
     /// Concurrency invariant: the read-then-store-after-await pattern in
     /// the dispatch layer is safe because tool dispatch is sequential per
-    /// agent loop and each harness owns its own `SubAgent` — a parallel
+    /// agent loop and each harness owns its own `SubAgent` - a parallel
     /// dispatch change would need its own synchronization here. Background
     /// turns are the one deliberate exception: exactly ONE detached task
     /// stores per spawned turn (the store happens once, at turn end), and
@@ -191,7 +191,7 @@ impl SubAgent {
     }
 
     /// Set an informational chunk that is interpolated NATURALLY into the
-    /// tool description (inside the description prose — not prepended as a
+    /// tool description (inside the description prose - not prepended as a
     /// notice). The harness uses this to tell the model that omitting
     /// `agent` routes the call to an internal agent instead of an external
     /// ACP harness.
@@ -211,7 +211,7 @@ impl SubAgent {
     ///
     /// Panics if an agent returned by [`acp::all_agent_names`] is not present
     /// in either the built-in table or the user-registered registry. This is
-    /// a logic invariant — the name list only returns registered agents.
+    /// a logic invariant - the name list only returns registered agents.
     #[allow(clippy::expect_used, clippy::format_collect)]
     fn build_tool_description(note: &str) -> ToolDescription {
         // Installation is cached for built-ins and checked on demand for
@@ -262,17 +262,17 @@ impl SubAgent {
                      These are separate tools with different purposes.";
 
         let description = if installed.is_empty() {
-            // No agents installed — the LLM will see this and likely
+            // No agents installed - the LLM will see this and likely
             // avoid calling the tool, but the error message is helpful.
             format!(
                 "{common}\n\
                  ## Supported agents\n\
-                 (None detected — install one of the ACP-capable agents \
+                 (None detected - install one of the ACP-capable agents \
                   (gemini, goose, opencode, kilo, claude, codex) and restart morpheus.)\n\
                  {usage}"
             )
         } else {
-            // Two ALIGNED columns — agent name, then its launch line — no
+            // Two ALIGNED columns - agent name, then its launch line - no
             // markdown backticks: the width is the longest name in the
             // list, so every invocation starts on the same column.
             let name_w = installed.iter().map(|name| name.len()).max().unwrap_or(0);
@@ -347,7 +347,7 @@ impl SubAgent {
     /// Resolve the effective task description for a subagent list entry.
     ///
     /// Non-empty `description` values pass through. When omitted (or empty)
-    /// a CODE REVIEW call infers `"{agent} code-review-{n}"` — `n` is the
+    /// a CODE REVIEW call infers `"{agent} code-review-{n}"` - `n` is the
     /// count of already-inferred descriptions this session, so parallel or
     /// sequential review subagents stay distinguishable. Non-review calls
     /// get an error: without a description the right-panel list entry
@@ -433,7 +433,7 @@ impl SubAgent {
     /// Only successful turns are stored: a failed or timed-out turn leaves
     /// the previous id untouched (so `None` from [`stored_session`] makes
     /// the next call open a fresh session, and an older id that a failed
-    /// turn ran on is retried on the next default call — a stale one
+    /// turn ran on is retried on the next default call - a stale one
     /// self-heals via the `session/new` fallback in
     /// [`open_or_resume_session`]).
     #[allow(clippy::unwrap_used)]
@@ -448,7 +448,7 @@ impl SubAgent {
     ///
     /// A background `subagent_call` spawns a detached task and returns
     /// immediately, so it cannot call [`Self::store_session`] after the
-    /// (much later) turn ends — the dispatcher borrow is long gone. The
+    /// (much later) turn ends - the dispatcher borrow is long gone. The
     /// detached task keeps this handle and records the session id at turn
     /// end, exactly where the synchronous path would. Sharing the same
     /// `Arc<Mutex<..>>` keeps background and synchronous bookkeeping in ONE
@@ -460,7 +460,7 @@ impl SubAgent {
 
     /// The session id to resume for `agent`, when `continue_session` is
     /// requested and one is stored. `None` → the caller opens a fresh
-    /// session (first call for this agent, or no id has ever been stored —
+    /// session (first call for this agent, or no id has ever been stored -
     /// failed turns do not clear a previously stored id).
     #[allow(clippy::unwrap_used)]
     pub fn stored_session(&self, agent: &str) -> Option<String> {

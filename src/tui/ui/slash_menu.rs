@@ -50,12 +50,12 @@ pub struct SlashCommand {
 /// [`CommandScope::Global`] command is executed by the App for the whole app
 /// and is never handed to a focused `/agents` pane; a
 /// [`CommandScope::Agent`] command belongs to the agent that would receive it
-/// — the focused pane when the split has one, the main loop otherwise.
+/// - the focused pane when the split has one, the main loop otherwise.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CommandScope {
     /// App/TUI state: appearance, preferences, the session list, dialogs.
     /// There is exactly ONE of each in the process, so a per-pane version
-    /// would be overengineering — `/background` per pane would mean six
+    /// would be overengineering - `/background` per pane would mean six
     /// terminal backgrounds for one terminal.
     Global,
     /// The agent itself: its model, its toolset, its context, its
@@ -66,7 +66,7 @@ pub enum CommandScope {
 
 /// The command inventory: every morpheus slash command, its [`CommandScope`] and
 /// what it actually mutates. This table IS the answer to "is this command
-/// global or per-agent?" — kept in ONE place so a new command must declare a
+/// global or per-agent?" - kept in ONE place so a new command must declare a
 /// side instead of inheriting a leaky default, and `run_slash_command` routes
 /// by it rather than by the menu's incidental source.
 ///
@@ -116,7 +116,7 @@ pub const COMMAND_INVENTORY: &[(&str, CommandScope)] = &[
 
 /// The [`CommandScope`] of `name`. A name absent from [`COMMAND_INVENTORY`]
 /// is an AGENT's own published command (that agent's harness interprets it),
-/// never a morpheus-owned global action — so an unknown command can never steal
+/// never a morpheus-owned global action - so an unknown command can never steal
 /// app-wide state. The guard test
 /// `every_morpheus_command_declares_its_scope` keeps both lists in lockstep.
 #[must_use]
@@ -128,7 +128,7 @@ pub fn command_scope(name: &str) -> CommandScope {
         .unwrap_or(CommandScope::Agent)
 }
 
-/// The `/worktree` slash entry — a MORPHEUS-side command (a worktree is a morpheus
+/// The `/worktree` slash entry - a MORPHEUS-side command (a worktree is a morpheus
 /// binding, never the agent's own command).
 ///
 /// It lives in the BASE command list because its target is whichever agent
@@ -149,7 +149,7 @@ pub fn worktree_command_entry() -> SlashCommand {
 /// The `/undo` slash entry for an ACP PANE's menu.
 ///
 /// `/undo` is a Global-scoped command (the App handles it, never the pane),
-/// but an ACP pane's menu is built from its OWN published commands — the
+/// but an ACP pane's menu is built from its OWN published commands - the
 /// harness has no notion of morpheus checkpoints and never lists it. The entry is
 /// therefore synthesized for every ACP pane, exactly like `/worktree`; the
 /// manager pane gets `/undo` from the base list and must not append a second
@@ -175,11 +175,11 @@ pub enum SlashMenuMouseAction {
 /// The command SOURCE is dynamic: the default morpheus set, or the focused
 /// `/agents` pane's own command list (the agent's exact spellings). While
 /// an agent snapshot is being fetched the menu renders a spinner row
-/// instead of commands — the probe takes seconds, so the user sees WHY the
+/// instead of commands - the probe takes seconds, so the user sees WHY the
 /// list is still empty.
 ///
 /// Which command source the slash menu is currently serving. The router
-/// reads this — not the split's focus — so a picked command can never
+/// reads this - not the split's focus - so a picked command can never
 /// disagree with the list the user saw: the menu's own source IS the
 /// routing decision.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -299,8 +299,8 @@ impl SlashMenu {
                 desc: "Undo last revert".into(),
             },
             // The MAIN agent's worktree binding. It lives in the base list
-            // (not synthesized per pane) because the main agent — normal
-            // chat, no `/agents` split — is a legitimate target too: it is
+            // (not synthesized per pane) because the main agent - normal
+            // chat, no `/agents` split - is a legitimate target too: it is
             // one more agent whose turns can run in a checkout. The pane
             // sources do NOT append a second copy; see `slash_source`.
             worktree_command_entry(),
@@ -310,7 +310,7 @@ impl SlashMenu {
     /// Every morpheus-owned command name (the menu's own vocabulary, without the
     /// synthesized per-pane entries). The scope inventory is checked against
     /// this, and the router refuses a command missing from
-    /// [`COMMAND_INVENTORY`] as "not morpheus's" — so this is the single list a
+    /// [`COMMAND_INVENTORY`] as "not morpheus's" - so this is the single list a
     /// new command must be added to twice (here and in the inventory), which
     /// the guard test enforces.
     /// Swap the command source to an agent's own list (the pane's cached
@@ -340,7 +340,7 @@ impl SlashMenu {
     /// Whether `name` takes a free-form argument tail (`/name <args…>`).
     /// Only these keep the menu visible (and their tail routed) when the
     /// prompt holds arguments; every other command keeps the legacy
-    /// no-arguments behavior — a space in the input hides the menu and
+    /// no-arguments behavior - a space in the input hides the menu and
     /// the raw input submits as a plain prompt, exactly as before.
     #[must_use]
     pub fn takes_args(name: &str) -> bool {
@@ -357,7 +357,7 @@ impl SlashMenu {
             None => (true, after_slash.to_string()),
             // `/name <args…>`: only an argument-taking command keeps the
             // menu up (filtering on its name part); anything else hides
-            // it — today's behavior for a spaced input.
+            // it - today's behavior for a spaced input.
             Some(idx) => {
                 let name = &after_slash[..idx];
                 if Self::takes_args(name) {
@@ -372,7 +372,7 @@ impl SlashMenu {
     /// The typed argument tail for `cmd_name` in the prompt's current
     /// input (`/worktree add feat` → `Some("add feat")`), when the
     /// command takes arguments and the input actually carries a tail.
-    /// Read at pick time — the prompt still holds the typed text while
+    /// Read at pick time - the prompt still holds the typed text while
     /// the menu routes the selected command.
     #[must_use]
     pub fn command_arg_tail(input: &str, cmd_name: &str) -> Option<String> {
@@ -449,7 +449,7 @@ impl SlashMenu {
 
     /// The slice of filtered indices shown in the menu's MAX_ROWS window,
     /// scrolled so the selected item is always on screen. Returns
-    /// `(start, len)` into the filtered list — the same computation for the
+    /// `(start, len)` into the filtered list - the same computation for the
     /// renderer and for mouse hit-testing, so a click always lands on the
     /// row that is drawn.
     fn visible_window(&self, idxs: &[usize]) -> (usize, usize) {
@@ -534,7 +534,7 @@ impl SlashMenu {
         }
 
         // Loading state: one spinner row instead of commands (an agent
-        // snapshot probe is in flight — the list is empty BECAUSE of that,
+        // snapshot probe is in flight - the list is empty BECAUSE of that,
         // so the placeholder below would lie about it).
         if self.loading {
             let row_y = prompt_area.y.saturating_sub(1);
@@ -568,7 +568,7 @@ impl SlashMenu {
             }
             let spinner_char = self.spinner.current_char();
             // The spinner alone carries the message: "loading" needs no
-            // words after it — the frame is self-explanatory.
+            // words after it - the frame is self-explanatory.
             let text = spinner_char.to_string();
             draw_text_line_compact(
                 buf,
@@ -719,7 +719,7 @@ mod tests {
 
     /// The classification the product rules pin down: the TUI's own controls
     /// are Global (a per-pane `/background` would mean one terminal with six
-    /// backgrounds — overengineering), while anything that customizes the
+    /// backgrounds - overengineering), while anything that customizes the
     /// AGENT is Agent-scoped (each pane runs an independent agent session).
     #[test]
     fn the_scope_split_matches_the_product_rule() {
@@ -741,7 +741,7 @@ mod tests {
             assert_eq!(
                 command_scope(global),
                 CommandScope::Global,
-                "`/{global}` is app/TUI state — exactly one per process"
+                "`/{global}` is app/TUI state - exactly one per process"
             );
         }
         for agent in [
@@ -820,7 +820,7 @@ mod tests {
         // part, so typing the tail never loses the entry.
         let mut menu = SlashMenu::new();
         // The /worktree entry is synthesized for AGENT panes (the morpheus
-        // set does not carry it) — feed the agent source the same entry
+        // set does not carry it) - feed the agent source the same entry
         // the pane's `slash_source` produces.
         menu.set_agent_commands(vec![SlashCommand {
             name: "worktree".into(),
@@ -860,7 +860,7 @@ mod tests {
 
     #[test]
     fn an_argument_taking_command_with_no_tail_yet_keeps_the_menu_up_without_a_tail() {
-        // `/worktree` followed by a space and NOTHING: no tail — the menu
+        // `/worktree` followed by a space and NOTHING: no tail - the menu
         // stays up while typing (the tail has not started yet), but the
         // tail reader returns None (a pick would refuse with usage).
         assert_eq!(

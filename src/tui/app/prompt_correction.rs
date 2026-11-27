@@ -73,13 +73,13 @@ impl App {
     }
 
     /// Cancel the in-flight prompt correction (the Esc path). Only effective
-    /// while the correction is still running — once the model's answer has
+    /// while the correction is still running - once the model's answer has
     /// been applied the flag is already down and this is a no-op.
     ///
     /// The original draft is the thing being "restored":
     /// `start_prompt_correction` never mutates the prompt (the draft stays
     /// visible and editable for the whole request), so cancelling never
-    /// needs to write text back — it only aborts the task, clears the
+    /// needs to write text back - it only aborts the task, clears the
     /// spinner and lowers the flag. Any response the model still manages to
     /// emit is dropped by the cancel-flag check in the spawned task and by
     /// the event handler.
@@ -107,7 +107,7 @@ impl App {
 /// is successful only when it returns non-empty text; transport failures and
 /// empty answers move on to the next REST model or ACP harness. When the
 /// user configured no correction route at all, `session_route` (the
-/// session's own agent-loop model) is tried as the default — correction then
+/// session's own agent-loop model) is tried as the default - correction then
 /// always works out of the box instead of erroring.
 async fn run_prompt_corrector_fallbacks(
     request: &str,
@@ -139,7 +139,7 @@ async fn run_prompt_corrector_fallbacks(
     let mut failures = Vec::with_capacity(fallbacks.len());
     for fallback in fallbacks {
         // Cooperative cancel between routes: Esc aborts the shared task, but
-        // the ACP route's blocking runtime below ignores that abort — this
+        // the ACP route's blocking runtime below ignores that abort - this
         // keeps a cancelled request from re-queueing the NEXT route. The
         // sentinel error is never surfaced: the task's post-await cancel
         // check drops it before any toast could show it.
@@ -203,7 +203,7 @@ async fn correct_with_acp(
 ) -> Result<String, String> {
     let (chunk_tx, mut chunk_rx) = tokio::sync::mpsc::unbounded_channel();
     // Prompt correction is a standalone one-shot call (an unrelated task
-    // that needs clean context) — never resume a sub-agent session here
+    // that needs clean context) - never resume a sub-agent session here
     // (Phase 4's `continue_session` default applies to subagent_call).
     // The correction cancel flag is passed through as the ACP stop signal
     // (Phase 5): Esc interrupts the remote turn via `session/cancel`
@@ -243,7 +243,7 @@ impl App {
     /// Build the default correction route from the session's own agent-loop
     /// selection (the same `provider`/`model` the next agent turn would use).
     /// `None` when the session has no concrete model (empty provider or the
-    /// symbolic `auto` — the router's fallback list is the contract there).
+    /// symbolic `auto` - the router's fallback list is the contract there).
     pub(super) fn session_correction_route(&self) -> Option<(String, String)> {
         let provider = self.llm_config.provider.trim();
         if provider.is_empty() {
@@ -311,8 +311,8 @@ mod tests {
         // No corrector fallback configured: the session's own agent-loop
         // selection becomes the default route (no "configure a model" error).
         // An unknown provider fails synchronously inside `Connector::new`
-        // (offline, no network) and surfaces the ROUTE's error — labeled with
-        // the provider/model — instead of the configuration one.
+        // (offline, no network) and surfaces the ROUTE's error - labeled with
+        // the provider/model - instead of the configuration one.
         let err = run_prompt_corrector_fallbacks(
             "correct this",
             &[],
@@ -332,8 +332,8 @@ mod tests {
     async fn a_configured_fallback_list_never_defers_to_the_session_route() {
         // With correction fallbacks configured, the session route must be
         // ignored entirely. The preset cancel flag proves it: the loop is
-        // entered (and returns "cancelled") BEFORE any route — including the
-        // session default — could run.
+        // entered (and returns "cancelled") BEFORE any route - including the
+        // session default - could run.
         let fallbacks = vec![PromptCorrectorFallback::Model {
             provider: "openrouter".into(),
             model: "test/model".into(),

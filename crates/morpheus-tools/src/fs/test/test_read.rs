@@ -24,7 +24,7 @@ fn meta_with_root(root: &Path) -> FsMetadata {
 #[tokio::test]
 async fn test_function_search() {
     // Rust fixtures with known symbols (a fn for the symbol search, a plain
-    // file for the whole-file read) — seeded in a scratch dir so the test
+    // file for the whole-file read) - seeded in a scratch dir so the test
     // exercises the same code paths without depending on repo layout.
     let dir = temp_dir("symbol_search");
     let fn_file = dir.join("fixture_fn.rs");
@@ -596,7 +596,7 @@ async fn test_block_starting_after_line_one_renders_its_body() {
     )
     .unwrap();
 
-    // The block starts at line 5, past the file's first line — a regression
+    // The block starts at line 5, past the file's first line - a regression
     // guard for block reads that used to render an empty body.
     let results = read(
         meta_with_root(&dir),

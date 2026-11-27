@@ -9,7 +9,7 @@
 //! Public surface: [`router::Router`] (multi-checkpoint routing),
 //! [`router::RouteDecision`],
 //! the question `presets` and the option types. The concrete agent
-//! (`OnnxAgent`, `load`) is crate-internal — build models through the crate
+//! (`OnnxAgent`, `load`) is crate-internal - build models through the crate
 //! facade.
 
 pub mod agent;

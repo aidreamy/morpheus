@@ -7,7 +7,7 @@ Agent integration crate for [Morpheus](https://github.com/aidreamy/morpheus), a 
 `morpheus-agents` owns the sub-agent caller used by the agent panel. It is not a
 tool crate: the model-facing pieces (`subagent_call`'s description, the review
 severity contract) sit next to the caller machinery that runs an external
-harness turn end to end — path detection and the ACP registry, the protocol
+harness turn end to end - path detection and the ACP registry, the protocol
 client, session resume, cancellation, the typed event stream and the persisted
 per-agent model picks.
 
@@ -37,7 +37,7 @@ sub.resolve_input(None)?;                          // reuses the stored message
 ```
 
 The crate is usable standalone: nothing here reads Morpheus's own directories
-or configuration — the caller injects the storage directory for `model_picks`,
+or configuration - the caller injects the storage directory for `model_picks`,
 and every other piece is pure protocol and state.
 
 ### OpenCode runs natively

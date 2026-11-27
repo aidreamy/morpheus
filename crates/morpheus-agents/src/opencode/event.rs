@@ -1,7 +1,7 @@
 //! Mapping from OpenCode server events to the crate's typed stream.
 //!
 //! The server streams everything from every session on one endpoint, and its
-//! event union grows with every release — so the raw frame arrives here as
+//! event union grows with every release - so the raw frame arrives here as
 //! [`serde_json::Value`] and every field is read defensively. The mapper is
 //! *stateful* on purpose:
 //!

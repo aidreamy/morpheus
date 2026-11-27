@@ -2,7 +2,7 @@
 //!
 //! The external ACP harnesses emit their activity natively: the `session/update`
 //! stream is mapped into [`SubagentEvent`]s by [`super::events`]. The internal
-//! sub-agent is a nested morpheus harness and speaks no ACP — its loop emits plain
+//! sub-agent is a nested morpheus harness and speaks no ACP - its loop emits plain
 //! harness-level events (tool calls, results, context info). This
 //! module bridges that gap: it turns the nested loop's event stream into the
 //! SAME typed events the TUI sub-agent box already renders, so both sub-agent
@@ -27,7 +27,7 @@ use super::events::{
 /// Byte cap of one tool result's displayed tail. Mirrors the TUI's own
 /// `SUBAGENT_TOOL_TAIL_BYTES`: the box keeps the TAIL of a tool output, so
 /// the bridge pre-caps the event payload the same way (the TUI re-bounds,
-/// the two never disagree — and a multi-megabyte bash dump never crosses
+/// the two never disagree - and a multi-megabyte bash dump never crosses
 /// the event channel whole).
 const RESULT_TAIL_BYTES: usize = 4_000;
 
@@ -64,8 +64,8 @@ impl InternalEventBridge {
 
     /// A tool call was announced by the nested loop: a `ToolCall` event with
     /// a synthesized id, the tool-derived kind and title, the raw input
-    /// (the TUI extracts the same detail keys — path, query, command — it
-    /// shows for ACP calls), and the tool's REAL name — the TUI labels the
+    /// (the TUI extracts the same detail keys - path, query, command - it
+    /// shows for ACP calls), and the tool's REAL name - the TUI labels the
     /// row with it, exactly like the main chat's compact renderer.
     pub fn tool_call(&mut self, tool: &str, input: &Value) -> SubagentEvent {
         let id = format!("internal-{}", self.issued);
@@ -83,7 +83,7 @@ impl InternalEventBridge {
 
     /// A tool call completed with a serialized output: the FIFO-oldest
     /// outstanding call is patched to `Completed`, carrying the output tail
-    /// and — for `fs_edit`-family results — a one-line diff summary parsed
+    /// and - for `fs_edit`-family results - a one-line diff summary parsed
     /// from the result's unified diff, exactly what an ACP `ToolCallUpdate`
     /// with a diff block renders.
     ///
@@ -123,7 +123,7 @@ impl InternalEventBridge {
         })
     }
 
-    /// A `plan_todo_write` call's input mapped to the box's plan entry —
+    /// A `plan_todo_write` call's input mapped to the box's plan entry -
     /// the same mini-chat TODO the ACP agents emit natively. `None` when
     /// the input does not deserialize as a todo write (a malformed call is
     /// still announced as a plain tool row by [`Self::tool_call`]).
@@ -169,7 +169,7 @@ impl InternalEventBridge {
 
     /// The nested harness's context snapshot mapped to the box's usage
     /// footer (`context_window` = the budget, `tokens_in_context` = the
-    /// estimated tokens held) — the same numbers the ACP `UsageUpdate`
+    /// estimated tokens held) - the same numbers the ACP `UsageUpdate`
     /// carries.
     #[must_use]
     pub fn usage(total_tokens: usize, max_tokens: usize) -> SubagentEvent {
@@ -220,7 +220,7 @@ pub fn tool_kind(tool: &str) -> ToolKind {
 /// Byte tail shared with the TUI's cold-restore replay: the manager pane
 /// rebuilds its tool rows from the persisted context and caps the result
 /// tails with the SAME bound the live bridge applied, so a replayed row
-/// renders byte-identically to the live one (the TUI re-bounds on apply —
+/// renders byte-identically to the live one (the TUI re-bounds on apply -
 /// the two never disagree).
 pub fn output_tail(output: &str) -> String {
     if output.len() <= RESULT_TAIL_BYTES {
@@ -234,17 +234,17 @@ pub fn output_tail(output: &str) -> String {
 }
 
 /// One-line diff summary parsed from a serialized `fs_edit`-family result
-/// (shared with the TUI's cold-restore replay — the manager pane rebuilds
+/// (shared with the TUI's cold-restore replay - the manager pane rebuilds
 /// its edit rows from the persisted context with the same summary).
 /// (a JSON array of per-target objects whose `diff` field is a unified
-/// diff). The LAST diff wins — one summary line per tool call, the same
+/// diff). The LAST diff wins - one summary line per tool call, the same
 /// rule the ACP content extraction applies to multiple diff blocks. The
 /// result's unified diff is carried VERBATIM in `unified`, so the TUI
 /// paints the SAME box the chat's edit tool renders (the summary line
 /// stays the compact magnitude).
 ///
 /// `None` for anything that is not an edit result with a diff (bash text,
-/// grep listings, read output — those are not file modifications).
+/// grep listings, read output - those are not file modifications).
 pub fn diff_summary_from_result(tool: String, output: &str) -> Option<ToolDiffSummary> {
     if !matches!(tool.as_str(), "fs_edit" | "fs_edit_lines" | "fs_ast_edit") {
         return None;

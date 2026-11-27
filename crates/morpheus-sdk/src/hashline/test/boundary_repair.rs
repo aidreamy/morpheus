@@ -1,4 +1,4 @@
-//! Boundary-repair behavior — a port of upstream oh-my-pi's
+//! Boundary-repair behavior - a port of upstream oh-my-pi's
 //! `crates/pi-edit/tests/hashline_apply.rs` apply tests (which superseded the
 //! original `packages/hashline/test/boundary-repair.test.ts` TS suite), plus
 //! this repo's original corruption-incident scenarios re-expectated to the

@@ -46,7 +46,7 @@ fn refuses_replay_when_edit_anchor_line_content_diverges() {
     let SeedTwoSnapshots {
         store, v1_text, h0, ..
     } = seed_two_snapshots();
-    // Edit anchored at line 5 — the exact line the prior in-session edit
+    // Edit anchored at line 5 - the exact line the prior in-session edit
     // rewrote. Replaying onto current would overwrite "L5-CHANGED" with
     // payload the model authored against the stale "L5". That is
     // corruption, not recovery.
@@ -68,7 +68,7 @@ fn replays_edits_onto_current_when_every_anchor_line_is_unchanged() {
     let SeedTwoSnapshots {
         store, v1_text, h0, ..
     } = seed_two_snapshots();
-    // Edit anchored at line 3 — unchanged between v0 and v1. The 3-way
+    // Edit anchored at line 3 - unchanged between v0 and v1. The 3-way
     // merge fails (patch context includes the rewritten line 5), but the
     // replay fallback is safe because the model's anchor still names the
     // same logical content.
@@ -85,7 +85,7 @@ fn replays_edits_onto_current_when_every_anchor_line_is_unchanged() {
     assert!(recovered.is_some());
     let recovered = recovered.unwrap();
     assert!(recovered.text.contains("L3-MODEL"));
-    // Prior in-session change must survive — the model's edit lands on
+    // Prior in-session change must survive - the model's edit lands on
     // top of current, not on top of the stale snapshot.
     assert!(recovered.text.contains("L5-CHANGED"));
     // The replay path is the less-certain recovery mode (a coincidental
@@ -108,7 +108,7 @@ fn warns_when_edit_anchors_lines_not_surfaced_by_tool_output() {
         ..
     } = seed_two_snapshots();
     // The tool output that minted h0 surfaced only line 1 (e.g. a grep that
-    // matched line 1 and showed no context). The model now edits line 3 —
+    // matched line 1 and showed no context). The model now edits line 3 -
     // content it never saw.
     store.record_seen_lines(PATH, &h0, &[(1, "L1".to_string())]);
 
@@ -141,7 +141,7 @@ fn no_unseen_warning_when_anchors_were_surfaced() {
         h0,
         ..
     } = seed_two_snapshots();
-    // Line 3 was surfaced to the model — the edit is not blind.
+    // Line 3 was surfaced to the model - the edit is not blind.
     store.record_seen_lines(PATH, &h0, &[(1, "L1".to_string()), (3, "L3".to_string())]);
 
     let (edits, _) = parse_patch("replace 3..3:\n|L3-MODEL").unwrap();

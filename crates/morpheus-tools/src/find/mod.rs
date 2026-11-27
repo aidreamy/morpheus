@@ -3,7 +3,7 @@
 //! - [`glob::glob`]: find files and directories by glob pattern.
 //! - [`grep::grep`]: search file content with a regex.
 //!
-//! [`Find`] wraps both tools in a single builder — configure shared options
+//! [`Find`] wraps both tools in a single builder - configure shared options
 //! once and call either operation.
 //!
 //! # Example
@@ -137,7 +137,7 @@ impl Find {
                     "that directory (shallow). Missing targets are skipped with a ",
                     "warning. Zero matches are marked `useless` with a `note` ",
                     "(adjust the pattern or scope, do not retry blindly). A ",
-                    "timeout returns the partial results with `timed_out: true` — ",
+                    "timeout returns the partial results with `timed_out: true` - ",
                     "an empty timed-out result is an INCOMPLETE scan, NOT proof of ",
                     "absence; scope to a deeper directory instead of retrying. ",
                     "Results are capped at 200 by default; the optional ",
@@ -212,11 +212,11 @@ impl Find {
                     "`note` suggests paginating with `skip` (call again with the same ",
                     "pattern/path plus skip=<N> for the next page). Lines longer than ",
                     "200 characters are truncated with a `...` suffix and flagged via ",
-                    "`truncated` — read the file for the full line. Patterns containing ",
+                    "`truncated` - read the file for the full line. Patterns containing ",
                     "a newline (or the `\\n` escape) automatically enable multiline ",
                     "matching. Zero selected matches are marked `useless` with a `note` ",
-                    "— adjust the pattern or scope instead of blindly retrying. A ",
-                    "timeout returns the partial matches with `timed_out: true` — an ",
+                    "- adjust the pattern or scope instead of blindly retrying. A ",
+                    "timeout returns the partial matches with `timed_out: true` - an ",
                     "empty timed-out result is an INCOMPLETE scan, NOT proof of ",
                     "absence; narrow the scope instead of retrying blindly. Search ",
                     "several targets in one call with `paths` (each validated ",
@@ -225,7 +225,7 @@ impl Find {
                     "single-file targets). Each shown file carries a hashline anchor in ",
                     "the `files` array (path, file_hash, header like \u{00b6}path#TAG). ",
                     "To edit a matched file directly, pass the header's absolute path ",
-                    "and the tag (file_hash) to fs_edit — no re-read is needed to ",
+                    "and the tag (file_hash) to fs_edit - no re-read is needed to ",
                     "obtain the current hash. Files beyond the anchor window have no ",
                     "entry."
                 ),
@@ -251,7 +251,7 @@ impl Find {
                         },
                         "skip": {
                             "type": "number",
-                            "description": "Files to skip before collecting results — paginate when the prior call hit the file window limit"
+                            "description": "Files to skip before collecting results - paginate when the prior call hit the file window limit"
                         }
                     },
                     "required": ["pattern"]
@@ -469,7 +469,7 @@ impl Find {
     /// of `0` is rejected.
     ///
     /// `hidden` and `gitignore` default to `true` unless explicitly disabled
-    /// (reference-tool behavior). `sort_by_mtime` defaults to `true` —
+    /// (reference-tool behavior). `sort_by_mtime` defaults to `true` -
     /// the most recently modified files surface first. `file_type` filters
     /// results to one filesystem kind and is an extension over the
     /// reference tool.

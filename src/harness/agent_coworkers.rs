@@ -14,7 +14,7 @@
 //!
 //! Both bridges share ONE contract, which is why they share this module and
 //! the same coworker ids: a tool call never blocks ON GIT or on anything the
-//! registry cannot answer — the MAIN loop's `agents_worktree` tool is the
+//! registry cannot answer - the MAIN loop's `agents_worktree` tool is the
 //! ONE exception, and it pauses cleanly inside `dispatch_next` while the
 //! App owns the permission box and the git side effects. Everything else
 //! parks its ask, returns a receipt, and the truth arrives later through the
@@ -24,24 +24,24 @@
 //! The registry is PROCESS-WIDE on purpose: the TUI builds a fresh
 //! [`Harness`](super::core::Harness) for every turn, while the coworker set
 //! (and any request already queued to a coworker) outlives the turn that
-//! addressed it — a per-harness registry would strand every request the
+//! addressed it - a per-harness registry would strand every request the
 //! moment the loop ended.
 //!
 //! Ownership split, mirroring `background.rs`:
 //!
 //! - **The App owns the coworkers.** It syncs the coworker set here whenever the
 //!   split changes ([`set_coworkers`]), serves queued requests when a coworker
-//!   becomes free (an agent's message to a busy coworker WAITS — it is queued,
+//!   becomes free (an agent's message to a busy coworker WAITS - it is queued,
 //!   never interleaved), and reports each coworker turn's end back through
 //!   [`complete_request`].
 //! - **The harness talks.** The `agents_call` tool enqueues a request
 //!   ([`enqueue`]) and either awaits the coworker's report (`wait` mode) or
-//!   returns a receipt immediately (`background` mode — the report is
+//!   returns a receipt immediately (`background` mode - the report is
 //!   delivered later by the requester's loop drain, [`take_ready_deliveries`]).
 //!
 //! Requests are tagged with their REQUESTER (`main` loop or the `manager`
 //! loop running in a morpheus coworker) so a background report is drained only by
-//! the loop that asked for it — the two loops never run concurrently (the
+//! the loop that asked for it - the two loops never run concurrently (the
 //! `/agents` gate refuses to open while the main loop works, and the main
 //! submit path routes into the split while it is open), but a delivery can
 //! outlive its requester's turn, and the wrong loop must never inject it.
@@ -51,7 +51,7 @@ use std::sync::{Mutex, OnceLock};
 
 /// The top-level agent loop (the normal chat session) as a requester tag.
 pub const MAIN: &str = "main";
-/// The manager loop (the `morpheus` coworker's own morpheus session — the app's own
+/// The manager loop (the `morpheus` coworker's own morpheus session - the app's own
 /// coworker, at any split position) as a requester tag.
 pub const MANAGER: &str = "manager";
 
@@ -63,7 +63,7 @@ pub struct AgentCoworkerDescriptor {
     /// panel's mirrors use). The manager coworker is addressable like every
     /// other agent, under `"morpheus"` (or `"morpheus#k"` among several).
     pub id: String,
-    /// The coworker's IDENTITY — the `AgentPane::id` the TUI stamped at coworker
+    /// The coworker's IDENTITY - the `AgentPane::id` the TUI stamped at coworker
     /// creation (monotonic, never recycled; `0` reserved for "never
     /// assigned"). The `id` above is a POSITIONAL label (`name#k` is the
     /// k-th occurrence of the agent in the current coworker order), so removing
@@ -81,16 +81,16 @@ pub struct AgentCoworkerDescriptor {
     /// [`enqueue`]); background calls stay allowed.
     pub is_manager: bool,
     /// Whether the coworker already carries a bound agent session (`true`) or
-    /// has never run (`false` — the first `agents_call` wakes it).
+    /// has never run (`false` - the first `agents_call` wakes it).
     pub bound: bool,
     /// The worktree (git branch checkout) the coworker is currently pinned to,
-    /// by name — `None` while the coworker shares the session's cwd. The main
+    /// by name - `None` while the coworker shares the session's cwd. The main
     /// agent's coworker listing renders it next to the id so it always knows
     /// where each coworker works.
     pub worktree: Option<String>,
     /// The model the coworker's agent session currently runs with, as the
     /// pane reports it (`AgentSessionInfo::model`, falling back to the
-    /// pane's committed `PaneModelSelection`) — `None` until the first
+    /// pane's committed `PaneModelSelection`) - `None` until the first
     /// turn (or replay pass) reports it, and for cowokers whose harness
     /// never advertises a model. The main agent's coworker listing renders
     /// it next to the worktree so it always knows what serves each pane.
@@ -125,14 +125,14 @@ pub struct AgentCoworkerRequest {
     pub coworker_id: u64,
     /// The message text (the agent's input to the coworker).
     pub text: String,
-    /// Which loop asked for this (`MAIN` or `MANAGER`) — routes the
+    /// Which loop asked for this (`MAIN` or `MANAGER`) - routes the
     /// background delivery home.
     pub requester: &'static str,
     /// How the answer reaches the requester.
     pub mode: ReplyMode,
 }
 
-/// What a parked delivery carries — an `agents_call` coworker report or a
+/// What a parked delivery carries - an `agents_call` coworker report or a
 /// finished `agents_worktree` op. The drain and the requester tagging are
 /// shared; the note format differs per kind.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -141,20 +141,20 @@ pub enum DeliveryKind {
     CallReport,
     /// A worktree op's outcome (executed, refused by the user, or failed).
     Worktree,
-    /// A compaction op's outcome (executed, refused, or failed) — the
+    /// A compaction op's outcome (executed, refused, or failed) - the
     /// `agents_compact` ask the App resolved by running (or refusing) the
     /// coworker session's compaction.
     Compact,
 }
 
-/// How one coworker turn ended — the ONE vocabulary shared by the coworker UI
+/// How one coworker turn ended - the ONE vocabulary shared by the coworker UI
 /// (`AgentsPaneDone::stop_reason`), the `agents_call` registry and the
 /// report block its requester reads. Two invariants this type exists to
 /// enforce:
 ///
 /// - **`cancelled` means THE USER stopped the turn** (Esc / Ctrl+X). It is
 ///   never a bucket for "the loop gave up". A turn that ended on its own
-///   without a report is [`Self::Incomplete`] — a defect to surface, not a
+///   without a report is [`Self::Incomplete`] - a defect to surface, not a
 ///   cancellation to hide behind. The old code collapsed both into one
 ///   `cancelled` string and a single "stopped or errored" message, which
 ///   made an improper stop read exactly like a deliberate user interrupt.
@@ -175,7 +175,7 @@ pub enum AgentCoworkerTurnEnd {
     EndTurn,
     /// A FALLBACK report: the loop closed without a closure, so the last
     /// assistant text is delivered instead. It may well describe pending
-    /// work ("now I'll edit core.rs") — the requester is told so.
+    /// work ("now I'll edit core.rs") - the requester is told so.
     Partial,
     /// No report text exists at all: the loop closed with nothing written
     /// (an empty/exhausted stream, a guard stop over pure tool work).
@@ -205,12 +205,12 @@ impl AgentCoworkerTurnEnd {
     /// Accepts BOTH vocabularies that reach this type: the morpheus-coworker one
     /// ([`Self::as_str`]) and the ACP `StopReason` one the external agents
     /// report (`crates/morpheus-agents/src/acp.rs`, `stop_reason_str`).
-    /// The ACP side matters as much as the local one — external coworkers are
-    /// the majority — and its truncation shapes are NOT `end_turn`:
+    /// The ACP side matters as much as the local one - external coworkers are
+    /// the majority - and its truncation shapes are NOT `end_turn`:
     ///
     /// - `max_tokens` / `max_turn_requests` → [`Self::Partial`]: the agent
     ///   ran out of budget mid-work. There IS text, and it may well be a
-    ///   narration of work it never got to do — exactly the case the
+    ///   narration of work it never got to do - exactly the case the
     ///   requester must be warned about. Mapping these to `EndTurn` (the
     ///   catch-all) would present a truncated report as a conclusion to
     ///   every ACP requester.
@@ -233,7 +233,7 @@ impl AgentCoworkerTurnEnd {
 
     /// Whether the transcript must seal as FAILED: every entry is kept and
     /// the marker is prefixed. [`Self::Partial`] is deliberately NOT a
-    /// failure — it carries a real report whose text already streamed into
+    /// failure - it carries a real report whose text already streamed into
     /// the timeline, so it must dedupe like a completed turn.
     #[must_use]
     pub const fn is_failure(self) -> bool {
@@ -262,10 +262,10 @@ const MAX_PARTIAL_REDIRECTS: u32 = 2;
 
 /// A finished request whose answer is waiting for its requester's next
 /// loop drain, or a finished worktree op's closing note (background mode
-/// only — wait mode resolves inline; worktree ops normally do not linger:
+/// only - wait mode resolves inline; worktree ops normally do not linger:
 /// the tool call pauses inside `dispatch_next` and consumes the outcome
 /// itself, so a [`DeliveryKind::Worktree`] delivery here is the
-/// EXCEPTION path — an ask that was stop-interrupted or otherwise left
+/// EXCEPTION path - an ask that was stop-interrupted or otherwise left
 /// parked reaches its loop on a later turn through this same drain).
 #[derive(Debug)]
 pub struct AgentCoworkerDelivery {
@@ -282,7 +282,7 @@ pub struct AgentCoworkerDelivery {
     pub requester: &'static str,
     /// The coworker's final report (or the failure reason).
     pub output: Result<String, String>,
-    /// Report or worktree outcome — selects the delivery note's shape.
+    /// Report or worktree outcome - selects the delivery note's shape.
     pub kind: DeliveryKind,
     /// HOW the turn ended. An [`AgentCoworkerTurnEnd::Partial`] report carries the
     /// coworker's last assistant text instead of a closure, so the note must
@@ -298,7 +298,7 @@ pub struct AgentCoworkerDelivery {
 /// The pair is deliberately one type: the old API threaded a bare
 /// `Result<String, String>` through the registry, so every consumer lost
 /// the distinction between "the pane finished" and "the pane was cut off,
-/// here is its last text" — the exact information the requester needs to
+/// here is its last text" - the exact information the requester needs to
 /// decide whether to continue the coworker (see [`report_block`]). Keeping them
 /// fused means a future delivery path cannot drop the reason by accident.
 #[derive(Debug, Clone)]
@@ -323,15 +323,15 @@ pub enum WorktreeAction {
     /// Create a temp worktree from the coworker's current HEAD and pin the
     /// coworker to it.
     Assign,
-    /// Drop the pin — the coworker returns to the session's cwd. Nothing on
+    /// Drop the pin - the coworker returns to the session's cwd. Nothing on
     /// disk is removed (the same semantics as the user's `/worktree exit`).
     Clear,
 }
 
-/// One parked `agents_compact` call — the main agent asking to compact a
+/// One parked `agents_compact` call - the main agent asking to compact a
 /// coworker's context ahead of the automatic trigger. The TOOL never touches
 /// context or sessions: it records the ask here, and the App's frame drain
-/// pops and executes it — running the coworker session's OWN compaction (the
+/// pops and executes it - running the coworker session's OWN compaction (the
 /// exact `compact_on_demand` mechanism its `/compact` slash command uses),
 /// which the App alone owns.
 #[derive(Debug, Clone)]
@@ -339,13 +339,13 @@ pub struct CompactOp {
     /// Registry-unique op id (`cp-op-<n>`), echoed in the tool result and
     /// in the outcome delivery so the requesting loop can pair them.
     pub id: String,
-    /// Addressable coworker id the op targets — the same ids `agents_call`
+    /// Addressable coworker id the op targets - the same ids `agents_call`
     /// addresses (`agents_compact_tool` carries them as its schema enum).
     pub coworker: String,
     /// The target's identity, stamped at enqueue (same rule as
     /// [`AgentCoworkerRequest::coworker_id`]).
     pub coworker_id: u64,
-    /// Which loop parked the op — routes the outcome delivery home.
+    /// Which loop parked the op - routes the outcome delivery home.
     pub requester: &'static str,
 }
 
@@ -360,17 +360,17 @@ impl WorktreeAction {
     }
 }
 
-/// One parked `agents_worktree` call — the main agent asking to move a
+/// One parked `agents_worktree` call - the main agent asking to move a
 /// coworker into (or out of) a worktree. The TOOL never touches git: it
 /// records the ask here, and the App's frame drain pops, supervises
-/// (the user's supremacy over a User-assigned worktree — even in Yolo)
+/// (the user's supremacy over a User-assigned worktree - even in Yolo)
 /// and executes it, owning every side effect.
 #[derive(Debug, Clone)]
 pub struct WorktreeOp {
     /// Registry-unique op id (`wt-op-<n>`), echoed in the tool result and in
     /// any later Worktree delivery so the requesting loop can pair them.
     pub id: String,
-    /// Addressable coworker id the op targets — the same ids `agents_call`
+    /// Addressable coworker id the op targets - the same ids `agents_call`
     /// addresses (`agents_worktree_tool` carries them as its schema enum).
     pub coworker: String,
     /// The target's identity, stamped at enqueue (same rule as
@@ -381,7 +381,7 @@ pub struct WorktreeOp {
     /// The branch name for `Assign` (its slug names the temp directory).
     /// `None` on `Clear`.
     pub branch: Option<String>,
-    /// Which loop parked the op — routes the outcome delivery home. Always
+    /// Which loop parked the op - routes the outcome delivery home. Always
     /// [`MAIN`] in practice: `agents_worktree` is stripped from every coworker
     /// loop (`with_own_coworker_id`) and the dispatch arm refuses a
     /// coworker-originated call before the registry is touched, so the manager
@@ -403,7 +403,7 @@ struct RegistryState {
     coworkers: Vec<AgentCoworkerDescriptor>,
     /// Monotonic generation counter, bumped by [`set_coworkers`] whenever the
     /// coworker set changes (ids, bindings or worktrees). Panes that ride their
-    /// awareness as a prompt preamble (the ACP coworkers — ACP has no system
+    /// awareness as a prompt preamble (the ACP coworkers - ACP has no system
     /// prompt) compare their last-announced generation against it to know
     /// when the announcement went stale and must be re-sent.
     generation: u64,
@@ -414,11 +414,11 @@ struct RegistryState {
     announced: HashMap<u64, u64>,
     /// One FIFO per coworker: requests wait here while the coworker is busy (or
     /// until the App's dispatcher picks them up). A coworker works on at most
-    /// one request at a time — the head of its queue.
+    /// one request at a time - the head of its queue.
     queues: HashMap<String, VecDeque<AgentCoworkerRequest>>,
     /// Requests the App has popped and dispatched as a coworker turn, keyed by
     /// PANE id (the App completes a coworker's turn without knowing request
-    /// ids — one `complete_request` per `AgentsPaneDone`). One entry per
+    /// ids - one `complete_request` per `AgentsPaneDone`). One entry per
     /// coworker: a coworker serves at most one request at a time. The full request
     /// is kept so the completion knows the mode (wait resolves inline;
     /// background parks a delivery) and the requester (routes the delivery).
@@ -431,13 +431,13 @@ struct RegistryState {
     deliveries: Vec<AgentCoworkerDelivery>,
     /// Parked `agents_worktree` calls (FIFO across all coworkers): the tool
     /// parks its request; the App's frame drain pops, supervises (the
-    /// user's supremacy over a User-assigned worktree — even in Yolo) and
+    /// user's supremacy over a User-assigned worktree - even in Yolo) and
     /// executes it, owning every side effect.
     ops: VecDeque<WorktreeOp>,
     /// Monotonic worktree-op id counter (`wt-op-<n>`).
     next_op: u64,
     /// Parked `agents_compact` calls (FIFO across all coworkers): the tool
-    /// parks its ask; the App's frame drain pops and executes it — running
+    /// parks its ask; the App's frame drain pops and executes it - running
     /// the coworker session's own compaction (`compact_on_demand`), the exact
     /// mechanism its `/compact` slash command drives.
     compacts: VecDeque<CompactOp>,
@@ -447,7 +447,7 @@ struct RegistryState {
     /// drain, summarization task running). The guard the main `/compact`
     /// gets for free from `manual_compaction_active` + the Idle check: a
     /// second compact of the same coworker must never start (two restores of
-    /// the same snapshot — the second persist overwrites the first with a
+    /// the same snapshot - the second persist overwrites the first with a
     /// STALE summary), and a coworker turn must not dispatch over a context
     /// that is being replaced under it.
     compacting: HashSet<u64>,
@@ -461,21 +461,21 @@ struct RegistryState {
     /// a requester from re-sending "continue" forever (each follow-up is a
     /// fresh REQUEST with a fresh nudge budget, so nothing inside the coworker
     /// ends the loop), which is why the bound must be keyed by the stable
-    /// identity — the coworker — and not by the request. Cleared when a coworker
+    /// identity - the coworker - and not by the request. Cleared when a coworker
     /// produces a real closure: the conversation concluded, so a LATER
     /// delegation to the same coworker starts with a full budget again. Keyed
     /// by the coworker's IDENTITY (`AgentPane::id`), never by the recyclable
-    /// positional label — a label recycled onto a fresh coworker must start
+    /// positional label - a label recycled onto a fresh coworker must start
     /// with a fresh budget (Issue 3).
     redirects: HashMap<u64, u32>,
     /// Session-binding FACTS from finished coworker turns, keyed by the App's
     /// stable coworker object id (`AgentPane::id`, the u64 every coworker event is
-    /// stamped with — NOT the registry's string coworker id, which is
+    /// stamped with - NOT the registry's string coworker id, which is
     /// label-based and re-resolvable across set rebuilds). Written by the
     /// turn task itself the moment its turn resolves the agent's ACP
     /// session, OUTSIDE every event-routing gate, and drained by the App's
     /// absorb pass. Deliberately NOT pruned by [`set_coworkers`]: a fact may
-    /// land AFTER its coworker left the visible set (hidden mid-turn — the
+    /// land AFTER its coworker left the visible set (hidden mid-turn - the
     /// coworker lives on in the session's hidden stack) and must stay
     /// absorbable there.
     session_bindings: HashMap<u64, String>,
@@ -489,14 +489,14 @@ fn registry() -> &'static Mutex<RegistryState> {
 /// The actionable failure a requester receives when the coworker it addressed
 /// left the set (removed by a hide, a fresh confirm, or a teardown).
 ///
-/// The wording addresses the coworker the requester MEANT — "the pane you
-/// addressed as '<label>'" — never the label as an identity, because a
+/// The wording addresses the coworker the requester MEANT - "the pane you
+/// addressed as '<label>'" - never the label as an identity, because a
 /// positional label is recyclable: `morpheus#2` may still exist in the CURRENT
 /// set as a DIFFERENT coworker object, and a bare "the pane you addressed as 'morpheus#2' is gone"
 /// would leave the requester arguing with itself about whether its
 /// address is still valid (Issue 3 review note). The CURRENT addressable
 /// set rides along so the agent can re-address `agents_call` immediately
-/// instead of guessing. `known` is the INCOMING set — the labels the coworker
+/// instead of guessing. `known` is the INCOMING set - the labels the coworker
 /// set resolves to after this reconciliation.
 fn removal_error(removed_label: &str, known: &[String]) -> String {
     let known: Vec<&str> = known.iter().map(String::as_str).collect();
@@ -507,7 +507,7 @@ fn removal_error(removed_label: &str, known: &[String]) -> String {
 }
 
 /// Replace the registry's coworker set (the App syncs this on every split
-/// change — open, park, attach, replace). Requests queued to coworkers that
+/// change - open, park, attach, replace). Requests queued to coworkers that
 /// no longer exist are failed immediately: their wait-mode callers get an
 /// error result and their queued entries are dropped (a coworker removed from
 /// the split can never serve them).
@@ -515,19 +515,19 @@ fn removal_error(removed_label: &str, known: &[String]) -> String {
 /// The reconciliation is keyed on the descriptors' IDENTITY
 /// ([`AgentCoworkerDescriptor::coworker_id`]), never on the positional label: removing a
 /// coworker renumbers its later siblings' labels (`morpheus#2` can become `morpheus#1`),
-/// and the OLD code — which diffed by label — judged a recycled label "still
+/// and the OLD code - which diffed by label - judged a recycled label "still
 /// alive" and let a dead coworker's queue/serving survive under it, to be served
 /// by the WRONG coworker (Issue 3 misdelivery). Three outcomes per old label:
 ///
 /// - identity gone (`dead`): every queued AND in-flight request under the
-///   old label fails with [`removal_error`] — the requester is told to
+///   old label fails with [`removal_error`] - the requester is told to
 ///   re-address, never misdelivered;
 /// - identity survives under a DIFFERENT label (`relabeled`): the coworker's
-///   queue and serving entry are re-keyed to the new label — live traffic
+///   queue and serving entry are re-keyed to the new label - live traffic
 ///   follows the coworker across renumbering (the `complete_request` path
 ///   resolves by the coworker's CURRENT label);
 /// - identity and label both survive: a no-op (binding/worktree syncs,
-///   park/unpark — nothing outstanding is disturbed).
+///   park/unpark - nothing outstanding is disturbed).
 pub fn set_coworkers(coworkers: Vec<AgentCoworkerDescriptor>) {
     let mut state = registry().lock().unwrap_or_else(|p| p.into_inner());
     // Identity of every label in the OUTGOING set: the diff's baseline.
@@ -544,7 +544,7 @@ pub fn set_coworkers(coworkers: Vec<AgentCoworkerDescriptor>) {
 
     // 1. DEAD identities: the coworker object left the set for good. Fail every
     //    request parked under its old label (the label may now name a
-    //    DIFFERENT coworker — serving it would be the misdelivery). The error
+    //    DIFFERENT coworker - serving it would be the misdelivery). The error
     //    names the INCOMING set: that is what the requester must re-address.
     let known: Vec<String> = coworkers.iter().map(|p| p.id.clone()).collect();
     let dead: Vec<String> = old_identities
@@ -579,7 +579,7 @@ pub fn set_coworkers(coworkers: Vec<AgentCoworkerDescriptor>) {
         }
     }
     // TWO PHASES, deliberately: a REORDER swap (301↔302 exchanging labels)
-    // must not have its second leg read what the first leg just wrote —
+    // must not have its second leg read what the first leg just wrote -
     // sequential remove/insert undoes the swap (the outcome then depends on
     // the HashMap's random iteration order). Detach EVERYTHING by the old
     // labels first, then re-key by the new ones.
@@ -594,7 +594,7 @@ pub fn set_coworkers(coworkers: Vec<AgentCoworkerDescriptor>) {
         }
     }
     for (old_label, new_label) in relabeled.iter() {
-        // MOVE, not clone: the detached queue/request IS the live traffic —
+        // MOVE, not clone: the detached queue/request IS the live traffic -
         // swap_remove splices it out (order across relabels is irrelevant;
         // each leg looks its entry up by the old label) and the value is
         // handed straight to its new key with no copy.
@@ -609,15 +609,15 @@ pub fn set_coworkers(coworkers: Vec<AgentCoworkerDescriptor>) {
     }
 
     // 3. Retention by IDENTITY (deliveries and ops carry their target's
-    //    identity stamped at enqueue/completion — a label can no longer
+    //    identity stamped at enqueue/completion - a label can no longer
     //    vouch for anything).
     //    Finished background deliveries of removed coworkers are ORPHANED: their
     //    requester may be long gone, and a stale delivery draining into a
     //    LATER loop (a session reopened, a new manager turn) would inject a
     //    report from a dead conversation. They die with the coworker. Worktree
     //    outcomes are the exception: their RECEIPT-holder (the requesting
-    //    loop) is alive and waiting for the answer, so a worktree finding —
-    //    including a failure committed after the coworker closed — survives.
+    //    loop) is alive and waiting for the answer, so a worktree finding -
+    //    including a failure committed after the coworker closed - survives.
     state.deliveries.retain(|delivery| {
         delivery.kind == DeliveryKind::Worktree || live_identities.contains(&delivery.coworker_id)
     });
@@ -638,7 +638,7 @@ pub fn set_coworkers(coworkers: Vec<AgentCoworkerDescriptor>) {
             .find(|op| &op.id == op_id)
             .map(|op| (op.coworker.clone(), op.coworker_id))
             .unwrap_or_default();
-        let message = format!("pane '{coworker}' was removed — the binding cannot change");
+        let message = format!("pane '{coworker}' was removed - the binding cannot change");
         state.deliveries.push(AgentCoworkerDelivery {
             coworker,
             coworker_id,
@@ -656,7 +656,7 @@ pub fn set_coworkers(coworkers: Vec<AgentCoworkerDescriptor>) {
     // Parked compact ops of removed coworkers die immediately: the coworker can
     // never be compacted again. Complete them as failures so the
     // requesting loop's outcome delivery still lands (Compact-kind
-    // deliveries, so the retain above just kept the door open for them —
+    // deliveries, so the retain above just kept the door open for them -
     // same receipt-holder-is-alive argument as the Worktree exception).
     // Clear the in-flight guard too: the dead compaction can never
     // complete, so the coworker must not stay blocked forever.
@@ -674,7 +674,7 @@ pub fn set_coworkers(coworkers: Vec<AgentCoworkerDescriptor>) {
         })
         .collect();
     for (op_id, coworker, coworker_id, requester) in &compact_targets {
-        let message = format!("pane '{coworker}' was removed — its context cannot be compacted");
+        let message = format!("pane '{coworker}' was removed - its context cannot be compacted");
         state.deliveries.push(AgentCoworkerDelivery {
             coworker: coworker.clone(),
             coworker_id: *coworker_id,
@@ -731,14 +731,14 @@ pub fn has_coworkers() -> bool {
 }
 
 /// Queue one message to a coworker. The request waits in the coworker's queue
-/// while the coworker is busy (a user turn, an earlier agent request) — the
+/// while the coworker is busy (a user turn, an earlier agent request) - the
 /// App dispatches the head when the coworker becomes free. `Wait` mode also
 /// returns a receiver the tool awaits for the coworker's report; `Background`
 /// mode returns `None` (the report arrives via [`take_ready_deliveries`]).
 ///
 /// # Errors
 ///
-/// An unknown coworker id (the model guessed a name that is not bound — the
+/// An unknown coworker id (the model guessed a name that is not bound - the
 /// error names the known ids so the model can correct itself). Also a
 /// `Wait` call from a manager (`MANAGER`) loop to a morpheus coworker: see the
 /// mutual-deadlock guard below.
@@ -765,8 +765,8 @@ pub fn enqueue(
     // morpheus coworkers can therefore deadlock (self on the same id, or two managers
     // on each other's coworker: both turns stay busy, `serve_agents_pane_queues`
     // skips running coworkers, and no turn ever reaches `complete_request`).
-    // Background calls are non-blocking and safe — they are the intended
-    // coordination path for a planner/implementer pair — so only `Wait` is
+    // Background calls are non-blocking and safe - they are the intended
+    // coordination path for a planner/implementer pair - so only `Wait` is
     // refused, with a pointer to `run_in_background`. (The separate self-call
     // guard in `Harness` also refuses a background call a coworker makes to its
     // OWN id: that request could only run after the current turn, which the
@@ -775,7 +775,7 @@ pub fn enqueue(
     if requester == MANAGER && target_is_manager && mode == ReplyMode::Wait {
         return Err(format!(
             "`agents_call` to the morpheus pane '{coworker}' cannot block: morpheus panes run manager \
-             loops, and a manager turn cannot finish while waiting on a peer coworker — two of \
+             loops, and a manager turn cannot finish while waiting on a peer coworker - two of \
              them waiting on each other would deadlock. Re-run with \
              `run_in_background: true`: the report then arrives as an [automated notification]."
         ));
@@ -823,15 +823,15 @@ pub struct EnqueueHandle {
     /// The queued request's id (echoed in receipts so a `subagent_status`-
     /// style poll could be added later without a registry change).
     pub request_id: String,
-    /// The target coworker's identity ([`AgentCoworkerDescriptor::coworker_id`]) — the
+    /// The target coworker's identity ([`AgentCoworkerDescriptor::coworker_id`]) - the
     /// identity the request was stamped with at enqueue.
     pub coworker_id: u64,
     /// Wait mode only: resolves with the coworker's report and the way it
-    /// ended (or the failure reason — coworker removed, turn errored).
+    /// ended (or the failure reason - coworker removed, turn errored).
     pub receiver: Option<tokio::sync::oneshot::Receiver<AgentCoworkerReport>>,
 }
 
-/// Pop the head of `coworker`'s request queue — the request the coworker should
+/// Pop the head of `coworker`'s request queue - the request the coworker should
 /// work on next. Called by the App when the coworker is free (split opened
 /// with it idle, its previous turn just ended): the App dispatches the
 /// returned request as the coworker's next turn and reports the result back
@@ -842,12 +842,12 @@ pub fn pop_next_request(coworker: &str) -> Option<AgentCoworkerRequest> {
     let mut state = registry().lock().unwrap_or_else(|p| p.into_inner());
     // A leftover serving entry on a coworker the App is about to dispatch to
     // is ORPHANED: the App only pops when the coworker is free (`!running`),
-    // so any entry still here belongs to a turn that never completed —
+    // so any entry still here belongs to a turn that never completed -
     // its dispatch was refused after the pop (manager-session mint
     // failure), or its terminal `AgentsPaneDone` was dropped against a
     // torn-down epoch. Leaving it would keep `has_outstanding_requests`
     // true forever and hang the requester's busy-guard (the manager loop
-    // waits at its natural-completion point) — the coworker would sit
+    // waits at its natural-completion point) - the coworker would sit
     // `running` with no activity behind it. Fail the stale wait so the
     // requester unblocks instead.
     if let Some(request) = state.serving.remove(coworker) {
@@ -863,7 +863,7 @@ pub fn pop_next_request(coworker: &str) -> Option<AgentCoworkerRequest> {
 }
 
 /// Peek whether `coworker` has any queued request (the App's "is there work
-/// waiting for this pane" check — no dequeue).
+/// waiting for this pane" check - no dequeue).
 #[must_use]
 pub fn has_queued_request(coworker: &str) -> bool {
     registry()
@@ -875,19 +875,19 @@ pub fn has_queued_request(coworker: &str) -> bool {
 }
 
 /// Report a coworker turn's end to the registry: resolves the request the coworker
-/// was serving — a `Wait` request unblocks the `agents_call` tool inline
+/// was serving - a `Wait` request unblocks the `agents_call` tool inline
 /// with the report, a `Background` request parks a delivery for its
 /// requester's next loop drain. Called by the App from the `AgentsPaneDone`
-/// handler (keyed by coworker — the App never knows request ids). A coworker with
+/// handler (keyed by coworker - the App never knows request ids). A coworker with
 /// no tracked request (a pure user turn) is a no-op.
 ///
 /// Returns the resolved request's requester tag (`Some(MAIN)` /
-/// `Some(MANAGER)`) — the App's wake promise reads it: a MAIN-requested
+/// `Some(MANAGER)`) - the App's wake promise reads it: a MAIN-requested
 /// coworker turn that completes while the main loop is NOT running must wake
 /// the main agent with the report (the caller promised an output for its
 /// input; a user-initiated coworker turn promises nothing). `None` when the
 /// coworker served nothing tracked.
-/// `end` is how the turn ended ([`AgentCoworkerTurnEnd`]) — carried into the parked
+/// `end` is how the turn ended ([`AgentCoworkerTurnEnd`]) - carried into the parked
 /// delivery so the requester's note can qualify the report (a `partial`
 /// report may describe pending work). Wait-mode callers receive the report
 /// inline and must apply the SAME qualification themselves; they read it
@@ -904,14 +904,14 @@ pub fn complete_request(coworker: &str, report: AgentCoworkerReport) -> Option<&
         ReplyMode::Wait => {
             // A LIVE waiter takes the report inline. A DEAD one (the
             // requester's turn ended or was stopped while the coworker worked
-            // — the oneshot was dropped) must not swallow the report: the
+            // - the oneshot was dropped) must not swallow the report: the
             // wake promise ("an input sent by the agent owes it an output")
             // parks the delivery for the requester's drain / the App's
             // idle-main-agent wake, exactly like background mode.
             match state.waits.remove(&request.id) {
                 Some(pending) => {
                     // `send` hands the value BACK when the receiver is gone
-                    // — a dropped wait handle means the requester's turn
+                    // - a dropped wait handle means the requester's turn
                     // ended before the report; the promise parks it.
                     if let Err(undelivered) = pending.tx.send(AgentCoworkerReport { output, end }) {
                         state.deliveries.push(AgentCoworkerDelivery {
@@ -950,7 +950,7 @@ pub fn complete_request(coworker: &str, report: AgentCoworkerReport) -> Option<&
 }
 
 /// Fail a coworker's IN-FLIGHT request, if any: the coworker's turn was reset
-/// without completing (a coworker-set teardown) — a leftover serving entry
+/// without completing (a coworker-set teardown) - a leftover serving entry
 /// would keep [`has_outstanding_requests`] true forever and hang the
 /// requester's busy-guard at its natural-completion point. Queued (not yet
 /// served) requests are kept: the freed coworker can still serve them. This is
@@ -965,7 +965,7 @@ pub fn fail_serving(coworker: &str, error: String) {
 }
 
 /// A user-stop interrupt (Ctrl+X) fails the coworker's IN-FLIGHT request as a
-/// CANCELLED turn — the one path where `cancelled` is literal. Every other
+/// CANCELLED turn - the one path where `cancelled` is literal. Every other
 /// teardown ([`fail_serving`], [`fail_coworker`], [`set_coworkers`]) stays `Error`.
 /// Routing through [`complete_request`] resolves BOTH reply modes exactly
 /// like a real terminal Done: a wait-mode caller unblocks inline with
@@ -1003,12 +1003,12 @@ fn drop_queued_requests(coworker: &str, error: &str) {
     }
 }
 
-/// Fail ALL of a coworker's outstanding requests — in-flight AND queued — and
+/// Fail ALL of a coworker's outstanding requests - in-flight AND queued - and
 /// drop the coworker from the registry entirely. For a coworker set that dies as a
 /// WHOLE (a session switch, the app quitting): the coworker will never serve
 /// anything again in this process, so a leftover queued request would hang
 /// its requester's busy-guard forever (`has_outstanding_requests` stuck
-/// true with nobody left to dispatch it) — the same terminal state a
+/// true with nobody left to dispatch it) - the same terminal state a
 /// leftover serving entry causes, one step earlier in the pipeline. Unlike
 /// [`fail_serving`] (single in-flight turn) and [`set_coworkers`] (set
 /// replacement, where surviving coworkers keep serving), this is the
@@ -1041,7 +1041,7 @@ pub fn fail_coworker(coworker: &str, error: String) {
 
 /// Cancel every outstanding request from `requester` whose wait is still
 /// unresolved: the coworker queue entries are dropped and the waiters resolve
-/// with the failure. Called on the requester loop's stop (Esc) — a stopped
+/// with the failure. Called on the requester loop's stop (Esc) - a stopped
 /// turn must never leave a wait-mode `agents_call` blocked forever.
 pub fn cancel_requester(requester: &'static str) {
     let mut state = registry().lock().unwrap_or_else(|p| p.into_inner());
@@ -1068,7 +1068,7 @@ pub fn cancel_requester(requester: &'static str) {
 /// wait map. Called by the tool itself when the requester's turn is
 /// stopped while it awaits (Esc): the blocked tool unblocks with the
 /// stop error instead of hanging forever. The coworker-side bookkeeping is
-/// untouched — if the coworker was already working on the request, its turn
+/// untouched - if the coworker was already working on the request, its turn
 /// finishes normally and `complete_request` finds no wait to resolve
 /// (the report is simply not delivered to a dead turn).
 pub fn cancel_wait(request_id: &str) {
@@ -1076,7 +1076,7 @@ pub fn cancel_wait(request_id: &str) {
     // The request may still be QUEUED (never dispatched) or already
     // IN-FLIGHT (the coworker is working on it). A queued entry is removed so
     // the App's queue service never dispatches a message whose requester
-    // died; an in-flight entry stays — the coworker finishes its turn normally
+    // died; an in-flight entry stays - the coworker finishes its turn normally
     // and `complete_request` resolves whatever wait is left (none, here).
     for queue in state.queues.values_mut() {
         queue.retain(|request| request.id != request_id);
@@ -1088,21 +1088,21 @@ pub fn cancel_wait(request_id: &str) {
     );
 }
 
-/// Whether `requester` has any outstanding coworker request — queued (waiting
-/// for a coworker to free) or in-flight (a coworker is working on it) — or any
+/// Whether `requester` has any outstanding coworker request - queued (waiting
+/// for a coworker to free) or in-flight (a coworker is working on it) - or any
 /// PARKED worktree op of its own. The agent loop's busy-guard reads this at
 /// its natural-completion point: a turn that asked a coworker for something
-/// does NOT end while the answer is still outstanding — ending it would
+/// does NOT end while the answer is still outstanding - ending it would
 /// orphan the wait and lose the report.
 ///
-/// A parked `agents_worktree` op counts for the same reason — but only on
+/// A parked `agents_worktree` op counts for the same reason - but only on
 /// the EXCEPTION path. Normally the asking tool call pauses inside
 /// `dispatch_next` until the App resolves the ask, so by the time the turn
 /// can end the outcome is already in the model's hands. What still parks
 /// here is a stop-interrupted ask: the OUTCOME (executed, refused by the
 /// user, failed in git) is then still owed to this loop as a Worktree
 /// delivery, and ending the turn would leave it to a later, unrelated turn
-/// — or never, if the session closes. Ops are cheap to wait for (the App
+/// - or never, if the session closes. Ops are cheap to wait for (the App
 /// drains them every frame) and a user permission box answers promptly, so
 /// this cannot hang the loop.
 #[must_use]
@@ -1135,7 +1135,7 @@ fn fail_wait(state: &mut RegistryState, request_id: &str, error: String) {
 /// Drain the finished background deliveries tagged for `requester`.
 /// Called by the agent loop at its natural-drain point (the same place
 /// `background::take_ready_notifications` runs). Undelivered deliveries
-/// for the OTHER requester stay parked — the manager loop must never
+/// for the OTHER requester stay parked - the manager loop must never
 /// inject a report the main loop asked for, and vice versa.
 #[must_use]
 pub fn take_ready_deliveries(requester: &str) -> Vec<AgentCoworkerDelivery> {
@@ -1162,7 +1162,7 @@ pub fn take_ready_deliveries(requester: &str) -> Vec<AgentCoworkerDelivery> {
 
 /// Take the ONE Worktree-kind delivery addressed to `requester` with the
 /// given op id, without touching any other parked delivery. The paused
-/// `agents_worktree` dispatch polls this — `take_ready_deliveries` would
+/// `agents_worktree` dispatch polls this - `take_ready_deliveries` would
 /// also sweep up unrelated `agents_call` reports sitting in the same
 /// queue and drop them (the loop would never see those reports).
 /// `None` while the ask is still pending.
@@ -1184,7 +1184,7 @@ pub fn take_ready_worktree_delivery(
 /// coworker object `coworker_id` actually ended up driving (the id it resumed, or
 /// the fresh `session/new` id a failed resume silently fell back to).
 ///
-/// This is the fact-capture half of the session-binding contract — written
+/// This is the fact-capture half of the session-binding contract - written
 /// by the turn task itself the moment the turn resolves its session,
 /// WITHOUT routing through the `AgentsPaneDone` event. The Done's handler
 /// gates (unknown coworker id, stale epoch, already-idle coworker) exist to keep
@@ -1196,7 +1196,7 @@ pub fn take_ready_worktree_delivery(
 /// Overwrite semantics: a coworker object runs at most one turn at a time, so
 /// a later record for the same `coworker_id` is the turn's own authoritative
 /// latest answer (e.g. the manager coworker re-binding after a session mint).
-/// `drain_session_bindings` is the consumer half — all-or-nothing per
+/// `drain_session_bindings` is the consumer half - all-or-nothing per
 /// pass, so an absorbed id can never resurface after the App deliberately
 /// dropped it.
 pub fn record_session_binding(coworker_id: u64, session_id: String) {
@@ -1210,7 +1210,7 @@ pub fn record_session_binding(coworker_id: u64, session_id: String) {
 /// Drain ALL recorded session-binding facts, sorted by coworker id for a
 /// deterministic pass. The App's absorb pass consumes these and rebinding
 /// is idempotent (already-bound coworkers short-circuit), so consuming every
-/// fact at once is safe — and it is what guarantees a dropped fact never
+/// fact at once is safe - and it is what guarantees a dropped fact never
 /// comes back to haunt a later absorb pass.
 #[must_use]
 pub fn drain_session_bindings() -> Vec<(u64, String)> {
@@ -1222,7 +1222,7 @@ pub fn drain_session_bindings() -> Vec<(u64, String)> {
 
 /// Render one finished delivery as the `[automated notification]` user
 /// turn both loop drain sites inject (the per-turn drain and the pre-Done
-/// busy-guard): same contract, same shape — the body differs per kind (a
+/// busy-guard): same contract, same shape - the body differs per kind (a
 /// coworker report vs a worktree binding update).
 pub fn delivery_note(delivery: &AgentCoworkerDelivery) -> String {
     match delivery.kind {
@@ -1261,7 +1261,7 @@ pub fn delivery_note(delivery: &AgentCoworkerDelivery) -> String {
     }
 }
 
-/// Render a coworker report as the requester reads it — the ONE builder behind
+/// Render a coworker report as the requester reads it - the ONE builder behind
 /// both delivery paths:
 ///
 /// - the background / wake-promise route ([`delivery_note`], injected as an
@@ -1269,17 +1269,17 @@ pub fn delivery_note(delivery: &AgentCoworkerDelivery) -> String {
 /// - the wait-mode `agents_call` tool result (`dispatch.rs`).
 ///
 /// The old code had only the first, so a requester that BLOCKED on
-/// `agents_call` received the raw report with no qualification at all —
+/// `agents_call` received the raw report with no qualification at all -
 /// exactly the path where a truncated report is most likely to be
 /// mistaken for a conclusion.
 ///
 /// # The continuation contract (why the tail exists)
 ///
 /// The harness guarantees a report EXISTS (a coworker turn always ends with
-/// text — see [`AgentCoworkerTurnEnd::Partial`]). It cannot guarantee the report is
+/// text - see [`AgentCoworkerTurnEnd::Partial`]). It cannot guarantee the report is
 /// a CONCLUSION: "now I'll edit core.rs" is a perfectly well-formed report
 /// of a turn that never got to do the work. Only the requester can see
-/// that, and it has two wrong reactions available — doing the work itself
+/// that, and it has two wrong reactions available - doing the work itself
 /// (it holds the same tools) or spawning a fresh agent (losing the coworker's
 /// accumulated context). Both are blocked by an explicit instruction.
 ///
@@ -1290,7 +1290,7 @@ pub fn delivery_note(delivery: &AgentCoworkerDelivery) -> String {
 /// marked and redirected, and `redirects` caps how many times the same
 /// coworker may be pushed with `continue` ([`MAX_PARTIAL_REDIRECTS`]): past
 /// that the guidance flips to "decide and tell the user", because a coworker
-/// that keeps narrating would otherwise ping-pong forever — each
+/// that keeps narrating would otherwise ping-pong forever - each
 /// `continue` starts a fresh request whose own nudge budget the harness
 /// resets, so nothing inside the coworker bounds the loop.
 #[must_use]
@@ -1312,7 +1312,7 @@ pub fn report_block(
     // read the coworker's count, decide whether this render invites a continue,
     // advance it if so, and reset it on a real closure. Splitting the read
     // from the write across two acquisitions would let two concurrent
-    // reports both see the same count and both invite a continue — exactly
+    // reports both see the same count and both invite a continue - exactly
     // the ping-pong the bound exists to prevent.
     let redirects = claim_redirect(coworker_id, end);
     let status = if failed {
@@ -1343,7 +1343,7 @@ pub fn report_block(
              output and may describe an action it has NOT taken yet (\"now I'll edit core.rs\").\n\
              If that is what it reads like, the task is unfinished: send the SAME coworker a \
              follow-up with `agents_call` (`pane` = this pane, `input` = \"continue\"). The pane \
-             still holds its context — do NOT do the pending work yourself, and do NOT start \
+             still holds its context - do NOT do the pending work yourself, and do NOT start \
              a fresh agent for it. If the report IS a conclusion, close this out normally."
                 .to_string()
         }
@@ -1358,7 +1358,7 @@ pub fn report_block(
         AgentCoworkerTurnEnd::Incomplete => "\n\n## The pane produced no report\n\
              The turn ended without any final text (an empty or exhausted stream, or a safety \
              stop during tool work). If the work is still wanted, re-send the task to the same \
-             pane — it holds its context. Do not assume the task completed."
+             pane - it holds its context. Do not assume the task completed."
             .to_string(),
         // Error / user stop: the work was NOT done and `continue` is the
         // wrong recovery (it would re-run against a broken provider, or
@@ -1375,14 +1375,14 @@ pub fn report_block(
     format!("{header}{guidance}")
 }
 
-/// How many `continue` invitations this coworker already received — and, when
+/// How many `continue` invitations this coworker already received - and, when
 /// `count` is set, the increment that records the one being rendered now.
 ///
 /// ONE function for read-and-count on purpose: the invitation and the
 /// counter must never drift, and every render of [`report_block`] is exactly
 /// one report handed to a requester, so counting at render time is the
 /// tightest possible coupling between "the model was told to continue" and
-/// "the bound advanced". Keyed by the coworker's IDENTITY — a recycled label
+/// "the bound advanced". Keyed by the coworker's IDENTITY - a recycled label
 /// never inherits a dead coworker's budget (Issue 3).
 fn claim_redirect(coworker_id: u64, end: AgentCoworkerTurnEnd) -> u32 {
     let mut state = registry().lock().unwrap_or_else(|p| p.into_inner());
@@ -1402,7 +1402,7 @@ fn claim_redirect(coworker_id: u64, end: AgentCoworkerTurnEnd) -> u32 {
     current
 }
 
-/// Park one `agents_worktree` ask — the mirror of [`enqueue`]'s contract,
+/// Park one `agents_worktree` ask - the mirror of [`enqueue`]'s contract,
 /// minus the wait-mode half. The op is FIFO-queued in the registry until
 /// the App's frame drain pops it; the asking tool call then pauses inside
 /// `dispatch_next` and consumes the outcome itself
@@ -1411,7 +1411,7 @@ fn claim_redirect(coworker_id: u64, end: AgentCoworkerTurnEnd) -> u32 {
 /// the requester's loop drain on a later turn.
 ///
 /// The TARGET rule is uniform: every coworker in the set is addressable, the
-/// morpheus (`is_manager`) ones included — a morpheus coworker runs a real agent session
+/// morpheus (`is_manager`) ones included - a morpheus coworker runs a real agent session
 /// with its own cwd, so isolating one is a legitimate ask exactly like
 /// isolating a `claude` coworker, and it is the supremacy check (a
 /// User-assigned binding always opens the user's permission box) plus the
@@ -1422,10 +1422,10 @@ fn claim_redirect(coworker_id: u64, end: AgentCoworkerTurnEnd) -> u32 {
 ///
 /// # Errors
 ///
-/// An unknown coworker id (the model guessed a name that is not bound — the
+/// An unknown coworker id (the model guessed a name that is not bound - the
 /// error names the known ids so the model can correct itself), an `Assign`
 /// without a usable `name`, or a `name` the worktree engine would refuse at
-/// its git argument (leading dash, whitespace, control characters) —
+/// its git argument (leading dash, whitespace, control characters) -
 /// refused HERE so nothing parks.
 pub fn enqueue_worktree_op(
     coworker: &str,
@@ -1449,7 +1449,7 @@ pub fn enqueue_worktree_op(
     if action == WorktreeAction::Assign {
         let Some(name) = name else {
             return Err(
-                "`agents_worktree` assign requires `name` — the branch the new worktree checks \
+                "`agents_worktree` assign requires `name` - the branch the new worktree checks \
                  out (its slug also names the worktree directory)."
                     .to_string(),
             );
@@ -1476,7 +1476,7 @@ pub fn enqueue_worktree_op(
     Ok(id)
 }
 
-/// Look at the OLDEST parked worktree op without consuming it — the App's
+/// Look at the OLDEST parked worktree op without consuming it - the App's
 /// drain needs the ask to DECIDE (supremacy check, modal availability)
 /// before popping. `None` when nothing is parked.
 #[must_use]
@@ -1489,7 +1489,7 @@ pub fn peek_worktree_op() -> Option<WorktreeOp> {
         .cloned()
 }
 
-/// Consume the OLDEST parked worktree op — after the App's decision is
+/// Consume the OLDEST parked worktree op - after the App's decision is
 /// final (execute now, or the user's confirmation answered). The popped
 /// op pairs with [`complete_worktree_op`]'s outcome by its id. The App is
 /// the ONLY consumer; `None` when the registry head moved (nothing or
@@ -1505,7 +1505,7 @@ pub fn pop_worktree_op() -> Option<WorktreeOp> {
 /// delivery as its own tool result), so this is the outcome's FIRST
 /// consumer path. If the requester's wait was interrupted by a stop, the
 /// delivery stays parked instead and reaches the loop through its drain
-/// (same path as a background `agents_call` report — [`delivery_note`]
+/// (same path as a background `agents_call` report - [`delivery_note`]
 /// renders the automated notification).
 pub fn complete_worktree_op(op: &WorktreeOp, outcome: Result<String, String>) {
     let mut state = registry().lock().unwrap_or_else(|p| p.into_inner());
@@ -1520,7 +1520,7 @@ pub fn complete_worktree_op(op: &WorktreeOp, outcome: Result<String, String>) {
     });
 }
 
-/// Park one `agents_compact` ask — the mirror of [`enqueue_worktree_op`]'s
+/// Park one `agents_compact` ask - the mirror of [`enqueue_worktree_op`]'s
 /// contract, minus the worktree validation (there is nothing to validate
 /// beyond coworker membership). The ask is FIFO-queued in the registry until
 /// the App's frame drain pops it; the asking tool call then pauses inside
@@ -1531,10 +1531,10 @@ pub fn complete_worktree_op(op: &WorktreeOp, outcome: Result<String, String>) {
 ///
 /// # Errors
 ///
-/// An unknown coworker id (the model guessed a name that is not bound — the
+/// An unknown coworker id (the model guessed a name that is not bound - the
 /// error names the known ids so the model can correct itself), or an ACP
 /// coworker (its context is owned by its external CLI and is never touched
-/// here) — refused HERE so nothing parks.
+/// here) - refused HERE so nothing parks.
 pub fn enqueue_compact_op(coworker: &str, requester: &'static str) -> Result<String, String> {
     let mut state = registry().lock().unwrap_or_else(|p| p.into_inner());
     let known: Vec<String> = state.coworkers.iter().map(|p| p.id.clone()).collect();
@@ -1550,18 +1550,18 @@ pub fn enqueue_compact_op(coworker: &str, requester: &'static str) -> Result<Str
     };
     if !is_manager {
         return Err(format!(
-            "pane '{coworker}' runs an external agent — its context is owned by its own CLI \
+            "pane '{coworker}' runs an external agent - its context is owned by its own CLI \
              and cannot be compacted from here. Only morpheus coworkers (this app's own \
              sessions) are compactable."
         ));
     }
     if state.compacting.contains(&target_coworker_id) {
-        // Finding 2: a compaction of this coworker is already in flight — a
+        // Finding 2: a compaction of this coworker is already in flight - a
         // second would restore the same pre-compaction snapshot and its
         // persist would overwrite the first with a STALE summary. The ask
         // fails fast instead of parking behind a duplicate.
         return Err(format!(
-            "pane '{coworker}' is already being compacted — wait for the running compaction \
+            "pane '{coworker}' is already being compacted - wait for the running compaction \
              to finish before asking again."
         ));
     }
@@ -1576,7 +1576,7 @@ pub fn enqueue_compact_op(coworker: &str, requester: &'static str) -> Result<Str
     Ok(id)
 }
 
-/// Look at the OLDEST parked compact op without consuming it — the App's
+/// Look at the OLDEST parked compact op without consuming it - the App's
 /// drain needs the ask (target coworker, requester) before popping. `None`
 /// when nothing is parked.
 #[must_use]
@@ -1589,7 +1589,7 @@ pub fn peek_compact_op() -> Option<CompactOp> {
         .cloned()
 }
 
-/// Consume the OLDEST parked compact op — after the App's decision is
+/// Consume the OLDEST parked compact op - after the App's decision is
 /// final (run the compaction, or refuse it). The popped op pairs with
 /// [`complete_compact_op`]'s outcome by its id. The App is the ONLY
 /// consumer; `None` when the registry head moved (nothing or someone
@@ -1599,7 +1599,7 @@ pub fn pop_compact_op() -> Option<CompactOp> {
     let mut state = registry().lock().unwrap_or_else(|p| p.into_inner());
     let op = state.compacts.pop_front()?;
     // The ask is now the App's to execute: mark the coworker's compaction in
-    // flight (the per-coworker guard — a second enqueue fails fast instead of
+    // flight (the per-coworker guard - a second enqueue fails fast instead of
     // parking a duplicate). `complete_compact_op` clears it either way.
     state.compacting.insert(op.coworker_id);
     Some(op)
@@ -1610,7 +1610,7 @@ pub fn pop_compact_op() -> Option<CompactOp> {
 /// delivery as its own tool result), so this is the outcome's FIRST
 /// consumer path. If the requester's wait was interrupted by a stop, the
 /// delivery stays parked instead and reaches the loop through its drain
-/// (same path as a background `agents_call` report — [`delivery_note`]
+/// (same path as a background `agents_call` report - [`delivery_note`]
 /// renders the automated notification).
 pub fn complete_compact_op(op: &CompactOp, outcome: Result<String, String>) {
     let mut state = registry().lock().unwrap_or_else(|p| p.into_inner());
@@ -1644,7 +1644,7 @@ pub fn coworker_is_compacting(coworker_id: u64) -> bool {
 
 /// Take the ONE Compact-kind delivery addressed to `requester` with the
 /// given op id, without touching any other parked delivery. The paused
-/// `agents_compact` dispatch polls this — `take_ready_deliveries` would
+/// `agents_compact` dispatch polls this - `take_ready_deliveries` would
 /// also sweep up unrelated parked reports and drop them (the loop would
 /// never see those). `None` while the ask is still pending.
 #[must_use]
@@ -1662,14 +1662,14 @@ pub fn take_ready_compact_delivery(
 }
 
 /// The silence suffix Claude Code pins onto every ambient-context block:
-/// the listing is re-attached on every request (tail render — see
+/// the listing is re-attached on every request (tail render - see
 /// `set_coworkers_block`), so without it a model reads each fresh copy as a NEW
 /// message and acknowledges it turn after turn. Wording follows Claude
-/// Code's own suffix ("This is ambient context — do not narrate it to the
+/// Code's own suffix ("This is ambient context - do not narrate it to the
 /// user unless they ask or it is directly relevant to their request.").
 #[must_use]
 pub fn ambient_context_suffix() -> &'static str {
-    "This is ambient context — it is re-attached on every request for \
+    "This is ambient context - it is re-attached on every request for \
      reference and is not a new message: do not narrate it or respond to \
      it unless the user asks about it or it is directly relevant to their \
      request."
@@ -2026,7 +2026,7 @@ pub fn task_claim(task_id: u64, by: &str) -> Result<String, String> {
 }
 
 /// The context block appended at the END of the system header (an
-/// appendix — never a prefix insertion, so the providers' exact-prefix
+/// appendix - never a prefix insertion, so the providers' exact-prefix
 /// caches stay valid). `None` when no coworkers exist: the header stays
 /// byte-identical with the pre-feature one, and nothing is interpolated
 /// for something that does not exist.
@@ -2039,7 +2039,7 @@ pub fn context_block() -> Option<String> {
     }
     let mut block = String::from(
         "## Agents Panes\n\
-         The /agents coworkers currently bound to this session — address each \
+         The /agents coworkers currently bound to this session - address each \
          by its coworker id (`agents_call` to message one, `agents_worktree` to \
          move one into or out of a git worktree):\n",
     );
@@ -2061,7 +2061,7 @@ pub fn context_block() -> Option<String> {
             .unwrap_or_default();
         let _ = writeln!(
             block,
-            "- {} — {} ({session}{worktree}{model})",
+            "- {} - {} ({session}{worktree}{model})",
             coworker.id, coworker.agent
         );
     }
@@ -2082,7 +2082,7 @@ pub fn context_block() -> Option<String> {
             let owner = t.owner.as_deref().unwrap_or("unclaimed");
             let _ = writeln!(
                 block,
-                "- #{} — {} — {} — owner: {}",
+                "- #{} - {} - {} - owner: {}",
                 t.id,
                 t.status.as_str(),
                 t.title,
@@ -2098,7 +2098,7 @@ pub fn context_block() -> Option<String> {
 
 /// The awareness block a PANE sees: the coworker set WITHOUT the coordination
 /// vocabulary. A coworker must never learn the `agents_call` ids or its own
-/// addressability (the replication bug `with_own_coworker_id` documents) — but
+/// addressability (the replication bug `with_own_coworker_id` documents) - but
 /// it still benefits from knowing WHICH siblings share its workspace, so
 /// it can mention them ("claude is on the same branch") instead of assuming
 /// it is alone. Rendered for the manager coworker's context tail (Phase 1) and
@@ -2130,7 +2130,7 @@ pub fn peer_block(own_id: &str) -> Option<String> {
             .unwrap_or_default();
         let _ = writeln!(
             block,
-            "- {} — {}{}{model}",
+            "- {} - {}{}{model}",
             coworker.agent, coworker.id, worktree
         );
     }
@@ -2147,7 +2147,7 @@ pub fn peer_block(own_id: &str) -> Option<String> {
             let owner = t.owner.as_deref().unwrap_or("unclaimed");
             let _ = writeln!(
                 block,
-                "- #{} — {} — {} — owner: {}",
+                "- #{} - {} - {} - owner: {}",
                 t.id,
                 t.status.as_str(),
                 t.title,
@@ -2158,7 +2158,7 @@ pub fn peer_block(own_id: &str) -> Option<String> {
     }
     block.push_str(
         "You do NOT coordinate them (no `agents_call` for you): do your own \
-         delegated work and report back — the main agent owns the coordination.",
+         delegated work and report back - the main agent owns the coordination.",
     );
     block.push_str("\n\n");
     block.push_str(ambient_context_suffix());
@@ -2167,12 +2167,12 @@ pub fn peer_block(own_id: &str) -> Option<String> {
 
 /// Take the awareness preamble for an ACP coworker, when its announcement went
 /// stale. Keyed by the coworker's IDENTITY (`AgentPane::id`), never the
-/// recyclable positional label — a label recycled onto a fresh coworker
+/// recyclable positional label - a label recycled onto a fresh coworker
 /// announces from scratch. Returns the text to PREPEND to the coworker's next
 /// prompt, and marks the coworker as announced at the current generation;
 /// `None` when the coworker is already up to date (nothing rides the prompt).
 /// ACP has no system prompt,
-/// so the coworker's awareness can only arrive as prompt text — this keeps it
+/// so the coworker's awareness can only arrive as prompt text - this keeps it
 /// once-per-change instead of once-per-turn.
 pub fn take_preamble(coworker_id: u64) -> Option<String> {
     let mut state = registry().lock().unwrap_or_else(|p| p.into_inner());
@@ -2194,7 +2194,7 @@ pub fn take_preamble(coworker_id: u64) -> Option<String> {
                     .as_deref()
                     .map(|name| format!(", worktree {name}"))
                     .unwrap_or_default();
-                format!("- {} — {}{}", p.agent, p.id, worktree)
+                format!("- {} - {}{}", p.agent, p.id, worktree)
             })
             .collect();
         if siblings.is_empty() {
@@ -2203,7 +2203,7 @@ pub fn take_preamble(coworker_id: u64) -> Option<String> {
             Some(format!(
                 "## Agents Panes\n\
                  Other /agents coworkers share this session's workspace alongside you:\n{}\n\
-                 You do NOT coordinate them: do your own delegated work and report back — \
+                 You do NOT coordinate them: do your own delegated work and report back - \
                  the main agent owns the coordination.",
                 siblings.join("\n")
             ))
@@ -2217,7 +2217,7 @@ pub fn take_preamble(coworker_id: u64) -> Option<String> {
 /// The two shapes both coworker tools need from the CURRENT coworker set: the ids
 /// joined for the description ("claude, kilo"), and the same ids as the
 /// JSON-schema `enum` for the `coworker` property. Built once here because both
-/// tools address the SAME ids — a second copy is how the description and
+/// tools address the SAME ids - a second copy is how the description and
 /// the enum drift apart.
 #[must_use]
 fn coworker_schema_parts() -> (String, Vec<serde_json::Value>) {
@@ -2233,7 +2233,7 @@ fn coworker_schema_parts() -> (String, Vec<serde_json::Value>) {
 /// The `agents_call` harness tool, built against the CURRENT coworker set:
 /// the description lists the addressable ids (the model never guesses)
 /// and the schema's `coworker` enum carries the same ids. Called by the
-/// harness builder only when coworkers exist — with none, the tool is never
+/// harness builder only when coworkers exist - with none, the tool is never
 /// registered and no context carries it.
 #[must_use]
 pub fn agents_call_tool() -> super::core::HarnessTool {
@@ -2243,7 +2243,7 @@ pub fn agents_call_tool() -> super::core::HarnessTool {
         description: format!(
             "Send a message to one of this session's /agents panes and coordinate its work.\n\
              `coworker` is the addressable coworker id ({pane_list}); `input` is the message the coworker receives as its next turn.\n\
-             A coworker that is busy (the user's turn, an earlier request) receives your message AFTER its current work — it is queued, never interleaved.\n\
+             A coworker that is busy (the user's turn, an earlier request) receives your message AFTER its current work - it is queued, never interleaved.\n\
              ## When to use\n\
              - Delegate a task to a coworker with everything it needs to act WITHOUT asking you back: the coworkers are independent agents and do NOT see your conversation.\n\
              - Set `run_in_background: true` to keep working while the coworker runs: the call returns a receipt immediately and the coworker's report arrives later as an [automated notification]. Prefer this for parallel work.\n\
@@ -2273,12 +2273,12 @@ pub fn agents_call_tool() -> super::core::HarnessTool {
 
 /// The `agents_worktree` harness tool, built against the CURRENT coworker set:
 /// the same addressable ids `agents_call` speaks, the morpheus (`is_manager`)
-/// coworkers INCLUDED — a morpheus coworker runs a real agent session with its own cwd,
+/// coworkers INCLUDED - a morpheus coworker runs a real agent session with its own cwd,
 /// so the agent may ask to isolate it exactly like any other coworker, and the
 /// user keeps the final word through the session permission box (Allow /
 /// Allow Once / Deny) a User-assigned binding always opens. Registered ONLY
 /// when coworkers exist and
-/// stripped from every coworker loop by `with_own_coworker_id` — so a coworker can
+/// stripped from every coworker loop by `with_own_coworker_id` - so a coworker can
 /// never rebind itself or a peer. Worktrees stay opt-in (the agent asks, the
 /// user can always veto a User-assigned coworker's rebinding).
 #[must_use]
@@ -2291,21 +2291,21 @@ pub fn agents_worktree_tool() -> super::core::HarnessTool {
              works on its own branch without touching the session's working tree.\n\
              `coworker` is the addressable coworker id ({pane_list}); `action` is `assign` (isolate the \
              coworker in a NEW temp worktree under the system temp dir, checking out branch \
-             `name` from the session repo's current HEAD) or `clear` (drop the binding — the \
+             `name` from the session repo's current HEAD) or `clear` (drop the binding - the \
              coworker returns to the session's working directory; the worktree and its branch are \
              KEPT on disk, never removed here).\n\
              ## Rules\n\
              - `name` (required on `assign`): the branch to check out. Its slug also names the \
              worktree directory. Collisions auto-suffix (`-2`, `-3`, …).\n\
-             - NO path parameter: the worktree location is morpheus's temp root — the user picks \
+             - NO path parameter: the worktree location is morpheus's temp root - the user picks \
              explicit locations via their own `/worktree` command, never you.\n\
              - The coworker (and you) learn the new cwd automatically before the coworker's next task: \
              include this in your delegation message when you assign one.\n\
-             - The coworker's UNCOMMITTED work is not carried along — assign a coworker BEFORE it \
+             - The coworker's UNCOMMITTED work is not carried along - assign a coworker BEFORE it \
              starts editing, or after it committed.\n\
              - Rebinding a coworker the USER assigned to a worktree opens the session permission \
-             box (Allow / Allow Once / Deny) the user must answer — their binding, their call \
-             (even in autonomous runs) — and THIS tool call pauses until they do. The call's \
+             box (Allow / Allow Once / Deny) the user must answer - their binding, their call \
+             (even in autonomous runs) - and THIS tool call pauses until they do. The call's \
              result IS the outcome: success text on Allow, a refusal explanation on Deny. If \
              the turn is stopped while the box is open, the ask stays parked and its outcome \
              arrives later as an [automated notification]."
@@ -2338,7 +2338,7 @@ pub fn agents_worktree_tool() -> super::core::HarnessTool {
 /// compact a coworker's context early (the same mechanism the `/compact`
 /// slash command runs on the coworker's own session), instead of waiting for
 /// the coworker's 80% trigger. Registered ONLY when coworkers exist and stripped
-/// from every coworker loop by `with_own_coworker_id` — compaction belongs to the
+/// from every coworker loop by `with_own_coworker_id` - compaction belongs to the
 /// coordinator alone, never to a sibling (a coworker compacting another coworker
 /// would be exactly the replication the coworker stripping exists to prevent).
 #[must_use]
@@ -2348,13 +2348,13 @@ pub fn agents_compact_tool() -> super::core::HarnessTool {
         name: "agents_compact".into(),
         description: format!(
             "Compact (summarize ahead of the automatic trigger) one of this session's \
-             /agents coworkers — the coworker keeps its task context as a handoff summary \
+             /agents coworkers - the coworker keeps its task context as a handoff summary \
              while its token usage drops.\n\n\
              `coworker` is the addressable coworker id ({pane_list}).\n\n\
              The coworker's turn must be finished (it runs between the coworker's turns, \
              exactly like the user's own /compact on that session): a busy coworker \
              refuses the call. Only morpheus coworkers (this app's own manager sessions) \
-             are compactable — an external agent owns its own context.\n\n\
+             are compactable - an external agent owns its own context.\n\n\
              ## When to use\n\n\
              - The coworker reports a heavy context (long transcript, repeated large \
              reads) and still has work left: compact it so its next turns fit its \
@@ -2442,7 +2442,7 @@ mod tests {
     /// Serialize every test behind one lock (the registry is a
     /// process-global singleton) and RESET it when dropped, so a leaked
     /// coworker/request cannot wedge later tests. The guard holds a DEDICATED
-    /// test mutex — never the registry's own (the global functions lock
+    /// test mutex - never the registry's own (the global functions lock
     /// that internally; holding it here would deadlock every call).
     struct RegistryGuard(#[allow(dead_code)] std::sync::MutexGuard<'static, ()>);
     impl Drop for RegistryGuard {
@@ -2461,7 +2461,7 @@ mod tests {
     }
 
     fn coworker(id: &str, agent: &str, bound: bool) -> AgentCoworkerDescriptor {
-        // Test identities derive from the label — stable and distinct per
+        // Test identities derive from the label - stable and distinct per
         // label. Tests that need a RECYCLED label (a fresh coworker object under
         // the same string) use `with_identity` to say "different object,
         // same label" explicitly.
@@ -2479,7 +2479,7 @@ mod tests {
         }
     }
 
-    /// A descriptor with an EXPLICIT identity — the test-side stand-in for a
+    /// A descriptor with an EXPLICIT identity - the test-side stand-in for a
     /// fresh `AgentPane::id` stamped by the TUI.
     fn with_identity(id: &str, agent: &str, coworker_id: u64) -> AgentCoworkerDescriptor {
         AgentCoworkerDescriptor {
@@ -2501,7 +2501,7 @@ mod tests {
     }
 
     /// The compaction ask parks FIFO and its outcome routes to its
-    /// requester's drain only — the same contract the worktree ops run on.
+    /// requester's drain only - the same contract the worktree ops run on.
     #[test]
     fn compact_op_parks_fifo_and_delivers_to_its_requester() {
         let _g = lock();
@@ -2564,7 +2564,7 @@ mod tests {
         );
     }
 
-    /// A parked compact op is outstanding work for its requester — the
+    /// A parked compact op is outstanding work for its requester - the
     /// busy-guard must hold the turn open until the outcome lands, exactly
     /// as it does for a parked worktree op.
     #[test]
@@ -2594,7 +2594,7 @@ mod tests {
     }
 
     /// A parked compact op is stamped with its target's identity: when the
-    /// coworker dies, the op fails for the RECEIPT-holder — and a survivor that
+    /// coworker dies, the op fails for the RECEIPT-holder - and a survivor that
     /// recycles the label never receives the ask.
     #[test]
     fn a_compact_op_of_a_removed_pane_never_executes_on_a_recycled_label() {
@@ -2624,7 +2624,7 @@ mod tests {
 
     /// A compaction in flight is exclusive per coworker: a second ask for the
     /// same coworker fails fast instead of parking (two restores of one
-    /// snapshot — the second persist would overwrite the first with a
+    /// snapshot - the second persist would overwrite the first with a
     /// STALE summary). A DIFFERENT coworker is unaffected.
     #[test]
     fn a_second_compact_of_a_pane_in_flight_fails_fast() {
@@ -2711,7 +2711,7 @@ mod tests {
                 AgentCoworkerReport::new(Ok("done".to_string()), AgentCoworkerTurnEnd::EndTurn)
             ),
             Some(MAIN),
-            "the completion reports its requester — the App's wake promise reads it"
+            "the completion reports its requester - the App's wake promise reads it"
         );
         let answer = block_on(async move { rx.await.expect("sender alive") });
         assert_eq!(answer.output, Ok("done".to_string()));
@@ -2720,7 +2720,7 @@ mod tests {
 
     /// The point-of-no-return failure (a session switch): a
     /// coworker that will never serve again must lose its in-flight AND queued
-    /// requests — every waiter unblocks with the failure, the coworker leaves
+    /// requests - every waiter unblocks with the failure, the coworker leaves
     /// the registry (`has_coworkers` drops), and no queued entry survives to
     /// hang a busy-guard (`has_outstanding_requests` false) or be served
     /// cross-session by a later coworker reusing the same id.
@@ -2739,7 +2739,7 @@ mod tests {
 
         fail_coworker("claude", "the session switched away".to_string());
 
-        // Every waiter resolved with the failure — the tool's `select!`
+        // Every waiter resolved with the failure - the tool's `select!`
         // unblocks instead of hanging.
         assert_eq!(
             block_on(async move {
@@ -2793,7 +2793,7 @@ mod tests {
             take_ready_deliveries(MAIN).is_empty(),
             "wrong requester never drains"
         );
-        // Drained once — a second drain is empty.
+        // Drained once - a second drain is empty.
         assert!(take_ready_deliveries(MANAGER).is_empty());
     }
 
@@ -2843,7 +2843,7 @@ mod tests {
         let err = enqueue_worktree_op("ghost", WorktreeAction::Clear, None, MAIN).unwrap_err();
         assert!(err.contains("ghost") && err.contains("claude"), "{err}");
         // A morpheus (manager) coworker IS an address: the tool covers every coworker kind
-        // now — isolating one is the same ask as isolating a `claude` coworker,
+        // now - isolating one is the same ask as isolating a `claude` coworker,
         // and the User-assigned confirmation box is what protects the user's
         // own binding. The ask parks.
         let id = enqueue_worktree_op(
@@ -2877,7 +2877,7 @@ mod tests {
         assert!(peek_worktree_op().is_none(), "refusals park nothing");
     }
 
-    /// A PARKED worktree op is outstanding work for its requester — the
+    /// A PARKED worktree op is outstanding work for its requester - the
     /// busy-guard must hold the turn open until the outcome delivery lands,
     /// exactly as it does for a queued/in-flight `agents_call`.
     #[test]
@@ -2980,7 +2980,7 @@ mod tests {
             Some(MANAGER)
         );
         // A parked delivery is FINISHED work, not outstanding (it drains on
-        // the requester's next turn — the same contract the background
+        // the requester's next turn - the same contract the background
         // sub-agents run on); the drain here is the sanity check.
         assert!(
             !has_outstanding_requests(MANAGER),
@@ -2989,7 +2989,7 @@ mod tests {
         assert_eq!(take_ready_deliveries(MANAGER).len(), 1);
         // A SECOND request stays in-flight (serving) when the coworker leaves
         // the split: its serving entry is pruned with the coworker, and any
-        // parked-but-undrained delivery dies with it — a stale report must
+        // parked-but-undrained delivery dies with it - a stale report must
         // never drain into a LATER loop.
         enqueue("claude", "second", MAIN, ReplyMode::Background).unwrap();
         assert!(pop_next_request("claude").is_some());
@@ -3015,10 +3015,10 @@ mod tests {
         let block = context_block().expect("block");
         assert!(block.starts_with("## Agents Panes"), "{block}");
         assert!(
-            block.contains("- claude — claude (agent session bound)"),
+            block.contains("- claude - claude (agent session bound)"),
             "{block}"
         );
-        assert!(block.contains("- kilo — kilo (no session yet"), "{block}");
+        assert!(block.contains("- kilo - kilo (no session yet"), "{block}");
     }
 
     /// Both context blocks carry the ambient-context suffix: the listing is
@@ -3051,7 +3051,7 @@ mod tests {
 
     /// A manager `Wait` call to another morpheus coworker is refused (mutual-deadlock
     /// guard) and points at background mode; the same call in background is
-    /// accepted — the intended planner/implementer coordination path.
+    /// accepted - the intended planner/implementer coordination path.
     #[test]
     fn manager_wait_to_a_morpheus_pane_is_refused_but_background_is_allowed() {
         let _g = lock();
@@ -3108,7 +3108,7 @@ mod tests {
     }
 
     /// Issue 5 regression: a leftover `serving` entry on a coworker the App is
-    /// about to dispatch to is ORPHANED — its turn never completed (the
+    /// about to dispatch to is ORPHANED - its turn never completed (the
     /// dispatch was refused after the pop, or the terminal Done was
     /// stale-dropped). `pop_next_request` must fail that stale wait so the
     /// requester's busy-guard unblocks instead of hanging forever, while
@@ -3121,7 +3121,7 @@ mod tests {
         let lost_rx = lost.receiver.expect("receiver");
         assert!(pop_next_request("morpheus#1").is_some(), "dispatched");
         // The turn died BEFORE its completion: the serving entry survives.
-        // The App pops again for the coworker's NEXT request — the orphaned
+        // The App pops again for the coworker's NEXT request - the orphaned
         // wait fails, and the new request takes the serving slot.
         let next = enqueue("morpheus#1", "next turn", MAIN, ReplyMode::Wait).unwrap();
         let next_rx = next.receiver.expect("receiver");
@@ -3149,7 +3149,7 @@ mod tests {
         assert!(!has_outstanding_requests(MAIN));
     }
 
-    /// Issue 5 regression: `fail_serving` is the teardown-side release —
+    /// Issue 5 regression: `fail_serving` is the teardown-side release -
     /// the coworker's in-flight wait resolves with the given reason and the
     /// registry shows no outstanding work (the manager loop's busy-guard
     /// can reach its Done instead of waiting forever).
@@ -3184,8 +3184,8 @@ mod tests {
 
     /// Ctrl+X regression: a user stop of a coworker serving a wait-mode
     /// `agents_call` must resolve the requester with `Cancelled` (never
-    /// `Error`), so `report_block` renders the "do not re-send" guidance —
-    /// the anti-ping-pong contract — instead of the "retry later" one.
+    /// `Error`), so `report_block` renders the "do not re-send" guidance -
+    /// the anti-ping-pong contract - instead of the "retry later" one.
     #[test]
     fn cancel_serving_reports_cancelled_not_error() {
         let _g = lock();
@@ -3220,7 +3220,7 @@ mod tests {
     }
 
     /// Ctrl+X regression: a background `agents_call` whose coworker is force-
-    /// closed must NOT lose its report — the cancellation parks as a
+    /// closed must NOT lose its report - the cancellation parks as a
     /// delivery for the requester's next drain instead of vanishing.
     #[test]
     fn cancel_serving_parks_a_background_delivery() {
@@ -3249,7 +3249,7 @@ mod tests {
     }
 
     /// Ctrl+X is an ABSOLUTE stop: the QUEUED requests still parked on the
-    /// pane the user halted are dropped — the freed pane must never be
+    /// pane the user halted are dropped - the freed pane must never be
     /// re-dispatched by the App's queue service with the next queued turn.
     #[test]
     fn cancel_serving_drops_the_pane_queue() {
@@ -3298,18 +3298,18 @@ mod tests {
         let block = context_block().expect("block");
         assert!(
             block.contains(
-                "- claude — claude (agent session bound, worktree wt-feat, model claude-opus-4-6)"
+                "- claude - claude (agent session bound, worktree wt-feat, model claude-opus-4-6)"
             ),
             "{block}"
         );
         assert!(
-            block.contains("- kilo — kilo (no session yet (the first agents_call wakes it))"),
+            block.contains("- kilo - kilo (no session yet (the first agents_call wakes it))"),
             "no-worktree pane renders unchanged: {block}"
         );
     }
 
     /// The model suffix follows the worktree suffix in the listing, and a
-    /// coworker whose pane never reported a model renders without it —
+    /// coworker whose pane never reported a model renders without it -
     /// the block never guesses.
     #[test]
     fn context_block_renders_the_model_after_the_worktree() {
@@ -3319,7 +3319,7 @@ mod tests {
         set_coworkers(vec![reported, coworker("kilo", "kilo", true)]);
         let block = context_block().expect("block");
         assert!(
-            block.contains("- goose — goose (agent session bound, model goose-3-pro)"),
+            block.contains("- goose - goose (agent session bound, model goose-3-pro)"),
             "{block}"
         );
         assert!(
@@ -3328,7 +3328,7 @@ mod tests {
         );
     }
 
-    /// Phase 1: the coworker's awareness is the SIBLING view — it never sees
+    /// Phase 1: the coworker's awareness is the SIBLING view - it never sees
     /// itself and never sees coordination vocabulary; a coworker with no
     /// siblings gets no block at all.
     #[test]
@@ -3344,7 +3344,7 @@ mod tests {
         set_coworkers(vec![coworker("claude", "claude", false), pinned]);
         let block = peer_block("claude").expect("siblings exist");
         assert!(block.starts_with("## Agents Panes"), "{block}");
-        assert!(block.contains("- kilo — kilo, worktree wt-fix"), "{block}");
+        assert!(block.contains("- kilo - kilo, worktree wt-fix"), "{block}");
         assert!(
             !block.contains("claude"),
             "the pane never sees itself: {block}"
@@ -3360,7 +3360,7 @@ mod tests {
     }
 
     /// Phase 1: the ACP preamble rides the prompt once per coworker-set change,
-    /// not once per turn — a second take at the same generation is empty,
+    /// not once per turn - a second take at the same generation is empty,
     /// a `set_coworkers` (any change: binding, worktree, membership) re-arms
     /// it, and a removed coworker stops being announceable.
     #[test]
@@ -3371,7 +3371,7 @@ mod tests {
             coworker("kilo", "kilo", false),
         ]);
         let first = take_preamble(label_identity("claude")).expect("first dispatch announces");
-        assert!(first.contains("- kilo — kilo"), "{first}");
+        assert!(first.contains("- kilo - kilo"), "{first}");
         assert!(
             !first.contains("claude"),
             "no self in the preamble: {first}"
@@ -3380,14 +3380,14 @@ mod tests {
             take_preamble(label_identity("claude")).is_none(),
             "same generation → nothing rides the prompt again"
         );
-        // Any set_coworkers bumps the generation — the next dispatch re-announces.
+        // Any set_coworkers bumps the generation - the next dispatch re-announces.
         set_coworkers(vec![
             coworker("claude", "claude", true),
             coworker("kilo", "kilo", false),
         ]);
         let second = take_preamble(label_identity("claude"))
             .expect("a changed pane set re-arms the preamble");
-        assert!(second.contains("- kilo — kilo"), "{second}");
+        assert!(second.contains("- kilo - kilo"), "{second}");
         // A coworker gone from the split cannot be announced; re-adding it
         // (generation bump, announce entry pruned) re-arms it from scratch.
         set_coworkers(vec![coworker("kilo", "kilo", false)]);
@@ -3430,7 +3430,7 @@ mod tests {
             AgentCoworkerTurnEnd::parse("max_turn_requests"),
             AgentCoworkerTurnEnd::Partial
         );
-        // A refusal is a deliberate terminal answer — asking again would
+        // A refusal is a deliberate terminal answer - asking again would
         // re-ask something the agent already declined.
         assert_eq!(
             AgentCoworkerTurnEnd::parse("refusal"),
@@ -3592,7 +3592,7 @@ mod tests {
         );
         assert!(err.contains("[failed: error]"), "{err}");
         assert!(err.contains("retry later"), "{err}");
-        // The error guidance may MENTION `continue` only to forbid it — it
+        // The error guidance may MENTION `continue` only to forbid it - it
         // must never INVITE one (retrying against a broken provider just
         // burns another full turn).
         assert!(!err.contains("follow-up with `agents_call`"), "{err}");
@@ -3622,7 +3622,7 @@ mod tests {
         );
     }
 
-    /// Both delivery paths must produce the SAME text for the same event —
+    /// Both delivery paths must produce the SAME text for the same event -
     /// that is the whole reason the builder is shared.
     #[test]
     fn the_delivery_note_and_the_tool_result_share_one_rendering() {
@@ -3715,12 +3715,12 @@ mod tests {
     /// removed. The OLD code diffed by label: `morpheus#2` "survived" (the
     /// survivor's new label) and its queue was served by the WRONG coworker.
     /// With the identity diff the dead identity's queue FAILS with the
-    /// actionable error, the survivors' queues survive — the later sibling
+    /// actionable error, the survivors' queues survive - the later sibling
     /// re-keyed from its old `morpheus#3` label to the freed `morpheus#2` one.
     #[test]
     fn a_removed_panes_queue_fails_and_survivors_rekey_across_renumbering() {
         let _g = lock();
-        // Identities 101/102/103 — the TUI's monotonic stamps.
+        // Identities 101/102/103 - the TUI's monotonic stamps.
         set_coworkers(vec![
             with_identity("morpheus#1", "morpheus", 101),
             with_identity("morpheus#2", "morpheus", 102),
@@ -3741,7 +3741,7 @@ mod tests {
         ]);
 
         // The dead coworker's request is ABORTED, addressed to the requester
-        // with the CURRENT set — never delivered to coworker 103.
+        // with the CURRENT set - never delivered to coworker 103.
         let answer = block_on(async move { rx_102.await.expect("sender alive") });
         let error = answer.output.expect_err("the dead pane's wait fails");
         assert!(
@@ -3768,7 +3768,7 @@ mod tests {
 
     /// The single-replace shape (`[claude]` → `[claude]`, a fresh confirm
     /// that keeps the label but swaps the object): same string, DIFFERENT
-    /// identity — the old queue must fail, not ride into the new coworker.
+    /// identity - the old queue must fail, not ride into the new coworker.
     #[test]
     fn a_recycled_label_never_receives_the_dead_panes_queue() {
         let _g = lock();
@@ -3796,7 +3796,7 @@ mod tests {
     }
 
     /// The mid-turn renumber: a request already IN FLIGHT (`serving`) when
-    /// its coworker is re-labeled follows the coworker — the App's completion (keyed
+    /// its coworker is re-labeled follows the coworker - the App's completion (keyed
     /// by the coworker's CURRENT label) still resolves it.
     #[test]
     fn an_in_flight_request_follows_its_pane_across_a_relabel() {
@@ -3807,12 +3807,12 @@ mod tests {
         ]);
         let handle = enqueue("claude#1", "working", MAIN, ReplyMode::Wait).unwrap();
         assert!(pop_next_request("claude#1").is_some(), "dispatched");
-        // The requester's turn ends mid-wait (the receiver drops — the
+        // The requester's turn ends mid-wait (the receiver drops - the
         // dead-waiter path), so the test never blocks on an unresolved
         // oneshot; the report then parks as a delivery on completion.
         drop(handle.receiver);
         // A re-order puts 302 first and 301 second: 301's label moves to
-        // `claude#2` — the label the App computes for that coworker TODAY.
+        // `claude#2` - the label the App computes for that coworker TODAY.
         set_coworkers(vec![
             with_identity("claude#1", "claude", 302),
             with_identity("claude#2", "claude", 301),
@@ -3833,13 +3833,13 @@ mod tests {
     }
 
     /// The motivating case for the two-phase detach, fully loaded: a label
-    /// SWAP (`claude#1`↔`claude#2`) with traffic on BOTH coworkers — an
+    /// SWAP (`claude#1`↔`claude#2`) with traffic on BOTH coworkers - an
     /// in-flight (serving) request AND a queued request each. A one-phase
     /// re-key would let the second leg read what the first leg wrote (or
     /// worse, with the old label-diff, cross the two coworkers' traffic); with
     /// the identity diff every piece of traffic follows ITS coworker: each new
     /// label pops the queue and resolves the serving entry of the coworker
-    /// object that now carries it — and nothing else.
+    /// object that now carries it - and nothing else.
     #[test]
     fn a_label_swap_with_queues_on_both_panes_follows_identity() {
         let _g = lock();
@@ -3849,7 +3849,7 @@ mod tests {
         ]);
         // Coworker 301: one IN-FLIGHT request (dispatched → serving) and one
         // QUEUED behind it. Coworker 302: the same pair. Wait receivers are
-        // dropped up front — this test asserts routing, not replies (the
+        // dropped up front - this test asserts routing, not replies (the
         // dead-waiter path parks completions as deliveries instead).
         let inflight_301 = enqueue("claude#1", "301 running", MAIN, ReplyMode::Wait).unwrap();
         drop(inflight_301.receiver);
@@ -3870,14 +3870,14 @@ mod tests {
         assert!(has_queued_request("claude#1") && has_queued_request("claude#2"));
 
         // THE SWAP: 302 takes `claude#1`, 301 takes `claude#2`. Both legs
-        // detach first, then re-key — the swap must survive its own
+        // detach first, then re-key - the swap must survive its own
         // sequential legs AND the HashMap's random iteration order.
         set_coworkers(vec![
             with_identity("claude#1", "claude", 302),
             with_identity("claude#2", "claude", 301),
         ]);
 
-        // Each in-flight completion resolves under the coworker's NEW label —
+        // Each in-flight completion resolves under the coworker's NEW label -
         // and carries the coworker's OWN identity, never its sibling's.
         let requester = complete_request(
             "claude#2",
@@ -3918,7 +3918,7 @@ mod tests {
 
     /// The anti-false-positive: a sync that touches NOTHING but binding /
     /// worktree metadata (the promotion and `/worktree` syncs run this every
-    /// turn) must leave every queued request untouched — the no-op arm of
+    /// turn) must leave every queued request untouched - the no-op arm of
     /// the identity diff.
     #[test]
     fn a_metadata_only_sync_leaves_outstanding_requests_alone() {
@@ -3943,7 +3943,7 @@ mod tests {
     }
 
     /// A parked `agents_worktree` op is stamped with its target's identity:
-    /// when the coworker dies, the op fails for the RECEIPT-holder — and a
+    /// when the coworker dies, the op fails for the RECEIPT-holder - and a
     /// survivor that recycles the label never executes it.
     #[test]
     fn a_worktree_op_of_a_removed_pane_never_executes_on_a_recycled_label() {
@@ -4032,7 +4032,7 @@ mod tests {
             Ok("narrating"),
             AgentCoworkerTurnEnd::Partial,
         );
-        // Remove 702: 701 renumbers to `claude#1`? It is FIRST — its label
+        // Remove 702: 701 renumbers to `claude#1`? It is FIRST - its label
         // stays; swap instead: fresh set re-orders 701 second.
         set_coworkers(vec![
             with_identity("claude#1", "claude", 702),
@@ -4078,7 +4078,7 @@ mod tests {
         set_coworkers(vec![with_identity("claude", "claude", 803)]);
         assert!(take_preamble(802).is_none(), "dead identity: gone");
         // The re-ADD of 802 (a re-order) starts it fresh: the generation
-        // bump re-arms every survivor (the pre-existing contract — the
+        // bump re-arms every survivor (the pre-existing contract - the
         // identity keying only guarantees a RECYCLED label never inherits
         // a dead coworker's announcement, proven above via 803).
         set_coworkers(vec![

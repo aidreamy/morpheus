@@ -1,8 +1,8 @@
 //! ACP (Agent Client Protocol) integration for external sub-agents.
 //!
 //! External sub-agents are driven through the [Agent Client Protocol
-//! (ACP)](https://agentclientprotocol.com/) — the JSON-RPC 2.0 protocol
-//! created by the Zed team for client↔agent communication — using the
+//! (ACP)](https://agentclientprotocol.com/) - the JSON-RPC 2.0 protocol
+//! created by the Zed team for client↔agent communication - using the
 //! official [`agent_client_protocol`] crate.
 //!
 //! Instead of spawning a one-shot CLI process and scraping its stdout (a
@@ -10,18 +10,18 @@
 //! as an ACP **client** and follows the protocol contract:
 //!
 //! 1. Spawns the agent harness as a subprocess speaking ACP over stdio.
-//! 2. `initialize` — negotiates the protocol version and capabilities.
-//! 3. `session/new` — opens a session rooted at the workspace directory.
+//! 2. `initialize` - negotiates the protocol version and capabilities.
+//! 3. `session/new` - opens a session rooted at the workspace directory.
 //!    Authentication is LAZY: when the agent advertises auth methods, morpheus
-//!    does NOT authenticate proactively — several harnesses treat an
+//!    does NOT authenticate proactively - several harnesses treat an
 //!    `authenticate` call as a fresh interactive login even when they
 //!    already hold valid credentials (measured on `devin acp`: 19.5 s,
 //!    a browser flow and a credentials rewrite, EVERY session), while the
 //!    same harness accepts the whole session silently from its own stored
 //!    login. `authenticate` is sent only after an operation is rejected
 //!    with `auth_required` (see [`authenticate_on_auth_required`]).
-//! 4. `session/prompt` — sends the task as the user prompt.
-//! 5. `session/update` notifications — mapped events stream live to the
+//! 4. `session/prompt` - sends the task as the user prompt.
+//! 5. `session/update` notifications - mapped events stream live to the
 //!    TUI's sub-agent box, and message chunks feed the turn's closure
 //!    ([`TurnClosure`](crate::closure)): only the message written
 //!    after the LAST tool call is the report returned to the caller.
@@ -29,7 +29,7 @@
 //!    [`StopReason`](agent_client_protocol::schema::v1::StopReason).
 //!
 //! Because the interaction follows a protocol contract, ANY harness that
-//! speaks ACP can act as a sub-agent — including third-party harnesses —
+//! speaks ACP can act as a sub-agent - including third-party harnesses -
 //! with zero per-agent maintenance. Client-side capabilities are honored:
 //! permission requests are auto-approved (first option, YOLO style) so a
 //! headless call never blocks, and the client advertises the `fs` capability
@@ -56,7 +56,7 @@
 //!
 //! # Adding new agents
 //!
-//! Add an entry to [`ACP_AGENTS`] — an [`Agent`] of
+//! Add an entry to [`ACP_AGENTS`] - an [`Agent`] of
 //! `(name, command, [args], [required binaries], install_hint)`. Anything
 //! registered in the official ACP registry works with no code changes
 //! beyond the table entry.
@@ -96,7 +96,7 @@ use super::events::SubagentEvent;
 /// entry.
 ///
 /// `requires` lists the binaries that must be present in PATH for the agent
-/// to be considered installed — the launch command itself plus whatever
+/// to be considered installed - the launch command itself plus whatever
 /// engine backs it. The official `claude`/`codex` entries spawn the ACP
 /// adapter via `npx`, so they additionally require `npx`.
 #[derive(Debug, Clone, Copy)]
@@ -116,7 +116,7 @@ pub struct Agent {
     /// `model` config option in `session/new`.
     ///
     /// Harness defaults are frequently a *paid-tier* model, while the same
-    /// CLI's own `run` command uses a working free/default model — the
+    /// CLI's own `run` command uses a working free/default model - the
     /// harness's ACP default and its CLI default need not agree. An empty
     /// value leaves the harness default untouched.
     pub model: &'static str,
@@ -137,12 +137,12 @@ impl Agent {
     /// Build an agent from a user-registered launch line (`command args…`,
     /// the same shape the ACP registry documents for custom agents). The
     /// command becomes the spawn binary and every remaining word an
-    /// argument — the exact convention the static [`ACP_AGENTS`] table
+    /// argument - the exact convention the static [`ACP_AGENTS`] table
     /// uses, so a user line behaves identically to a built-in entry.
     ///
     /// The parsed words are leaked into `&'static str`s: [`Agent`] is a
     /// `Copy` type of static strings, and re-registration happens only on
-    /// setup edits — a handful of short strings per edit, never in a loop.
+    /// setup edits - a handful of short strings per edit, never in a loop.
     #[must_use]
     pub fn from_launch_line(name: &str, launch: &str) -> Option<Self> {
         let launch = launch.trim();
@@ -277,7 +277,7 @@ pub const ACP_AGENTS: &[Agent] = &[
 ///
 /// The registry is process-global by design: the harness's tool description
 /// is built once per agent loop, while setup edits land between agent
-/// loops — each loop rebuilds its harness, so a freshly saved registration
+/// loops - each loop rebuilds its harness, so a freshly saved registration
 /// is picked up by the next loop and the `subagent_call` description stays
 /// consistent with what it can spawn.
 static CUSTOM_AGENTS: RwLock<Vec<Agent>> = RwLock::new(Vec::new());
@@ -430,7 +430,7 @@ pub(crate) fn acp_error(message: impl Into<String>) -> AcpError {
 /// Wall-clock bound for ONE ACP handshake step (initialize, session open,
 /// config picks, mode bind). A harness that never answers its handshake
 /// would otherwise block the requesting agent loop forever with no event and
-/// no error — the docs of [`call`] keep the TURN unbounded by design (work
+/// no error - the docs of [`call`] keep the TURN unbounded by design (work
 /// can legitimately be long), but the handshake is setup, not work: past
 /// this bound it is a hung launch, and the tool must FAIL so the requesting
 /// loop continues.
@@ -450,7 +450,7 @@ async fn handshake_step<T>(
     match tokio::time::timeout(HANDSHAKE_TIMEOUT, fut).await {
         Ok(result) => result,
         Err(_) => Err(acp_error(format!(
-            "ACP {what} timed out after {}s — the harness never answered the handshake; \
+            "ACP {what} timed out after {}s - the harness never answered the handshake; \
              the launch is hung",
             HANDSHAKE_TIMEOUT.as_secs()
         ))),
@@ -495,7 +495,7 @@ fn exe_in_path(binary: &str) -> bool {
 }
 
 /// Whether `binary` resolves to a `.cmd`/`.bat` batch shim in PATH (Windows
-/// only) — the shape npm takes when installing global CLIs.
+/// only) - the shape npm takes when installing global CLIs.
 #[cfg(windows)]
 fn script_shim_in_path(binary: &str) -> bool {
     std::env::var_os("PATH").is_some_and(|path| {
@@ -512,13 +512,13 @@ fn script_shim_in_path(binary: &str) -> bool {
 /// and the direct `CreateProcessW` spawn inside `AcpAgent::spawn_process`
 /// fails on them with `program not found`. When the launch command is a
 /// script shim, the whole invocation is routed through
-/// `cmd /d /s /c "<full command line>"` — `/s` makes `cmd` strip the outer
+/// `cmd /d /s /c "<full command line>"` - `/s` makes `cmd` strip the outer
 /// quotes that the process-spawning layer adds around the joined line.
 ///
 /// The joined line is interpreted by `cmd.exe`, so any argument containing
 /// cmd metacharacters (`& | ^ % < > "`) would be executed/expanded rather
 /// than passed through. Those cannot appear in the static [`ACP_AGENTS`]
-/// registry, and the guard below refuses to wrap if one ever does — the
+/// registry, and the guard below refuses to wrap if one ever does - the
 /// direct spawn then fails loudly with `program not found` instead of
 /// running something unintended.
 ///
@@ -667,28 +667,28 @@ fn invalidate_custom_probe_cache() {
 /// subject for sandbox semantics).
 ///
 /// On Unix the fs handlers use the kernel-pinned component walk in
-/// [`super::sandbox`] instead — the read/write descriptor is obtained during
-/// the walk, so there is no validate-then-use window — while this helper
+/// [`super::sandbox`] instead - the read/write descriptor is obtained during
+/// the walk, so there is no validate-then-use window - while this helper
 /// remains the non-Unix fallback and the direct unit-test subject.
 ///
 /// ACP agents send absolute paths; a request that resolves OUTSIDE the
-/// workspace — a different absolute prefix, or the same prefix escaping it
-/// through `..` segments or symlinks — is rejected instead of served.
+/// workspace - a different absolute prefix, or the same prefix escaping it
+/// through `..` segments or symlinks - is rejected instead of served.
 ///
 /// Three gates run in sequence:
 ///
-/// 1. **Canonical root** — the workspace root is canonicalized first, so
+/// 1. **Canonical root** - the workspace root is canonicalized first, so
 ///    containment runs in fully-resolved space (on macOS `/tmp` is a symlink
 ///    to `/private/tmp`).
-/// 2. **Lexical** — the request must be rooted at the workspace (either its
+/// 2. **Lexical** - the request must be rooted at the workspace (either its
 ///    given or canonical spelling) and must not climb out through `..`
 ///    components.
-/// 3. **Component walk** — each relative component is appended to the
+/// 3. **Component walk** - each relative component is appended to the
 ///    resolved base and checked with `symlink_metadata` (which does NOT
 ///    follow the final entry): an encountered symlink is canonicalized
 ///    immediately and its target must stay inside the workspace; a DANGLING
 ///    symlink therefore fails closed (its target cannot be verified), while
-///    a plain MISSING component is appended as-is — a write legitimately
+///    a plain MISSING component is appended as-is - a write legitimately
 ///    creates new files and directories. Because the walk never descends
 ///    into a non-existent component, no later component can hide a symlink.
 ///
@@ -784,7 +784,7 @@ pub(crate) fn slice_lines(content: &str, line: Option<u32>, limit: Option<u32>) 
 
 /// Serve `fs/read_text_file`, sandboxed to the workspace root.
 ///
-/// Unix: kernel-pinned component walk (see [`sandbox`](super::sandbox)) —
+/// Unix: kernel-pinned component walk (see [`sandbox`](super::sandbox)) -
 /// the read descriptor is obtained DURING the walk, so a concurrent swap of
 /// a validated directory for an outside symlink is caught at open time and
 /// there is no validate-then-use window. Other platforms fall back to
@@ -873,14 +873,14 @@ pub fn validate_agent(agent: &str) -> Result<(), String> {
 /// Resolve the session `cwd` a harness receives, once for every entry
 /// point (`call`, `replay`, `session_snapshot`).
 ///
-/// The ACP harnesses validate the session cwd themselves — goose's
+/// The ACP harnesses validate the session cwd themselves - goose's
 /// `validate_absolute_cwd` rejects a relative path outright ("cwd must be
 /// an absolute path") and a directory that no longer exists ("invalid
 /// directory path", the `invalid_params` rejection behind a pane's
 /// "[replay failed] ACP session/load failed: Invalid params"), so morpheus
 /// prepares the path before it ever reaches the wire:
 ///
-/// 1. `canonicalize` — the TUI stores the working directory as the user
+/// 1. `canonicalize` - the TUI stores the working directory as the user
 ///    typed it (which may be relative, `.` in an in-place `morpheus`) and
 ///    resolves symlinked roots lazily; the harness wants the resolved
 ///    absolute spelling.
@@ -889,7 +889,7 @@ pub fn validate_agent(agent: &str) -> Result<(), String> {
 ///    - [`CwdStrictness::Strict`] (the LIVE-TURN path, `call`): the
 ///      original path rides through and the harness rejects it. A live
 ///      turn's fs requests are served against the session cwd and
-///      auto-approved under the pane's Yolo mode — silently substituting
+///      auto-approved under the pane's Yolo mode - silently substituting
 ///      a vanished workspace (the common case: a worktree under
 ///      `<OS temp>/morpheus-worktrees` a reboot's temp cleaner deleted) with
 ///      the user's home directory would run the agent in `~` and widen
@@ -901,7 +901,7 @@ pub fn validate_agent(agent: &str) -> Result<(), String> {
 ///    - [`CwdStrictness::Substitute`] (the READ-ONLY passes, `replay` /
 ///      `session_snapshot`): fall back to the user's home directory.
 ///      The harness's own store keyed the session by the ORIGINAL cwd,
-///      so replaying in the session's true directory is impossible — the
+///      so replaying in the session's true directory is impossible - the
 ///      choice is between an unconditional rejection and a best-effort
 ///      load in a stable directory. The home fallback follows goose's own
 ///      recovery direction (aaif-goose/goose#10643: substitute the home
@@ -909,7 +909,7 @@ pub fn validate_agent(agent: &str) -> Result<(), String> {
 ///      transcript replay proceeds; nothing is prompted and no fs request
 ///      is ever served on these passes.
 ///
-/// An existing directory keeps its canonical spelling — never silently
+/// An existing directory keeps its canonical spelling - never silently
 /// redirected. The original path is returned when even the fallback
 /// cannot be resolved (`None` home), preserving the harness's own
 /// rejection message instead of masking it with a made-up one.
@@ -926,7 +926,7 @@ pub fn prepare_session_cwd(cwd: &std::path::Path, strictness: CwdStrictness) -> 
         return cwd.to_path_buf();
     }
     // The read-only passes substitute home when it resolves to a real
-    // directory, and log the substitution — a silent path swap would be
+    // directory, and log the substitution - a silent path swap would be
     // indistinguishable from a bug in the harness.
     if let Some(home) = home_dir()
         && let Ok(home) = std::fs::canonicalize(&home)
@@ -951,7 +951,7 @@ pub fn prepare_session_cwd(cwd: &std::path::Path, strictness: CwdStrictness) -> 
 /// The cwd strictness a [`prepare_session_cwd`] caller asks for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum CwdStrictness {
-    /// The LIVE-TURN path (`call`): a missing workspace must fail loudly —
+    /// The LIVE-TURN path (`call`): a missing workspace must fail loudly -
     /// no silent substitution, the harness (or the sandbox pin) rejects.
     Strict,
     /// The READ-ONLY passes (`replay`, `session_snapshot`): a missing
@@ -962,7 +962,7 @@ pub enum CwdStrictness {
 /// The user's home directory, when it resolves to a real directory: `HOME`
 /// first (normalized, so a Git-Bash `/c/Users/...` spelling becomes a
 /// Windows path), then `USERPROFILE` on Windows. `None` when neither
-/// resolves — the caller degrades to passing the original path through.
+/// resolves - the caller degrades to passing the original path through.
 fn home_dir() -> Option<String> {
     if let Some(h) = std::env::var_os("HOME") {
         // Lossy on invalid UTF-8 (unpaired surrogates): the is_dir probe
@@ -1005,7 +1005,11 @@ fn msys_to_windows(path: &str) -> Option<String> {
     if !drive.is_ascii_alphabetic() || chars.next()? != '/' {
         return None;
     }
-    Some(format!("{}:/{}", drive.to_ascii_uppercase(), chars.as_str()))
+    Some(format!(
+        "{}:/{}",
+        drive.to_ascii_uppercase(),
+        chars.as_str()
+    ))
 }
 
 #[cfg(test)]
@@ -1015,7 +1019,7 @@ mod cwd_preparation_tests {
 
     /// An EXISTING directory canonicalizes: a RELATIVE spelling resolves
     /// against the process cwd, and a symlinked root resolves to its target
-    /// — the harness receives the resolved absolute path, never the user's
+    /// - the harness receives the resolved absolute path, never the user's
     /// typed shorthand (the `.`-in-place `morpheus` shape). Built under the
     /// process cwd so the relative branch is genuinely exercised.
     #[test]
@@ -1037,8 +1041,8 @@ mod cwd_preparation_tests {
         );
     }
 
-    /// A path that NO LONGER EXISTS — the rebooted-worktree case, the exact
-    /// shape behind goose's `invalid directory path` rejection — takes the
+    /// A path that NO LONGER EXISTS - the rebooted-worktree case, the exact
+    /// shape behind goose's `invalid directory path` rejection - takes the
     /// home fallback on the LENIENT passes so `session/load` is judged on
     /// the session id instead of being rejected on the ghost cwd before
     /// the transcript replay starts.
@@ -1051,7 +1055,7 @@ mod cwd_preparation_tests {
         let prepared = prepare_session_cwd(&ghost, CwdStrictness::Substitute);
         // The fallback is the home directory when it resolves; only when
         // NO home resolves at all does the original path ride through for
-        // the harness to reject (the documented degrade — pinned by the
+        // the harness to reject (the documented degrade - pinned by the
         // sibling strict test). On a normal environment the result is a
         // REAL directory.
         assert!(
@@ -1062,7 +1066,7 @@ mod cwd_preparation_tests {
 
     /// The STRICT pass (the live-turn path, `call`) never substitutes: a
     /// missing workspace keeps its original spelling and the harness (or
-    /// the sandbox pin) rejects it loudly — a silent home relocation would
+    /// the sandbox pin) rejects it loudly - a silent home relocation would
     /// run the turn and widen the fs sandbox into `~` without the user
     /// ever learning the workspace is gone.
     #[test]
@@ -1076,7 +1080,7 @@ mod cwd_preparation_tests {
     }
 
     /// An existing FILE (not a directory) is also unusable as a session cwd
-    /// — the harnesses check `is_dir` — so the LENIENT pass takes the home
+    /// - the harnesses check `is_dir` - so the LENIENT pass takes the home
     /// fallback too.
     #[test]
     fn existing_file_takes_the_fallback() {
@@ -1111,13 +1115,13 @@ mod cwd_preparation_tests {
 ///    every `session/request_permission` surface as a
 ///    [`SubagentEvent::PermissionRequest`] and AWAIT the user's option pick
 ///    on that channel (the TUI's permission box). `None` keeps the
-///    headless auto-approve (the Yolo contract — the split ran every pane
+///    headless auto-approve (the Yolo contract - the split ran every pane
 ///    YOLO by design long before modes mapped).
 /// 5. Returns `(final_report, stop_reason, Option<session_id>)` when
-///    the turn ends — the report is the message written after the LAST
-///    tool call, with a fallback to the last completed message — and the
+///    the turn ends - the report is the message written after the LAST
+///    tool call, with a fallback to the last completed message - and the
 ///    session id only when it ended protocol-clean
-///    (`Some` is withheld on error arms) — or an error when
+///    (`Some` is withheld on error arms) - or an error when
 ///    the harness fails before producing any output.
 ///
 /// The ACP session runs on a dedicated current-thread runtime inside a
@@ -1150,8 +1154,8 @@ pub async fn call(
     chunk_tx: tokio::sync::mpsc::UnboundedSender<SubagentEvent>,
 ) -> Result<(String, String, Option<String>), String> {
     // OpenCode is driven through its own server (see `opencode`); every
-    // other harness — and OpenCode itself when the native transport is
-    // disabled — takes the generic ACP path below. Callers never see the
+    // other harness - and OpenCode itself when the native transport is
+    // disabled - takes the generic ACP path below. Callers never see the
     // difference.
     if super::opencode::is_native(agent) {
         return super::opencode::call(
@@ -1171,11 +1175,11 @@ pub async fn call(
     let entry = find_agent(agent).ok_or_else(|| format!("unknown agent '{agent}'"))?;
     // Absolute, resolved session cwd for EVERY request on this connection
     // (`session/new`, resume/load, the fs roots): the harnesses validate
-    // it, so a relative TUI spelling must be resolved before the wire —
+    // it, so a relative TUI spelling must be resolved before the wire -
     // see `prepare_session_cwd`. STRICT: a live turn never silently
     // relocates a vanished workspace into the home sandbox.
     let cwd = prepare_session_cwd(&cwd, CwdStrictness::Strict);
-    // The caller's picks win — the /agents config box writes the user's
+    // The caller's picks win - the /agents config box writes the user's
     // choices into the pane's config cache and every turn re-applies them
     // (`apply_session_picks`), so the choices survive. A model-less pick
     // set falls back to the registry default (kilo's ACP default is a
@@ -1232,10 +1236,10 @@ pub async fn call(
 
     match turn {
         // Turn completed: the closure already retained the final message
-        // (post-tool-calls) — see the `TurnClosure` contract on `output`.
+        // (post-tool-calls) - see the `TurnClosure` contract on `output`.
         Ok((stop_reason, session_id)) => Ok((final_output, stop_reason, Some(session_id))),
         // Turn errored: partial output (if any) is still worth returning.
-        // The turn's own session id is NOT propagated — an errored turn's
+        // The turn's own session id is NOT propagated - an errored turn's
         // session state is unreliable, so its id is not (re)stored here.
         // An OLDER stored id for this agent stays in place and is resumed
         // again by the next default call; a stale one self-heals via the
@@ -1260,7 +1264,7 @@ pub async fn call(
 // supervisor thread below owns the connection and serializes turns through a
 // command channel; a [`SessionHandle`] is the pane's only way in. Everything
 // the per-turn `call` path does (lazy auth, picks, mode, permission routing,
-// fs serving, closure report, cancellation) still happens — just once per
+// fs serving, closure report, cancellation) still happens - just once per
 // connection instead of once per turn.
 
 /// What one turn on a live session produced.
@@ -1322,7 +1326,7 @@ struct HostShared {
     /// answered `Cancelled` instead of being silently auto-approved (N6).
     interactive: AtomicBool,
     /// Chrome (command list, config options) published while no turn is
-    /// running — the session-open window. It is handed to the next turn's
+    /// running - the session-open window. It is handed to the next turn's
     /// stream, so the pane does not lose what the harness advertised around
     /// the handshake.
     pending_chrome: Mutex<Vec<SubagentEvent>>,
@@ -1361,7 +1365,7 @@ pub struct SessionHandle {
     /// Why the supervisor is closing: a failed handshake, a harness that
     /// refused the session, an unpinnable workspace, a dead transport. The
     /// pending turn's reply channel dies with the thread, so this slot is the
-    /// only place the real reason survives — without it every one of those
+    /// only place the real reason survives - without it every one of those
     /// failures surfaces as the generic "closed before answering the turn"
     /// (G9/G22).
     closed_reason: Arc<Mutex<Option<String>>>,
@@ -1519,7 +1523,14 @@ impl SessionHandle {
                 } = request;
                 drop(reply);
                 session
-                    .run_turn(input, &picks, mode.as_deref(), permission_rx, stop_signal, chunk_tx)
+                    .run_turn(
+                        input,
+                        &picks,
+                        mode.as_deref(),
+                        permission_rx,
+                        stop_signal,
+                        chunk_tx,
+                    )
                     .await
             }
         }
@@ -1761,7 +1772,7 @@ async fn run_host_session<T>(
         .on_receive_request(
             async move |request: RequestPermissionRequest, responder, _connection| {
                 // Auto-approve when the pane has no interactive channel (Yolo,
-                // manager) — the same preference order as the per-turn path.
+                // manager) - the same preference order as the per-turn path.
                 let interactive = permission_shared.interactive.load(Ordering::Relaxed);
                 if !interactive {
                     let selected = request
@@ -1968,7 +1979,7 @@ async fn run_host_session<T>(
             let session_id = opened.session_id.clone();
             let open_modes = opened.modes.clone();
             // The options the session opened with. Each successful set answers
-            // with the harness's new full set, which replaces this — a live
+            // with the harness's new full set, which replaces this - a live
             // session outlives the session-open snapshot (N19).
             let mut config_options = opened.config_options.clone();
             log::debug!(
@@ -2312,18 +2323,18 @@ pub(crate) fn failed_outcome(error: String) -> TurnOutcome {
 
 /// Rehydrate one stored ACP session: reconnect, `session/load` the stored
 /// id and stream the agent's retained conversation history back as typed
-/// [`SubagentEvent`]s — WITHOUT prompting.
+/// [`SubagentEvent`]s - WITHOUT prompting.
 ///
 /// This is the cold-restore path for a pane whose process died with the
 /// app (`/agents` split reopened after a reboot): the session id is the
 /// only thing persisted, so the transcript must come back FROM the agent.
 /// The v1 `session/load` request replays the entire conversation through
-/// `session/update` notifications (the same variants live turns stream —
+/// `session/update` notifications (the same variants live turns stream -
 /// user/agent/thought chunks, tool calls, plans) before responding, so the
 /// mapped event stream reconstructs the visible timeline with no storage
 /// on morpheus's side beyond the session id itself.
 ///
-/// Unlike a live pane (which shows only agent narration — the user's
+/// Unlike a live pane (which shows only agent narration - the user's
 /// prompt echoes locally through the pane input), replay's
 /// `user_message_chunk` updates ARE mapped, so the rehydrated timeline
 /// shows both sides of the conversation.
@@ -2347,7 +2358,7 @@ pub async fn replay(
     }
     validate_agent(agent)?;
     let entry = find_agent(agent).ok_or_else(|| format!("unknown agent '{agent}'"))?;
-    // Same harness-side validation as every other entry point — a replay
+    // Same harness-side validation as every other entry point - a replay
     // pass carries the pane's STORED cwd, which is exactly the path most
     // likely to have vanished (a worktree under the OS temp root cleaned
     // by the reboot between the turns). `prepare_session_cwd` resolves or
@@ -2375,7 +2386,7 @@ pub async fn replay(
 
 /// The rehydrate connection itself: initialize → authenticate (when
 /// advertised) → `session/load` → replay notifications, then disconnect.
-/// No `session/prompt` is ever sent — a rehydrate pass MUST NOT append to
+/// No `session/prompt` is ever sent - a rehydrate pass MUST NOT append to
 /// the agent's history. Unlike [`open_or_resume_session`] there is NO
 /// fallback: the stored id is the whole point of the call, and falling
 /// back to `session/new` would silently replace "the transcript is gone"
@@ -2401,7 +2412,7 @@ where
                 // Replay arrives as ordinary `session/update` notifications
                 // (the same variants a live turn streams), so the same
                 // mapping reconstructs the timeline. Message chunks feed
-                // NO closure here — a rehydrate pass returns no report.
+                // NO closure here - a rehydrate pass returns no report.
                 if let Some(event) = SubagentEvent::from_session_update(notification.update) {
                     let _ = chunk_tx.send(event);
                 }
@@ -2410,7 +2421,7 @@ where
             on_receive_notification!(),
         )
         .connect_with(transport, async move |connection: ConnectionTo<AcpRole>| {
-            // No `fs` capabilities: nothing here serves file requests —
+            // No `fs` capabilities: nothing here serves file requests -
             // replay only ever sends notifications.
             let capabilities = ClientCapabilities::new();
             let init = connection
@@ -2466,7 +2477,7 @@ struct SnapshotCollector {
     commands: Option<Vec<super::events::AgentCommand>>,
     config_options: Option<Vec<super::events::AgentConfigOption>>,
     /// `(current mode id, the full mode list)`. Does NOT gate the probe's
-    /// completion — modes are optional protocol state (gemini advertises
+    /// completion - modes are optional protocol state (gemini advertises
     /// none), so an absent slot must not hold the probe open.
     modes: Option<(String, Vec<super::events::AgentSessionMode>)>,
 }
@@ -2545,7 +2556,7 @@ pub struct SessionSnapshot {
 /// Probe an agent's session ON DEMAND: connect, `session/load`/`resume`
 /// (falling back to `session/new` like every resume path), and collect the
 /// `available_commands_update` / `config_option_update` notifications the
-/// harness publishes around the handshake. NO prompt is ever sent — the
+/// harness publishes around the handshake. NO prompt is ever sent - the
 /// probe only reads what the harness advertises. Returns whatever arrived
 /// within the window (either slot may stay empty when the harness publishes
 /// lazily); the caller decides how to degrade.
@@ -2557,7 +2568,7 @@ pub struct SessionSnapshot {
 ///
 /// Returns an error when the agent is unsupported or the ACP handshake
 /// fails outright (the process cannot even be launched). A resume failure
-/// is NOT an error — the fallback session/new still probes.
+/// is NOT an error - the fallback session/new still probes.
 #[allow(clippy::unwrap_used)]
 pub async fn session_snapshot(
     agent: &str,
@@ -2571,8 +2582,8 @@ pub async fn session_snapshot(
     let entry = find_agent(agent).ok_or_else(|| format!("unknown agent '{agent}'"))?;
     // The harnesses validate `cwd` as an ABSOLUTE path to an EXISTING
     // directory (goose's `validate_absolute_cwd`). The stored pane cwd is
-    // whatever the user's session carried — possibly relative, possibly a
-    // worktree a reboot's temp cleaner deleted — so it is prepared here,
+    // whatever the user's session carried - possibly relative, possibly a
+    // worktree a reboot's temp cleaner deleted - so it is prepared here,
     // at the protocol boundary, instead of failing the resume on the wire
     // (see `prepare_session_cwd`). LENIENT for the same reason as the
     // replay pass: a probe prompts nothing and serves no fs requests.
@@ -2743,7 +2754,7 @@ enum SessionResumeSupport {
     Resume,
     /// The older top-level `session/load` capability.
     Load,
-    /// No resume support — every call opens a fresh session.
+    /// No resume support - every call opens a fresh session.
     None,
 }
 
@@ -2751,8 +2762,8 @@ enum SessionResumeSupport {
 ///
 /// With `resume: Some(id)` and advertised support, the stored session id is
 /// resumed (`session/resume`, falling back to the older `session/load`).
-/// ANY failure on the resume path — no advertised capability, a stale id
-/// after a harness restart, a transport error — silently falls back to a
+/// ANY failure on the resume path - no advertised capability, a stale id
+/// after a harness restart, a transport error - silently falls back to a
 /// fresh `session/new`: resume is a default, never a hard dependency.
 ///
 /// Returns the session id to prompt against plus the config options the
@@ -2761,11 +2772,11 @@ enum SessionResumeSupport {
 ///
 /// # Errors
 ///
-/// Only a failed `session/new` is fatal — the turn cannot proceed without
+/// Only a failed `session/new` is fatal - the turn cannot proceed without
 /// a session.
 /// What the session came back with: the id, its config options and its
 /// MODE state. `modes` mirrors the ACP `SessionModeState` the harness
-/// carries in `session/new` / `session/resume` / `session/load` — the
+/// carries in `session/new` / `session/resume` / `session/load` - the
 /// current mode id plus every mode the agent can operate in. `None` when
 /// the harness advertises no modes at all (gemini), so the client knows
 /// mode binding is unavailable rather than merely empty.
@@ -2802,7 +2813,7 @@ async fn open_or_resume_session(
     cwd: &Path,
     support: SessionResumeSupport,
 ) -> Result<SessionOpen, AcpError> {
-    // Exhaustive over (resume, support): no `unreachable!()` arm — the
+    // Exhaustive over (resume, support): no `unreachable!()` arm - the
     // `None`-support and no-id cases fall through to `session/new` below.
     match (resume, support) {
         (Some(id), SessionResumeSupport::Resume) => {
@@ -2825,7 +2836,7 @@ async fn open_or_resume_session(
                 Err(e) => {
                     // Stale id (harness restart) or a resume quirk: fall
                     // through to a fresh session instead of failing the
-                    // turn — the sub-agent just loses its previous context.
+                    // turn - the sub-agent just loses its previous context.
                     log::warn!(
                         "sub-agent ACP resume of session '{id}' failed ({e}); \
                          falling back to session/new"
@@ -2885,9 +2896,9 @@ async fn open_or_resume_session(
 ///
 /// Proactive authentication turned out to be wrong for several harnesses:
 /// `devin acp` (measured) treats every `authenticate` as a fresh
-/// interactive login even while holding valid stored credentials — about
+/// interactive login even while holding valid stored credentials - about
 /// twenty seconds, a browser flow and a credentials-file rewrite on EVERY
-/// session — while the same harness accepts sessions and prompts silently
+/// session - while the same harness accepts sessions and prompts silently
 /// from its own stored login. The protocol's answer is `auth_required`
 /// (`ErrorCode::AuthRequired`): work unauthenticated, and authenticate
 /// only when the harness rejects an operation.
@@ -2896,9 +2907,9 @@ async fn open_or_resume_session(
 /// those as separate interactive processes instead of passing them to
 /// `authenticate`, and a headless sub-agent turn cannot open a TUI. The
 /// enum is `#[non_exhaustive]` upstream: any future variant is treated as
-/// agent-managed (attempted, not skipped) — failing open toward auth, not
+/// agent-managed (attempted, not skipped) - failing open toward auth, not
 /// away from it. When no self-managed method exists (or every one fails),
-/// the ORIGINAL error is returned — its message carries the harness's own
+/// the ORIGINAL error is returned - its message carries the harness's own
 /// auth guidance (e.g. "Please log in to use Devin"), which the caller
 /// surfaces verbatim.
 ///
@@ -2956,12 +2967,12 @@ async fn authenticate_on_auth_required(
 ///
 /// Apply the pane's config picks inside the TURN's own connection. ACP
 /// config options are per-connection state (a set on a disposable
-/// connection dies with it — verified against opencode and kilo), so this
-/// — re-run before every prompt — is the only path a pick survives.
+/// connection dies with it - verified against opencode and kilo), so this
+/// - re-run before every prompt - is the only path a pick survives.
 ///
 /// Each pick is `(config id, value id)`. A pick whose option the harness
 /// no longer advertises, or whose value is no longer offered (a stale
-/// pane cache), is SKIPPED with a log — the turn proceeds on the
+/// pane cache), is SKIPPED with a log - the turn proceeds on the
 /// harness's current value instead of failing every prompt. A set
 /// request that the harness or transport rejects is fatal: something is
 /// genuinely wrong with the connection.
@@ -3031,11 +3042,11 @@ async fn apply_session_picks(
     Ok(updated)
 }
 
-/// Bind the session to ONE of the agent's advertised modes — the client's
+/// Bind the session to ONE of the agent's advertised modes - the client's
 /// harness mode mapped onto a `SessionModeId` (the TUI does the mapping; see
 /// the app's mode-map). `Some(mode_id)` only when the harness actually
 /// advertises that id in its `SessionModeState`; `None` skips the request
-/// entirely (an agent without modes — gemini — binds nothing, like every
+/// entirely (an agent without modes - gemini - binds nothing, like every
 /// unmapped mode).
 ///
 /// Runs BEFORE the prompt, right after `apply_session_picks` (ACP session
@@ -3046,7 +3057,7 @@ async fn apply_session_picks(
 ///
 /// # Errors
 ///
-/// Returns the `session/set_mode` failure (after the auth ladder) — the
+/// Returns the `session/set_mode` failure (after the auth ladder) - the
 /// caller decides whether that aborts the turn.
 async fn apply_session_mode(
     connection: &ConnectionTo<AcpRole>,
@@ -3068,7 +3079,7 @@ async fn apply_session_mode(
         Err(auth_error) if auth_error.code == ErrorCode::AuthRequired => {
             // NOTE: the auth methods live at the call site (they belong to
             // the `initialize` response, not this function's inputs); the
-            // ladder therefore lives in the caller — see `run_session`.
+            // ladder therefore lives in the caller - see `run_session`.
             Err(auth_error)
         }
         Err(e) => Err(wrap_acp_failure("ACP session/set_mode failed", e)),
@@ -3078,18 +3089,18 @@ async fn apply_session_mode(
 /// Read the session's badge triple from its ACP config options: the
 /// effective model id (+ human label, when the harness names the value),
 /// the serving provider (+ label, when a `provider` option is advertised
-/// at all — cline advertises one, kilo/opencode do not), and the
+/// at all - cline advertises one, kilo/opencode do not), and the
 /// reasoning/thought level display.
 ///
 /// The model lookup prefers the spec's `Model` category and falls back to
-/// the `model` option id (the same id [`apply_session_picks`] matches —
+/// the `model` option id (the same id [`apply_session_picks`] matches -
 /// harnesses predate categories). The effective id is the preferred model
 /// when one was selected, else the advertised current value. The provider
 /// lookup is id-only (`provider`): no spec category exists for it.
 /// Thought level is category-only (`ThoughtLevel`), and only when the
-/// option offers MORE than one value — a single offered value (kilo's
+/// option offers MORE than one value - a single offered value (kilo's
 /// fixed `thinking`) is a marker, not a level, and stays empty. Boolean
-/// options are skipped in every slot — a model, provider or level
+/// options are skipped in every slot - a model, provider or level
 /// selector is a value, not a toggle.
 pub(crate) fn session_model_info(
     config_options: Option<&[SessionConfigOption]>,
@@ -3183,7 +3194,7 @@ fn select_value_name(select: &SessionConfigSelect, value: &str) -> Option<String
 /// stop flag is raced against the prompt await
 /// (Phase 5 cancellation: a trigger sends `session/cancel` and the turn
 /// still ends with the agent's own answer). Message text feeds the
-/// [`TurnClosure`](super::closure::TurnClosure) — only the message written
+/// [`TurnClosure`](super::closure::TurnClosure) - only the message written
 /// after the LAST tool call is the returned report (the market-standard
 /// "final message" contract), with a defensive fallback to the last
 /// completed message when the turn ends right after a tool call; every
@@ -3217,7 +3228,7 @@ where
     // the session workspace root. The root is pinned to a VERIFIED directory
     // descriptor once per turn (see `sandbox::PinnedRoot`): the handlers
     // below clone that descriptor's handle and every `fs/*` resolution
-    // walks `openat`-relative from it — no path is ever re-resolved after
+    // walks `openat`-relative from it - no path is ever re-resolved after
     // verification, closing the validate-then-use window (including at the
     // root itself).
     // Non-Unix has no descriptor pinning; the handlers fall back to the
@@ -3235,7 +3246,7 @@ where
     // Permission handling is MODE-AWARE (the mode mapping made the split's
     // modes real): with a permission channel the `session/request_permission`
     // request surfaces to the TUI (its box) and AWAITS the user's pick;
-    // without one it stays the headless auto-approve (the Yolo contract —
+    // without one it stays the headless auto-approve (the Yolo contract -
     // the split ran every pane YOLO by design long before modes mapped).
     //
     // The receiver rides an `Arc<Mutex<Option<_>>>` because the SDK invokes
@@ -3243,7 +3254,7 @@ where
     // request takes the channel out, awaits one answer, and puts it back.
     let permission_rx = std::sync::Arc::new(std::sync::Mutex::new(permission_rx));
     // The permission handler's own captures (each closure below moves its
-    // clones — the originals stay for the prompt race further down).
+    // clones - the originals stay for the prompt race further down).
     let permission_tx = chunk_tx.clone();
     let permission_stop = stop_signal.clone();
 
@@ -3257,10 +3268,10 @@ where
     // `session/load` and receives that replay; opencode advertises
     // `session/resume` (no replay) and never triggers it. Unfiltered, the
     // replayed chunks land BOTH in the live pane's timeline (old turns
-    // visually mixed into the new one — the reported prompt-pane symptom)
+    // visually mixed into the new one - the reported prompt-pane symptom)
     // AND in the turn's closure (`TurnClosure`), corrupting the report the
     // caller receives. Content mapped while this flag is set is dropped;
-    // chrome (usage, commands, config options — session STATE, not history)
+    // chrome (usage, commands, config options - session STATE, not history)
     // still passes. The flag is set around the session-open phase only.
     let load_window = Arc::new(AtomicBool::new(false));
 
@@ -3311,10 +3322,10 @@ where
         // Permission handling is MODE-AWARE (the mode mapping made the
         // split's modes real): with a permission channel the request
         // surfaces to the TUI (its box) and AWAITS the user's pick; without
-        // one it stays the headless auto-approve (the Yolo contract — the
+        // one it stays the headless auto-approve (the Yolo contract - the
         // split ran every pane YOLO by design long before modes mapped).
         //
-        // Auto-approve preference order: AllowAlways first, then AllowOnce —
+        // Auto-approve preference order: AllowAlways first, then AllowOnce -
         // both approve, but Always avoids the same prompt coming back for
         // every later call. Without any allow-kind option, the first listed
         // option is picked as a last resort; its kind is logged so a
@@ -3364,7 +3375,7 @@ where
                 // INTERACTIVE: mirror the request into a typed event (the TUI
                 // opens its permission box for this pane) and await the
                 // user's option pick. The await is raced against the shared
-                // stop signal — a triggered stop must respond `Cancelled`
+                // stop signal - a triggered stop must respond `Cancelled`
                 // per the spec (the pending permission dies with the turn).
                 let fields = &request.tool_call.fields;
                 let permission_event = SubagentEvent::PermissionRequest {
@@ -3389,7 +3400,7 @@ where
                                 PermissionOptionKind::RejectOnce => "reject_once".to_string(),
                                 PermissionOptionKind::RejectAlways => "reject_always".to_string(),
                                 // `#[non_exhaustive]`: a future kind carries
-                                // no name of its own here — the option still
+                                // no name of its own here - the option still
                                 // shows, just unclassified.
                                 _ => "other".to_string(),
                             },
@@ -3494,7 +3505,7 @@ where
                 .map_err(|e| acp_error(format!("ACP initialize failed: {e}")))?;
 
             // LAZY authentication: no proactive `authenticate` call even
-            // when the harness advertises auth methods — see
+            // when the harness advertises auth methods - see
             // [`authenticate_on_auth_required`] for why (measured on
             // `devin acp`: a proactive call forces a fresh interactive
             // browser login on EVERY session, while the harness's own
@@ -3508,7 +3519,7 @@ where
             let opened = {
                 // OPEN the replay window: the session-open phase below sends
                 // `session/load` when the harness advertises load-resume
-                // (goose) — its history replay arrives as notifications while
+                // (goose) - its history replay arrives as notifications while
                 // the request is in flight and must not reach the timeline
                 // or the closure.
                 load_window.store(true, Ordering::Relaxed);
@@ -3551,7 +3562,7 @@ where
             let session_id = opened.session_id;
 
             // Re-apply the pane's config picks inside THIS turn's own
-            // connection — per-connection state dies with the connection
+            // connection - per-connection state dies with the connection
             // (verified against opencode and kilo), so this re-run before
             // every prompt is the only path a pick survives. Stale picks
             // (option/value no longer offered) are skipped inside; a
@@ -3611,7 +3622,7 @@ where
             // state, exactly like the picks). The caller resolved its own
             // mode id against the modes a PREVIOUS turn's `Modes` event
             // advertised; this side only verifies the agent still offers it
-            // — a stale mapping (the agent dropped the mode) is skipped, a
+            // - a stale mapping (the agent dropped the mode) is skipped, a
             // transport rejection aborts the turn. `None` (no mapped mode)
             // binds nothing: gemini advertises no modes, and an unmapped
             // morpheus mode keeps the agent's own current.
@@ -3673,7 +3684,7 @@ where
 
             // Cancellation (Phase 5): the shared stop flag is raced against
             // the prompt await. On trigger, `session/cancel` is sent as a
-            // fire-and-forget notification and the prompt is STILL awaited —
+            // fire-and-forget notification and the prompt is STILL awaited -
             // the ACP spec requires the agent to end the turn itself,
             // answering with `StopReason::Cancelled`. This is the ONLY way
             // the turn ends early: there is no time limit.

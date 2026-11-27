@@ -10,7 +10,7 @@ impl Harness {
         let connector = Connector::new("openai")
             .unwrap()
             // Test mocks drive the stream with TEXT tokens (the inline-JSON
-            // path), so the test harness defaults to Inline mode — matching
+            // path), so the test harness defaults to Inline mode - matching
             // the historical behavior of every mock-driven test. Production
             // `Harness::new` keeps the connector default (Native).
             .with_tool_call_mode(ToolCallMode::Inline);
@@ -62,7 +62,7 @@ impl Harness {
             checkup: None,
             // Measured, not conventional: the confidence-floor sweep over the
             // `loop_termination` corpus (`confidence_floor_sweep` in
-            // crates/morpheus-onnx/tests/eval/loop_termination.rs) — 0.75 keeps
+            // crates/morpheus-onnx/tests/eval/loop_termination.rs) - 0.75 keeps
             // the sweep's optimum (23/24 correct) on the zero-false-continue
             // edge: no legitimate ending is vetoed, the single error is one
             // missed stop. Lower floors trade that for false continues
@@ -119,7 +119,7 @@ impl Harness {
         self
     }
 
-    /// Remaining improper-stop resumes for this loop (test accessor — the
+    /// Remaining improper-stop resumes for this loop (test accessor - the
     /// field is private to `core`).
     #[cfg(test)]
     pub(crate) fn coworker_resumes_left(&self) -> u32 {
@@ -164,7 +164,7 @@ impl Harness {
         self
     }
 
-    /// The summarizer calls made so far — one `(provider, model)` per call.
+    /// The summarizer calls made so far - one `(provider, model)` per call.
     /// Test accessor for test modules outside `core.rs` (e.g. `test/`).
     pub(crate) fn mock_compaction_calls(&self) -> &[(String, String)] {
         &self.mock_compaction_models
@@ -181,7 +181,7 @@ impl Harness {
     /// Queue sequential mock CHAT (summarizer) responses, consumed one per
     /// call; when the queue is empty the single [`Self::with_mock_chat`]
     /// response is used. Lets a test simulate a SEQUENCE of summarizer
-    /// outcomes — e.g. a failing single-shot compaction that reports its
+    /// outcomes - e.g. a failing single-shot compaction that reports its
     /// window (the `"{CONTEXT_WINDOW_MARKER}:{window}"` error convention
     /// parsed in [`Self::stream_summarize_for_compaction`]) followed by the
     /// successful split chunks of the reactive fork.
@@ -220,7 +220,7 @@ impl Harness {
     }
 
     /// Set the KNOWN context window of the active model, as if discovery had
-    /// succeeded — lets tests drive the hierarchical MapReduce contingency (a
+    /// succeeded - lets tests drive the hierarchical MapReduce contingency (a
     /// known window with a held context that exceeds it).
     pub(crate) fn with_discovered_window(mut self, window: usize) -> Self {
         self.discovered_window = Some(window);
@@ -252,7 +252,7 @@ impl Harness {
         self
     }
 
-    /// Whether `name` is omitted from the ACTIVE tool set — the user's
+    /// Whether `name` is omitted from the ACTIVE tool set - the user's
     /// disable list plus the model's capability gates.
     #[cfg(test)]
     pub(crate) fn is_tool_omitted(&self, name: &str) -> bool {
@@ -309,7 +309,7 @@ impl Harness {
     }
 
     /// Test-only per-token pause for the mock stream (ms). Lets a test
-    /// interleave with the streamed tokens — e.g. set the stop signal
+    /// interleave with the streamed tokens - e.g. set the stop signal
     /// mid-stream and assert the loop surfaces `Stopped` (never a spurious
     /// `Done` from a truncated turn).
     #[cfg(test)]
@@ -322,7 +322,7 @@ impl Harness {
     /// [`Self::with_mock_streams`]): one entry per mock stream, popped in
     /// order. Each entry's strings ride the SAME accumulation +
     /// `HarnessEvent::Reasoning` path the real stream uses, BEFORE that
-    /// stream's text tokens — so a test can drive the full
+    /// stream's text tokens - so a test can drive the full
     /// reasoning-persistence contract (capture → context item → session
     /// replay) end to end without a real provider.
     #[cfg(test)]
@@ -343,7 +343,7 @@ impl Harness {
     }
 
     /// Queue NATIVE (structured) tool calls for the NEXT stream, delivered
-    /// right after its string tokens — mirrors a provider emitting
+    /// right after its string tokens - mirrors a provider emitting
     /// `tool_calls`/`tool_use`/`functionCall` parts. Consumed one list per
     /// stream.
     #[cfg(test)]

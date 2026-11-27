@@ -269,7 +269,7 @@ async fn probe_app_real_order_hover_sweep() {
     terminal.draw(|f| app.render(f, 0.016)).unwrap();
     sweep(&mut app, &mut terminal, "queued-in-strip");
 
-    // Phase 2: the loop consumes it — pump hands it to the shared queue, the
+    // Phase 2: the loop consumes it - pump hands it to the shared queue, the
     // harness acks with UserMessageInjected (deque popped + message mirrored).
     app.pump_queued_messages();
     app.event_tx
@@ -296,7 +296,7 @@ async fn probe_app_real_order_hover_sweep() {
             );
         }
     }
-    // Move BEFORE the next render (stale mapping — the real event order).
+    // Move BEFORE the next render (stale mapping - the real event order).
     app.handle_mouse_event(mouse_move(50, 20)).unwrap();
     eprintln!(
         "pre-render hover after growth -> {:?}",

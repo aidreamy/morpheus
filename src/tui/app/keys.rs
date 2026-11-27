@@ -25,7 +25,7 @@ impl App {
             // per character plus one Enter per line break (modern consoles
             // deliver a real `Event::Paste` via the patched crossterm, which
             // bypasses this gate entirely). Each streamed Enter used to
-            // submit the prompt — splitting a large paste into one message
+            // submit the prompt - splitting a large paste into one message
             // per line. Characters are NEVER withheld: they stream into the
             // prompt in real time
             // while being mirrored into the coalescer's shadow; only Enters
@@ -51,7 +51,7 @@ impl App {
             }
 
             // Modal sovereignty: while a Confirm dialog is on screen it owns
-            // the ENTIRE keyboard — the slash menu, the prompt, the left panel
+            // the ENTIRE keyboard - the slash menu, the prompt, the left panel
             // and every panel must not react to any key until the user
             // decides. Left/Right/Enter/Esc drive the dialog; any other key
             // is swallowed. (Without this gate a "/"-open slash menu used to
@@ -80,7 +80,7 @@ impl App {
             // picker or the slash menu open, the key used to be swallowed
             // there and the pane never switched. Agent names never contain
             // digits and the picker filter matches names only, so the
-            // digits are dead keys to every modal below — the split may
+            // digits are dead keys to every modal below - the split may
             // have them.
             // CTRL+ALT is excluded (AltGr), and the paste-burst gate above
             // already absorbed burst digits, so the plain-digit fallback
@@ -96,11 +96,11 @@ impl App {
             // stalls silently (a lost provider connection, an agent that
             // never answers) had NO keyboard path out: the pane sat
             // `running` forever and the dispatch gate refused every new
-            // prompt. Ctrl+X is the pane's ONLY stop path — the pane's
+            // prompt. Ctrl+X is the pane's ONLY stop path - the pane's
             // own stop signal is stored (a live turn winds down through
             // its normal Done path) and the pane state is closed
             // unconditionally (a dead turn whose thread can no longer
-            // deliver never recovers on its own) — then the pane accepts
+            // deliver never recovers on its own) - then the pane accepts
             // prompts again. The gate sits beside `focus_pane_hotkey`
             // ABOVE the modal chain: `x` is dead to every modal, and the
             // recovery must work even with the slash menu or a dialog
@@ -134,7 +134,7 @@ impl App {
             // prompt/field text selection, the left panel focus, the slash
             // menu, the permission dialog, an overlay), the FIRST job of
             // ESC is to interrupt the loop. Flag the shared stop signal
-            // here — before any gate below can swallow the key — then let
+            // here - before any gate below can swallow the key - then let
             // ESC fall through so it still performs its normal local
             // action (clear selection, close menu/dialog). Regression:
             // those gates used to consume ESC without setting
@@ -144,7 +144,7 @@ impl App {
             // PRIORITY RULE: when a modal box IS open (model picker,
             // theme picker, reasoning sub-dialog, message/queue actions,
             // text inputs, registration forms, the queue-choice and
-            // free-gateway dialogs, …) ESC belongs to the BOX first —
+            // free-gateway dialogs, …) ESC belongs to the BOX first -
             // its own handler below closes it and the loop keeps
             // running. Interrupting the loop is the SECOND Esc's job,
             // once no box is open. The Confirm dialog and the
@@ -154,10 +154,10 @@ impl App {
             // Esc is a semantic REJECT of the pending tool call /
             // permission request, not a mere close.
             // ONLY `Working`: a live loop is the only thing this fast-stop
-            // exists for. `SessionStatus::Retry` is terminal — the
+            // exists for. `SessionStatus::Retry` is terminal - the
             // `HarnessEvent::Error` handler already ran `handle_loop_end`
             // and the harness thread has exited (the documented contract in
-            // `routes/session/delete.rs::deletion_stops_running_loop`) — so
+            // `routes/session/delete.rs::deletion_stops_running_loop`) - so
             // raising the shared stop signal for it would stop a dead loop.
             if key.code == KeyCode::Esc
                 && self.state.status == crate::types::SessionStatus::Working
@@ -165,17 +165,17 @@ impl App {
                 // Only the Session screen owns the "Esc interrupts the
                 // running agent" gesture. Overlay routers (settings, tools,
                 // router, …) opened via slash commands must NOT stop the
-                // manager loop — Esc there only closes the overlay and
+                // manager loop - Esc there only closes the overlay and
                 // returns to the same session, whose turn keeps running.
                 && matches!(self.mode(), AppMode::Session)
                 // The /agents split owns Esc FIRST (issue 3): its Esc is
-                // PARK — leave the split with every turn (the main loop
+                // PARK - leave the split with every turn (the main loop
                 // included) still running. Flagging the shared stop here
                 // would kill the main loop the user is walking away from
                 // to WATCH, not to interrupt.
                 && self.agents_split.is_none()
                 // A focused right-panel block owns Esc FIRST (issue 4):
-                // its Esc folds the block back into the list — the stop
+                // its Esc folds the block back into the list - the stop
                 // belongs to a LATER Esc, once focus is out of the block.
                 && self.state.right_panel.panel_focus.is_none()
             {
@@ -187,7 +187,7 @@ impl App {
             // and keep the draft exactly as it is (the correction never
             // mutates the prompt before its answer is applied, so "restoring
             // the original text" is the natural result of the abort). Only
-            // effective while the request is still running — after the
+            // effective while the request is still running - after the
             // model's answer arrived the flag is already down and Esc keeps
             // its normal meanings below.
             //
@@ -221,18 +221,18 @@ impl App {
                 return Ok(false);
             }
 
-            // Escape also unfocuses the right panel slot — WITHOUT
+            // Escape also unfocuses the right panel slot - WITHOUT
             // consuming the key: Esc keeps its normal meanings
             // (interrupt generation, cancel, close dialogs) even
             // while a panel slot is focused. When the mouse cursor sits
             // over the subagent section of the right panel, Esc FIRST
-            // folds an expanded subagent back into the list — the slower
+            // folds an expanded subagent back into the list - the slower
             // alternative to Ctrl+Alt+L (it depends on the cursor being
             // over the subagent block; the F-key works from anywhere).
             // The fold CONSUMES the Esc (and runs only with no modal box
-            // open — a visible box owns Esc first, like everywhere else):
+            // open - a visible box owns Esc first, like everywhere else):
             // otherwise, with the agent Idle, the same keypress would fall
-            // through to the cancel path and LEAVE the session — the fold
+            // through to the cancel path and LEAVE the session - the fold
             // would only ever "work" while the model was running (the
             // Working branch below already returned, swallowing the fall-
             // through). Fold + leave in one Esc is never intended.
@@ -245,13 +245,13 @@ impl App {
             {
                 // Parity with the pre-consume flow: the fold used to fall
                 // through to the unfocus line below, which a consumed Esc
-                // now skips — so the slot focus is released HERE, exactly
+                // now skips - so the slot focus is released HERE, exactly
                 // once, when the fold actually happened.
                 self.state.right_panel.panel_focus = None;
                 return Ok(false);
             }
 
-            // Issue 4: a FOCUSED right-panel block owns this Esc — fold it
+            // Issue 4: a FOCUSED right-panel block owns this Esc - fold it
             // back into the list, release the focus, CONSUME the key. The
             // old flow cleared the focus but let the Esc fall through, so
             // the same keystroke reached the agent-loop stop below: one
@@ -277,7 +277,7 @@ impl App {
             }
 
             // AltGr exclusion: Char + CTRL+ALT is the Windows-console
-            // signature of an AltGr character (`@ # $` on ABNT layouts —
+            // signature of an AltGr character (`@ # $` on ABNT layouts -
             // crossterm's parser reports it exactly that way), NEVER a
             // Ctrl+C hotkey. Without this guard, pasting text containing
             // the letter `c` through an ABNT layout quits the app
@@ -307,10 +307,10 @@ impl App {
                 }
                 // Same for the free-gateway dialog's Authorizing regions:
                 // the device code, the verification URL and the explanation
-                // body are all drag-copyable (the code is the whole point —
+                // body are all drag-copyable (the code is the whole point -
                 // the Charm page asks for it after login). The dialog must
                 // still OWN the screen (visible + routed, no modal stacked
-                // on top): an Esc'd dialog keeps a stale selection alive —
+                // on top): an Esc'd dialog keeps a stale selection alive -
                 // copy it here and every later Ctrl+C would silently copy
                 // dead text instead of quitting.
                 if self.free_gateway_dialog.visible
@@ -327,7 +327,7 @@ impl App {
                 // field (readline-style kill, same as the prompt below). The
                 // clear is recorded as ONE atomic Replace step, so a single
                 // Ctrl+Z brings the field back exactly. The key is consumed
-                // while the dialog owns the keyboard either way — Esc is the
+                // while the dialog owns the keyboard either way - Esc is the
                 // dialog's dismissal, the quit-confirm stays out of reach.
                 if matches!(self.mode(), AppMode::Session) && self.question_dialog.visible {
                     self.question_dialog.clear_focused_field();
@@ -342,7 +342,7 @@ impl App {
                 }
                 // While a registration panel (hook, MCP server) owns the
                 // keyboard, Ctrl+C copies the active field instead of
-                // quitting — Esc already discards the panel.
+                // quitting - Esc already discards the panel.
                 if self.is_registration_form_open() {
                     self.copy_registration_form_field();
                     return Ok(false);
@@ -351,7 +351,7 @@ impl App {
                 // content, Ctrl+C clears the whole draft (readline-style
                 // kill) instead of asking to quit. An empty (or
                 // whitespace-only) draft has nothing to kill, so the key
-                // falls through to the quit-confirm below — that way a
+                // falls through to the quit-confirm below - that way a
                 // double Ctrl+C still leaves the app naturally: the first
                 // press wipes the draft, the second quits. The clear is
                 // recorded as ONE atomic Replace step, so a single Ctrl+Z
@@ -370,7 +370,7 @@ impl App {
                 // Deliberately NOT status-gated, unlike Esc's quit offer:
                 // Ctrl+C is the explicit, double-press exit idiom (empty
                 // draft → confirm). An "accidental" live-loop kill cannot
-                // happen the way Esc's could — the first Ctrl+C kills the
+                // happen the way Esc's could - the first Ctrl+C kills the
                 // prompt draft, and reaching this branch takes a deliberate
                 // second press on an empty draft; "Yes" in the confirm then
                 // quits while the loop runs by explicit choice.
@@ -385,18 +385,18 @@ impl App {
 
             // Ctrl+V = clipboard paste (opencode mini-port, prompt-only): Windows
             // terminals do not reliably emit a bracketed paste for Ctrl+V
-            // (many never emit one at all — crossterm's Windows backend has
+            // (many never emit one at all - crossterm's Windows backend has
             // no paste support whatsoever), so the key event IS the paste
             // signal. Read the system clipboard and route the text through
             // the normal paste path. A terminal that DOES intercept Ctrl+V
             // never delivers this key event, so there is no double-paste
-            // path. The key is consumed even when the clipboard is empty —
+            // path. The key is consumed even when the clipboard is empty -
             // a fall-through would type a stray `v` into the prompt (the
             // same reason opentui ignores ctrl-modified keys). Guarded
             // against AltGr (CTRL+ALT is an AltGr character on Windows
             // consoles, never a hotkey).
             //
-            // SCOPE: only the chat prompt — the motivating bug is pasting a
+            // SCOPE: only the chat prompt - the motivating bug is pasting a
             // multi-line message into it. The Unix `Event::Paste` router
             // (events.rs) additionally dispatches into registration fields,
             // the question dialog and RAG inputs; extending Ctrl+V to those
@@ -459,7 +459,7 @@ impl App {
             // above: while visible it owns the keyboard (multi-select marks
             // must not leak into the prompt), so it is checked before the
             // slash menu gate below. `handle_key` already closes the picker
-            // on Confirm/Cancel — here we only route the outcome.
+            // on Confirm/Cancel - here we only route the outcome.
             if self.agents_picker.visible {
                 use crate::ui::agents_picker::AgentsPickerAction;
                 match self.agents_picker.handle_key(key.code, key.modifiers) {
@@ -512,7 +512,7 @@ impl App {
                         // Re-focus prompt when question is answered (like OpenCode)
                         self.prompt_view.focus();
                     } else if !self.question_dialog.visible {
-                        // Dialog was dismissed via Esc (like OpenCode) — stop agent loop + send rejection
+                        // Dialog was dismissed via Esc (like OpenCode) - stop agent loop + send rejection
                         self.stop_signal.store(true, Ordering::Relaxed);
                         let _ = self
                             .answer_tx
@@ -540,11 +540,11 @@ impl App {
             }
 
             // (Confirm dialog keys are handled by the sovereignty gate at the
-            // top of this function — nothing here can run while it decides.)
+            // top of this function - nothing here can run while it decides.)
 
             // Free-gateway recommendation dialog (inline, shown when a
             // message is sent without credentials, or after an auth-shaped
-            // error). Session only — every trigger lives in a session.
+            // error). Session only - every trigger lives in a session.
             if self.free_gateway_dialog.visible && self.gateway_dialog_route() {
                 let consumed = self.free_gateway_dialog.handle_key_event(key);
                 if consumed {
@@ -566,7 +566,7 @@ impl App {
             }
 
             // Device sign-in display: a passive progress box that owns the
-            // keyboard (Esc pops it; every other key is swallowed) — the
+            // keyboard (Esc pops it; every other key is swallowed) - the
             // same sovereignty the other modal boxes have, so typing never
             // leaks into whatever sits beneath the stack.
             if self.is_device_login_visible() {
@@ -643,7 +643,7 @@ impl App {
             }
 
             // The /agents pane's permission box (a pane tool call awaiting
-            // the user's decision — the non-Yolo modes route
+            // the user's decision - the non-Yolo modes route
             // `session/request_permission` here): sovereign over every other
             // handler, exactly like the main permission dialog below. Any
             // key while a box is pending is consumed by it (Up/Down
@@ -657,7 +657,7 @@ impl App {
             if self.permission_dialog.visible {
                 // A pending `agents_worktree` ask RESOLVES FIRST: while it
                 // is parked, this box belongs to it (the ask is the
-                // agent's, the answer is the user's, resolved App-side —
+                // agent's, the answer is the user's, resolved App-side -
                 // never sent into the main loop's `perm_tx`).
                 if self.pending_worktree_confirmation.is_some() {
                     match key.code {
@@ -751,7 +751,7 @@ impl App {
                 && self.terminal_size().width >= MIN_WIDTH_FOR_LEFT_PANEL
             {
                 // File explorer (Ctrl+F): the panel owns the keys while it
-                // is the active left-panel view — but never while a modal
+                // is the active left-panel view - but never while a modal
                 // dialog is open (Enter on a file must not launch the
                 // editor under a dialog). Navigation works while the agent
                 // runs; it never touches session state.
@@ -835,7 +835,7 @@ impl App {
                                 use crate::ui::toast::{ToastOptions, ToastVariant};
                                 self.toast_state.show(ToastOptions {
                                     title: Some("Switch session".into()),
-                                    message: "The agent is working — wait for it to finish.".into(),
+                                    message: "The agent is working - wait for it to finish.".into(),
                                     variant: ToastVariant::Warning,
                                     duration_ms: 4000,
                                 });
@@ -1023,7 +1023,7 @@ impl App {
                             }
                             // Exhaustiveness only: `RemoveSelected` is
                             // produced by the 🗑 glyph click
-                            // (`activate_mouse`) alone — Enter on an
+                            // (`activate_mouse`) alone - Enter on an
                             // MCP/ACP row opens the edit form, it never
                             // removes.
                             Some(crate::routes::settings::SettingsAction::RemoveSelected) => {}
@@ -1062,7 +1062,7 @@ impl App {
                     // mirrors the 🗑 glyph click
                     // (the sessions-list pairing). It must come BEFORE the
                     // fallthrough so the prompt editor never eats the key,
-                    // and only claims it on rows the removal applies to —
+                    // and only claims it on rows the removal applies to -
                     // everywhere else Backspace still edits the prompt.
                     KeyCode::Backspace
                         if matches!(
@@ -1348,7 +1348,7 @@ impl App {
 
             // Function-key owner switches for the right panel header (the
             // F1–F4 hints the buttons advertise): maximize one section or
-            // restore the mixed view — the same state change a header click
+            // restore the mixed view - the same state change a header click
             // performs. Session-scoped so the other routes never react to them.
             use crate::routes::session::right_panel::types::SectionKind;
             match action {
@@ -1381,7 +1381,7 @@ impl App {
                     // pane takes the session area, the others keep
                     // running off-screen (the events never stopped).
                     // The MAIN agent holds the focus (`Alt+0`) or no
-                    // split is open: nothing to zoom — the key then does
+                    // split is open: nothing to zoom - the key then does
                     // nothing rather than expanding an unfocused target.
                     if matches!(self.mode(), AppMode::Session) && self.agents_split.is_some() {
                         let focused = self.agents_split.as_ref().and_then(|split| split.focused);
@@ -1547,12 +1547,12 @@ impl App {
                     }
                     self.prompt_view.note_activity();
                     // The /agents split intercepts the shared prompt: the
-                    // FOCUSED pane receives the message as its own turn —
+                    // FOCUSED pane receives the message as its own turn -
                     // EVEN WHILE the main agent is working (issue 3:
                     // delegating to an idle pane mid-run must work; the
                     // main loop keeps streaming untouched). When NO pane
                     // holds the focus (`Alt+0`, the MAIN agent), the
-                    // Working branch below keeps its queue-choice dialog —
+                    // Working branch below keeps its queue-choice dialog -
                     // the message targets the main loop, which is exactly
                     // what the queue serves.
                     let split_pane_focused = self
@@ -1602,7 +1602,7 @@ impl App {
                     // a loop: a loop IS running, and `start_agent_loop` would
                     // begin a second one. From there the ordinary pump hands
                     // it to the shared `queued_input`, and the harness's wait
-                    // wakes on it instead of sleeping out the reports — the
+                    // wakes on it instead of sleeping out the reports - the
                     // message reaches the agent within one poll, which is
                     // what "the agent is idle, send it now" has to mean.
                     if self.state.status == crate::types::SessionStatus::Working
@@ -1628,7 +1628,7 @@ impl App {
 
                     // A focused /agents pane that is still working (the
                     // shared prompt keeps serving it while the MAIN loop
-                    // idles) QUEUES the message rather than refusing it —
+                    // idles) QUEUES the message rather than refusing it -
                     // the same dialog the Working branch above shows. An
                     // outstanding edited-queue re-submit wins: it belongs
                     // to its own slot, not to the pane.
@@ -1685,12 +1685,12 @@ impl App {
                     self.submit_prompt_message(msg);
                 }
                 Some(crate::keymap::Action::Interrupt) => {
-                    // PRIORITY RULE: a modal box owns ESC first — dismiss
+                    // PRIORITY RULE: a modal box owns ESC first - dismiss
                     // it and leave the agent loop running. Only with no
                     // box open does ESC interrupt the loop (the top gate
                     // already flagged the stop signal in that case; the
                     // question / permission dialogs keep their semantic
-                    // REJECT semantics — an answer is sent to the model).
+                    // REJECT semantics - an answer is sent to the model).
                     if self.queue_choice_dialog.visible {
                         self.queue_choice_dialog.hide();
                         self.prompt_view.focus();
@@ -1703,7 +1703,7 @@ impl App {
                         self.prompt_view.focus();
                         return Ok(false);
                     } else if self.free_gateway_dialog.visible {
-                        // Esc yields the box in EVERY phase — offer AND
+                        // Esc yields the box in EVERY phase - offer AND
                         // mid-sign-in. The device flow keeps polling in the
                         // background and ends itself (Authorized/Failed hide
                         // + toast); dismissing here only gives the screen
@@ -1724,14 +1724,14 @@ impl App {
                     {
                         // /agents split, EXPANDED: the first Esc only
                         // restores the grid (the pane falls back into the
-                        // split with its turn still running) — the park is
+                        // split with its turn still running) - the park is
                         // the NEXT Esc's job. (`restore_maximized`, not the
                         // toggle: with the grid already up an Esc must fall
                         // through to the park, never re-expand.)
                         return Ok(false);
                     } else if self.agents_split.is_some() {
                         // /agents split ESC semantics (issue 3): Esc ONLY
-                        // PARKS the split — leave the mode with every turn
+                        // PARKS the split - leave the mode with every turn
                         // still running (a pane's stream and the MAIN loop
                         // alike). Interrupting a turn is the focused pane's
                         // own affordance, never this key's side effect; the
@@ -1743,7 +1743,7 @@ impl App {
                     } else if matches!(self.mode(), AppMode::Session)
                         && self.state.status == crate::types::SessionStatus::Working
                     {
-                        // ONLY `Working` — same contract as the Cancel arm
+                        // ONLY `Working` - same contract as the Cancel arm
                         // below: `Retry` is a terminal state (the harness
                         // thread already exited), never a winding-down loop.
                         // Only on the Session screen: overlay routers must
@@ -1753,7 +1753,7 @@ impl App {
                 }
                 Some(crate::keymap::Action::Cancel) => {
                     // PRIORITY RULE (same as Interrupt above): a modal box
-                    // owns ESC first — dismiss it and leave the agent loop
+                    // owns ESC first - dismiss it and leave the agent loop
                     // running. Clearing the queues is only the
                     // no-box-open cancel of a running loop. Each dismissal
                     // RETURNS: the box was the Esc's target, so the key
@@ -1771,7 +1771,7 @@ impl App {
                         self.prompt_view.focus();
                         return Ok(false);
                     } else if self.free_gateway_dialog.visible {
-                        // Esc yields the box in EVERY phase — offer AND
+                        // Esc yields the box in EVERY phase - offer AND
                         // mid-sign-in. The device flow keeps polling in the
                         // background and ends itself (Authorized/Failed hide
                         // + toast); dismissing here only gives the screen
@@ -1787,11 +1787,11 @@ impl App {
                         return Ok(false);
                     } else if self.agents_split.is_some() {
                         // Same park contract as the Interrupt ESC above
-                        // (issue 3): Esc ONLY leaves the mode — every turn
+                        // (issue 3): Esc ONLY leaves the mode - every turn
                         // (panes AND the main loop) keeps running behind
                         // the park; nothing is stopped here, nothing is
                         // destroyed. With a pane EXPANDED, the first Esc
-                        // only restores the grid (see the Interrupt arm) —
+                        // only restores the grid (see the Interrupt arm) -
                         // the park is the next Esc.
                         if self
                             .agents_split
@@ -1806,19 +1806,19 @@ impl App {
                         && self.state.status == crate::types::SessionStatus::Working
                     {
                         // ONLY `Working`: a live loop owns Esc here.
-                        // `SessionStatus::Retry` is deliberately excluded —
+                        // `SessionStatus::Retry` is deliberately excluded -
                         // it is TERMINAL (the `HarnessEvent::Error` handler
                         // already ran `handle_loop_end` and the harness
                         // thread has exited; see `deletion_stops_running_loop`
                         // in `routes/session/delete.rs` for the documented
                         // contract). Stopping a dead loop is meaningless, and
                         // the Error path intentionally leaves the pending
-                        // queues PARKED for the user to decide — wiping them
+                        // queues PARKED for the user to decide - wiping them
                         // here would silently destroy queued follow-ups.
                         self.stop_signal.store(true, Ordering::Relaxed);
                         // Clear pending queues: the user explicitly
                         // cancelled, so queued follow-ups should not
-                        // auto-start a new loop — and nothing still parked in
+                        // auto-start a new loop - and nothing still parked in
                         // the SHARED queue may reach the dying loop either.
                         if let Some(id) = self.state.current_session_id.clone()
                             && let Some(queues) = self.state.pending_queues.get_mut(&id)
@@ -1841,11 +1841,11 @@ impl App {
                         // loop-stop branch) already returned, so this branch
                         // runs only when nothing else claims Esc. Do NOT gate
                         // it on `SessionStatus::Idle`: `Retry` is a TERMINAL
-                        // state (the harness thread already exited — see
+                        // state (the harness thread already exited - see
                         // `deletion_stops_running_loop` in
                         // `routes/session/delete.rs`), it never transitions
                         // back to `Idle` on its own, and after an error this
-                        // confirm is the only exit path — gating it there
+                        // confirm is the only exit path - gating it there
                         // would strand the user.
                         self.pending_delete = None;
                         self.dialog.show(DialogType::Confirm {
@@ -1896,7 +1896,7 @@ impl App {
                             // intercepted there (the /agents split screen when
                             // it is open, or the main-agent manager loop that
                             // drives those panes when it is not), so the
-                            // plain-terminal shell mode makes no sense — the
+                            // plain-terminal shell mode makes no sense - the
                             // cycle offers MANAGER there instead: the mode
                             // whose loop IS that manager loop. The condition
                             // is the session's pane LIST, not the open split:
@@ -1946,7 +1946,7 @@ impl App {
                                     // History takes over ONLY at the head of
                                     // the prompt (cursor on the first visual
                                     // line): anywhere else the arrow moves the
-                                    // cursor within the text — a draft recalled
+                                    // cursor within the text - a draft recalled
                                     // via Ctrl+Up (which leaves `history_index`
                                     // set) stays fully editable with Up/Down.
                                     let text_w = self.prompt_view.input_text_width.get().max(1);
@@ -2010,7 +2010,7 @@ impl App {
                                     // mode, an agent queue steps back one entry
                                     // (in the EXPANDED subagent view this walks
                                     // the displayed windows without folding
-                                    // back to the list — see
+                                    // back to the list - see
                                     // `panel_left`'s list-mode handling).
                                     self.state.right_panel.panel_left();
                                 } else if key.modifiers.contains(KeyModifiers::CONTROL) {
@@ -2029,7 +2029,7 @@ impl App {
                                 if self.state.right_panel.panel_focus.is_some() {
                                     // Focused panel slot: bash returns to live,
                                     // an agent queue steps forward (live at
-                                    // newest) — in the EXPANDED subagent view
+                                    // newest) - in the EXPANDED subagent view
                                     // this walks the displayed windows without
                                     // folding back to the list.
                                     self.state.right_panel.panel_right();
@@ -2133,7 +2133,7 @@ impl App {
                                 {
                                     // /agents split, prompt blurred (a pane
                                     // click blurred it): Backspace HIDES the
-                                    // focused pane — it leaves the visible
+                                    // focused pane - it leaves the visible
                                     // set but is NOT deleted (Ctrl+Z
                                     // restores it). The prompt keeps its
                                     // Backspace whenever it holds the focus.
@@ -2143,7 +2143,7 @@ impl App {
                                 }
                             }
                             // Shift+B / Shift+N cycle agent queues while the
-                            // right panel owns the keyboard — their SHIFT
+                            // right panel owns the keyboard - their SHIFT
                             // modifier survives every terminal encoding
                             // (crossterm derives it from the uppercase
                             // letter). Without panel
@@ -2172,7 +2172,7 @@ impl App {
                                 // exactly as Char+CTRL|ALT, and during a
                                 // paste burst (text within BURST_WINDOW) this
                                 // chord IS that character, never the
-                                // shortcut — a human cannot hit a chord
+                                // shortcut - a human cannot hit a chord
                                 // within 80 ms of typing text.
                                 if ch == 'l'
                                     && key.modifiers == (KeyModifiers::CONTROL | KeyModifiers::ALT)
@@ -2181,7 +2181,7 @@ impl App {
                                     // Only fold when an EXPANDED view exists:
                                     // with the list already showing (or zero
                                     // subagents) the chord must not latch
-                                    // `subagent_list_mode = Some(true)` — that
+                                    // `subagent_list_mode = Some(true)` - that
                                     // would force the FIRST future subagent
                                     // into a one-row list instead of the
                                     // documented expanded window. The chord is
@@ -2194,7 +2194,7 @@ impl App {
                                     return Ok(false);
                                 }
 
-                                // Ctrl+J is the universal newline (^J = \n) — works in every terminal
+                                // Ctrl+J is the universal newline (^J = \n) - works in every terminal
                                 if ch == 'j' && key.modifiers.contains(KeyModifiers::CONTROL) {
                                     self.prompt_view.insert_newline();
                                     return Ok(false);
@@ -2208,7 +2208,7 @@ impl App {
 
                                 // Ctrl+Z / Ctrl+Y: prompt edit-history undo /
                                 // redo. Raw mode means the terminal never maps
-                                // ^Z to SIGTSTP — the key always reaches this
+                                // ^Z to SIGTSTP - the key always reaches this
                                 // handler, so the universal convention works
                                 // with NO Shift fallback needed. A Ctrl+Z right
                                 // after a prompt correction restores the
@@ -2222,7 +2222,7 @@ impl App {
                                         // MOST RECENTLY hidden pane (LIFO).
                                         // An auto-closed split (its last
                                         // pane was hidden) has no live
-                                        // state — the restore RE-OPENS it,
+                                        // state - the restore RE-OPENS it,
                                         // so no live split is required,
                                         // only no parked one (a parked
                                         // split owns the set; the old
@@ -2260,7 +2260,7 @@ impl App {
                                 // Vim-style scroll: j/k scroll the chat view only when
                                 // the prompt is NOT focused. When focused, all characters
                                 // type normally so the user can start messages with j/k.
-                                // /agents split: the FOCUSED pane is the viewport —
+                                // /agents split: the FOCUSED pane is the viewport -
                                 // the same whole-row cadence the wheel uses.
                                 if (ch == 'j' || ch == 'k') && !self.prompt_view.is_focused {
                                     if let Some(split) = self.agents_split.as_mut() {
@@ -2280,7 +2280,7 @@ impl App {
 
                                 // Split mode: a pane click blurs the prompt, so
                                 // the FIRST printable key re-focuses it before
-                                // typing — the cursor becomes visible again
+                                // typing - the cursor becomes visible again
                                 // and Esc acts on the prompt draft instead of
                                 // silently closing the split behind an
                                 // invisible edit. j/k above keeps its
@@ -2290,7 +2290,7 @@ impl App {
                                     self.prompt_view.focus();
                                 }
 
-                                // Insert character normally — recorded into
+                                // Insert character normally - recorded into
                                 // the edit history (one Ctrl+Z undoes the
                                 // coalesced burst; len_utf8() keeps the cursor
                                 // on a valid UTF-8 boundary for multi-byte
@@ -2317,12 +2317,12 @@ impl App {
     /// the split exists and the press is a digit hotkey in one of two
     /// shapes: `Alt+0` unfocuses every pane (the MAIN agent takes the
     /// shared prompt) and `Alt+1..Alt+9` focus the numbered pane (1-based,
-    /// picker order) — Alt is the RELIABLE form because ESC+digit survives
+    /// picker order) - Alt is the RELIABLE form because ESC+digit survives
     /// every terminal encoding, while Ctrl+digits have no legacy byte
     /// encoding (Ctrl+0/1/2/3/8/9 turn into other keys before crossterm
     /// sees a digit); or a plain `0..9` while the draft is empty (the
     /// /agents picker hid the keyboard, so digit typing had nowhere to
-    /// live — the pane jump restores the number keys' meaning there).
+    /// live - the pane jump restores the number keys' meaning there).
     /// Pane switching is the ONLY action: the split mode never changes,
     /// the prompt draft never changes, running turns keep running.
     fn focus_pane_hotkey(&mut self, key: &KeyEvent) -> bool {
@@ -2332,8 +2332,8 @@ impl App {
         if !ch.is_ascii_digit() || self.agents_split.is_none() {
             return false;
         }
-        // Two accepted shapes: a bare ALT+digit (any extra modifier —
-        // CONTROL for AltGr, SHIFT/SUPER from shift-reporting terminals —
+        // Two accepted shapes: a bare ALT+digit (any extra modifier -
+        // CONTROL for AltGr, SHIFT/SUPER from shift-reporting terminals -
         // disqualifies it, so only a bare Alt+digit jumps), or the raw
         // unmodified digit
         // while the prompt holds nothing AND no modal box is open. The
@@ -2341,7 +2341,7 @@ impl App {
         // digits are that dialog's count input / filter, so pane jumping
         // stays on the Alt shape there. Every other MODAL that accepts
         // plain text (model filter, rename, router number input, …)
-        // yields the same way — their digits are real input, not dead
+        // yields the same way - their digits are real input, not dead
         // keys, so the fallback must never swallow them. The slash menu
         // is NOT a text modal (it lists commands), so the fallback still
         // fires with it open.
@@ -2358,7 +2358,7 @@ impl App {
         if !alt && !plain_fallback {
             return false;
         }
-        // Out-of-range digits consume without moving — the split may not
+        // Out-of-range digits consume without moving - the split may not
         // own pane 7 today; something else might tomorrow.
         if ch.is_ascii_digit() && self.agents_split.is_some() {
             // The focus IS the slash-menu source switch: the focused pane's
@@ -2386,7 +2386,7 @@ impl App {
     }
 
     /// Ctrl+C on the chat prompt: wipe the whole draft. Mirrors `prompt_undo`
-    /// bookkeeping — activity note plus slash-menu re-sync — because the draft
+    /// bookkeeping - activity note plus slash-menu re-sync - because the draft
     /// text changed under the menu.
     fn prompt_clear(&mut self) {
         self.prompt_view.clear_all();
@@ -2406,7 +2406,7 @@ impl App {
         if outcome == UndoOutcome::OriginalBeforeCorrection {
             self.toast_state.show(crate::ui::toast::ToastOptions {
                 title: Some("Prompt correction".into()),
-                message: "Original prompt restored — Ctrl+Y reapplies the correction.".into(),
+                message: "Original prompt restored - Ctrl+Y reapplies the correction.".into(),
                 variant: crate::ui::toast::ToastVariant::Info,
                 duration_ms: 3000,
             });
@@ -2414,7 +2414,7 @@ impl App {
         self.slash_menu_refresh();
     }
 
-    /// Ctrl+Y on the chat prompt: reapply the most recently undone edit —
+    /// Ctrl+Y on the chat prompt: reapply the most recently undone edit -
     /// including the corrector's rewrite, reported with a toast.
     fn prompt_redo(&mut self) {
         let outcome = self.prompt_view.redo();
@@ -2485,15 +2485,15 @@ impl App {
     /// Key handling while the slash menu is visible: menu navigation,
     /// editing of the filtered command, and handoff back to the prompt.
     ///
-    /// OWNERSHIP: this handler CLAIMS only the keys that are its own — the
-    /// navigation/edit set the menu implements — and DECLINES everything
+    /// OWNERSHIP: this handler CLAIMS only the keys that are its own - the
+    /// navigation/edit set the menu implements - and DECLINES everything
     /// else so the caller falls through to the normal prompt path:
     ///
     /// - owned: `Up`, `Down`, `Enter`, `Esc`, `Backspace` (plain and Ctrl),
     ///   plain `Char` (typing into the filter), and the four Ctrl combos the
     ///   menu genuinely implements (Ctrl+Z undo, Ctrl+Y redo, Ctrl+J
     ///   newline, Ctrl+W delete-word);
-    /// - declined: every other key — cursor movement (`Left`/`Right`,
+    /// - declined: every other key - cursor movement (`Left`/`Right`,
     ///   `Home`/`End`, Ctrl+Left/Right word movement), `Delete`,
     ///   `PageUp`/`PageDown`, `Tab`, and any Ctrl+`<letter>` the menu does
     ///   not implement.
@@ -2508,7 +2508,7 @@ impl App {
     ///
     /// Runs BEFORE the mode-specific Char handler. Returns `Ok(None)` when
     /// the key is not the menu's (the caller continues), `Ok(Some(quit))`
-    /// when it is — `quit` carries the same meaning as
+    /// when it is - `quit` carries the same meaning as
     /// [`Self::process_key_event`]'s return value.
     fn handle_slash_menu_key(&mut self, key: KeyEvent) -> io::Result<Option<bool>> {
         match key.code {
@@ -2555,7 +2555,7 @@ impl App {
                 if key.modifiers.contains(KeyModifiers::CONTROL) {
                     // Only the combos the menu implements are claimed. The
                     // rest (Ctrl+B, Ctrl+A, Ctrl+P, …) belong to the prompt
-                    // or the app: claiming them here silently ate them —
+                    // or the app: claiming them here silently ate them -
                     // the same ownership trap as the movement keys.
                     match ch {
                         'z' => self.prompt_undo(),

@@ -47,7 +47,7 @@ impl App {
     ///
     /// The preselected option mirrors the persisted setting: a user arriving
     /// with telemetry on keeps "Yes" (the historical default), and a user who
-    /// already opted out keeps "No" — pressing Enter never silently flips a
+    /// already opted out keeps "No" - pressing Enter never silently flips a
     /// saved preference.
     pub fn show_telemetry_consent_prompt(&mut self) {
         if self.setup.telemetry_prompted {
@@ -100,7 +100,7 @@ impl App {
                 true
             }
             // Sovereign modal: every other key is swallowed while the user
-            // is deciding — nothing else in the TUI may react to it.
+            // is deciding - nothing else in the TUI may react to it.
             _ => true,
         }
     }

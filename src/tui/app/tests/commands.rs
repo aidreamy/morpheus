@@ -93,7 +93,7 @@ async fn todo_completion_strike_animation_frames() {
         content: content.to_string(),
     };
 
-    // Rehydration: the first update already carries the item as completed —
+    // Rehydration: the first update already carries the item as completed -
     // it must strike immediately (permanent marker), never animate.
     app.state
         .right_panel
@@ -105,7 +105,7 @@ async fn todo_completion_strike_animation_frames() {
     );
     assert_eq!(panel.todo_strike_frame(0), None, "permanent strike");
 
-    // The primary flow: an item the panel saw PENDING flips to completed —
+    // The primary flow: an item the panel saw PENDING flips to completed -
     // it must arm a fresh counter (hold phase first), not snap to permanent.
     app.state
         .right_panel
@@ -162,12 +162,12 @@ async fn todo_completion_strike_animation_frames() {
         .set_todos(vec![todo("completed", "b"), todo("completed", "a")]);
     let panel = &mut app.state.right_panel;
     // "b" carried its fresh counter through the shift; "a" completed in this
-    // update also arms fresh — no stale/aliased counters either way.
+    // update also arms fresh - no stale/aliased counters either way.
     assert_eq!(panel.todo_strike_frame(0), Some(0));
     assert_eq!(panel.todo_strike_frame(1), Some(0));
 
     // Live completion: a pending todo flips to completed → animation arms.
-    // "old" is a NEW item arriving already completed in this same update —
+    // "old" is a NEW item arriving already completed in this same update -
     // from the tool's point of view it was just completed too, so it animates
     // as well (only the panel's very first snapshot strikes instantly).
     app.state.right_panel.set_todos(vec![
@@ -272,7 +272,7 @@ async fn slash_new_creates_and_selects_a_fresh_session() {
     );
     assert!(!app.slash_menu.visible);
     // The selected session is FRESH: empty transcript. (`/new` ids are
-    // millisecond timestamps — a same-millisecond collision replaces the
+    // millisecond timestamps - a same-millisecond collision replaces the
     // boot session in the LRU instead of growing it, so the count itself is
     // not a portable invariant; the freshness of the selected session is.)
     let selected = app
@@ -285,7 +285,7 @@ async fn slash_new_creates_and_selects_a_fresh_session() {
     );
 }
 
-/// REGRESSION (multi-process session adoption — "single-entry vanished"):
+/// REGRESSION (multi-process session adoption - "single-entry vanished"):
 /// a freshly created session used to be selectable but UNLOCKED, so a
 /// second morpheus process could adopt it through the sidebar switch while the
 /// creator kept appending to the same JSONL. The entry funnel must take the
@@ -319,7 +319,7 @@ async fn slash_new_claims_the_fresh_session_lock_against_a_foreign_process() {
 
 /// REGRESSION (stale open-lock on /new): a process that CLAIMED a session
 /// (sidebar switch) and then started a NEW session used to keep holding the
-/// old session's lock until the process died — every other morpheus process
+/// old session's lock until the process died - every other morpheus process
 /// trying to open that session was refused with "already open in another
 /// process" while nothing here was using it. A claim must be handed off the
 /// moment the session stops being this process's selected one: /new (and
@@ -401,7 +401,7 @@ async fn slash_new_id_is_unique_per_claim() {
             !foreign.try_lock_session(&id),
             "the current session must carry this process's open-lock"
         );
-        // Every PREVIOUS session's claim was handed off by this /new —
+        // Every PREVIOUS session's claim was handed off by this /new -
         // a fresh foreign process can claim it right now.
         for prev in &superseded {
             let released = crate::session::store::SessionStore::new();
@@ -419,7 +419,7 @@ async fn slash_new_id_is_unique_per_claim() {
 /// panel. The panel lives on AppState (not inside the Session model), so
 /// without the reset in `start_new_session` the old session's todos,
 /// PTY/subagent sessions, panel focus and scroll state leaked into the new
-/// session (the panel/Esc switch paths already reset it — this path
+/// session (the panel/Esc switch paths already reset it - this path
 /// didn't).
 #[tokio::test]
 async fn slash_new_resets_right_panel_state() {
@@ -476,7 +476,7 @@ async fn slash_new_resets_right_panel_state() {
     );
 }
 
-/// `/new` while the agent loop is working is refused with a toast —
+/// `/new` while the agent loop is working is refused with a toast -
 /// selecting a different session mid-run would route the running loop's
 /// events into it.
 #[tokio::test]
@@ -486,7 +486,7 @@ async fn slash_new_refuses_while_agent_is_working() {
     let mut app = App::new("/tmp".to_string());
     app.state.status = crate::types::SessionStatus::Working;
     // The app boots into a live session; the invariant under test is that
-    // the refusal keeps the CURRENT session — no new one is created or
+    // the refusal keeps the CURRENT session - no new one is created or
     // selected either way.
     let session_count_before = app.state.session_cache.len();
     let previous_id = app.state.current_session_id.clone();
@@ -580,7 +580,7 @@ async fn slash_rename_esc_cancels_without_changes() {
     assert_eq!(app.state.session_cache.get(&id).unwrap().title, "keep me");
 }
 
-/// An empty (whitespace-only) title applies nothing — Enter just closes,
+/// An empty (whitespace-only) title applies nothing - Enter just closes,
 /// mirroring opencode's prompt behavior.
 #[tokio::test]
 async fn slash_rename_empty_title_applies_nothing() {
@@ -612,7 +612,7 @@ async fn slash_rename_empty_title_applies_nothing() {
 
 /// Regression: the slash menu window must SCROLL. With more commands
 /// than the 6 visible rows, navigating down used to move the selection
-/// past the rendered window — the last commands (e.g. /rename) existed
+/// past the rendered window - the last commands (e.g. /rename) existed
 /// but were invisible and unreachable by arrow keys.
 #[tokio::test]
 async fn slash_menu_scrolls_so_the_selection_stays_visible() {
@@ -683,7 +683,7 @@ async fn slash_compact_refuses_while_agent_is_working() {
     );
 }
 
-/// `/compact` in an idle session with no persisted context is refused too —
+/// `/compact` in an idle session with no persisted context is refused too -
 /// there is no timeline snapshot to rebuild the summarizer from.
 #[tokio::test]
 async fn slash_compact_refuses_without_a_session_context() {
@@ -713,7 +713,7 @@ async fn slash_compact_refuses_without_a_session_context() {
 
 /// Regression for the "silent summarization death" wedge: an earlier
 /// ESC/Interrupt leaves the SHARED stop flag set, and `start_manual_compaction`
-/// used to clone it WITHOUT clearing — `compact_on_demand` then raced the
+/// used to clone it WITHOUT clearing - `compact_on_demand` then raced the
 /// still-set flag at every summarizer's pre-connect select, so `/compact`
 /// failed silently no matter how often it was retried (the fix clears the
 /// flag before the clone, mirroring `start_agent_loop`'s contract).
@@ -756,7 +756,7 @@ async fn slash_compact_clears_a_wedged_stop_flag_before_spawning() {
     assert!(
         !app.stop_signal.load(std::sync::atomic::Ordering::Relaxed),
         "start_manual_compaction must clear the shared stop flag before the \
-         compaction task clones it — a wedged flag kills /compact silently"
+         compaction task clones it - a wedged flag kills /compact silently"
     );
 }
 
@@ -791,7 +791,7 @@ async fn slash_background_toggles_and_restores() {
 }
 
 /// The transparent-background preference survives a theme switch while it is
-/// active — the new theme also gets its base background cleared — and
+/// active - the new theme also gets its base background cleared - and
 /// toggling off restores that theme's pristine color.
 #[tokio::test]
 async fn slash_background_survives_theme_switch() {
@@ -1013,7 +1013,7 @@ async fn agents_pane_done_promotes_the_pane_binding_for_the_next_open() {
     let session_id = crate::session::store::generate_session_id();
     app.state
         .add_empty_session(session_id.clone(), "pane binding".into(), 0);
-    // add_empty_session registers the model but does NOT select it — the
+    // add_empty_session registers the model but does NOT select it - the
     // split persistence writes through the CURRENT session pointer.
     app.state.current_session_id = Some(session_id);
     app.open_agents_split(vec![
@@ -1041,7 +1041,7 @@ async fn agents_pane_done_promotes_the_pane_binding_for_the_next_open() {
     }
 
     // Pane 0's turn completes: the session id must land in the metadata
-    // for THAT pane only — pane 1 (the other claude instance) stays fresh,
+    // for THAT pane only - pane 1 (the other claude instance) stays fresh,
     // so both instances keep independent sessions. The pane is dispatched
     // first (running), as every real Done follows a dispatch.
     app.agents_split.as_mut().unwrap().set_running(0, true);
@@ -1081,7 +1081,7 @@ async fn agents_pane_done_promotes_the_pane_binding_for_the_next_open() {
     );
     assert_eq!(panes[2], AgentPaneRef::Name("morpheus".into()));
 
-    // Rebinding pane 0 to a NEW session (a later turn) overwrites — the
+    // Rebinding pane 0 to a NEW session (a later turn) overwrites - the
     // binding tracks the pane's latest context, not its first. Each turn
     // re-dispatches its pane (running) before the Done lands.
     app.agents_split.as_mut().unwrap().set_running(0, true);
@@ -1150,7 +1150,7 @@ async fn agents_pane_done_promotes_the_pane_binding_for_the_next_open() {
 /// session), the new panes join at their picked positions, and every event
 /// of a surviving turn keeps landing in ITS pane (the stable pane-id
 /// routing). Before the reconcile, any pane-set change signal-stopped every
-/// running turn and rebuilt fresh empty panes — the streams died and the
+/// running turn and rebuilt fresh empty panes - the streams died and the
 /// chat visually reset.
 #[tokio::test]
 async fn adding_panes_while_running_keeps_the_running_turns_and_chats() {
@@ -1349,7 +1349,7 @@ async fn adding_panes_while_running_keeps_the_running_turns_and_chats() {
 /// Esc out of the `/agents` mode PARKS the split: the pane objects (streams,
 /// drafts, running flags) move to the background slot untouched, the
 /// metadata flips to `agents_mode_open: false` while KEEPING the pane set,
-/// and a later `/agents` re-attaches the same panes verbatim — a running
+/// and a later `/agents` re-attaches the same panes verbatim - a running
 /// turn survives the round trip.
 #[tokio::test]
 async fn parked_agents_split_survives_park_and_re_attach() {
@@ -1502,12 +1502,12 @@ async fn session_switch_restores_the_mode_only_when_it_was_left_open() {
         instances: 1,
     }]);
 
-    // Session B: parked pane set + flag false (written directly — the shape
+    // Session B: parked pane set + flag false (written directly - the shape
     // a session parked and quit carries on disk).
     let b = unique("b");
     app.state
         .add_empty_session(b.clone(), "parked mode".into(), 0);
-    // add_empty_session registers the model without selecting it — aim the
+    // add_empty_session registers the model without selecting it - aim the
     // metadata write at B through the CURRENT session pointer.
     app.state.current_session_id = Some(b.clone());
     {
@@ -1528,7 +1528,7 @@ async fn session_switch_restores_the_mode_only_when_it_was_left_open() {
     app.state
         .add_empty_session(c.clone(), "no agents".into(), 0);
 
-    // Switch to B: NO split screen — the set rebuilds parked instead.
+    // Switch to B: NO split screen - the set rebuilds parked instead.
     assert!(app.switch_session_locked(&b));
     assert!(
         app.agents_split.is_none(),
@@ -1562,13 +1562,13 @@ async fn session_switch_restores_the_mode_only_when_it_was_left_open() {
 }
 
 /// The `agents_call` hang (user report: the main agent called a pane and the
-/// call never came back): a WHOLE-SET death — a session switch — must fail
+/// call never came back): a WHOLE-SET death - a session switch - must fail
 /// the outgoing panes' in-flight AND queued `agents_call` requests and
 /// re-sync the registry to the incoming session's set. The old switch path
 /// only failed IN-FLIGHT requests and never re-synced: a queued request of
 /// the OLD session stayed in the registry with nobody left to dispatch it
 /// (`serve_agents_pane_queues` is gated off without a split), so the main
-/// loop's pre-Done busy-guard (`has_outstanding_requests`) spun eternally —
+/// loop's pre-Done busy-guard (`has_outstanding_requests`) spun eternally -
 /// the harness hung even though no pane existed anymore. A colliding id
 /// (same agent name) would even be served by the NEW session's pane.
 #[tokio::test]
@@ -1581,7 +1581,7 @@ async fn session_switch_fails_outstanding_pane_requests_and_resyncs_the_registry
     let unique = |tag: &str| format!("{}-{tag}", crate::session::store::generate_session_id());
 
     // Session A: a split with a morpheus pane; a queued `agents_call` request
-    // nobody has dispatched yet (the pane is idle — the frame tick would
+    // nobody has dispatched yet (the pane is idle - the frame tick would
     // serve it, but the switch races ahead of it).
     let a = unique("a");
     app.state
@@ -1608,7 +1608,7 @@ async fn session_switch_fails_outstanding_pane_requests_and_resyncs_the_registry
         agent_coworkers::MAIN
     ));
 
-    // Session B: NO pane set — the plainest hang reproduction: after the
+    // Session B: NO pane set - the plainest hang reproduction: after the
     // switch nothing can ever dispatch the old request.
     let b = unique("b");
     app.state.add_empty_session(b.clone(), "no panes".into(), 0);
@@ -1617,7 +1617,7 @@ async fn session_switch_fails_outstanding_pane_requests_and_resyncs_the_registry
     assert!(app.parked_agents_split.is_none());
 
     // THE FIX: the queued request failed (the waiter unblocked with the
-    // failure instead of hanging forever) and the registry is EMPTY —
+    // failure instead of hanging forever) and the registry is EMPTY -
     // `has_coworkers` false means the next harness build registers no
     // `agents_call` tool at all.
     drop(_guard);
@@ -1632,7 +1632,7 @@ async fn session_switch_fails_outstanding_pane_requests_and_resyncs_the_registry
     );
     assert!(
         !agent_coworkers::has_coworkers(),
-        "the outgoing pane set must leave the registry — no session, no panes"
+        "the outgoing pane set must leave the registry - no session, no panes"
     );
 
     // A session WITH panes re-registers them: the incoming set is what the
@@ -1700,7 +1700,7 @@ async fn fresh_confirm_supersedes_the_parked_split() {
 /// cancelled, so its terminal report must never seed the replacement pane's
 /// session id, land in the new pane's transcript, or promote the binding in
 /// the CURRENT session's metadata under a same-named pane. A live-epoch
-/// Done right after still applies — the gate only filters stale deliveries.
+/// Done right after still applies - the gate only filters stale deliveries.
 #[tokio::test]
 async fn stale_epoch_agents_pane_done_is_dropped() {
     use crate::types::AgentPaneRef;
@@ -1720,7 +1720,7 @@ async fn stale_epoch_agents_pane_done_is_dropped() {
 
     // A turn from the OLD pane set lands AFTER a fresh confirm replaced the
     // slots: the OLD pane object was dropped by the re-pick, so its id
-    // answers to nothing anymore — the Done is dropped by the identity
+    // answers to nothing anymore - the Done is dropped by the identity
     // routing (and its pre-bump epoch stamp is stale too).
     let stale_epoch = app.agents_pane_epoch;
     let stale_pane_id = app.agents_split.as_ref().unwrap().panes[0].id;
@@ -1820,7 +1820,7 @@ async fn stale_epoch_agents_pane_done_is_dropped() {
 }
 
 /// The cold-restore trigger: a `Bound` pane whose live timeline is EMPTY
-/// (the post-reboot state — the process died with the app, only the ACP
+/// (the post-reboot state - the process died with the app, only the ACP
 /// session id persisted) starts a rehydrate pass the moment the split
 /// takes the screen. `Name` panes, panes with content and panes already
 /// rehydrating are skipped.
@@ -1862,7 +1862,7 @@ async fn reopening_the_split_rehydrates_bound_panes_with_empty_timelines() {
     ));
     app.trigger_agents_pane_replays();
 
-    // In tests the replay pass never spawns a harness — the flag marks
+    // In tests the replay pass never spawns a harness - the flag marks
     // the in-flight state the pass would stream through.
     let split = app.agents_split.as_ref().unwrap();
     assert!(
@@ -1875,7 +1875,7 @@ async fn reopening_the_split_rehydrates_bound_panes_with_empty_timelines() {
     );
 
     // The replayed history lands through the SAME pane-event channel a
-    // live turn uses (pane-index + epoch routed) — user and agent sides.
+    // live turn uses (pane-index + epoch routed) - user and agent sides.
     let epoch = app.agents_pane_epoch;
     app.event_tx
         .send(HarnessEvent::AgentsPaneEvent {
@@ -1962,7 +1962,7 @@ async fn reopening_the_split_rehydrates_bound_panes_with_empty_timelines() {
 
 /// A FAILED replay pass (stale id, harness without `loadSession`, spawn
 /// failure) clears the in-flight flag and surfaces the reason as a labeled
-/// marker in the pane — the pane stays usable and the NEXT prompt falls
+/// marker in the pane - the pane stays usable and the NEXT prompt falls
 /// back to `session/new` through the normal turn path.
 #[tokio::test]
 async fn a_failed_replay_marks_the_pane_instead_of_silence() {
@@ -2106,7 +2106,7 @@ async fn a_prompt_to_a_rehydrating_pane_is_refused_with_a_toast() {
 /// A user prompt echoes into the pane's timeline as its own turn entry:
 /// without the echo the pane shows only the agent's output and the input
 /// surfaces only after a reboot's replay pass rebuilds it. A second turn
-/// opens a SECOND entry — consecutive tool-less turns must not coalesce
+/// opens a SECOND entry - consecutive tool-less turns must not coalesce
 /// into a single row.
 #[tokio::test]
 async fn a_user_prompt_echoes_into_the_pane_timeline() {
@@ -2325,7 +2325,7 @@ async fn a_usage_event_lands_on_the_pane() {
 /// End-to-end `/agents` queue flow with a `morpheus` pane. The registry mirrors
 /// the split (morpheus addressable like any agent), an `agents_call` queued to
 /// "morpheus" is picked up by the App's queue service (which used to skip the
-/// manager loop), and the pane-keyed completion resolves the waiter — exactly the
+/// manager loop), and the pane-keyed completion resolves the waiter - exactly the
 /// path a manager delegation to a sibling takes.
 #[tokio::test]
 async fn agents_call_serves_a_queued_morpheus_pane_end_to_end() {
@@ -2338,7 +2338,7 @@ async fn agents_call_serves_a_queued_morpheus_pane_end_to_end() {
     // which spawns a manager turn thread. Neutralize the manager route so
     // `run_manager_turn` returns its error immediately (the assembly's
     // `build_connector` fails before building a runtime) instead of ever
-    // touching the network or $HOME — no live turn thread is left behind,
+    // touching the network or $HOME - no live turn thread is left behind,
     // regardless of any provider in the ambient environment.
     app.llm_config.provider.clear();
     app.llm_config.model = None;
@@ -2411,7 +2411,7 @@ async fn agents_call_serves_a_queued_morpheus_pane_end_to_end() {
         "a MAIN-requested pane turn resolves the wake promise's tag"
     );
     // Everything HOME-sensitive above has already run: release the lock
-    // before the await point (clippy::await_holding_lock) — the remaining
+    // before the await point (clippy::await_holding_lock) - the remaining
     // steps only touch the app's in-memory state, never $HOME.
     drop(_guard);
     let rx = handle.receiver.expect("wait mode carries a receiver");
@@ -2428,14 +2428,14 @@ async fn agents_call_serves_a_queued_morpheus_pane_end_to_end() {
     );
 }
 
-/// Issue 6 — rebooting with a morpheus pane in the split restores its chat:
+/// Issue 6 - rebooting with a morpheus pane in the split restores its chat:
 /// 1. the manager turn's terminal Done carries the pane's OWN morpheus session
 ///    id, so the persisted entry promotes to `Bound` (before the fix every
 ///    manager Done carried `session: None` and the binding never reached
 ///    disk);
 /// 2. a reboot rebuilds the pane `Bound` from that metadata and the
 ///    cold-restore replay loads the session straight from the STORE (the
-///    manager pane is not an ACP client — no `session/load` round-trip):
+///    manager pane is not an ACP client - no `session/load` round-trip):
 ///    the pane's timeline refills with the conversation.
 #[tokio::test]
 async fn a_rebooted_morpheus_pane_replays_its_session_from_the_store() {
@@ -2540,7 +2540,7 @@ async fn a_rebooted_morpheus_pane_replays_its_session_from_the_store() {
         "the manager Done must promote the morpheus pane's binding (issue 6)"
     );
 
-    // REBOOT: the process died with the app — a fresh split rebuilds from
+    // REBOOT: the process died with the app - a fresh split rebuilds from
     // the persisted metadata (Bound seed, EMPTY timelines) and the
     // cold-restore pass replays the bound session.
     let persisted = app
@@ -2579,7 +2579,7 @@ async fn a_rebooted_morpheus_pane_replays_its_session_from_the_store() {
         "the replayed manager reply lands in the rebooted pane: {texts:?}"
     );
     // The persisted REASONING replays as a Thought entry (dimmed, like the
-    // live pane's thinking blocks), BEFORE the message it preceded — a
+    // live pane's thinking blocks), BEFORE the message it preceded - a
     // rebooted pane must not lose the model's thinking.
     let thoughts: Vec<String> = pane
         .activity
@@ -2630,7 +2630,7 @@ async fn a_rebooted_morpheus_pane_replays_its_session_from_the_store() {
 /// mensagem para um agente em um pane, ele precisa ter um output no
 /// futuro". A pane turn whose request was made by the MAIN loop (here:
 /// wait mode, whose waiter died when the main turn ended) must wake the
-/// idle main agent with the report — the promise input → output holds.
+/// idle main agent with the report - the promise input → output holds.
 /// The gateway-recommendation gate is pre-declined so `start_agent_loop`
 /// runs its real path in the test (no dialog, no parked message).
 #[tokio::test]
@@ -2653,7 +2653,7 @@ async fn a_main_initiated_pane_report_wakes_the_idle_main_agent() {
 
     // The MAIN loop delegates to the morpheus pane and its turn ends before
     // the report arrives (the user pressed Esc, or the loop finished while
-    // the pane kept working): the request is WAIT mode — an inline wait —
+    // the pane kept working): the request is WAIT mode - an inline wait -
     // so simulate the ended waiter by completing the request AFTER the
     // handle is dropped into a dead receiver.
     let handle = agent_coworkers::enqueue(
@@ -2665,7 +2665,7 @@ async fn a_main_initiated_pane_report_wakes_the_idle_main_agent() {
     .expect("morpheus pane is addressable");
     app.serve_agents_pane_queues();
     // The pane is running the delegated turn; the app is IDLE (no main
-    // loop running — the state never went Working).
+    // loop running - the state never went Working).
     assert!(
         app.agents_split.as_ref().unwrap().panes[0].running,
         "the pane turn started"
@@ -2673,7 +2673,7 @@ async fn a_main_initiated_pane_report_wakes_the_idle_main_agent() {
     drop(handle);
 
     // The pane's turn completes: the completion reports the MAIN
-    // requester and the wake promise fires — the idle main agent starts
+    // requester and the wake promise fires - the idle main agent starts
     // a FRESH turn carrying the report.
     let requester = agent_coworkers::complete_request(
         "morpheus",
@@ -2704,7 +2704,7 @@ async fn a_main_initiated_pane_report_wakes_the_idle_main_agent() {
 }
 
 /// The other half of the wake promise: a pane turn the USER initiated
-/// (no `agents_call` request — the completion resolves nothing) must NOT
+/// (no `agents_call` request - the completion resolves nothing) must NOT
 /// wake an idle main agent. The pane works in harmony with the main agent.
 #[tokio::test]
 async fn a_user_initiated_pane_turn_never_wakes_the_main_agent() {
@@ -2773,7 +2773,7 @@ async fn a_cancelled_pane_report_never_wakes_the_main_agent() {
     app.sync_agents_pane_registry();
 
     // The MAIN loop delegated a background task; the user Ctrl+X'd the pane.
-    // The cancellation parks as a delivery tagged MAIN — exactly what the
+    // The cancellation parks as a delivery tagged MAIN - exactly what the
     // old wake would have delivered as a synthetic turn.
     let handle = agent_coworkers::enqueue(
         "morpheus",
@@ -2793,7 +2793,7 @@ async fn a_cancelled_pane_report_never_wakes_the_main_agent() {
     assert_eq!(
         app.state.status,
         crate::types::SessionStatus::Idle,
-        "a cancelled report must not wake the main agent — the user's stop stands"
+        "a cancelled report must not wake the main agent - the user's stop stands"
     );
     assert!(
         agent_coworkers::take_ready_deliveries(agent_coworkers::MAIN).is_empty(),
@@ -2811,7 +2811,7 @@ async fn a_cancelled_pane_report_never_wakes_the_main_agent() {
 }
 
 /// A MANAGER-requested pane completion (a sibling pane a manager pane
-/// delegated to — legacy shape; pane loops no longer carry the tool) must
+/// delegated to - legacy shape; pane loops no longer carry the tool) must
 /// not wake the MAIN agent: the delivery belongs to the manager's drain.
 #[tokio::test]
 async fn a_manager_initiated_pane_report_never_wakes_the_main_agent() {
@@ -2863,7 +2863,7 @@ async fn a_manager_initiated_pane_report_never_wakes_the_main_agent() {
 
 /// The pending-todos wake: a main-agent turn that ended while its OWN todo
 /// list still shows open work is re-woken with the EXACT message the
-/// harness's natural-stop gate resumes a report-owing turn with — and ONLY
+/// harness's natural-stop gate resumes a report-owing turn with - and ONLY
 /// when no agent is running anywhere and the open listing changed since the
 /// previous wake (an unreconciled list must not re-wake forever).
 #[tokio::test]
@@ -2896,7 +2896,7 @@ async fn a_pending_todo_wakes_the_idle_main_agent_with_the_rerun_message() {
         ],
     };
 
-    // Idle, no agent running, open items present: the wake fires — and the
+    // Idle, no agent running, open items present: the wake fires - and the
     // steering goes to the MODEL ONLY: the transcript gains NO user message
     // (a system-injected wake must not read as a user prompt).
     app.wake_main_agent_if_pending_todos(Some(&todo));
@@ -2928,7 +2928,7 @@ async fn a_pending_todo_wakes_the_idle_main_agent_with_the_rerun_message() {
         "the wake recorded the open listing it fired with"
     );
 
-    // The wake started a loop: a second fire is refused while it runs —
+    // The wake started a loop: a second fire is refused while it runs -
     // a working main loop reconciles its own list.
     app.wake_main_agent_if_pending_todos(Some(&todo));
 }
@@ -3018,7 +3018,7 @@ async fn the_todo_wake_stays_silent_without_open_items_or_a_change() {
 
 /// A prompt drag released OVER a pane belongs to the prompt: the split owns
 /// the release only while a pane selection is in flight. The copy must land
-/// and the prompt selection must clear — never die silently under the pane.
+/// and the prompt selection must clear - never die silently under the pane.
 #[tokio::test]
 async fn prompt_drag_released_over_pane_copies_and_clears() {
     use crossterm::event::{
@@ -3078,7 +3078,7 @@ async fn prompt_drag_released_over_pane_copies_and_clears() {
 }
 
 /// Hiding is a LIFO stack: two hides, then restore brings them back in
-/// reverse order at their recorded slots. Hiding never deletes the pane —
+/// reverse order at their recorded slots. Hiding never deletes the pane -
 /// the visible set shrinks, the hidden stack grows; restoring moves it back.
 #[tokio::test]
 async fn hiding_and_restoring_panes_is_lifo_and_never_deletes() {
@@ -3105,7 +3105,7 @@ async fn hiding_and_restoring_panes_is_lifo_and_never_deletes() {
         },
     ]);
 
-    // Hide the middle pane, then the (new) middle one — stack [kilo, morpheus].
+    // Hide the middle pane, then the (new) middle one - stack [kilo, morpheus].
     app.agents_split.as_mut().unwrap().focused = Some(1);
     app.hide_focused_agents_pane();
     app.agents_split.as_mut().unwrap().focused = Some(1);
@@ -3125,7 +3125,7 @@ async fn hiding_and_restoring_panes_is_lifo_and_never_deletes() {
         );
     }
 
-    // Restore: morpheus first (LIFO), then kilo — both at their old index 1.
+    // Restore: morpheus first (LIFO), then kilo - both at their old index 1.
     app.restore_last_hidden_agents_pane();
     {
         let session = app.state.current_session().unwrap();
@@ -3151,7 +3151,7 @@ async fn hiding_and_restoring_panes_is_lifo_and_never_deletes() {
 }
 
 /// Hiding the LAST visible pane closes the mode entirely (the main chat
-/// returns — an empty split screen shows nothing) while the hidden stack
+/// returns - an empty split screen shows nothing) while the hidden stack
 /// survives, and a restore re-opens the split with the pane back.
 #[tokio::test]
 async fn hiding_the_last_pane_auto_closes_and_restore_reopens() {
@@ -3172,7 +3172,7 @@ async fn hiding_the_last_pane_auto_closes_and_restore_reopens() {
 
     {
         // The split auto-closed: no live state, the mode is closed and the
-        // visible set is GONE (`None` — an empty `Some` would be rebuilt
+        // visible set is GONE (`None` - an empty `Some` would be rebuilt
         // as a paneless split by the re-entry/restore paths).
         assert!(
             app.agents_split.is_none(),
@@ -3274,7 +3274,7 @@ fn worktree_test_repo() -> (tempfile::TempDir, std::path::PathBuf) {
 /// The SCOPE contract, end to end: a GLOBAL command picked while an external
 /// agent pane holds the focus still acts on the APP. `/background` toggles
 /// this terminal's background and is never dispatched to the pane as a
-/// prompt — before the scope inventory existed, the router trusted the
+/// prompt - before the scope inventory existed, the router trusted the
 /// menu's `source` alone, so every morpheus command picked on a focused pane
 /// became the AGENT's (a per-pane background would mean one terminal with
 /// one background per pane: the overengineering the product rule forbids).
@@ -3308,7 +3308,7 @@ async fn a_global_command_on_a_focused_agent_pane_acts_on_the_app() {
     );
 }
 
-/// One claude pane split with pane 0 focused — the worktree command's
+/// One claude pane split with pane 0 focused - the worktree command's
 /// target shape.
 fn worktree_split_app(repo: &std::path::Path) -> App {
     let mut app = App::new(repo.display().to_string());
@@ -3361,7 +3361,7 @@ async fn slash_worktree_add_pins_the_pane_and_persists_the_binding() {
             agent: "claude".into(),
             worktree: pin.clone(),
         },
-        "an unbound pane keeps its worktree pin — a restart rebuilds the pane \
+        "an unbound pane keeps its worktree pin - a restart rebuilds the pane \
          still isolated, so the next turn cannot silently run in the session cwd"
     );
 
@@ -3393,7 +3393,7 @@ async fn slash_worktree_add_pins_the_pane_and_persists_the_binding() {
 }
 
 /// `/worktree add <branch>` (no path): the worktree lands at the default
-/// temp location — `<temp>/morpheus-worktrees/<slug>` — and the pane's cwd
+/// temp location - `<temp>/morpheus-worktrees/<slug>` - and the pane's cwd
 /// resolution moves there. The default root is SHARED system temp state,
 /// so the test claims a run-unique slug (never colliding with parallel
 /// tests or leftovers) and removes its own worktree at the end.
@@ -3478,7 +3478,7 @@ async fn slash_worktree_exit_unpins_without_deleting_anything() {
         "the git worktree registration survives"
     );
     // No success toast: the exit is evident from the dropped binding (and
-    // its badge disappearing) — only a refusal speaks.
+    // its badge disappearing) - only a refusal speaks.
     assert!(
         app.toast_state.current.is_none(),
         "a successful /worktree exit must not toast: {:?}",
@@ -3487,7 +3487,7 @@ async fn slash_worktree_exit_unpins_without_deleting_anything() {
 }
 
 /// `/worktree` with no arguments or an unknown subcommand is refused with
-/// the usage toast — nothing breaks, nothing is created.
+/// the usage toast - nothing breaks, nothing is created.
 #[tokio::test]
 async fn slash_worktree_unknown_args_refuse_with_usage() {
     let _guard = HOME_LOCK.lock();
@@ -3510,7 +3510,7 @@ async fn slash_worktree_unknown_args_refuse_with_usage() {
     }
 }
 
-/// A worktree'd pane's NEXT turn dispatches against the worktree path —
+/// A worktree'd pane's NEXT turn dispatches against the worktree path -
 /// the handoff block rides the prompt and the flag clears after ONE turn.
 /// The cwd itself is asserted via the pane state; the turn's ACP spawn is
 /// out of test reach, so the cwd resolution contract is exercised here
@@ -3532,7 +3532,7 @@ async fn slash_worktree_handoff_flows_into_the_next_turn_input() {
     // A turn consumes the flag (the manager pane path is testable: morpheus
     // panes run the real harness loop). Use the ACP pane's INPUT path:
     // dispatch_to_pane flags running + spawns ACP, which tests must not
-    // do — so consume via the split's setter, the same call the dispatch
+    // do - so consume via the split's setter, the same call the dispatch
     // makes after building the input.
     let split = app.agents_split.as_mut().unwrap();
     let pending = split.panes[0].worktree_handoff_pending;
@@ -3541,7 +3541,7 @@ async fn slash_worktree_handoff_flows_into_the_next_turn_input() {
 }
 
 /// A worktree'd pane that finishes its FIRST turn promotes to `Bound`
-/// WITH its worktree — the live pane's binding wins over the stale
+/// WITH its worktree - the live pane's binding wins over the stale
 /// persisted entry (which was a worktree-less `Name`).
 #[tokio::test]
 async fn slash_worktree_pane_promotes_to_bound_with_its_worktree() {
@@ -3558,7 +3558,7 @@ async fn slash_worktree_pane_promotes_to_bound_with_its_worktree() {
 
     // The persisted entry is still a bare `Name` (no worktree yet): the
     // metadata write-back keyed on the pane set happened at the pin, but
-    // for an UNBOUND pane the ref carries nothing — the split's own state
+    // for an UNBOUND pane the ref carries nothing - the split's own state
     // is the source of truth until the first Done promotes it.
     app.agents_split.as_mut().unwrap().set_running(0, true);
     app.event_tx
@@ -3597,7 +3597,7 @@ async fn slash_worktree_pane_promotes_to_bound_with_its_worktree() {
 
 /// The agent-driven assign: the parked op executes on the frame drain with
 /// the SAME side effects as the user's `/worktree add` (only the
-/// `assigned_by` differs — `Agent`), and the outcome reaches the asking
+/// `assigned_by` differs - `Agent`), and the outcome reaches the asking
 /// loop as a Worktree-kind delivery. A pane the AGENT asked for needs NO
 /// confirmation (no user binding to override).
 #[tokio::test]
@@ -3638,7 +3638,7 @@ async fn agents_worktree_assign_executes_on_the_app_drain() {
     assert!(
         pin.path
             .starts_with(std::env::temp_dir().join("morpheus-worktrees")),
-        "the agent NEVER picks a path — morpheus's temp root only"
+        "the agent NEVER picks a path - morpheus's temp root only"
     );
     // The registry knows the pin (the main agent's listing sees it).
     let listed = morpheus::harness::agent_coworkers::list_coworkers();
@@ -3670,8 +3670,8 @@ async fn agents_worktree_assign_executes_on_the_app_drain() {
 }
 
 /// The SUPREMACY rule: the pane's binding was `AssignedBy::User`, so the
-/// agent's clear ask opens the Confirm dialog — even though nothing in
-/// Yolo mode otherwise asks — and parks. The USER's answer resolves it:
+/// agent's clear ask opens the Confirm dialog - even though nothing in
+/// Yolo mode otherwise asks - and parks. The USER's answer resolves it:
 /// "No" declines (the binding is kept, the outcome delivery still lands)
 /// and a later "Yes" would execute.
 #[tokio::test]
@@ -3681,7 +3681,7 @@ async fn agents_worktree_clear_of_user_binding_needs_the_user() {
     let (_dir, repo) = worktree_test_repo();
     let app_repo = repo.clone();
     let mut app = worktree_split_app(&app_repo);
-    // The USER pins the pane first (explicit path — tempdir-scoped).
+    // The USER pins the pane first (explicit path - tempdir-scoped).
     let wt = repo.join("wt-supremacy");
     app.prompt_view.input = format!("/worktree add {} feat-user", wt.display());
     app.run_slash_command(&crate::ui::slash_menu::SlashCommand {
@@ -3755,7 +3755,7 @@ async fn agents_worktree_clear_of_user_binding_needs_the_user() {
 /// THE reported bug, end to end: a user-pinned pane whose split is PARKED
 /// (the /agents mode closed while the user talks to the main agent). The
 /// ask opens the session permission box, the user ALLOWS ONCE, and the
-/// confirmed clear must actually drop the binding — the executor used to
+/// confirmed clear must actually drop the binding - the executor used to
 /// resolve only the LIVE split and fail with "the target pane is not
 /// addressable anymore", leaving the pane pinned forever.
 #[tokio::test]
@@ -3765,7 +3765,7 @@ async fn agents_worktree_ask_on_a_parked_split_executes_after_allow_once() {
     let (_dir, repo) = worktree_test_repo();
     let app_repo = repo.clone();
     let mut app = worktree_split_app(&app_repo);
-    // The USER pins the pane first (live split — the command needs focus).
+    // The USER pins the pane first (live split - the command needs focus).
     let wt = repo.join("wt-parked");
     app.prompt_view.input = format!("/worktree add {} feat-parked", wt.display());
     app.run_slash_command(&crate::ui::slash_menu::SlashCommand {
@@ -3777,7 +3777,7 @@ async fn agents_worktree_ask_on_a_parked_split_executes_after_allow_once() {
             .worktree
             .is_some()
     );
-    // The user leaves the mode (park — the common shape of the report:
+    // The user leaves the mode (park - the common shape of the report:
     // the main agent is asked from the NORMAL view).
     app.park_agents_split();
     assert!(app.agents_split.is_none());
@@ -3864,7 +3864,7 @@ async fn agents_worktree_assign_executes_on_a_parked_split_without_a_box() {
 
 /// "Allow" latches the SESSION-WIDE grant: a second ask on the same
 /// User-assigned binding executes on the drain WITHOUT reopening the box
-/// (and the grant survives — this app run only). "Allow Once" does not.
+/// (and the grant survives - this app run only). "Allow Once" does not.
 #[tokio::test]
 async fn agents_worktree_allow_latches_the_session_grant() {
     let _guard = HOME_LOCK.lock();
@@ -3907,7 +3907,7 @@ async fn agents_worktree_allow_latches_the_session_grant() {
             .is_none()
     );
     // Drain the first ask's outcome: the registry deliveries are GLOBAL
-    // state — a leftover here would leak into the next test that reads
+    // state - a leftover here would leak into the next test that reads
     // MAIN's deliveries.
     assert_eq!(
         morpheus::harness::agent_coworkers::take_ready_deliveries(
@@ -3958,7 +3958,7 @@ async fn agents_worktree_allow_latches_the_session_grant() {
 
 /// A harness `PermissionRequest` that arrives while an `agents_worktree`
 /// ask holds the session box is PARKED (never overwriting the ask) and is
-/// RE-SHOWN the moment the ask resolves — the main loop's own permission
+/// RE-SHOWN the moment the ask resolves - the main loop's own permission
 /// gate is then answered through the box into `perm_tx` (simulated here
 /// by capturing what the resolver leaves in the box).
 #[tokio::test]
@@ -4024,7 +4024,7 @@ async fn agents_worktree_ask_holds_the_box_and_re_shows_a_parked_permission_requ
             .is_none(),
         "the allowed ask executed"
     );
-    // Drain the ask's outcome: registry deliveries are GLOBAL state — a
+    // Drain the ask's outcome: registry deliveries are GLOBAL state - a
     // leftover here would leak into the next test reading MAIN's box.
     assert_eq!(
         morpheus::harness::agent_coworkers::take_ready_deliveries(
@@ -4044,7 +4044,7 @@ async fn agents_worktree_ask_holds_the_box_and_re_shows_a_parked_permission_requ
 // `agents_worktree` TOOL refuses a morpheus pane (the user's call, never a
 // peer agent's ask).
 
-/// One `morpheus` (manager) pane split with pane 0 focused — the manager-pane
+/// One `morpheus` (manager) pane split with pane 0 focused - the manager-pane
 /// mirror of `worktree_split_app`.
 fn manager_worktree_split_app(repo: &std::path::Path) -> App {
     let mut app = App::new(repo.display().to_string());
@@ -4060,7 +4060,7 @@ fn manager_worktree_split_app(repo: &std::path::Path) -> App {
 }
 
 /// (a) The focused manager pane's slash SOURCE carries exactly ONE
-/// `worktree` entry — one row, not a duplicate (the morpheus set never had it,
+/// `worktree` entry - one row, not a duplicate (the morpheus set never had it,
 /// and it is prepended exactly once for the manager branch).
 #[tokio::test]
 async fn manager_pane_slash_source_lists_worktree_exactly_once() {
@@ -4094,7 +4094,7 @@ async fn manager_pane_slash_source_lists_worktree_exactly_once() {
     assert_eq!(menu_count, 1, "the synced menu carries one /worktree row");
     // `/worktree` is part of the BASE list (the main agent gets it too), so
     // the manager's list is now byte-identical to the morpheus set. The sync is
-    // therefore a no-op and the source stays `Morpheus` — that is the intended
+    // therefore a no-op and the source stays `Morpheus` - that is the intended
     // idempotence (`slash_lists_equal` must not churn selection), not a
     // routing change: the router keys on the command's SCOPE, never on this
     // cosmetic label.
@@ -4107,7 +4107,7 @@ async fn manager_pane_slash_source_lists_worktree_exactly_once() {
 
 /// (b) `/worktree add <branch>` on a MANAGER pane creates the worktree,
 /// stamps the binding (assigned_by: User) on that pane and flags the
-/// handoff — the SAME side effects as on an ACP pane.
+/// handoff - the SAME side effects as on an ACP pane.
 #[tokio::test]
 async fn slash_worktree_add_pins_the_manager_pane() {
     let _guard = HOME_LOCK.lock();
@@ -4143,7 +4143,7 @@ async fn slash_worktree_add_pins_the_manager_pane() {
     );
 }
 
-/// (c) The manager pane's EFFECTIVE cwd equals the worktree path — the
+/// (c) The manager pane's EFFECTIVE cwd equals the worktree path - the
 /// single resolution that feeds `dispatch_to_pane` (the ACP `acp::call`
 /// cwd AND the manager turn's `HarnessAssembly::cwd`), so a binding is
 /// honored by every layer rather than cosmetic. Asserted through
@@ -4183,7 +4183,7 @@ async fn manager_pane_effective_cwd_is_the_worktree_path() {
 }
 
 /// (d) `/worktree exit` clears the MANAGER pane's binding and flags the
-/// handoff back — nothing on disk is touched.
+/// handoff back - nothing on disk is touched.
 #[tokio::test]
 async fn slash_worktree_exit_clears_the_manager_pane_binding() {
     let _guard = HOME_LOCK.lock();
@@ -4214,7 +4214,7 @@ async fn slash_worktree_exit_clears_the_manager_pane_binding() {
 }
 
 /// (e) The `agents_worktree` TOOL addresses a morpheus pane like any other: the
-/// manager pane gets no special refusal — it runs its own agent session with
+/// manager pane gets no special refusal - it runs its own agent session with
 /// its own cwd, so isolating it is the same ask as isolating a `claude` pane.
 /// What still protects the user is unchanged: panes never receive this tool
 /// (`with_own_coworker_id` strips it) and a User-assigned binding always opens
@@ -4264,7 +4264,7 @@ fn main_agent_worktree_app(repo: &std::path::Path) -> App {
 }
 
 /// (a) With no split open the main agent's menu carries `/worktree`
-/// EXACTLY once — it is a base-list row now, so the pane fusion that used
+/// EXACTLY once - it is a base-list row now, so the pane fusion that used
 /// to append it must not double it.
 #[tokio::test]
 async fn main_agent_menu_lists_worktree_exactly_once() {
@@ -4292,7 +4292,7 @@ async fn main_agent_menu_lists_worktree_exactly_once() {
     );
     assert!(
         app.agents_split.is_none(),
-        "precondition: no split — this is normal chat"
+        "precondition: no split - this is normal chat"
     );
 }
 
@@ -4341,7 +4341,7 @@ async fn slash_worktree_add_pins_the_main_agent_and_persists() {
 }
 
 /// (c) `/worktree exit` drops the binding and the main agent resolves back
-/// to the ORIGINAL startup cwd — the directory the app was started in,
+/// to the ORIGINAL startup cwd - the directory the app was started in,
 /// which `AppState::working_directory` has held unmutated all along.
 #[tokio::test]
 async fn slash_worktree_exit_restores_the_original_cwd() {
@@ -4384,7 +4384,7 @@ async fn slash_worktree_exit_restores_the_original_cwd() {
 }
 
 /// (d) A malformed tail (`add` alone, an unknown subcommand, no arguments)
-/// is refused with the SAME usage toast the panes show — the grammar is
+/// is refused with the SAME usage toast the panes show - the grammar is
 /// shared, so the refusal must not drift.
 #[tokio::test]
 async fn slash_worktree_main_agent_bad_args_refuse_with_usage() {
@@ -4414,7 +4414,7 @@ async fn slash_worktree_main_agent_bad_args_refuse_with_usage() {
 
 /// Feature A (adoption): `/worktree add <path> <branch>` on a worktree that
 /// ALREADY exists re-enters it instead of failing, binds the main agent, and
-/// SAYS SO — the badge alone cannot tell a user whether morpheus built a
+/// SAYS SO - the badge alone cannot tell a user whether morpheus built a
 /// checkout or walked into one that was already there (typically after
 /// `/worktree exit`, which keeps the checkout on disk by product rule).
 #[tokio::test]
@@ -4423,7 +4423,7 @@ async fn slash_worktree_add_adopts_an_existing_worktree_and_says_so() {
     isolate_home();
     let (_dir, repo) = worktree_test_repo();
     let wt = repo.join("wt-adopt");
-    // The checkout exists FIRST — created outside the command, exactly the
+    // The checkout exists FIRST - created outside the command, exactly the
     // state `/worktree exit` leaves behind.
     let existing = morpheus::git::worktree::create(
         &repo,
@@ -4477,7 +4477,7 @@ async fn slash_worktree_add_adopts_an_existing_worktree_and_says_so() {
 }
 
 /// Feature B: `/worktree list` renders ONE row per worktree and marks the
-/// bound one — the discovery half of adoption, so the user does not have to
+/// bound one - the discovery half of adoption, so the user does not have to
 /// memorise paths.
 #[tokio::test]
 async fn slash_worktree_list_marks_the_bound_worktree() {
@@ -4545,7 +4545,7 @@ async fn slash_worktree_list_marks_the_bound_worktree() {
     );
 }
 
-/// Feature B (grammar): `/worktree list` takes NO arguments — a trailing
+/// Feature B (grammar): `/worktree list` takes NO arguments - a trailing
 /// word is a refusal, not a silent no-op, and it changes no state.
 #[tokio::test]
 async fn slash_worktree_list_with_extra_args_refuses_with_usage() {
@@ -4583,7 +4583,7 @@ async fn slash_worktree_list_with_extra_args_refuses_with_usage() {
     );
 }
 
-/// (e) The main agent's EFFECTIVE cwd is the worktree path once pinned —
+/// (e) The main agent's EFFECTIVE cwd is the worktree path once pinned -
 /// the single resolution the turn assembly, the shell root, the prompt
 /// corrector and the footer branch all read.
 #[tokio::test]
@@ -4609,7 +4609,7 @@ async fn main_agent_effective_cwd_follows_the_binding() {
         wt,
         "pinned: the checkout"
     );
-    // The startup cwd is never mutated — it stays the restore target.
+    // The startup cwd is never mutated - it stays the restore target.
     assert_eq!(
         app.state.working_directory,
         original.to_string_lossy(),
@@ -4618,7 +4618,7 @@ async fn main_agent_effective_cwd_follows_the_binding() {
 }
 // ---- Issue 1: gate-free session-binding facts (variants C and A) ----
 
-/// Variant C — Ctrl+X during a turn whose resume fell back to
+/// Variant C - Ctrl+X during a turn whose resume fell back to
 /// `session/new`: the winding-down turn's terminal Done is DROPPED by
 /// the handler's pane-idle gate, which used to drop the new session id
 /// with it (stale binding + an orphaned agent session). The gate-free
@@ -4714,10 +4714,10 @@ async fn variant_c_a_force_closed_turns_binding_fact_promotes_the_pane() {
     );
 }
 
-/// Variant A — hiding a pane whose FIRST turn is still running: the
+/// Variant A - hiding a pane whose FIRST turn is still running: the
 /// terminal binding arrives against a pane object that answers to
 /// nothing visible. The fact must promote the HIDDEN-stack entry (via
-/// `HiddenPane::pane_id`) instead of being dropped — pre-fix, the first
+/// `HiddenPane::pane_id`) instead of being dropped - pre-fix, the first
 /// turn's session was lost forever and the pane stayed unbound.
 #[tokio::test]
 async fn variant_a_a_hidden_panes_first_turn_binding_lands_in_the_hidden_stack() {
@@ -4787,7 +4787,7 @@ async fn variant_a_a_hidden_panes_first_turn_binding_lands_in_the_hidden_stack()
     }
 }
 
-/// Variant A, second half — restoring the promoted hidden entry
+/// Variant A, second half - restoring the promoted hidden entry
 /// (Ctrl+Z) rebuilds the pane ALREADY BOUND, so the cold-restore
 /// replay path picks the session up and rehydrates the timeline.
 #[tokio::test]
@@ -4816,7 +4816,7 @@ async fn variant_a_a_restored_hidden_pane_comes_back_bound() {
     morpheus::harness::agent_coworkers::record_session_binding(pane_id, "s-A".into());
     app.absorb_pane_session_bindings();
 
-    // Ctrl+Z: the pane returns — bound, so its empty timeline is
+    // Ctrl+Z: the pane returns - bound, so its empty timeline is
     // flagged for the cold-restore replay.
     app.restore_last_hidden_agents_pane();
     let pane = &app.agents_split.as_ref().unwrap().panes[0];
@@ -4841,7 +4841,7 @@ async fn variant_a_a_restored_hidden_pane_comes_back_bound() {
 /// Anti-contamination: a binding fact whose pane object id answers to
 /// NOTHING (a pane a rebuild dropped, a legacy hidden entry with
 /// `pane_id = 0`) is dropped, never smeared onto a same-named
-/// replacement — the structural counterpart of the event gates.
+/// replacement - the structural counterpart of the event gates.
 #[tokio::test]
 async fn an_absorbed_binding_fact_without_an_owner_is_dropped() {
     let _guard = HOME_LOCK.lock();
@@ -4884,7 +4884,7 @@ async fn an_absorbed_binding_fact_without_an_owner_is_dropped() {
     );
 }
 
-/// Gate regression — the Done handler's identity gate is untouched: a
+/// Gate regression - the Done handler's identity gate is untouched: a
 /// terminal Done whose pane id answers to no pane (a pane the rebuild
 /// dropped) delivers nothing and binds nothing, exactly as before the
 /// fix. The binding vehicle being gate-free does not weaken the gates.
@@ -4938,7 +4938,7 @@ async fn a_done_for_an_unknown_pane_id_still_delivers_nothing() {
 
 /// The drain's refusal path on an UNBOUND pane: the ask is popped (not
 /// left parked), completed with the reason, and the in-flight guard is
-/// cleared — so the pane is not blocked forever by a refusal, and the
+/// cleared - so the pane is not blocked forever by a refusal, and the
 /// asking loop's paused tool call gets a real answer instead of
 /// hanging.
 #[tokio::test]
@@ -4982,7 +4982,7 @@ async fn agents_compact_of_an_unbound_pane_is_refused_and_frees_the_guard() {
     );
     // The compaction never touched the main session's timeline: no
     // "Summarizing" box was opened in it (the pane path is silent by
-    // design — its events go to a dedicated, discarded channel).
+    // design - its events go to a dedicated, discarded channel).
     assert!(
         app.state
             .current_session()
@@ -5032,7 +5032,7 @@ async fn agents_compact_waits_for_a_running_pane_instead_of_failing() {
     );
 
     // The turn ends: the next frame's drain resolves it (here: refused
-    // for the missing session, which is the point — it MOVED).
+    // for the missing session, which is the point - it MOVED).
     app.agents_split.as_mut().unwrap().set_running(0, false);
     app.serve_agents_pane_compact_ops();
     assert!(morpheus::harness::agent_coworkers::peek_compact_op().is_none());

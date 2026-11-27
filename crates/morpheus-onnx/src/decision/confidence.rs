@@ -1,4 +1,4 @@
-//! Confidence estimation and temperature handling — the calibrated surface
+//! Confidence estimation and temperature handling - the calibrated surface
 //! of the decision contract.
 //!
 //! `answer_confidence` (max of the first k probabilities) is the quantity
@@ -25,7 +25,7 @@ pub const TEMP_MAX: f64 = 5.0;
 /// Upstream calls Python `float(t)`, so a numeric string such as `"1.5"`
 /// parses (a silently-dropped fitted temperature would change calibration),
 /// and the bool spellings follow Python's `float(True) == 1.0`. Only values
-/// `float()` rejects — `None` and non-numeric strings — fall back to 1.0.
+/// `float()` rejects - `None` and non-numeric strings - fall back to 1.0.
 pub fn clamp_temperature(t: &Value, lo: f64, hi: f64) -> f64 {
     let Some(f) = py_float(t) else {
         return 1.0;

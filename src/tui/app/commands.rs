@@ -11,7 +11,7 @@ use crate::ui::dialogs::DialogType;
 impl App {
     /// The Command mode is HIDDEN while the /agents split owns the screen:
     /// there the shared prompt is intercepted (the focused pane, or the
-    /// main-agent manager loop when unfocused — `dispatch_to_agents_split`),
+    /// main-agent manager loop when unfocused - `dispatch_to_agents_split`),
     /// so the plain-terminal shell mode would never run and its prompt
     /// indicator would only mislead. Only the Command mode is hidden; Build,
     /// Ask and Yolo keep cycling (they map onto real agent-loop behaviors
@@ -40,11 +40,11 @@ impl App {
     /// own split choice: only an explicitly marked `morpheus` entry creates
     /// its block. The MAIN agent needs no pane: `Alt+0` unfocuses every
     /// pane and the shared prompt targets the normal-mode loop (running
-    /// as manager while the split is open). Opening the split does NOT spawn any session — panes
+    /// as manager while the split is open). Opening the split does NOT spawn any session - panes
     /// start idle and only receive work when the shared prompt is
     /// submitted.
     pub(super) fn open_agents_split(&mut self, picks: Vec<AgentPick>) {
-        // One persisted pane per pick instance — every instance of the same
+        // One persisted pane per pick instance - every instance of the same
         // agent becomes its own pane (and, later, its own session).
         let mut panes: Vec<crate::types::AgentPaneRef> = picks
             .iter()
@@ -111,12 +111,12 @@ impl App {
     /// `parked_agents_split` slot and keeps receiving events, the prompt
     /// returns to the normal session view. The pane set + bindings stay in
     /// the session metadata (`agents_panes`), but `agents_mode_open` drops
-    /// to `false` — a session switch or app restart replays the manager set
+    /// to `false` - a session switch or app restart replays the manager set
     /// as AVAILABLE (pre-marked picker), never as a live split screen.
     pub(super) fn park_agents_split(&mut self) {
         if let Some(split) = self.agents_split.take() {
             // A running turn keeps its spinner alive through the shared
-            // activity — do NOT touch the signals, do NOT clear running.
+            // activity - do NOT touch the signals, do NOT clear running.
             self.parked_agents_split = Some(split);
         }
         // The MAIN-AGENT mirror belongs to the LIVE split screen only: with
@@ -142,14 +142,14 @@ impl App {
         self.sync_agents_pane_mirrors();
         // The slash menu follows the panes into the PARKED slot: no live
         // split serves the screen, so the morpheus set returns (a parked
-        // split's stale `focused` must never hijack the menu — see
+        // split's stale `focused` must never hijack the menu - see
         // `sync_slash_source`, which only trusts the LIVE split).
         super::agents_dispatch::sync_slash_source(self);
         self.prompt_view.focus();
     }
 
     /// Re-attach the parked split (the `/agents` re-entry): the SAME pane
-    /// objects return to the screen — running turns surface mid-stream,
+    /// objects return to the screen - running turns surface mid-stream,
     /// timelines and bound sessions are exactly where the user left them.
     /// Returns `true` when a parked split took the screen (the caller then
     /// skips opening the picker).
@@ -157,7 +157,7 @@ impl App {
         // A PARKED split with NO panes is not a re-attachable state: it is
         // the legacy shape an emptied split persisted before the auto-close
         // fix (`agents_panes = Some([])`). Re-attaching it verbatim would
-        // put an EMPTY split screen up (a chat-like nothing) — the exact
+        // put an EMPTY split screen up (a chat-like nothing) - the exact
         // symptom this guards against. Drop it and let the caller open the
         // PICKER instead: the user sees the initial-state list, never an
         // empty mode.
@@ -177,11 +177,11 @@ impl App {
                 .unwrap_or_default();
             self.save_agents_metadata(panes, true, hidden);
             // The registry follows the panes back onto the screen (same
-            // set it parked with — the sync is a re-affirmation, matching
+            // set it parked with - the sync is a re-affirmation, matching
             // the mirrors' one below).
             self.sync_agents_pane_registry();
             // A parked set rebuilt from metadata (session switch or app
-            // restart) carries bound panes with empty timelines — the
+            // restart) carries bound panes with empty timelines - the
             // rehydrate passes fire only now that the panes take the
             // screen (a parked set is invisible; replaying into it would
             // burn a harness boot for nothing).
@@ -195,7 +195,7 @@ impl App {
             // moment the mode re-attaches, not only on its next turn.
             self.hydrate_manager_pane_model_selections();
             // The re-attached pane set carries its focus (pane 0 on a
-            // rebuilt one): the slash menu's source follows it — agent
+            // rebuilt one): the slash menu's source follows it - agent
             // list when the pane was already probed, spinner/morpheus
             // otherwise, and a fresh probe seed when the cache is empty.
             super::agents_dispatch::ensure_pane_snapshot(self, 0);
@@ -237,7 +237,7 @@ impl App {
     /// other agent) becomes
     /// a [`morpheus::harness::agent_coworkers::AgentCoworkerDescriptor`], with the pane's bound
     /// state as the context block reports it. Called on EVERY split
-    /// lifecycle change — open, replace, park, re-attach, close — so the
+    /// lifecycle change - open, replace, park, re-attach, close - so the
     /// registry tracks the LIVE or PARKED set exactly (a parked split keeps
     /// serving `agents_call`: the main agent coordinates with the mode
     /// closed). `set_coworkers` fails queued/orphaned requests of panes that
@@ -245,7 +245,7 @@ impl App {
     pub(super) fn sync_agents_pane_registry(&mut self) {
         // The manager (morpheus) pane is the main agent itself: its bridge never
         // emits an ACP `SessionModel` report, so `session_info` stays `None`
-        // for it no matter how many turns it ran — the model its turns run
+        // for it no matter how many turns it ran - the model its turns run
         // with is the GLOBAL config (the same `llm_config` the main loop
         // reads). The fallback chain below consults it for manager panes
         // only; an `auto` pick renders as `auto` (truthful: the routing
@@ -277,13 +277,13 @@ impl App {
                                     agent: p.agent.clone(),
                                     is_manager,
                                     bound: p.session_id.is_some(),
-                                    // The worktree NAME (not the path) — the
+                                    // The worktree NAME (not the path) - the
                                     // context block renders it next to the pane
                                     // id, and `agents_call` requesters read the
                                     // same listing. `/worktree` keeps this in
                                     // sync right after each binding change.
                                     worktree: p.worktree.as_ref().map(|w| w.name.clone()),
-                                    // The model the pane's session runs with —
+                                    // The model the pane's session runs with -
                                     // what the ACP harness reported last
                                     // (`session_info`), falling back to the
                                     // pane's committed `/models` pick when the
@@ -292,7 +292,7 @@ impl App {
                                     // renders nothing rather than a guess.
                                     // An EMPTY reported model (a harness that
                                     // names its models with empty strings)
-                                    // renders nothing either — same contract.
+                                    // renders nothing either - same contract.
                                     model: p
                                         .session_info
                                         .as_ref()
@@ -307,7 +307,7 @@ impl App {
                                         // A manager pane's turns run on the
                                         // GLOBAL config (its bridge never
                                         // reports a model, and a `/models`
-                                        // pick is optional) — the global model
+                                        // pick is optional) - the global model
                                         // is the truthful answer for it, even
                                         // rendered as `auto` (the routing chain
                                         // serves the pane). ACP panes keep the
@@ -327,7 +327,7 @@ impl App {
 
     /// Mirror the `/agents` panes into the right panel's SHARED subagent
     /// list: every pane of the live OR parked split owns one stable window
-    /// (opened on demand, pane-index routed — see
+    /// (opened on demand, pane-index routed - see
     /// `RightPanelState::open_agents_pane_window`) so its agent surfaces
     /// there with the full-color brand logo, alongside the normal
     /// subagents. Runs after every pane event and at every (re)open; a pane
@@ -373,7 +373,7 @@ impl App {
     }
 
     /// Seal one pane's mirror at turn end: the mirror inherits the pane's
-    /// ALREADY-CLOSED timeline (`SubagentActivity::close_turn` — the report
+    /// ALREADY-CLOSED timeline (`SubagentActivity::close_turn` - the report
     /// is its LAST chronological entry) and stops spinning. Resolves the
     /// live-or-parked split like the event routing does.
     pub(super) fn finish_agents_pane_mirror(&mut self, pane: usize, failed: bool) {
@@ -385,14 +385,14 @@ impl App {
         };
         // The pane closed its turn first (the report is the timeline's LAST
         // entry); the mirror only inherits that closed timeline and flips
-        // its marker — never a separate report body (the read-order bug).
+        // its marker - never a separate report body (the read-order bug).
         self.state
             .right_panel
             .finish_agents_pane(pane, &p.activity, failed);
     }
 
     /// Fire cold-restore replay passes for every pane that needs one: a
-    /// `Bound` pane with an EMPTY live timeline (the post-reboot state —
+    /// `Bound` pane with an EMPTY live timeline (the post-reboot state -
     /// the process died with the app, only the session id persisted).
     /// Rehydration streams the agent's own `session/load` history back
     /// into the pane (see `dispatch_agents_pane_replay`); a pane with
@@ -402,7 +402,7 @@ impl App {
         // Absorb the gate-free binding facts FIRST: a fresh confirm that
         // re-picks a pane whose first turn just ended (the Done dropped by
         // the handler's gates) must promote the pane to `Bound` BEFORE the
-        // empty-timeline scan below decides it needs a replay — the
+        // empty-timeline scan below decides it needs a replay - the
         // freshly absorbed session is exactly what the replay rehydrates.
         self.absorb_pane_session_bindings();
         let needs = self
@@ -437,14 +437,14 @@ impl App {
     /// Fail the IN-FLIGHT `agents_call` of every OUTGOING pane that still
     /// owns a turn (the reconcile below keeps the surviving panes and
     /// signal-stops only the dropped ones): a dropped pane's terminal
-    /// `AgentsPaneDone` finds no pane to land in — its registry `serving`
+    /// `AgentsPaneDone` finds no pane to land in - its registry `serving`
     /// entry would otherwise outlive the turn forever, keeping
     /// `has_outstanding_requests` true and hanging the requester loop's
     /// busy-guard (the loop waits at its natural-completion point for an
     /// answer that can never arrive). Kept panes are untouched: their
     /// turns keep running and their own terminal Done resolves the
     /// request normally (failing them would kill a turn that just kept
-    /// streaming — the old behavior that cancelled every running agent on
+    /// streaming - the old behavior that cancelled every running agent on
     /// any pane-set change). Teardown (no fresh set) fails everything.
     fn fail_outgoing_pane_requests(&self) {
         let ids: Vec<String> = either_split(&self.agents_split, &self.parked_agents_split)
@@ -468,11 +468,11 @@ impl App {
 
     /// The point-of-no-return variant: EVERY pane of the outgoing split
     /// (running or idle) loses its in-flight AND queued `agents_call`
-    /// requests, and the pane leaves the registry. For a whole-set death —
-    /// a session switch — the outgoing panes will never serve
+    /// requests, and the pane leaves the registry. For a whole-set death -
+    /// a session switch - the outgoing panes will never serve
     /// anything again in this process: a leftover queued request would
     /// hang its requester's busy-guard forever (`has_outstanding_requests`
-    /// stuck true with nobody left to dispatch it — the harness loop's
+    /// stuck true with nobody left to dispatch it - the harness loop's
     /// pre-Done wait spins eternally), and a request whose id COLLIDES
     /// with the incoming session's panes (same agent name) would be served
     /// cross-session. Must run BEFORE the slots swap, keyed by the
@@ -492,7 +492,7 @@ impl App {
         for id in ids {
             morpheus::harness::agent_coworkers::fail_coworker(
                 &id,
-                "the session switched away — this pane's set is gone".into(),
+                "the session switched away - this pane's set is gone".into(),
             );
         }
     }
@@ -500,7 +500,7 @@ impl App {
     /// The state-only core of open/close: signal-stop every pane of the
     /// outgoing split, swap the pane set, persist mode + pane set on the
     /// session and reconcile the shared spinner. Does NOT touch prompt
-    /// focus — the focus is a USER-action concern (open/close from the
+    /// focus - the focus is a USER-action concern (open/close from the
     /// picker or Esc), never an automatic one (session switch, `/new`, app
     /// restore).
     ///
@@ -510,7 +510,7 @@ impl App {
     /// instead of binding old sessions into the new set.
     fn set_agents_split(&mut self, panes: Option<Vec<crate::types::AgentPaneRef>>) {
         // The DROPPED panes' in-flight `agents_call` requests must fail
-        // NOW, keyed by their ids — after the swap their terminal Done
+        // NOW, keyed by their ids - after the swap their terminal Done
         // finds no pane to land in and could never resolve the request (a
         // stale id may even survive into the new set, where a blind
         // completion could hit the WRONG turn's request). Kept panes'
@@ -518,18 +518,18 @@ impl App {
         self.fail_outgoing_pane_requests();
         // The split slots' generation moves on EVERY replacement or teardown
         // (see the `agents_pane_epoch` field doc). The pane-id routing (see
-        // the `AgentsPaneEvent::pane_id` doc) makes this gate secondary —
-        // events route by their pane's identity first — but it still cuts
+        // the `AgentsPaneEvent::pane_id` doc) makes this gate secondary -
+        // events route by their pane's identity first - but it still cuts
         // off every UNSTAMPED sender's delivery against a replaced set.
         self.agents_pane_epoch = self.agents_pane_epoch.wrapping_add(1);
         // RECONCILE, not rebuild: a fresh confirm that keeps some of the
         // current panes (the common "add N panes while agents are running"
-        // case) carries those pane OBJECTS over — timeline, running turn,
+        // case) carries those pane OBJECTS over - timeline, running turn,
         // stop signal, bound session, scroll state all survive.
         // `reconciled_from` signal-stops only the panes the new set
         // dropped. The rebuild-from-scratch this used to do killed every
         // running turn on ANY pane-set change: the stop signal fired, the
-        // streams died, and the fresh panes painted empty chat — the
+        // streams died, and the fresh panes painted empty chat - the
         // split looked reset while the user only meant to add panes.
         if let Some(agents) = &panes
             && let Some(old) = self.agents_split.take()
@@ -541,7 +541,7 @@ impl App {
             );
         } else if let Some(old) = &mut self.agents_split {
             // Teardown (`None`): every pane's turn stops with the split.
-            // A discarded stop signal is one nobody will ever set again —
+            // A discarded stop signal is one nobody will ever set again -
             // its turn would run to completion, un-stoppable, and its late
             // events would land in whatever set later shares the indexes.
             for pane in &mut old.panes {
@@ -556,7 +556,7 @@ impl App {
         }
         // A FRESH confirm supersedes a parked set of the same session: the
         // user re-picked, so the parked panes (and any turn still running in
-        // them) stop exactly like a live replacement would — leaving them
+        // them) stop exactly like a live replacement would - leaving them
         // would stream old-set events into whichever slot later takes pane
         // `pane`'s index.
         if panes.is_some()
@@ -583,12 +583,12 @@ impl App {
         }
         let mode_open = self.agents_split.is_some();
         // The harness-side registry follows the pane set on EVERY change
-        // (open, replace, close) — the `agents_call` tool's addressable ids
+        // (open, replace, close) - the `agents_call` tool's addressable ids
         // and the context block are rebuilt from it.
         self.sync_agents_pane_registry();
         // A fresh confirm or a teardown REDEFINES the pane set, so any
         // previously hidden panes are superseded: the hidden stack clears
-        // with it (park/attach keep the stack — they only toggle the mode).
+        // with it (park/attach keep the stack - they only toggle the mode).
         self.save_agents_metadata(panes, mode_open, Vec::new());
         // A fresh pane set mirrors into the shared subagent list (the sync
         // also prunes mirrors of panes the new set no longer has). `None`
@@ -617,7 +617,7 @@ impl App {
         // (open, replace, close): a fresh confirm leaves pane 0 focused, a
         // teardown restores the morpheus set. Without this the menu would keep
         // serving a dead set's command list (and a fresh confirm would
-        // leave the morpheus list routing into the pane — see
+        // leave the morpheus list routing into the pane - see
         // `route_agent_slash_command`, which trusts the menu's source).
         if mode_open {
             super::agents_dispatch::ensure_pane_snapshot(self, 0);
@@ -625,16 +625,16 @@ impl App {
         super::agents_dispatch::sync_slash_source(self);
     }
 
-    /// Record the session's `/agents` bookkeeping — the visible pane set
+    /// Record the session's `/agents` bookkeeping - the visible pane set
     /// (with its bindings), the LIFO stack of HIDDEN panes, AND whether the
-    /// split-screen mode itself is open — and persist through the store's
+    /// split-screen mode itself is open - and persist through the store's
     /// normal diff pipeline (`diff_session` emits a `MetadataDelta::Agents`
     /// only when the persisted pane set, hidden stack or mode actually
     /// changed). All three fields are written together so the parked state
     /// (`mode_open = false`, pane set retained) is durable the same way the
     /// open state is. SYNCHRONOUS on purpose: open/close is often chained
     /// with quitting the app, and the async writer's queue has no flush on
-    /// the quit path — a fire-and-forget save could never land, reopening
+    /// the quit path - a fire-and-forget save could never land, reopening
     /// the session with the wrong mode. The job is one tiny metadata delta,
     /// so blocking the frame is negligible. No session open → nothing.
     pub(in crate::app) fn save_agents_metadata(
@@ -662,7 +662,7 @@ impl App {
     /// Hide the FOCUSED `/agents` pane (Backspace on the focused pane): move
     /// it out of the visible split into the session's LIFO hidden stack
     /// WITHOUT deleting anything. Its running turn is stopped (its stream
-    /// ends with its slot) and its bound agent session stays on disk — the
+    /// ends with its slot) and its bound agent session stays on disk - the
     /// hidden stack keeps the ref, so a later Ctrl+Z rebuilds the pane and
     /// rehydrates its transcript from the agent's own replay.
     pub(super) fn hide_focused_agents_pane(&mut self) {
@@ -685,8 +685,8 @@ impl App {
             return;
         };
         // Hiding the LAST visible pane ends the mode: the split screen has
-        // nothing left to show, so the main chat returns — the natural
-        // close-the-last-pane behavior — instead of an empty grid.
+        // nothing left to show, so the main chat returns - the natural
+        // close-the-last-pane behavior - instead of an empty grid.
         let emptied = split.panes.is_empty();
         let pane_ref = pane.to_ref();
         let Some(session) = self.state.current_session_mut() else {
@@ -711,10 +711,10 @@ impl App {
         });
         if emptied {
             // The metadata follows the screen: the mode is CLOSED and the
-            // visible set is GONE (`None`, not an empty list — an empty
+            // visible set is GONE (`None`, not an empty list - an empty
             // `Some` would be rebuilt as a paneless split by the session
             // restore/`/agents` re-entry paths, an empty chat-like screen
-            // instead of the picker). The HIDDEN STACK stays — Ctrl+Z can
+            // instead of the picker). The HIDDEN STACK stays - Ctrl+Z can
             // still bring the pane back (it re-opens the split).
             session.agents_mode_open = false;
             session.agents_panes = None;
@@ -729,7 +729,7 @@ impl App {
             // the empty live state is dropped, the main-agent mirror leaves
             // with the screen, the pane mirrors drop with the mode, an idle
             // app loses the stale spinner and the slash menu serves the
-            // morpheus set again. The HIDDEN STACK is untouched — restore rides
+            // morpheus set again. The HIDDEN STACK is untouched - restore rides
             // `restore_last_hidden_agents_pane`.
             self.agents_split = None;
             self.close_main_mirror();
@@ -749,7 +749,7 @@ impl App {
     pub(super) fn restore_last_hidden_agents_pane(&mut self) {
         // A split whose every visible pane was hidden AUTO-CLOSED (the
         // `hide_focused_agents_pane` emptied branch): the mode is off and
-        // the persisted set is `None` — the restore RE-OPENS the split
+        // the persisted set is `None` - the restore RE-OPENS the split
         // fresh (empty set, no persisted bindings to inherit), the popped
         // pane joins it below. Nothing to restore against (no hidden
         // stack): inert, in a normal session too.
@@ -803,7 +803,7 @@ impl App {
         self.save_current_agents_metadata();
         self.sync_agents_pane_registry();
         self.sync_agents_pane_mirrors();
-        // A bound pane returns with no live timeline — rehydrate it; the
+        // A bound pane returns with no live timeline - rehydrate it; the
         // focus already sits on it, so the slash menu's source follows.
         self.trigger_agents_pane_replays();
         // The restored pane's own model selection hydrates from its bound
@@ -830,7 +830,7 @@ impl App {
     /// turn: the new session id is written back into `session.agents_panes`
     /// so a later re-open resumes THIS agent context instead of forking a
     /// fresh one. The pane may be LIVE (dispatch while the split is open) or
-    /// PARKED (a turn finishing after the user Esc'd out of the mode) — both
+    /// PARKED (a turn finishing after the user Esc'd out of the mode) - both
     /// slots carry the same pane objects, so the agent name resolves from
     /// whichever holds pane `pane`. Indexes align between the live split and
     /// the persisted list because every grow/shrink path routes through
@@ -843,11 +843,11 @@ impl App {
         let Some((agent_name, live_worktree, live_session)) = pane_state else {
             return;
         };
-        // Seed the LIVE pane's next resume id — the single write site for
+        // Seed the LIVE pane's next resume id - the single write site for
         // the pane object's session binding. The Done handler seeds early
         // as well ONLY because its queue service may dispatch a queued
         // message in the same frame (before this helper runs); every other
-        // promotion — the gate-free absorb pass included — lands HERE, so
+        // promotion - the gate-free absorb pass included - lands HERE, so
         // there is exactly one live-pane write outside that pre-dispatch
         // necessity. Deduped: a pane already carrying the id is untouched.
         if let Some(split) = super::agents_dispatch::either_split_mut(
@@ -860,7 +860,7 @@ impl App {
             }
             // A real session is bound to the pane, so the pane speaks again:
             // the post-rewind fence is over (its abandoned session can never
-            // come back — this binding replaced it). Deliberately OUTSIDE the
+            // come back - this binding replaced it). Deliberately OUTSIDE the
             // dedupe: the Done handler seeds the live pane's resume id BEFORE
             // calling this helper, so a clear inside the guard would never
             // run and the fence would stay up for the rest of the session.
@@ -885,7 +885,7 @@ impl App {
         }
         // The LIVE pane's worktree wins over the persisted entry's: a pane
         // the user worktree'd BEFORE its first turn promotes from `Name`
-        // (which carries no worktree) to `Bound` here — reading the stale
+        // (which carries no worktree) to `Bound` here - reading the stale
         // persisted field would silently drop the isolation.
         *entry = crate::types::AgentPaneRef::Bound {
             agent: agent_name,
@@ -894,7 +894,7 @@ impl App {
         };
         // Write through the cache and sync-save: the OLD dedup here compared
         // against the ALREADY-MUTATED field and silently skipped the save,
-        // so bindings never reached disk — `save_agents_metadata` is called
+        // so bindings never reached disk - `save_agents_metadata` is called
         // BEFORE the field was touched in its own callers; here the value is
         // already in the cache, hence the explicit save.
         let session = session.clone();
@@ -949,7 +949,7 @@ impl App {
                     self.update_latest_tag = Some(release.tag.clone());
                     // Announce the release in a toast: title = new version,
                     // message = the manual install command for the running
-                    // OS. The ⧉ button on the toast copies the command —
+                    // OS. The ⧉ button on the toast copies the command -
                     // too long to retype by hand.
                     if let Some(command) = crate::update::manual_update_command(&release.tag) {
                         use crate::ui::toast::{ToastOptions, ToastVariant};
@@ -984,13 +984,13 @@ impl App {
     }
 
     /// Persist the current session (when it holds real dialog) and RELEASE
-    /// its per-session open-lock — without touching `current_session_id`.
+    /// its per-session open-lock - without touching `current_session_id`.
     ///
     /// The hand-off half of the open-lock lifecycle: a process must keep a
     /// claim ONLY while the session is its selected one. Every path that
     /// moves the app away from a session (switch, /new) goes through
     /// this so the lock is handed to the next process the moment the
-    /// session stops being ours — not when this process dies.
+    /// session stops being ours - not when this process dies.
     pub(super) fn persist_and_release_current_session(&mut self) {
         if let Some(id) = self.state.current_session_id.clone() {
             // Single lookup: persist only when the cached session holds
@@ -1011,7 +1011,7 @@ impl App {
     ///
     /// Returns `false` (with the toast shown) when the target session is
     /// locked by another process; `true` on a completed switch.
-    /// Open a session before the first frame — the `morpheus -c` / `morpheus -s`
+    /// Open a session before the first frame - the `morpheus -c` / `morpheus -s`
     /// startup path.
     ///
     /// Runs the sidebar switch (lock, persist the outgoing session, restore
@@ -1059,21 +1059,21 @@ impl App {
         // The OLD session's split slots stop and clear here: running pane
         // turns are session-bound (their stop signals were armed for the
         // old session's fan-out), so switching away must not leave them
-        // streaming. This releases the UI slots, NOT the state — the pane
+        // streaming. This releases the UI slots, NOT the state - the pane
         // set and bindings live on in each session's own metadata. The
         // epoch moves with the teardown: their terminal Done arrives stale
         // and is dropped instead of binding old-session ACP ids into the
         // NEW session's metadata under a same-named pane. The in-flight
-        // `agents_call` requests fail first, keyed by the outgoing ids —
+        // `agents_call` requests fail first, keyed by the outgoing ids -
         // the stale-dropped Done can never resolve them (see
         // `fail_outgoing_pane_requests`).
         // A whole-set death (session switch): every outgoing pane
         // loses its in-flight AND queued `agents_call` requests and leaves
-        // the registry — the incoming set re-syncs it below. Without this
+        // the registry - the incoming set re-syncs it below. Without this
         // the registry keeps the old session's panes: a queued request
         // nobody will ever dispatch hangs the requester's busy-guard
         // forever, and a colliding id (same agent name) would be served by
-        // the NEW session's pane — cross-session injection.
+        // the NEW session's pane - cross-session injection.
         self.fail_whole_outgoing_pane_set();
         self.agents_pane_epoch = self.agents_pane_epoch.wrapping_add(1);
         for split in self
@@ -1106,7 +1106,7 @@ impl App {
         // `set_agents_split` is deliberately NOT used here: it persists
         // through the CURRENT (new) session and would wipe a parked pane
         // set with a `None` delta. Focus stays untouched either way (a
-        // sidebar switch must leave the prompt UNfocused — an automatic
+        // sidebar switch must leave the prompt UNfocused - an automatic
         // restore never drives it).
         match self.state.current_session().map(|s| {
             (
@@ -1121,7 +1121,7 @@ impl App {
                 );
                 self.save_agents_metadata(Some(panes), true, hidden);
                 // A session left with the mode open carries `Bound` panes
-                // whose timelines died with the process — rehydrate them.
+                // whose timelines died with the process - rehydrate them.
                 self.trigger_agents_pane_replays();
                 // The manager panes' own model selections hydrate from
                 // their bound sessions' markers (one disk read per morpheus
@@ -1132,7 +1132,7 @@ impl App {
             }
             Some((Some(panes), false, _)) if !panes.is_empty() => {
                 // An EMPTY persisted set is the legacy emptied-split shape
-                // (pre-auto-close): it is NOT a parkable set — a rebuilt
+                // (pre-auto-close): it is NOT a parkable set - a rebuilt
                 // parked split would hold no panes and a later re-attach
                 // would put an empty split screen up. Skip the park: the
                 // session comes back to the NORMAL chat, a later `/agents`
@@ -1146,12 +1146,12 @@ impl App {
         // The registry follows the NEW session's rebuilt slots (the missing
         // half of the fix above): the whole-set failure emptied it, so a
         // session restored WITH panes re-registers them and a session with
-        // none leaves the registry empty — `has_coworkers()` false, no
+        // none leaves the registry empty - `has_coworkers()` false, no
         // `agents_call` tool on the next harness build, no stale context
         // block, and `has_outstanding_requests` can no longer stick true.
         self.sync_agents_pane_registry();
         // The NEW session's rebuilt slots mirror into the shared list the
-        // same way a fresh open does (idle panes, no running turns — the
+        // same way a fresh open does (idle panes, no running turns - the
         // old session's turns were stopped above).
         self.sync_agents_pane_mirrors();
         // The shared spinner follows the same rule `set_agents_split`
@@ -1188,14 +1188,14 @@ impl App {
             .show(DialogType::RenameSession { input, cursor_pos });
     }
 
-    /// Create a fresh empty session and select it — the shared path behind
+    /// Create a fresh empty session and select it - the shared path behind
     /// the `/new` slash command and the first-message bootstrap.
     /// Selecting the session flips the app into Session mode.
     pub(crate) fn start_new_session(&mut self) {
         // Entry funnel: claim the id (unique + exclusively locked for this
         // process) BEFORE the session becomes selectable. A created-but-
         // unlocked session let a second morpheus process adopt it via the
-        // sidebar switch — the per-session open-lock only refuses when a
+        // sidebar switch - the per-session open-lock only refuses when a
         // claim already exists, so a fresh session had none to refuse.
         let Some((id, now_ms)) = self.session_store.claim_fresh_session_id() else {
             self.toast_state.show(crate::ui::toast::ToastOptions {
@@ -1210,7 +1210,7 @@ impl App {
         // Hand off the PREVIOUS session's open-lock before the new one
         // becomes current: a process keeps a claim only while the session
         // is its selected one. Without this, a process that opened session
-        // X and then ran /new kept holding X's lock until it died — every
+        // X and then ran /new kept holding X's lock until it died - every
         // other morpheus process trying to open X was refused with "already
         // open in another process" while nothing here was using it.
         self.persist_and_release_current_session();
@@ -1221,16 +1221,16 @@ impl App {
         self.speech.clear_targets();
         // A fresh session NEVER inherits the previous one's /agents split:
         // its persisted pane set is `None`, so the mode closes here (the
-        // persist call is a no-op — the fresh session already records None).
+        // persist call is a no-op - the fresh session already records None).
         self.close_agents_split();
-        // Fresh session: the header's cost widget starts clean — no
+        // Fresh session: the header's cost widget starts clean - no
         // balance carried over from the previous session.
         self.hypercredit_balance = None;
         // A fresh session starts with a CLEAN right panel: the panel lives
         // on AppState (not inside the Session model), so without this reset
         // the previous session's todos, PTY/subagent sessions, panel focus,
         // scroll offsets and history-navigation state would leak into the
-        // new session — the same reset every other session-switch path
+        // new session - the same reset every other session-switch path
         // (sidebar keyboard/mouse switch) performs.
         self.state.right_panel = crate::routes::session::right_panel::types::RightPanelState::new();
         // A new session is restored with the globally persisted model (the
@@ -1248,7 +1248,7 @@ impl App {
     /// Flips the alpha of the current background IN PLACE: every theme
     /// mutation path (`App::set_theme`, the startup loader) preserves the RGB
     /// channels and only zeroes alpha while the toggle is on, so the pristine
-    /// color is always recoverable locally — no registry/name lookup that
+    /// color is always recoverable locally - no registry/name lookup that
     /// could drift from what is actually on screen.
     pub(super) fn toggle_transparent_background(&mut self) {
         use crate::ui::toast::{ToastOptions, ToastVariant};
@@ -1295,7 +1295,7 @@ impl App {
             return;
         }
         // Occurrence multiplicity per agent in the persisted set: how many
-        // panes each agent name carries. A plain HashMap is enough — the
+        // panes each agent name carries. A plain HashMap is enough - the
         // lookup below goes by name, no order to preserve.
         let mut counts: std::collections::HashMap<String, usize> = std::collections::HashMap::new();
         for entry in &persisted {
@@ -1393,7 +1393,7 @@ impl App {
     ///   focused pane owns it (an ACP pane's own command, its config box, or
     ///   `/worktree` on any pane kind) and refuses Global-scoped ones
     ///   outright, so a `/background` picked while a claude pane holds the
-    ///   focus still toggles THIS terminal's background — never the pane's;
+    ///   focus still toggles THIS terminal's background - never the pane's;
     /// - everything else is handled here, by the App, on the app-level state
     ///   the main agent reads (which is exactly what the manager pane wants,
     ///   since its agent IS this app's own loop).
@@ -1410,8 +1410,8 @@ impl App {
         // `/worktree` for the MAIN agent (normal chat, no `/agents` split).
         // A morpheus-owned command (`CommandScope::Agent`), so it is handled
         // HERE and never dispatched to an agent as prose. Reached only when
-        // the pane router above declined — i.e. no live split, or no pane
-        // focused — which is exactly the main agent's situation. The
+        // the pane router above declined - i.e. no live split, or no pane
+        // focused - which is exactly the main agent's situation. The
         // argument tail is read from the prompt before it is cleared.
         if cmd.name == "worktree" {
             let tail = crate::ui::slash_menu::SlashMenu::command_arg_tail(
@@ -1423,7 +1423,7 @@ impl App {
             self.prompt_view.clear_all();
             return;
         }
-        // `/wallpaper [image.png [x,y] | off]` — a GLOBAL appearance command.
+        // `/wallpaper [image.png [x,y] | off]` - a GLOBAL appearance command.
         // No argument restores the embedded artwork; the argument tail is read
         // before the prompt is cleared.
         if cmd.name == "wallpaper" {
@@ -1441,7 +1441,7 @@ impl App {
         } else if cmd.name == "models" {
             self.open_model_dialog();
         } else if cmd.name == "agents" {
-            // Openable ANY time — including while the main loop streams:
+            // Openable ANY time - including while the main loop streams:
             // the split is an overlay of the SAME session, the loop keeps
             // running behind it (its spinner, queues and stop wiring are
             // untouched), and Esc out of the split PARKS it back without
@@ -1449,7 +1449,7 @@ impl App {
             // gone: watching an agent mid-run or delegating to an idle one
             // while the main agent works is the point of the mode.
             // Re-entry contract: a PARKED split (Esc'd out with the agent set
-            // kept) re-attaches verbatim — the picker step is skipped
+            // kept) re-attaches verbatim - the picker step is skipped
             // entirely because the user already picked and the panes keep
             // their streaming turns, timelines and bound sessions.
             if !self.attach_parked_agents_split() {
@@ -1457,7 +1457,7 @@ impl App {
                 // picker from scratch, but pre-mark the rows the session's
                 // persisted pane set carries, so a mode the split was left
                 // in re-picks as one Enter. `pre_mark_agents_picker` itself
-                // opens (its build-before-open ordering needs it) — do NOT
+                // opens (its build-before-open ordering needs it) - do NOT
                 // open twice: a future mark-resetting `open()` would wipe
                 // the pre-marks applied by the second call.
                 self.pre_mark_agents_picker();
@@ -1493,7 +1493,7 @@ impl App {
                 use crate::ui::toast::{ToastOptions, ToastVariant};
                 self.toast_state.show(ToastOptions {
                     title: Some("New session".into()),
-                    message: "The agent is working — wait for it to finish.".into(),
+                    message: "The agent is working - wait for it to finish.".into(),
                     variant: ToastVariant::Warning,
                     duration_ms: 4000,
                 });
@@ -1594,7 +1594,7 @@ impl App {
     /// User-triggered `/compact`: run the LLM summary NOW instead of waiting
     /// for the 80% trigger. Refusals are surfaced as toasts; the work runs on
     /// a one-off tokio task that rebuilds a Harness from the context records
-    /// persisted in the session JSONL — between loops no harness exists, and
+    /// persisted in the session JSONL - between loops no harness exists, and
     /// while a loop runs its context manager is untouchable, so both cases
     /// refuse.
     pub(super) fn start_manual_compaction(&mut self) {
@@ -1614,7 +1614,7 @@ impl App {
         if self.state.status != crate::types::SessionStatus::Idle {
             refuse(
                 self,
-                "The agent is working — /compact runs between messages.".into(),
+                "The agent is working - /compact runs between messages.".into(),
             );
             return;
         }
@@ -1651,7 +1651,7 @@ impl App {
         let cwd = self.state.working_directory.clone();
         // Clear the shared stop flag BEFORE handing it to the compaction
         // task: the flag belongs to the PREVIOUS interaction (ESC/Interrupt),
-        // and every summarizer entry races it before connecting — a flag
+        // and every summarizer entry races it before connecting - a flag
         // still set from an earlier turn aborts the manual pass at its
         // pre-connect select, retrying /compact changes nothing, and the
         // mechanism only comes back after an app reboot. Same contract the
@@ -1696,14 +1696,14 @@ impl App {
 /// The ONE compaction-harness builder, shared by the main `/compact`
 /// and the `agents_compact` pane path: resolve the summarization route
 /// (the user's summarization models when configured, else the primary
-/// route — `auto` has no models of its own), apply the session cache
+/// route - `auto` has no models of its own), apply the session cache
 /// headers keyed to `cache_key`, and return the EMPTY-context harness.
-/// The caller restores the context it wants compacted — the mechanism
+/// The caller restores the context it wants compacted - the mechanism
 /// (`compact_on_demand`) is identical either way; only the context and
 /// the cache affinity differ.
 ///
 /// Free function (not an `App` method) on purpose: the pane path
-/// (`agents_dispatch`) reuses it too, and it touches no `App` state —
+/// (`agents_dispatch`) reuses it too, and it touches no `App` state -
 /// it only builds the harness the caller drives `compact_on_demand`
 /// with.
 #[allow(clippy::too_many_arguments)]

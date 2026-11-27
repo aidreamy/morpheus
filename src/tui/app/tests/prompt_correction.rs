@@ -168,7 +168,7 @@ async fn esc_without_a_running_correction_changes_nothing() {
     app.prompt_view.input = "rascunho".into();
 
     // No correction is running: the dedicated gate must be a no-op (Esc
-    // falls through to its normal meanings — none of which touch the
+    // falls through to its normal meanings - none of which touch the
     // draft here).
     app.process_key_event(KeyEvent::new(KeyCode::Esc, KeyModifiers::NONE))
         .unwrap();

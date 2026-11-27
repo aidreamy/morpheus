@@ -497,7 +497,7 @@ fn batch_ask_questions_bare_args() {
 
     let mut ex = ExtractAction::new().with_tool(ask_schema);
 
-    // Bare arguments (no envelope) — triggers the "bare-arguments fallback"
+    // Bare arguments (no envelope) - triggers the "bare-arguments fallback"
     let text = r#"{"questions": [{"id": "lang", "question": "What?", "type": "Text"}]}"#;
     let result = ex.extract_batch(text);
 
@@ -562,7 +562,7 @@ fn stream_fence_split_across_tokens_midline_does_not_toggle() {
         other => panic!("expected Text, got {other:?}"),
     }
 
-    // The third backtick + 'j' close the (mid-line) run — must NOT enter
+    // The third backtick + 'j' close the (mid-line) run - must NOT enter
     // code-block even though the run was split across chunks.
     let r = ex.extract_stream("`js continues ");
     match r {
@@ -580,7 +580,7 @@ fn stream_fence_split_across_tokens_midline_does_not_toggle() {
 #[test]
 fn stream_real_fenced_code_block_keeps_body_as_display_text() {
     // A genuine markdown fence (opening ``` at a line start) still shields its
-    // body from tool-call detection — JSON inside stays visible as text.
+    // body from tool-call detection - JSON inside stays visible as text.
     let mut ex = make_extractor();
     let content = "```\n{\"name\": \"expand_namespace\", \"arguments\": {\"server\": \"s\", \"namespace\": \"n\"}}\n```\n";
     let r = ex.extract_stream(content);
@@ -622,7 +622,7 @@ fn native_call_valid_with_id_and_arguments() {
 #[test]
 fn native_call_empty_arguments_defaults_to_empty_object() {
     // Some providers (e.g. Ollama) stream tool calls with no arguments at
-    // all — `{}` must validate against tools that take no required fields
+    // all - `{}` must validate against tools that take no required fields
     // (mirrors fantasy's empty-args → `{}` default).
     let mut ex = ExtractAction::new().with_tool(ToolSchema {
         name: "no_args".into(),
@@ -810,7 +810,7 @@ fn schema_mismatch_failure_echoes_the_expected_argument_shape() {
     match ex.register_native_call(&call) {
         StreamAction::Text(t) => {
             assert!(
-                t.contains("Expected `fs.read` arguments — minimal shape: { path: <string> }"),
+                t.contains("Expected `fs.read` arguments - minimal shape: { path: <string> }"),
                 "rejection must teach the shape, got: {t:?}"
             );
         }
@@ -1034,7 +1034,7 @@ fn native_call_string_encoded_field_is_repaired() {
     }
 }
 
-// Scalar + $ref repair (computer pipelines) — observed in the field with
+// Scalar + $ref repair (computer pipelines) - observed in the field with
 // computer_act: numeric_value/pid/nth delivered as strings and the chained
 // `then` step as a JSON-encoded string, all failing the tool's deserializer.
 // The step shape lives in `$defs.step` behind `allOf: [{$ref}]`, so repair
@@ -1110,10 +1110,7 @@ fn pipeline_stringified_scalar_that_is_not_a_number_reaches_the_hint() {
     let result = ex.extract_batch(text);
 
     assert!(
-        result
-            .items
-            .iter()
-            .all(|i| !matches!(i, Item::ToolCall(_))),
+        result.items.iter().all(|i| !matches!(i, Item::ToolCall(_))),
         "a non-numeric string for an integer field must be rejected: {result:?}"
     );
     assert_eq!(ex.take_tool_failures(), 1, "rejection, not silent pass");
@@ -1121,7 +1118,7 @@ fn pipeline_stringified_scalar_that_is_not_a_number_reaches_the_hint() {
 
 #[test]
 fn pipeline_integers_stay_integers_not_floats() {
-    // `"70"` for an `integer` field must repair to 70 (i64/u64), not 70.0 —
+    // `"70"` for an `integer` field must repair to 70 (i64/u64), not 70.0 -
     // serde deserializes `Option<u32>` from 70.0 only with lossy settings.
     let mut ex = ExtractAction::new().with_tool(pipeline_act_schema());
     let call = NativeToolCall {
@@ -1199,7 +1196,7 @@ fn pipeline_fractional_value_for_an_integer_field_is_still_rejected() {
 
 #[test]
 fn pipeline_cyclic_ref_terminates_instead_of_overflowing() {
-    // A third-party MCP schema may declare a cyclic `$ref` — the dispatch
+    // A third-party MCP schema may declare a cyclic `$ref` - the dispatch
     // must hit the hop cap and terminate, not recurse until the stack
     // overflows (the process would abort on model-visible input).
     let schema = ToolSchema {
@@ -1215,7 +1212,7 @@ fn pipeline_cyclic_ref_terminates_instead_of_overflowing() {
         example_args: None,
     };
     let mut ex = ExtractAction::new().with_tool(schema);
-    // Must terminate with SOME outcome (accept or rejection) — the test
+    // Must terminate with SOME outcome (accept or rejection) - the test
     // fails on a stack overflow, not on the assertion.
     let _ = ex.extract_batch(r#"{"name": "cyclic", "arguments": {}}"#);
 }

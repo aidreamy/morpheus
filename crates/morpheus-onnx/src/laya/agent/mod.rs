@@ -19,7 +19,7 @@
 //!   id for the config's `encoder` and reads special-token names from
 //!   `tokenizer.json`'s added tokens. `HfTokenizer::from_dir` resolves local
 //!   directories only, and falls back to the standard BERT special-token
-//!   names when `tokenizer_config.json` does not name them — a checkpoint
+//!   names when `tokenizer_config.json` does not name them - a checkpoint
 //!   with a hub-id encoder and no `tokenizer/` directory does not load here.
 //! - The Hub path is cache-first: a fully cached repo is served from the
 //!   cache without network (upstream honours `HF_HUB_OFFLINE=1`; hf-hub 0.5
@@ -77,7 +77,7 @@ pub struct OnnxAgent {
     pub hooks_timeout: Option<f64>,
     /// `_hooks_lock`: serialises hook dispatch when `hooks_concurrent` is
     /// false; `None` means hooks may run concurrently. Upstream uses a
-    /// reentrant `RLock` — here the mutex is not reentrant, so a hook must
+    /// reentrant `RLock` - here the mutex is not reentrant, so a hook must
     /// not call back into dispatch on the same agent (the `PredictContext`
     /// carries no agent reference, so hooks capture what they need instead;
     /// a re-entering hook would deadlock rather than corrupt state).
@@ -91,7 +91,7 @@ pub struct OnnxAgent {
 /// keys (its `normalize_caller_map` accepts both spellings); this verify
 /// runs after the subfolder join, so keys carrying the subfolder prefix
 /// are stripped back to checkpoint-relative. Insertion runs in TWO passes
-/// with the installer's precedence so collisions are deterministic — an
+/// with the installer's precedence so collisions are deterministic - an
 /// explicit repo-relative key wins over a bare checkpoint-relative key
 /// that strips/prefixes to the same path; HashMap iteration order must
 /// never decide which digest applies. The `onnx`/`onnx_path` aliases pass
@@ -109,7 +109,7 @@ fn checkpoint_relative_keys(
         }
         out.insert(k.clone(), v.clone());
     }
-    // Pass 2: prefixed keys, stripped — explicit repo-relative wins.
+    // Pass 2: prefixed keys, stripped - explicit repo-relative wins.
     if !prefix.is_empty() {
         for (k, v) in map {
             if let Some(stripped) = k.strip_prefix(prefix)
@@ -126,7 +126,7 @@ fn checkpoint_relative_keys(
 /// (local path or Hub snapshot with `allow_patterns` restricted to the
 /// config, `tokenizer/` and `encoder/`), verify opt-in digests, patch the
 /// tokenizer config, load the tokenizer and the ONNX session, and parse the
-/// temperature calibration. Crate-internal — callers go through
+/// temperature calibration. Crate-internal - callers go through
 /// [`crate::laya::facade::load`] (the facade) or the Router factory; the
 /// positional `load` below is the deprecated upstream-shaped shim.
 ///
@@ -180,14 +180,14 @@ pub(crate) fn load_agent(
         }
         // snapshot_download restricted to the files the runtime reads, via
         // the shared installer (`hub::install`): cache-first (the same
-        // no-network behaviour as before — hf-hub 0.5 has no offline
+        // no-network behaviour as before - hf-hub 0.5 has no offline
         // switch, so a fully cached repo is served straight from the cache
         // directory), downloads with the built-in progress bar DISABLED
         // (silent callbacks here: a loader must not own a progress UI) and
         // the repo's published `sha256sums.txt` verified before the
         // install succeeds. Graph candidates prefer the quantized twin
         // when the repo ships one (`laya.int8.onnx`), falling back to the
-        // fp32 graph — the explicit `onnx_path` wins over both.
+        // fp32 graph - the explicit `onnx_path` wins over both.
         let graph_candidates: Vec<&str> = if onnx_path == "laya.onnx" {
             vec!["laya.int8.onnx", "laya.onnx"]
         } else {
@@ -213,7 +213,7 @@ pub(crate) fn load_agent(
                     // sums manifest for this install (the installer normalizes
                     // the loader's `onnx`/`onnx_path` keys to the resolved
                     // graph path and requires the graph to be covered). Keys
-                    // stay checkpoint-dir-relative — the loader re-verifies
+                    // stay checkpoint-dir-relative - the loader re-verifies
                     // them after the subfolder join below, the same rule as
                     // the local-checkpoint path.
                     expected_sha256,
@@ -255,7 +255,7 @@ pub(crate) fn load_agent(
     // graph inside the snapshot dir, so fall back to the model dir when
     // the CWD does not have the file (an explicit user path that exists
     // still wins). The hub path names the graph the repo actually carries
-    // (`hub_graph` — possibly the int8 twin), the local path keeps the
+    // (`hub_graph` - possibly the int8 twin), the local path keeps the
     // caller's `onnx_path`.
     let requested_graph: &str = hub_graph.as_deref().unwrap_or(onnx_path);
     let onnx_path: String = if Path::new(requested_graph).exists() {
@@ -274,7 +274,7 @@ pub(crate) fn load_agent(
     // Verify integrity before any file in the checkpoint is parsed or executed.
     //
     // The caller's map keys are CHECKPOINT-relative (the loader's own
-    // semantics — this verify runs after the subfolder join). The INSTALLER
+    // semantics - this verify runs after the subfolder join). The INSTALLER
     // may have handed back a map whose keys it already prefixed into
     // repo-relative paths (its snapshot-root verification accepts both
     // spellings), so strip the subfolder prefix back off here; keys without
@@ -525,7 +525,7 @@ impl OnnxAgent {
         // entirely. Behaviour-identical: with no active hooks, `dispatch`
         // never fires, no context mutation can happen, and the result of the
         // full cycle below is exactly `infer(state, questions, ...)`.
-        // The per-call timeout is validated first — the full path rejects it
+        // The per-call timeout is validated first - the full path rejects it
         // before any hook runs, and a caller must get the same rejection
         // when no hook is registered. `hooks_raise` is only read by
         // `dispatch`, so it is not consulted here.
@@ -601,7 +601,7 @@ impl OnnxAgent {
             }
         }
 
-        // The `finally` block: elapsed_ms, usage aggregation, end hooks — they
+        // The `finally` block: elapsed_ms, usage aggregation, end hooks - they
         // run on the failure path too.
         ctx.elapsed_ms = Some(ctx.started_at.elapsed().as_secs_f64() * 1000.0);
         if let Some(results) = &ctx.results {
@@ -786,7 +786,7 @@ impl OnnxAgent {
     /// Every state's rows share one collated batch and one `session.run` per
     /// chunk; each per-state payload keeps its own `usage` (`input_tokens`
     /// counts only that state's rows), so a caller reading `usage` sees the
-    /// same numbers the single-state path reports. Hooks do not run here —
+    /// same numbers the single-state path reports. Hooks do not run here -
     /// `predict_batch` falls back to the per-state `system_one` cycle when
     /// any hook is installed.
     pub fn infer_batch(
@@ -1024,7 +1024,7 @@ fn argmax(p: &[f64]) -> usize {
     best
 }
 
-/// A caller that can answer questions — `decide` consumes this.
+/// A caller that can answer questions - `decide` consumes this.
 impl crate::decision::model::PredictRunner for OnnxAgent {
     fn predict(&self, state: &Value, questions: &Map<String, Value>) -> Result<Value> {
         // `runner.predict = system_one` upstream, so the hooks around the
@@ -1045,7 +1045,7 @@ impl crate::decision::model::PredictRunner for OnnxAgent {
 /// The Router passes the hooks of the *call* itself around the whole
 /// route+infer (with the process defaults suppressed by its
 /// `_SKIP_DEFAULTS` guard), so the agent here sees its own installed hooks
-/// only — the same division of labour as `Router.predict` calling
+/// only - the same division of labour as `Router.predict` calling
 /// `agent.system_one(...)` with no hook arguments.
 impl crate::decision::model::AgentLike for OnnxAgent {
     fn system_one(

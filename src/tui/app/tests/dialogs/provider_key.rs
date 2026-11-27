@@ -132,7 +132,7 @@ async fn provider_key_choice_forget_gates_behind_confirm() {
 /// Confirming the forget (Enter on the Confirm) removes the key through the
 /// keyring API and closes both dialogs. The fake env var has no real
 /// credential behind it, so the delete itself is a no-op error on any
-/// machine — but the flow must still close cleanly.
+/// machine - but the flow must still close cleanly.
 #[tokio::test]
 async fn forget_confirmation_closes_confirm_and_picker() {
     let _guard = HOME_LOCK.lock();
@@ -145,7 +145,7 @@ async fn forget_confirmation_closes_confirm_and_picker() {
     app.handle_provider_key_choice_key(KeyCode::Enter);
     assert_eq!(app.dialog.stack.len(), 2);
 
-    // Enter on the Confirm = "Yes": resolve the forget. Both dialogs close —
+    // Enter on the Confirm = "Yes": resolve the forget. Both dialogs close -
     // the picker is stale now (no key left), so the user lands back on the
     // AddProvider list.
     assert!(app.process_key_event(key(KeyCode::Enter)).is_ok());
@@ -156,7 +156,7 @@ async fn forget_confirmation_closes_confirm_and_picker() {
     );
 }
 
-/// REGRESSION: the orphaned-selection cleanup ran on BOTH match arms — a
+/// REGRESSION: the orphaned-selection cleanup ran on BOTH match arms - a
 /// FAILED keyring deletion (the key is still there!) erased the persisted
 /// global model selection anyway, throwing away a perfectly valid
 /// configuration. The cleanup may only run when the provider REALLY lost
@@ -167,7 +167,7 @@ async fn failed_forget_keeps_the_persisted_model_selection() {
     isolate_home();
     let mut app = App::new("/tmp".to_string());
     // A concrete selection pointing at the provider whose key "forget" will
-    // target — with a key still resolvable through the provider's env var
+    // target - with a key still resolvable through the provider's env var
     // (under HOME_LOCK: the process env is test-global state).
     app.setup
         .set_model_selection("openai", "gpt-test-model", Some("high"));
@@ -179,7 +179,7 @@ async fn failed_forget_keeps_the_persisted_model_selection() {
     aiface::connector::invalidate_api_key(env_var);
 
     // The fake keyring entry: the delete is a no-op error on any machine,
-    // so `forget_provider_api_key` takes the FAILURE branch — exactly the
+    // so `forget_provider_api_key` takes the FAILURE branch - exactly the
     // regression's trigger.
     app.dialog.show(DialogType::ProviderKeyChoice {
         provider: "openai".into(),
@@ -216,7 +216,7 @@ async fn successful_forget_of_last_key_clears_the_persisted_selection() {
     isolate_home();
     let mut app = App::new("/tmp".to_string());
     // A provider whose env var does not exist on any machine: after the
-    // (no-op error) keyring delete, `has_api_key` is reliably false — the
+    // (no-op error) keyring delete, `has_api_key` is reliably false - the
     // provider is keyless for real.
     app.setup
         .set_model_selection("testprovider", "test-model", Some("low"));

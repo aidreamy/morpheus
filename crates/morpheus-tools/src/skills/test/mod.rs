@@ -1,4 +1,4 @@
-//! Test suite for the skill reader tool — grouped by concern.
+//! Test suite for the skill reader tool - grouped by concern.
 
 pub mod common;
 

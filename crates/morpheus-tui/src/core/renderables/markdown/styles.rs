@@ -166,7 +166,7 @@ impl MarkdownPalette {
             255,
         );
 
-        // Blockquote bg = transparent (no background fill — indented text with muted color is sufficient)
+        // Blockquote bg = transparent (no background fill - indented text with muted color is sufficient)
         let blockquote_bg = RGBA::from_ints(0, 0, 0, 0);
 
         // Blockquote bar = muted
@@ -201,7 +201,7 @@ impl MarkdownPalette {
     pub fn set_accent_colors(&mut self, accents: MarkdownAccentColors) {
         if let Some(heading) = accents.heading {
             // Rebuild the H1→H6 ramp from the theme color: H1 keeps it in
-            // full, H2–H5 step down toward muted, H6 lands on muted — the
+            // full, H2–H5 step down toward muted, H6 lands on muted - the
             // same shape the derivation uses for plain text colors.
             let (hr, hg, hb, _) = heading.to_ints();
             let (mr, mg, mb, _) = self.muted.to_ints();
@@ -401,7 +401,7 @@ impl MarkdownPalette {
                 // Plain text (paragraphs, bare runs, list item bodies) must
                 // keep the palette's base text color. Without this the cells
                 // keep the default `Reset` fg, so the terminal's own default
-                // foreground leaks through — invisible on light themes (e.g.
+                // foreground leaks through - invisible on light themes (e.g.
                 // sakura) where the default is white on a light background.
                 // Headings/inline accents already set a fg above, so only the
                 // untouched style gets the base color.
@@ -462,7 +462,7 @@ mod tests {
     /// REGRESSION: plain paragraph/bare text must keep the palette's base
     /// `text` foreground. Before the fix, `style_for` returned `Style::default()`
     /// (no fg) for paragraphs, so the terminal's own default foreground leaked
-    /// through — white on light themes like sakura made the output unreadable.
+    /// through - white on light themes like sakura made the output unreadable.
     #[test]
     fn paragraph_text_uses_base_text_fg() {
         let text = RGBA::from_ints(0, 0, 0, 255);

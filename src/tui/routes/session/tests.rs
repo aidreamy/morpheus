@@ -338,8 +338,8 @@ fn test_scan_content_height_works() {
 }
 
 /// Verify that the reasoning/thinking body is dimmed toward the background by
-/// the theme's `thinking_opacity` — white becomes gray, highlight colors get
-/// grayed out — so it reads as "opaque thinking" vs. the normal reply.
+/// the theme's `thinking_opacity` - white becomes gray, highlight colors get
+/// grayed out - so it reads as "opaque thinking" vs. the normal reply.
 #[test]
 fn test_reasoning_body_is_dimmed() {
     use ratatui::style::Color;
@@ -385,14 +385,14 @@ fn test_reasoning_body_is_dimmed() {
 
 /// An expanded Think block must render in full, not clamped to 10 lines,
 /// and its height estimate must come from the SAME wrap-aware layout the
-/// markdown renderer uses (a long paragraph wraps into extra rows — the old
+/// markdown renderer uses (a long paragraph wraps into extra rows - the old
 /// `lines().count()` estimate clipped the body and desynced copy regions).
 #[test]
 fn test_reasoning_renders_more_than_ten_lines() {
     let theme = test_theme();
     let config = test_config();
 
-    // 25 reasoning lines — comfortably past the old 10-line clamp.
+    // 25 reasoning lines - comfortably past the old 10-line clamp.
     let text: String = (0..25).map(|i| format!("reasoning line {i}\n")).collect();
     let part = ReasoningPart {
         text: text.clone(),
@@ -403,7 +403,7 @@ fn test_reasoning_renders_more_than_ten_lines() {
     let mut line_h = 0u16;
     super::SessionView::render_reasoning(&mut buf, 0, 0, &mut line_h, 80, &part, true, &theme);
 
-    // Every source line must be on screen — nothing clipped to 10.
+    // Every source line must be on screen - nothing clipped to 10.
     for i in 0..25 {
         assert!(
             buffer_text(&buf).contains(&format!("reasoning line {i}")),
@@ -787,7 +787,7 @@ fn test_streaming_frame_times() {
 
     // Debug (unoptimized) renders of the 4000-word streaming message are
     // extremely sensitive to the test binary's code layout and to heap state
-    // left by earlier tests in the same process — measured 160ms warm (fresh
+    // left by earlier tests in the same process - measured 160ms warm (fresh
     // process) vs 610ms warm (after a heavy render ran first) for the SAME
     // binary. 800ms on the median keeps the assertion stable across that
     // noise; it catches only multi-second regressions (the 5s worst-frame
@@ -799,7 +799,7 @@ fn test_streaming_frame_times() {
         "Median frame time {median_us}us is too high for responsive ESC!"
     );
 
-    // No individual frame should take more than 5s. Check the worst one —
+    // No individual frame should take more than 5s. Check the worst one -
     // `times` was sorted above for the median, so enumerating it here would
     // mislabel the original frame numbers.
     let worst = times.iter().max().unwrap();
@@ -845,7 +845,7 @@ fn test_scroll_stays_at_bottom_during_streaming_growth() {
     let grown_msg = build_streaming_message(800);
     let grown_state = test_state(grown_msg);
 
-    // Render the larger message — this triggers ensure_height_caches_fresh
+    // Render the larger message - this triggers ensure_height_caches_fresh
     // which recalculates cached_total_height. If actual_total_height is NOT
     // synced, the scroll will snap to the old (lower) position.
     view.render(&mut buf, area, &grown_state, &theme, &config, 0.016);
@@ -945,7 +945,7 @@ fn test_height_sync_after_render() {
     );
 
     // cached_total_height should NOT be inflated above actual_total_height
-    // The .max() was removed — cache is the stable source of truth
+    // The .max() was removed - cache is the stable source of truth
 
     // Both should be positive and reasonable
     assert!(
@@ -1061,7 +1061,7 @@ fn drag_selection_render_tolerates_zero_height_viewport() {
 /// bounds, but those edge rows are then MIDDLE rows of the selection and must
 /// be highlighted full-width. The old code matched bands against the clamped
 /// screen rows, so the last visible line kept the partial band from the
-/// initial mouse-down x — it "retained the initial formatting" for the whole
+/// initial mouse-down x - it "retained the initial formatting" for the whole
 /// drag (and the first line did the same on a downward drag).
 #[test]
 fn drag_past_viewport_edges_highlights_edge_rows_full_width() {
@@ -1097,7 +1097,7 @@ fn drag_past_viewport_edges_highlights_edge_rows_full_width() {
 
     // Every cell in the viewport must be either untouched or exactly
     // fg/bg-swapped (the selection highlight). In particular the TOP and
-    // BOTTOM rows — both are middle rows of this selection — must be
+    // BOTTOM rows - both are middle rows of this selection - must be
     // inverted across the FULL content width wherever they carry text.
     let mut inverted_rows = 0usize;
     for y in 0..20u16 {
@@ -1855,7 +1855,7 @@ fn test_running_glob_click_can_expand_streaming_box() {
 /// Regression guard: a bash box BELOW earlier wrapped text must expand when
 /// the mouse handler is given the SAME session area the view rendered at.
 /// (The app guarantees this via `App::session_main_area`, shared by render and
-/// the mouse dispatch — a wider mouse area would re-wrap the leading message,
+/// the mouse dispatch - a wider mouse area would re-wrap the leading message,
 /// shift the box's `prefix_y`, and make the click miss.)
 #[test]
 fn test_completed_bash_click_expands_below_wrapped_message_with_matching_widths() {
@@ -2267,7 +2267,7 @@ fn compaction_line_formatting() {
 
     // The LLM "Summarizing" box carries a live stopwatch: while running, the
     // elapsed number ticks from `started_at` (`now` is passed explicitly so
-    // the assertion is deterministic — no wall-clock race).
+    // the assertion is deterministic - no wall-clock race).
     let llm = CompactionPart {
         phase: CompactionPhase::Llm,
         started_at: 0,
@@ -2323,7 +2323,7 @@ fn compaction_part_serde_roundtrip() {
     assert_eq!(json, serde_json::to_string(&back).unwrap());
 
     // Back-compat: JSONL written before the `text` field (no `text` key)
-    // must still deserialize — `#[serde(default)]` fills an empty string.
+    // must still deserialize - `#[serde(default)]` fills an empty string.
     let legacy = r#"{"type":"Compaction","phase":"Llm","started_at":7,"elapsed_ms":99}"#;
     let back: Part = serde_json::from_str(legacy).unwrap();
     assert!(matches!(
@@ -2333,7 +2333,7 @@ fn compaction_part_serde_roundtrip() {
 }
 
 // The "Summarizing" box (LLM compaction): collapsed it shows ONLY the
-// LAST lines of the streamed text (the LRU-like scroll-up preview — the top
+// LAST lines of the streamed text (the LRU-like scroll-up preview - the top
 // lines leave the box as the stream grows, nothing is removed), and clicking
 // expands it to the full text with a taller height. Long lines WORD-WRAP
 // inside the box instead of being cut at the right edge.
@@ -2345,7 +2345,7 @@ fn compaction_part_serde_roundtrip() {
 fn markdown_estimate_matches_render_height() {
     use morpheus_tui::core::renderables::markdown::estimate_height;
     let cases: &[&str] = &[
-        // Note: code blocks here deliberately use NO language tag — the test
+        // Note: code blocks here deliberately use NO language tag - the test
         // compares row counts, which syntax highlighting does not change, and
         // avoiding tree-sitter keeps this test light (a heavy test running
         // before/in parallel with the timing-sensitive streaming_frame_times
@@ -2365,7 +2365,7 @@ fn markdown_estimate_matches_render_height() {
         "| a | b |\n|---|---|\n| 1 | 2 |\n| 3 | 4 |\n",
     ];
     let theme = test_theme();
-    // Reuse ONE buffer across cases (resize retains the allocation) — many
+    // Reuse ONE buffer across cases (resize retains the allocation) - many
     // fresh allocations here fragment the heap and deterministically slow the
     // wall-clock timing test `test_streaming_frame_times` that runs later.
     let mut buf = Buffer::empty(Rect::new(0, 0, 1, 1));
@@ -2392,7 +2392,7 @@ fn markdown_estimate_matches_render_height() {
             // fit, so an under-estimate silently cuts the last lines of the
             // message (a code block followed by text was under-counted by 2
             // rows and clipped the trailing paragraph). A small over-estimate
-            // is harmless — a code block at the very end of the text leaves
+            // is harmless - a code block at the very end of the text leaves
             // its bottom-pad/separator/TagEnd rows blank, which the glyph
             // scan does not count. (Known pre-existing, out-of-scope drift:
             // blockquotes under-estimate by 1 at very narrow widths because
@@ -2411,14 +2411,14 @@ fn markdown_estimate_matches_render_height() {
 /// be clipped. The chat lays the last message out at `estimate_height` rows;
 /// if that estimate is 2 rows short (the renderer's code-block bottom-pad and
 /// blank-separator rows were not counted), the trailing paragraph after the
-/// code block is cut off at the bottom of the chat — exactly the reported
+/// code block is cut off at the bottom of the chat - exactly the reported
 /// "last assistant output truncated when the screen is expanded" symptom
 /// (shrinking the window makes the chat scrollable, which routes the message
 /// through the full-height render path and the text reappears).
 #[test]
 fn test_text_after_code_block_not_clipped() {
     use morpheus_tui::core::renderables::markdown::estimate_height;
-    // Realistic shape: prose, a code block, then a closing paragraph — the
+    // Realistic shape: prose, a code block, then a closing paragraph - the
     // trailing paragraph is what got clipped.
     let text = "Aqui está a explicação completa. O problema ocorre porque o layout estima a altura de forma diferente do render real quando existem blocos de código.\n\n```rust\nfn compute(input: &str) -> i32 {\n    let parsed: Vec<i32> = input.split(',').filter_map(|s| s.parse().ok()).collect();\n    parsed.iter().sum()\n}\n```\n\nConclusão final do assistente.";
     let theme = test_theme();
@@ -2453,7 +2453,7 @@ fn test_summarizing_box_collapsed_tail_and_expand() {
     // paragraph lines, a bold/inline-code line and a very long run (like a
     // serialized tool payload) that must wrap down inside the box, never
     // disappear at the right edge. The raw md syntax must NEVER appear on
-    // screen — only the rendered content.
+    // screen - only the rendered content.
     let mut text = String::from("# My Heading\n\n");
     for i in 0..19 {
         text.push_str(&format!("line {i}\n\n"));
@@ -2482,7 +2482,7 @@ fn test_summarizing_box_collapsed_tail_and_expand() {
     let area = Rect::new(0, 0, 80, 60);
     let mut buf = Buffer::empty(area);
 
-    // First render: collapsed — the header and the LAST lines are visible,
+    // First render: collapsed - the header and the LAST lines are visible,
     // the FIRST lines have scrolled out of the preview (LRU-like effect).
     view.render(&mut buf, area, &state, &theme, &config, 0.016);
     assert!(!view.tool_state.is_expanded("summarize-0"));
@@ -2560,7 +2560,7 @@ fn test_summarizing_box_collapsed_tail_and_expand() {
         "the row below the hint must be blank"
     );
 
-    // A long line must WRAP DOWN inside the box — the whole 200-char run
+    // A long line must WRAP DOWN inside the box - the whole 200-char run
     // appears across several rows instead of being cut at the right edge
     // (~77 chars fit per row at width 80 minus the border indent).
     let row_with_tail = buffer_text(&buf);
@@ -2716,7 +2716,7 @@ fn test_scratch_reuse_does_not_leak_previous_message() {
 /// Regression test for the asymmetric code-block padding: the chat's layout
 /// advance must account for the code block's full padding (top gap + lines +
 /// bottom padding + blank separator), or the next message would be drawn ON
-/// TOP of the block's bottom padding — visually erasing it. Before the fix,
+/// TOP of the block's bottom padding - visually erasing it. Before the fix,
 /// code blocks WITHOUT a language tag showed 2 blank rows above and none
 /// below, because the render advance (glyph-only scan) was 2 rows shorter
 /// than the allocated (estimated) height.
@@ -2788,8 +2788,8 @@ fn test_code_block_bottom_padding_not_overlapped() {
     // Sanity-check the drawn rows: the language-less fence paints a blank
     // top-padding row (invisible to a glyph scan) at row 0, code lines at
     // rows 1-2, then the bottom padding + inter-message gap (also blank),
-    // and the reply right after the block's real content — the fence's
-    // PHANTOM trailing blank is no longer reserved — so the reply lands at
+    // and the reply right after the block's real content - the fence's
+    // PHANTOM trailing blank is no longer reserved - so the reply lands at
     // row 4. If the block overlapped the reply, it would start at row 3.
     let mut reply_rows = Vec::new();
     for row in 0..12 {
@@ -2820,7 +2820,7 @@ fn render_cache_prunes_oldest_entries_outside_the_viewport_guard() {
     view.msg_height_cache = vec![200; 10];
     // The prefix-y array mirrors that layout: message i starts at i*201 and
     // the total is 2000 + 9 gaps = 2009 (prune_render_cache reads it via
-    // binary search — the render path keeps it in sync automatically).
+    // binary search - the render path keeps it in sync automatically).
     let mut prefix_y: Vec<i32> = (0..10).map(|i| i * 201).collect();
     prefix_y.push(2009);
     view.prefix_y = prefix_y;
@@ -2838,7 +2838,7 @@ fn render_cache_prunes_oldest_entries_outside_the_viewport_guard() {
         text: "x".into(),
     };
     view.msg_cache_text_regions = (0..10).map(|_| Some(vec![region.clone()])).collect();
-    // msg6 carries the OLDEST stamp (recency 1) but sits inside the guard —
+    // msg6 carries the OLDEST stamp (recency 1) but sits inside the guard -
     // the guard must beat recency. Among the outside-guard candidates,
     // msg0 is the oldest and msg5 the newest.
     view.msg_cache_last_used = vec![3, 4, 5, 6, 7, 8, 1, 2, 3, 4];
@@ -2874,7 +2874,7 @@ fn render_cache_prunes_oldest_entries_outside_the_viewport_guard() {
             "msg {idx} inside guard must survive"
         );
     }
-    // msg6 had the oldest stamp but the guard kept it — the LRU must not
+    // msg6 had the oldest stamp but the guard kept it - the LRU must not
     // have touched it.
     assert!(view.msg_cache_cells[6].is_some());
     // Exactly the 6 candidates were evicted; the byte counter follows the
@@ -2969,7 +2969,7 @@ fn same_tool_call_in_a_later_message_does_not_reanimate_the_old_spinner() {
     // Call B starts: same tool, same part_idx, later message.
     state.manage_tool_spinner(&key_b, &part("call-2", ToolStatus::Running), &theme, true);
 
-    // A's entry must STILL be idle — starting B may not resurrect it — and
+    // A's entry must STILL be idle - starting B may not resurrect it - and
     // B must have its own Active spinner.
     assert!(
         state.tool_spinners[&key_a].is_idle(),
@@ -2982,7 +2982,7 @@ fn same_tool_call_in_a_later_message_does_not_reanimate_the_old_spinner() {
 }
 
 /// Contract: `renderer_spinner_key` must mirror `dispatch_tool`'s renderer
-/// mapping exactly — the key the handler pre-creates (and the cache-bypass
+/// mapping exactly - the key the handler pre-creates (and the cache-bypass
 /// check queries) has to be the key the part's renderer manages, or the
 /// entry is orphaned (forever-Active leak with call-id keys) or missed
 /// (frozen beam in the top-clipped cache path).
@@ -3006,7 +3006,7 @@ fn renderer_spinner_key_mirrors_the_dispatch_mapping() {
             "{display} manages its own display key"
         );
     }
-    // Block renderers draw NO spinner — pre-creation must skip them.
+    // Block renderers draw NO spinner - pre-creation must skip them.
     for display in ["write", "edit", "question", "todo"] {
         assert!(
             renderer_spinner_key(display, Some("call-1"), 0).is_none(),
@@ -3036,7 +3036,7 @@ fn renderer_spinner_key_mirrors_the_dispatch_mapping() {
 /// persisted `call-N` ids (`ensure_tool_call_ids` only fills blanks). A
 /// resumed session's first live call therefore collided with a historical
 /// row's spinner/expansion key, resurrecting the re-animation bug. The
-/// counter must be seeded past every id the restored session carries — via
+/// counter must be seeded past every id the restored session carries - via
 /// the same paths a restore actually takes (`add_session` /
 /// `ensure_session_cached`).
 #[test]
@@ -3094,7 +3094,7 @@ fn seeding_the_call_seq_beyond_a_restored_session_prevents_cross_restart_collisi
     seed_tool_call_seq_beyond_session(&restored);
 
     // The next live allocation must be STRICTLY above every id in the
-    // transcript — never `call-0` .. `call-9`, or it would share a spinner
+    // transcript - never `call-0` .. `call-9`, or it would share a spinner
     // key with one of those rows. (Tests run in parallel: other tests may
     // have advanced the counter further, which only strengthens the bound.)
     let next = TOOL_CALL_SEQ.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -3239,12 +3239,12 @@ fn bench_user_message(idx: usize) -> Message {
 }
 
 /// Assistant markdown text. `big` produces a ~400-section markdown body that
-/// renders to thousands of rows — the biggest per-message source of cached
+/// renders to thousands of rows - the biggest per-message source of cached
 /// cells (and the realistic cause of a heavy render cache).
 fn bench_text_message(idx: usize, big: bool) -> Message {
     let text = if big {
         let mut s = String::with_capacity(64 * 1024);
-        // `{idx}` in every block makes each big message's content UNIQUE —
+        // `{idx}` in every block makes each big message's content UNIQUE -
         // real transcripts never repeat a full answer verbatim, and identical
         // content would collapse every message after the first into the
         // markdown estimator's global ESTIMATE_CACHE, undercounting the cold
@@ -3271,7 +3271,7 @@ fn bench_text_message(idx: usize, big: bool) -> Message {
     }
 }
 
-/// Assistant tool call whose output is `out_size` bytes — the largest resident
+/// Assistant tool call whose output is `out_size` bytes - the largest resident
 /// strings in the session transcript.
 fn bench_tool_message(idx: usize, out_size: usize) -> Message {
     let line = format!("=== tool {idx} output line ===");
@@ -3302,7 +3302,7 @@ fn bench_tool_message(idx: usize, out_size: usize) -> Message {
 fn bench_render_memory_growth_is_bounded() {
     use super::{RENDER_CACHE_BUDGET, RENDER_CACHE_GUARD_ROWS};
 
-    // Tunables — calibrated for a ~10s test run in release that mimics a
+    // Tunables - calibrated for a ~10s test run in release that mimics a
     // 20+ minute working session.
     const FRAMES: usize = 3000;
     const GROW_EVERY: usize = 3;
@@ -3429,7 +3429,7 @@ fn bench_render_memory_growth_is_bounded() {
     );
     // The last sample's heap must not be dramatically larger than the session
     // content can explain (the session itself is not the leak, so we only
-    // assert the run finished sanely — heaptrack is the authority on the
+    // assert the run finished sanely - heaptrack is the authority on the
     // split, this assert guards against pathological blow-up).
     assert!(
         last_heap < peak_heap.max(1) * 4,
@@ -3486,7 +3486,7 @@ fn bench_session_with_n_pairs(n: usize) -> Session {
 /// grow far slower than the message count (the cache makes the frame cost
 /// proportional to the VISIBLE rows, not the whole transcript). A frame cost
 /// that grows linearly with the message count proves the per-frame O(n) walk
-/// is dominating — the exact accumulation that janks long sessions.
+/// is dominating - the exact accumulation that janks long sessions.
 ///
 /// Measures 40 warm frames at each size (median, not mean, to survive
 /// scheduler hiccups) and asserts the median does not grow linearly with n.
@@ -3535,7 +3535,7 @@ fn bench_render_frame_time_vs_session_size() {
     }
 
     // The decisive assertion: going from 50→3200 pairs (64x) must NOT raise
-    // the warm frame median anywhere near 64x. 8x is a generous ceiling — it
+    // the warm frame median anywhere near 64x. 8x is a generous ceiling - it
     // catches a per-frame full re-render (cache broken / O(n) render dominating)
     // while tolerating allocator and cache-guard noise.
     let first = medians[0];
@@ -3546,7 +3546,7 @@ fn bench_render_frame_time_vs_session_size() {
     );
     assert!(
         total_growth < 8.0,
-        "warm frame median grew {total_growth:.2}x for 64x messages — per-frame cost \
+        "warm frame median grew {total_growth:.2}x for 64x messages - per-frame cost \
          scales with the transcript, not the viewport"
     );
 
@@ -3558,7 +3558,7 @@ fn bench_render_frame_time_vs_session_size() {
 /// The real long-session case: the agent is WORKING, so the transcript grows
 /// every frame and the streaming path (last message re-renders every frame,
 /// text-region generation changes) is hot. This measures the per-frame cost as
-/// the session grows under continuous streaming — the exact load that must not
+/// the session grows under continuous streaming - the exact load that must not
 /// degrade toward the frame budget. Run in release with `--test-threads=1`
 /// for stable numbers.
 #[test]
@@ -3610,7 +3610,7 @@ fn bench_streaming_frame_time_vs_session_size() {
             msg_idx += 300;
         }
         // 30 frames with the transcript frozen but Working status (last
-        // message streaming-cached, text regions stable) — steady cost.
+        // message streaming-cached, text regions stable) - steady cost.
         let mut times = Vec::with_capacity(30);
         for _ in 0..30 {
             let start = std::time::Instant::now();
@@ -3642,14 +3642,14 @@ fn bench_streaming_frame_time_vs_session_size() {
     // whole transcript.
     assert!(
         total_growth < 3.0,
-        "streaming frame grew {total_growth:.2}x for 5x messages — per-frame \
+        "streaming frame grew {total_growth:.2}x for 5x messages - per-frame \
          rebuild scaling with the transcript"
     );
 }
 
 /// The `unique_agents()` scan runs on EVERY render frame (it feeds the agent
 /// name → color mapping). It walks the whole transcript with a linear
-/// `seen.contains` per message — O(n·k) per frame even when nothing changed on
+/// `seen.contains` per message - O(n·k) per frame even when nothing changed on
 /// screen. (The bench messages set no agent names, so `k ≈ 0` here and the
 /// clone cost is the cheap case; the iteration + lookup cost is the signal.)
 ///
@@ -3684,7 +3684,7 @@ fn bench_unique_agents_scan_cost() {
         // under 1ms; above that it is a frame-time component at 30fps.
         assert!(
             avg < 1000.0,
-            "unique_agents() took {avg:.1}us/frame at {pairs} pairs — O(n) per-frame scan dominating"
+            "unique_agents() took {avg:.1}us/frame at {pairs} pairs - O(n) per-frame scan dominating"
         );
     }
 }
@@ -3694,7 +3694,7 @@ fn bench_unique_agents_scan_cost() {
 /// call the user toggles adds a permanent entry. In a long session with many
 /// expand/collapse interactions these maps accumulate. This probe documents the
 /// growth and asserts the absolute footprint stays small (a hard cap would
-/// require an eviction policy; today there is none — this pins the current
+/// require an eviction policy; today there is none - this pins the current
 /// behavior so a regression that multiplies the footprint is caught).
 #[test]
 #[ignore = "map-growth probe; run explicitly"]
@@ -3977,7 +3977,7 @@ fn prefix_y_matches_linear_walk_and_binary_search() {
 /// the guard. The expected eviction set is computed by an independent
 /// brute-force walk (the pre-prefix_y algorithm), so the binary-searched
 /// guard window and the `prefix_y` reads are cross-checked against a
-/// reference — catching boundary off-by-ones and prefix-y sync drift.
+/// reference - catching boundary off-by-ones and prefix-y sync drift.
 #[test]
 fn prune_render_cache_evicts_only_outside_guard_in_recency_order() {
     use ratatui::buffer::Cell;
@@ -4208,7 +4208,7 @@ fn prune_render_cache_breaks_stamp_ties_without_violating_invariants() {
     view.msg_cache_tokens = vec![0; n];
     view.msg_cache_w = vec![0; n];
     view.msg_cache_h = vec![0; n];
-    // Every message shares the SAME recency stamp — the worst tie case.
+    // Every message shares the SAME recency stamp - the worst tie case.
     view.msg_cache_last_used = vec![7; n];
     // Vary the sizes so the byte crossing lands mid-tie-group.
     view.msg_cache_cells = (0..n)
@@ -4439,7 +4439,7 @@ fn test_running_glob_streaming_no_bottom_gap() {
     assert_eq!(
         view.actual_total_height, view.cached_total_height,
         "Running glob with streamed output: actual render height diverges from \
-         the cached estimate (box margins mismatch) — the streamed content is \
+         the cached estimate (box margins mismatch) - the streamed content is \
          shifted up with a blank gap at the bottom"
     );
 
@@ -4629,7 +4629,7 @@ fn test_non_last_box_completion_keeps_latest_stream_visible() {
     let area = Rect::new(0, 0, 80, 16);
     let mut buf = Buffer::empty(area);
 
-    // Frame 1: box running, no output — everything fits, no scroll.
+    // Frame 1: box running, no output - everything fits, no scroll.
     view.render(
         &mut buf,
         area,
@@ -4694,7 +4694,7 @@ fn test_non_last_box_completion_keeps_latest_stream_visible() {
     assert!(
         overlapping_box_rows.is_empty(),
         "the completed bash box overflowed its cached 1-row slot and painted \
-         over the streaming tail (box rows below msg2: {overlapping_box_rows:?}) — \
+         over the streaming tail (box rows below msg2: {overlapping_box_rows:?}) - \
          the non-last message's height cache is stale",
     );
 }
@@ -5059,7 +5059,7 @@ fn assert_stream_matches_full(chunks: &[&str], area: Rect) {
     );
 }
 
-/// A paragraph grown line-by-line — the split-invariance for soft breaks.
+/// A paragraph grown line-by-line - the split-invariance for soft breaks.
 #[test]
 fn test_stream_matches_full_paragraph() {
     assert_stream_matches_full(
@@ -5134,7 +5134,7 @@ fn test_stream_matches_full_loose_list() {
 }
 
 /// Plain paragraphs separated by blank lines: every consumed boundary adds
-/// exactly one separator row — no more, no less.
+/// exactly one separator row - no more, no less.
 #[test]
 fn test_stream_matches_full_separated_paragraphs() {
     assert_stream_matches_full(
@@ -5581,7 +5581,7 @@ fn question_copy_text_matches_screen() {
     );
 }
 
-/// REGRESSION (user-visible): the severity header is consumed metadata — it
+/// REGRESSION (user-visible): the severity header is consumed metadata - it
 /// must never reach the user's clipboard. `part.output` for subagent_call is
 /// the persisted SubAgentCallOutput envelope whose first line is the
 /// `<!-- severity: ... -->` header (mandatory since the report-side
@@ -5677,7 +5677,7 @@ fn tool_inline_texts_have_no_trailing_ellipsis() {
 fn completed_question_label_is_not_copyable() {
     use super::tool_render::{question_summary, tool_inline_text};
 
-    // When the summary is drawn, the inline label is NOT on screen anymore —
+    // When the summary is drawn, the inline label is NOT on screen anymore -
     // so it must never leak into a selection either.
     let part = question_tool_part(ToolStatus::Completed);
     assert!(question_summary(&part).is_some());
@@ -5820,7 +5820,7 @@ fn write_edit_estimate_matches_render_in_all_states() {
 
     let cases: Vec<(&str, ToolPart)> = vec![
         // Output vazio: antes `tool_is_block` era false (est=1) mas o render
-        // desenhava o box cheio — o pior overlap.
+        // desenhava o box cheio - o pior overlap.
         ("write_empty_output", mk_write(None, ToolStatus::Completed)),
         // Warnings: write NÃO modificou o arquivo → label inline (1 linha).
         (
@@ -5888,7 +5888,7 @@ fn write_edit_estimate_matches_render_in_all_states() {
 /// Regression: the edit diff box must be sized by the rows the
 /// `DiffRenderable` actually PAINTS, not by the diff's raw source lines. At
 /// chat width >= 100 the Split view pairs each consecutive `-` with the
-/// following `+` on the SAME row — sizing by raw line count left up to ~2x
+/// following `+` on the SAME row - sizing by raw line count left up to ~2x
 /// the diff height as blank panel rows below the content (a giant
 /// bottom padding, wildly disproportionate to the 1-row top padding).
 #[test]
@@ -5953,7 +5953,7 @@ fn edit_diff_box_height_matches_painted_rows_in_split_view() {
     );
     // And the internal padding is symmetric: exactly 1 blank row above the
     // first painted row and 1 below the last one (top/bottom padding rows).
-    // The box has no title row — the diff's own headers show the path.
+    // The box has no title row - the diff's own headers show the path.
     let painted_rows = 23u16;
     assert_eq!(
         line_h,
@@ -5964,7 +5964,7 @@ fn edit_diff_box_height_matches_painted_rows_in_split_view() {
 
 /// Regression: long content lines in the edit diff box WORD-WRAP at the box
 /// edge instead of being truncated. At chat width >= 100 the split view used
-/// to cut content at the panel edge — the tail of a long removed line was
+/// to cut content at the panel edge - the tail of a long removed line was
 /// simply never painted. Every word of the line must stay visible across the
 /// pair's wrapped rows, and the estimate must match the render
 /// (`painted_rows` counts wrapped rows).
@@ -5977,7 +5977,7 @@ fn edit_diff_wraps_long_lines_in_split_view() {
     // >= 100 turns on DiffViewMode::Split in render_edit.
     let max_w: u16 = 120;
 
-    // One removed line carrying 12 `word` tokens (60 columns) — wider than
+    // One removed line carrying 12 `word` tokens (60 columns) - wider than
     // the split panel's content budget, so it must fold onto extra rows.
     // File headers first: `edit_diff_content` gates on the unified-diff
     // signature (`--- ` prefix).
@@ -6049,7 +6049,7 @@ fn edit_diff_wraps_long_lines_in_split_view() {
 /// Regression: the edit diff box's height estimate counts the rows a long
 /// line folds onto in the unified view (chat width < 100). The estimate used
 /// the diff's raw source lines, so a wrapped line painted rows the box never
-/// reserved — the folded text was clipped off the bottom of the box.
+/// reserved - the folded text was clipped off the bottom of the box.
 #[test]
 fn edit_diff_box_height_counts_wrapped_rows_in_unified_view() {
     use super::tool_render::{ToolRenderCtx, ToolRenderState, dispatch_tool};
@@ -6127,7 +6127,7 @@ fn edit_diff_box_height_counts_wrapped_rows_in_unified_view() {
 }
 
 /// Regression: the unified view indents its line-number gutter by the same
-/// leaf-colored padding column (LEAF_PAD) the split panels use — so at any
+/// leaf-colored padding column (LEAF_PAD) the split panels use - so at any
 /// chat width the line numbers land on the same column and both views'
 /// paddings stay proportional (1 leaf column + 2 box chrome columns).
 #[test]
@@ -6193,11 +6193,11 @@ fn edit_diff_unified_view_indents_line_numbers_inside_leaf() {
     assert_eq!(glyph(3), "1", "line number starts one column in");
     assert_eq!(glyph(5), "-", "sign follows the padded gutter");
 
-    // The file headers read in the diff's own red/green — painted on the
+    // The file headers read in the diff's own red/green - painted on the
     // FONT (fg), never as a background. Row 1 is `--- a/foo`, row 2 is
     // `+++ b/foo` (the body starts at y=1, after the top padding row). The
     // header TEXT starts at x=7: leaf pad (2) + number (3) + space (4) +
-    // sign (5) + space (6) — the gutter itself keeps its own style.
+    // sign (5) + space (6) - the gutter itself keeps its own style.
     let cell_fg = |x: u16, r: u16| buf.cell((x, r)).map(|c| c.fg);
     let removed_fg = crate::theme::rgba_color(theme.diff_highlight_removed);
     let added_fg = crate::theme::rgba_color(theme.diff_highlight_added);
@@ -6211,12 +6211,12 @@ fn edit_diff_unified_view_indents_line_numbers_inside_leaf() {
         Some(added_fg),
         "`+++` file header text must use the added sign color as its font color"
     );
-    // The header background stays the context one — the color is font-only.
+    // The header background stays the context one - the color is font-only.
     let bg_row1 = buf.cell((7, 1)).map(|c| c.bg);
     let bg_row2 = buf.cell((7, 2)).map(|c| c.bg);
     assert_eq!(
         bg_row1, bg_row2,
-        "both file headers keep the same (context) background — only the font is colored"
+        "both file headers keep the same (context) background - only the font is colored"
     );
 }
 
@@ -6264,18 +6264,18 @@ fn edit_diff_split_view_indents_line_numbers_inside_leaves() {
     }
 
     // The diff body starts at x=2 (the box gives back the leaf padding
-    // column) / y=0 — the box has NO title row (the diff's own `--- a/` /
+    // column) / y=0 - the box has NO title row (the diff's own `--- a/` /
     // `+++ b/` headers show the path), so the body sits on the box's first
     // row. Over the 118-wide body the split layout puts the left panel at
     // [2, 60), the separator column at 60 and the right panel at [61, 120)
-    // — with the box spanning [0, 122), both side chrome margins are 2
+    // - with the box spanning [0, 122), both side chrome margins are 2
     // columns. The first -/+ pair paints on buffer row 4 (after the top
     // padding row, the two file headers and the hunk header).
     let row = 4;
 
     // Each leaf's gutter sits exactly one padding column inside its panel,
     // and that padding column carries the LEAF's own background (red on the
-    // left, green on the right) — not the box background.
+    // left, green on the right) - not the box background.
     let cell_bg = |x: u16| buf.cell((x, row)).map(|c| c.bg);
     let left_pad = cell_bg(2).expect("left leaf padding cell");
     let left_sign = cell_bg(5).expect("left leaf sign cell");
@@ -6309,8 +6309,8 @@ fn edit_diff_split_view_indents_line_numbers_inside_leaves() {
 }
 
 /// Regression: a block tool's copy regions must sit on the rows the renderer
-/// actually draws — the walk's top margin plus the box's internal padding put
-/// the title at part_top+2 and body line 0 at part_top+3 — and rows scrolled
+/// actually draws - the walk's top margin plus the box's internal padding put
+/// the title at part_top+2 and body line 0 at part_top+3 - and rows scrolled
 /// off above the viewport must be skipped, not re-mapped onto visible rows.
 /// The old builder hard-coded +1 and paired screen rows with body line 0, so
 /// with a cold cells cache every tool-box copy was shifted two rows (the last
@@ -6433,7 +6433,7 @@ fn tool_body_copy_matches_screen_rows() {
 }
 
 /// Regression (user text): a user message taller than the viewport must keep
-/// copy regions aligned when it straddles the viewport top — screen row 0
+/// copy regions aligned when it straddles the viewport top - screen row 0
 /// pairs with the part's visual row `vp_top - p_top`, blank lines consume
 /// exactly one row each, and rows past the viewport stay unreachable. The
 /// dead per-line skip this replaced paired screen rows with the head of the
@@ -6702,7 +6702,7 @@ fn copy_selection_word_integrity_on_focus_column() {
         "release must keep the focus glyph: got {copied_mid:?}"
     );
     // 5) A same-cell band (drag starting and ending on one cell) selects
-    //    exactly that glyph — the single-character copy. Bare clicks never
+    //    exactly that glyph - the single-character copy. Bare clicks never
     //    reach the extractor: app/mouse.rs only calls it when `is_drag`
     //    (a down+up without movement never enters this path). `last_col` is
     //    the row's final glyph, so the copied cell is `visible`'s last char.
@@ -6718,7 +6718,7 @@ fn copy_selection_word_integrity_on_focus_column() {
 /// same view with and without a live selection, diffs the buffers to recover
 /// the painted glyphs row by row, then simulates the mouse-release copy the
 /// app performs (app/mouse.rs) and requires the two to agree for every
-/// release column swept across the row — the user-visible contract
+/// release column swept across the row - the user-visible contract
 /// "what I see highlighted is what I get".
 #[test]
 fn selection_paint_matches_copy_exactly() {
@@ -6748,7 +6748,7 @@ fn selection_paint_matches_copy_exactly() {
     let vp_top = i32::from(inner_area.y);
 
     // Two warm frames: the second frame serves regions from the rendered
-    // cells cache — the source the live app uses after the first paint.
+    // cells cache - the source the live app uses after the first paint.
     let mut warm = Buffer::empty(area);
     view.render(&mut warm, area, &state, &theme, &config, 0.016);
     view.render(&mut warm, area, &state, &theme, &config, 0.016);
@@ -6790,7 +6790,7 @@ fn selection_paint_matches_copy_exactly() {
 
     // Sweep: same-row releases at every column (left→right), far past the
     // end, two-row bands ending on/after the last glyph, and backward drags.
-    // Each entry is (anchor_x, anchor_y, focus_x, focus_y) — exactly the
+    // Each entry is (anchor_x, anchor_y, focus_x, focus_y) - exactly the
     // tuple the app stores on mouse-down and updates on each drag.
     let mut sweep: Vec<(u16, u16, u16, u16)> = Vec::new();
     for fx in (content_min_x + 1)..=last_col.saturating_add(2) {
@@ -6884,7 +6884,7 @@ fn render_pill_once(view: &mut SessionView, area: Rect) -> Buffer {
 fn render_pill_anchored(view: &mut SessionView, area: Rect, anchor_y: u16) -> Buffer {
     let mut buf = Buffer::empty(area);
     let theme = test_theme();
-    // One 60 fps frame's worth of delta — the pill animation is time-based,
+    // One 60 fps frame's worth of delta - the pill animation is time-based,
     // so tests step it frame-by-frame with a realistic frame delta.
     view.render_pill_overlay(&mut buf, anchor_y, area, &theme, 1.0 / 60.0);
     buf
@@ -7012,7 +7012,7 @@ fn pill_stays_hidden_within_one_page_of_bottom() {
 
 /// `jump_to_live` (the pill's action) restores the exact sticky state that a
 /// keyboard `scroll_to_bottom` produces: bottom scroll, no manual scroll, and
-/// sticky re-engaged — which is what keeps the view following the agent.
+/// sticky re-engaged - which is what keeps the view following the agent.
 #[test]
 fn jump_to_live_restores_sticky_follow() {
     let mut view = SessionView::new();
@@ -7116,13 +7116,13 @@ fn pill_renders_on_the_caller_provided_anchor_row() {
 
 /// Build a session that mirrors a real 10-hour working session: the transcript
 /// is dominated by LONG assistant markdown answers (code blocks, headers,
-/// lists — the content that makes the markdown estimator expensive) plus tool
+/// lists - the content that makes the markdown estimator expensive) plus tool
 /// outputs, not by one-line "Step N" texts.
 fn bench_long_session(n_pairs: usize) -> Session {
     let mut messages = Vec::with_capacity(n_pairs * 2);
     for i in 0..n_pairs {
         messages.push(bench_user_message(i));
-        // Alternate: big markdown answer / tool output / short answer —
+        // Alternate: big markdown answer / tool output / short answer -
         // matching the realistic mix of agent work.
         if i % 3 == 0 {
             messages.push(bench_text_message(i, true));
@@ -7152,7 +7152,7 @@ fn bench_long_session(n_pairs: usize) -> Session {
 
 /// Toggle the left panel on and off around a long session and time the reflow
 /// frame. Opening/closing the panel changes the main area width (22 columns),
-/// which changes `max_w` — and the height cache treats a width change as a
+/// which changes `max_w` - and the height cache treats a width change as a
 /// FULL rebuild: every message's height is re-estimated (word-wrap + markdown
 /// parse) synchronously in the toggle frame, and the per-message cell cache is
 /// dropped entirely. On a 10-hour session that single frame pays for the whole
@@ -7200,7 +7200,7 @@ fn bench_left_panel_toggle_reflow_time() {
         };
         // Keep the buffer geometry honest: each frame renders into a buffer
         // sized like the real app's terminal (fixed), with the session area
-        // shifted/clipped by the panel — exactly what `session_main_area`
+        // shifted/clipped by the panel - exactly what `session_main_area`
         // does.
         let _ = label;
         let start = std::time::Instant::now();
@@ -7215,7 +7215,7 @@ fn bench_left_panel_toggle_reflow_time() {
 
     // The FIRST reflow (round 0, open) is the cold one at that width: the
     // steady-state closed-width caches were warm, but open-width caches did not
-    // exist yet, so it legitimately pays the full transcript rebuild once —
+    // exist yet, so it legitimately pays the full transcript rebuild once -
     // that single frame is what the left-panel toggle has always cost. The
     // point of the width-snapshot cache is that reflow doesn't SCALE with the
     // transcript: each later toggle re-encounters a width whose caches were
@@ -7230,7 +7230,7 @@ fn bench_left_panel_toggle_reflow_time() {
         eprintln!("[TOGGLE-REFLOW] subsequent reflow to {label}: {t:?}");
         assert!(
             t.as_millis() < 5,
-            "reflow frame #{label} after the first took {t:?} — a later toggle \
+            "reflow frame #{label} after the first took {t:?} - a later toggle \
              re-paid the transcript rebuild instead of restoring the cached width"
         );
     }
@@ -7238,7 +7238,7 @@ fn bench_left_panel_toggle_reflow_time() {
 
 /// Diagnostic probe: break the toggle-reflow cost into its parts.
 /// 1. cold `ensure_height_caches_fresh` at a NEW width (the suspected cost)
-/// 2. a second identical cold build (ESTIMATE_CACHE warm — same width again)
+/// 2. a second identical cold build (ESTIMATE_CACHE warm - same width again)
 /// 3. back to the ORIGINAL width after two intervening builds (thrash check)
 #[test]
 #[ignore = "diagnostic probe; run explicitly in release"]
@@ -7408,7 +7408,7 @@ fn bench_dashboard_summarize_per_frame() {
 /// (`render_actual_h`) never exceeds the rows between `visible_top` and the
 /// buffer bottom. That assumption fails when `msg_height_cache` holds a
 /// stale-small estimate for a message whose real render is much taller:
-/// `render_parts` advances by `scanned.max(est_h)` per part — unclamped — so
+/// `render_parts` advances by `scanned.max(est_h)` per part - unclamped - so
 /// the render overflows past the viewport bottom and the loop read rows past
 /// the end of the buffer, panicking the whole TUI.
 ///
@@ -7462,7 +7462,7 @@ fn fully_visible_cache_fill_does_not_index_past_buffer_end() {
 
     let mut view = SessionView::new();
 
-    // Frame 1: honest render — height cache + cell cache populated.
+    // Frame 1: honest render - height cache + cell cache populated.
     let mut buf = Buffer::empty(area);
     view.render(&mut buf, area, &state, &theme, &config, 0.016);
 
@@ -7490,7 +7490,7 @@ fn fully_visible_cache_fill_does_not_index_past_buffer_end() {
     // The deflated height must have survived the incremental height pass
     // (message 0 is neither last nor mutable, so it is never re-estimated).
     // If that scoping ever changes, the drift simulation would be repaired
-    // here and this test would keep passing vacuously — fail loudly instead.
+    // here and this test would keep passing vacuously - fail loudly instead.
     assert_eq!(
         view.msg_height_cache[0], 1,
         "precondition: the deflated height must survive the incremental height pass"
@@ -7548,7 +7548,7 @@ fn bash_box_wraps_long_output_lines() {
     let config = test_config();
     let max_w: u16 = 60;
 
-    // One output line of 12 `word` tokens (59 columns) — wider than the
+    // One output line of 12 `word` tokens (59 columns) - wider than the
     // box's content budget (`max_w - 3`), so it must fold onto extra rows.
     let long_line = "word ".repeat(12).trim_end().to_string();
     let part = ToolPart {
@@ -7615,9 +7615,9 @@ fn bash_box_wraps_long_output_lines() {
 }
 
 /// Companion lockstep guard for the bash box: with output longer than the
-/// collapse preview the estimate must match the render in BOTH states —
+/// collapse preview the estimate must match the render in BOTH states -
 /// collapsed (10 preview lines plus the overflow hint row) and expanded
-/// (the full output) — because both sides consult the same
+/// (the full output) - because both sides consult the same
 /// ToolRenderState expansion id.
 #[test]
 fn bash_box_height_matches_render_when_collapsed_and_expanded() {
@@ -7693,7 +7693,7 @@ fn glob_box_wraps_long_path_lines() {
     let config = test_config();
     let max_w: u16 = 60;
 
-    // One path of 12 `word` segments (63 columns) — wider than the box's
+    // One path of 12 `word` segments (63 columns) - wider than the box's
     // content budget (`max_w - 3`), so it must fold onto extra rows.
     let long_path = format!("{}word.txt", "word/".repeat(11));
     let part = ToolPart {
@@ -7761,7 +7761,7 @@ fn glob_box_wraps_long_path_lines() {
 
 /// Regression: the write box's code panel must wrap long content lines at
 /// the panel edge (after the line-number gutter) and the box height must be
-/// sized by the wrapped rows — previously the painter clipped long lines at
+/// sized by the wrapped rows - previously the painter clipped long lines at
 /// the panel edge and the estimator counted raw source lines.
 #[test]
 fn write_box_wraps_long_content_lines() {
@@ -7771,7 +7771,7 @@ fn write_box_wraps_long_content_lines() {
     let config = test_config();
     let max_w: u16 = 60;
 
-    // One content line of 12 `word` tokens (59 columns) — wider than the
+    // One content line of 12 `word` tokens (59 columns) - wider than the
     // panel's wrap budget (`max_w - 3` box pad, minus the 2-column gutter
     // and its space), so it must fold onto extra rows.
     let long_line = "word ".repeat(12).trim_end().to_string();
@@ -7821,7 +7821,7 @@ fn write_box_wraps_long_content_lines() {
     );
 
     // All 12 `word` tokens must be painted inside the panel. `w` appears in
-    // no title text here (the title is `# Wrote src/main.rs` — capital W).
+    // no title text here (the title is `# Wrote src/main.rs` - capital W).
     let mut word_starts = 0;
     for y in 0..line_h {
         for x in 0..max_w + 3 {
@@ -7848,7 +7848,7 @@ fn read_box_wraps_long_file_lines() {
     let max_w: u16 = 60;
 
     // fs_read-style hashline output whose body line is 12 `word` tokens
-    // (59 columns) — wider than the panel's wrap budget, so it must fold
+    // (59 columns) - wider than the panel's wrap budget, so it must fold
     // onto extra rows. `read_block_text` strips the `¶` header and the
     // `N| ` prefix, so the box previews exactly the long line.
     let long_line = "word ".repeat(12).trim_end().to_string();
@@ -7925,7 +7925,7 @@ fn todo_box_wraps_long_descriptions() {
     let config = test_config();
     let max_w: u16 = 60;
 
-    // One item whose description is 12 `word` tokens (59 columns) — with
+    // One item whose description is 12 `word` tokens (59 columns) - with
     // the `[●] ` prefix the row is wider than the box's content budget
     // (`max_w - 3`), so it must fold onto extra rows.
     let long_line = "word ".repeat(12).trim_end().to_string();
@@ -8468,7 +8468,7 @@ fn probe_hover_tint_vs_painted_content() {
     assert!(
         i32::from(tint_first) >= i32::from(qy) - 1,
         "hover tint starts {} rows ABOVE the painted queued message \
-         (tint row {tint_first} vs content row {qy}) — the highlight jumped \
+         (tint row {tint_first} vs content row {qy}) - the highlight jumped \
          onto the block above (reported bug: focus/selection lands on the \
          previous block)",
         i32::from(qy) - i32::from(tint_first)
@@ -8771,7 +8771,7 @@ fn probe_tint_alignment_per_message() {
 /// row count for tricky content (CJK wide chars, code fences, long unbroken
 /// tokens)? Any underestimate feeds the `scanned.max(est_h)` advance in
 /// `render_parts`, which makes the render walk advance MORE than the cached
-/// height — the root drift the hover/click layout cannot see.
+/// height - the root drift the hover/click layout cannot see.
 #[test]
 fn probe_estimate_vs_paint_row_counts() {
     let theme = test_theme();
@@ -8989,7 +8989,7 @@ fn probe_block_estimate_vs_painted_advance() {
     }
     assert!(
         failures.is_empty(),
-        "estimate vs painted advance drift (cached layout ≠ painted layout — \
+        "estimate vs painted advance drift (cached layout ≠ painted layout - \
          hover/click/tint and scroll positions diverge from what is drawn):\n{}",
         failures.join("\n")
     );
@@ -8999,7 +8999,7 @@ fn probe_block_estimate_vs_painted_advance() {
 /// inject the queued user message at the turn boundary (the harness consumes
 /// the queued input right after the request completes), then start streaming
 /// the NEXT assistant message. Measures painted-vs-cached row of each message
-/// every frame — the queue message is the first message BELOW the streamed
+/// every frame - the queue message is the first message BELOW the streamed
 /// one, so any painted/cached mismatch of the streamed message shifts its
 /// hover/click/tint rows exactly like the reported bug.
 #[test]
@@ -9058,7 +9058,7 @@ fn probe_real_event_order_drift() {
             }
         };
 
-        // Phase 1: streaming turn (several frames — mirrors the live loop).
+        // Phase 1: streaming turn (several frames - mirrors the live loop).
         let mut buf = Buffer::empty(area);
         for _f in 0..3 {
             view.render(&mut buf, area, &state, &theme, &config, 0.016);
@@ -9137,7 +9137,7 @@ fn probe_streaming_cache_final_height_vs_full_estimate() {
     let tok = crate::routes::session::config_token(&config);
 
     // Documents whose structure stresses the slice-boundary accounting:
-    // paragraphs, fences, lists, headings — streamed in varied chunk sizes.
+    // paragraphs, fences, lists, headings - streamed in varied chunk sizes.
     let docs: Vec<(&str, String, Vec<usize>)> = vec![
         (
             "plain-paragraphs",
@@ -9218,7 +9218,7 @@ fn probe_streaming_cache_final_height_vs_full_estimate() {
     }
     assert!(
         failures.is_empty(),
-        "streaming-cache final height diverges from the full-document estimate — \
+        "streaming-cache final height diverges from the full-document estimate - \
          the frozen height after a queue injection is wrong:\n{}",
         failures.join("\n")
     );
@@ -9229,7 +9229,7 @@ fn probe_streaming_cache_final_height_vs_full_estimate() {
 /// (Working → Idle) and the walk switches to the non-streaming render path
 /// (text parts get the +1 padding, scan_content_height runs) while the
 /// cached height stays frozen. Measures painted-vs-cached drift per frame
-/// across the flip — this offset is what pushes the hover tint ABOVE the
+/// across the flip - this offset is what pushes the hover tint ABOVE the
 /// queued message onto the block, and what visually splits the block above
 /// when the viewport clips it.
 #[test]
@@ -9343,11 +9343,11 @@ fn probe_status_flip_drift_after_injection() {
     }
 }
 
-/// REGRESSION (symptom 2 — block split/cut): a queued message injected
+/// REGRESSION (symptom 2 - block split/cut): a queued message injected
 /// mid-turn makes the streaming assistant message no-longer-last. The fix
 /// pins the streamed message's id (`last_streamed_msg`): the injection frame
 /// (cache extend path) re-estimates it, and the incremental scan keeps it a
-/// candidate while deltas still land on it by id — so the growing tail is
+/// candidate while deltas still land on it by id - so the growing tail is
 /// painted and the cached height tracks the real content.
 #[test]
 fn regression_frozen_streaming_message_after_queue_injection() {
@@ -9410,7 +9410,7 @@ fn regression_frozen_streaming_message_after_queue_injection() {
 }
 
 /// GUARD (symptom 1 candidate ruled out): hover mapping is STABLE under the
-/// real event order — the mouse handler runs between frames with the
+/// real event order - the mouse handler runs between frames with the
 /// previous frame's `scroll_y`, and a queued message injected below a
 /// still-streaming message shifts the fresh `prefix_y` by the growth above.
 /// This asserts the mapping does NOT drift: hovering the exact rows frame N
@@ -9418,7 +9418,7 @@ fn regression_frozen_streaming_message_after_queue_injection() {
 /// text row) once the layout cache has frozen after the injection. The
 /// reproducible variant of the symptom is
 /// `regression_hover_must_not_mutate_layout_during_streaming` (the hover
-/// itself rewriting the shared caches mid-stream) — this test pins the
+/// itself rewriting the shared caches mid-stream) - this test pins the
 /// frozen-cache path so a future fix that unfreezes the streaming message
 /// must also keep this mapping stable.
 #[test]
@@ -9484,7 +9484,7 @@ fn regression_hover_mapping_stable_under_stale_scroll() {
         view.hovered_msg_idx,
         Some(3),
         "hovering the top of the last queued message's painted box must keep \
-         targeting it; with the stale scroll_y it resolved to {:?} — the \
+         targeting it; with the stale scroll_y it resolved to {:?} - the \
          PREVIOUS user message (highlight/Revert/Fork/Copy jump up onto the \
          message above)",
         view.hovered_msg_idx
@@ -9506,7 +9506,7 @@ fn regression_hover_mapping_stable_under_stale_scroll() {
 /// re-estimates the last message via the FULL-document path and MUTATES the
 /// shared caches, while `render` (with stream_state) installs the streaming
 /// cache's height. Any mismatch makes hover/next-render disagree about
-/// prefix_y — and hover fires BEFORE every render in the live loop, so its
+/// prefix_y - and hover fires BEFORE every render in the live loop, so its
 /// layout wins the next frame's paint (and its tint).
 #[test]
 fn probe_hover_none_vs_render_stream_state_layout() {
@@ -9575,7 +9575,7 @@ fn probe_hover_none_vs_render_stream_state_layout() {
             view.cached_total_height,
         );
 
-        // HOVER in the same iteration (ensure(None) path) — the real loop's
+        // HOVER in the same iteration (ensure(None) path) - the real loop's
         // mouse event lands here, between frames.
         view.update_hover(area.x + 10, area.y + 5, area, &state, &config);
         let hover_layout = (
@@ -9601,14 +9601,14 @@ fn probe_hover_none_vs_render_stream_state_layout() {
     }
 }
 
-/// REGRESSION (symptom 1 — highlight jumps up, second mechanism): hover and
+/// REGRESSION (symptom 1 - highlight jumps up, second mechanism): hover and
 /// click hit-testing run BETWEEN renders and used to call
 /// `ensure_height_caches_fresh` without the streaming snapshot, while the
 /// render passed the live `stream_state`. During ACTIVE streaming the two
 /// paths computed different heights for the streaming message (the streaming
 /// cache keeps slice-boundary/feed rows the full-document estimator does
 /// not), and the hover MUTATED the shared caches. The cursor was then mapped
-/// against a layout that differed from the painted frame — hover/click
+/// against a layout that differed from the painted frame - hover/click
 /// targets shifted by the divergence, intermittently (chunk-boundary
 /// dependent).
 ///
@@ -9616,7 +9616,7 @@ fn probe_hover_none_vs_render_stream_state_layout() {
 /// layout caches EXACTLY as the render painted them. The fix routes the
 /// mouse hit-test paths (`update_hover` / `handle_mouse`) through
 /// `HeightCacheMode::PaintedOnly`, which skips the content re-estimate when
-/// the caches are structurally fresh — the cursor is always mapped against
+/// the caches are structurally fresh - the cursor is always mapped against
 /// the geometry on screen.
 #[test]
 fn regression_hover_must_not_mutate_layout_during_streaming() {
@@ -9712,7 +9712,7 @@ fn regression_hover_must_not_mutate_layout_during_streaming() {
 // message count nor the part count changes. The streaming render cache's
 // identity check only compares the part COUNT, so its painted cells and the
 // heights it feeds the height cache froze at the build-frame values while
-// the thought kept growing — the true tail was neither painted nor
+// the thought kept growing - the true tail was neither painted nor
 // reachable, and only a width-changing resize (full rebuild) healed it.
 
 /// Re-estimate the message's part heights from its CURRENT content (the

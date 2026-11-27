@@ -3,22 +3,22 @@
 //! An agent's native CLI remembers the last model the user chose and uses it
 //! for every NEW session; the interactive layer that writes that choice never
 //! runs in the headless ACP harnesses the panes drive, so without a client-side
-//! record a freshly created pane always lands on the harness's own default —
+//! record a freshly created pane always lands on the harness's own default -
 //! frequently a different (often paid-tier) model. This store carries that
 //! record: one agent-name → model-id surface, written ONLY when the user
 //! actually picks a model through a config box, read at turn dispatch to seed
-//! the pick. Nothing else writes it — defaults (harness, registry) never touch
+//! the pick. Nothing else writes it - defaults (harness, registry) never touch
 //! the file.
 //!
 //! Deliberately NOT app configuration: this is domain state of the sub-agent
 //! integration, sibling of `palette` and `events`. The crate must stay
-//! embeddable independent of morpheus, so NO directory is hardcoded here — the
+//! embeddable independent of morpheus, so NO directory is hardcoded here - the
 //! caller injects the storage directory (morpheus passes its data-dir override
 //! resolution; tests pass a temp dir), the same separation the harness's own
 //! `SessionStore` uses with its `with_dir`.
 //!
 //! Single-file, atomically replaced: every write serializes the WHOLE map to a
-//! sibling temp file (fsync'd) and renames it over the target — rename
+//! sibling temp file (fsync'd) and renames it over the target - rename
 //! replaces the destination atomically on Unix AND Windows
 //! (`MOVEFILE_REPLACE_EXISTING`), so a crash mid-write can never leave a
 //! truncated JSON behind. A missing or corrupted file reads as an empty map
@@ -46,7 +46,7 @@ pub struct ModelPicks {
     picks: BTreeMap<String, String>,
 }
 
-/// The on-disk envelope (top-level object keeps the file extensible — a
+/// The on-disk envelope (top-level object keeps the file extensible - a
 /// version or a future sibling field does not reformat every reader).
 #[derive(Serialize, Deserialize, Default)]
 struct ModelPicksFile {
@@ -58,7 +58,7 @@ impl ModelPicks {
     /// The caller owns the directory decision (data-dir override, test temp
     /// dir); this side only composes the file name and reads what is there.
     /// A missing file loads as empty; an unreadable or corrupted one ALSO
-    /// loads as empty (degrading, never panicking) with a logged warning —
+    /// loads as empty (degrading, never panicking) with a logged warning -
     /// the cause stays visible in the logs while the store stays usable.
     pub fn new(dir: &Path) -> Self {
         std::fs::create_dir_all(dir).ok();
@@ -94,7 +94,7 @@ impl ModelPicks {
     /// Record `agent`'s last user-picked model and persist the whole surface.
     ///
     /// The pick overwrites in memory first, then ONE atomic replace writes the
-    /// complete map — the other agents' entries ride along unchanged by
+    /// complete map - the other agents' entries ride along unchanged by
     /// construction (the merge happened in memory before the flush).
     ///
     /// Storage failure is reported, never fatal: the pick stays in memory (the
@@ -129,7 +129,7 @@ fn load_from_disk(path: &Path) -> Result<Option<BTreeMap<String, String>>, Strin
 /// A writer-UNIQUE temp path beside `path`: the fixed `with_extension` name
 /// two concurrent writers would share (two morpheus processes, or a save racing a
 /// reopen) lets one writer's `create` truncate the other's half-written temp
-/// before its rename lands — the exact torn-write the atomic replace exists
+/// before its rename lands - the exact torn-write the atomic replace exists
 /// to prevent. The pid plus a process-unique counter gives every writer its
 /// own temp; the final rename is still the only step that touches the target.
 fn unique_tmp_path(path: &Path) -> PathBuf {
@@ -155,7 +155,7 @@ fn save_to_disk(path: &Path, picks: &BTreeMap<String, String>) -> Result<(), Str
     let tmp = unique_tmp_path(path);
     // The file is fully written and fsync'd, then closed, BEFORE the rename:
     // the handle drops at the end of the block, so the atomic replace never
-    // races an open writer. Failures carry the io error and the temp path —
+    // races an open writer. Failures carry the io error and the temp path -
     // an opaque "create failed" with no errno is undiagnosable in the field.
     let written = std::fs::File::create(&tmp).and_then(|mut file| {
         use std::io::Write as _;
@@ -168,7 +168,7 @@ fn save_to_disk(path: &Path, picks: &BTreeMap<String, String>) -> Result<(), Str
     }
     // The rename's durability leans on the DIRECTORY entry surviving the
     // crash too: on Unix a fsync of the parent dir pins the replaced name
-    // (Windows needs no separate step — the rename is already durable
+    // (Windows needs no separate step - the rename is already durable
     // there). Without it a crash right after the rename could revert the
     // file to the previous generation; harmless (the store degrades to "no
     // pick") but cheap to prevent.
@@ -262,7 +262,7 @@ mod tests {
 
         // Last-writer-wins is the documented multi-process contract: every
         // rename publishes that writer's COMPLETE in-memory map, so the file
-        // on disk is always whole, parseable JSON — never a torn merge.
+        // on disk is always whole, parseable JSON - never a torn merge.
         let text = std::fs::read_to_string(&file).expect("the file exists");
         serde_json::from_str::<serde_json::Value>(&text).expect("the file is always complete JSON");
         let reopened = ModelPicks::with_file(file);

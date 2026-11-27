@@ -16,7 +16,7 @@
 //!
 //! [`Lsp`] bundles the [`Manager`] + [`DiagnosticsEngine`] pair every engine
 //! shares, plus the path guard applied to model-supplied paths. Server
-//! binaries must be on `PATH`; discovery is lazy — the first tool call that
+//! binaries must be on `PATH`; discovery is lazy - the first tool call that
 //! touches a file starts its server.
 //!
 //! # Example
@@ -100,7 +100,7 @@ impl Lsp {
         )
     }
 
-    /// Wrapper over an existing manager/engine pair — the wiring used by
+    /// Wrapper over an existing manager/engine pair - the wiring used by
     /// session layers that already pump events into the diagnostics store.
     #[must_use]
     pub fn with_manager(manager: Arc<Manager>, diagnostics: Arc<DiagnosticsEngine>) -> Self {
@@ -190,8 +190,8 @@ impl Lsp {
                 concat!(
                     "Rename a symbol across the workspace via the language ",
                     "server. TWO-PHASE by design: the first call (confirm ",
-                    "omitted/false) returns the PLAN — files, edit counts, ",
-                    "preview lines — and changes nothing. Review it, then ",
+                    "omitted/false) returns the PLAN - files, edit counts, ",
+                    "preview lines - and changes nothing. Review it, then ",
                     "re-call with confirm=true to write.\n\n",
                     "Addressing matches definitions: position OR bare symbol ",
                     "name. LSP errors on the touched files are reported ",
@@ -228,7 +228,7 @@ impl Lsp {
                     "Search symbols across the whole workspace (functions, ",
                     "structs, methods…) using the language server's index. ",
                     "Substring query on names.\n\n",
-                    "Requires at least one server already running — touch any ",
+                    "Requires at least one server already running - touch any ",
                     "project file first if servers have not started."
                 ),
                 &serde_json::json!({
@@ -268,7 +268,7 @@ impl Lsp {
                 concat!(
                     "Quickfixes and refactoring suggestions for the error at ",
                     "the given line. The language server knows how to fix its ",
-                    "own diagnostics — missing imports, wrong types, unused ",
+                    "own diagnostics - missing imports, wrong types, unused ",
                     "variables.\n\n",
                     "Two-phase: first call lists available actions. Re-call ",
                     "with apply_index to apply one to disk."

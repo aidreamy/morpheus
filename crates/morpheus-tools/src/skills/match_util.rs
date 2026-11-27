@@ -12,7 +12,7 @@ pub fn globs_match_any(globs: &[String], paths: &[String]) -> bool {
 
 /// Simple glob-like match for skill name filtering in ignore/include lists.
 ///
-/// Supports `*` wildcard and exact matching. Not a full glob engine — just
+/// Supports `*` wildcard and exact matching. Not a full glob engine - just
 /// enough for human-readable name patterns.
 #[must_use]
 pub fn name_matches_glob(pattern: &str, name: &str) -> bool {

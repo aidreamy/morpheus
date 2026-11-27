@@ -115,7 +115,7 @@ session id is given, the mode and model that session currently runs with:
 
 `replay` rebuilds a pane's timeline from `GET /session/:id/message`, mapping
 the retained messages and parts through the same event mapper the live
-stream uses — including the user's side of the conversation, the session
+stream uses - including the user's side of the conversation, the session
 title and the todo plan.
 
 ## What is intentionally not used

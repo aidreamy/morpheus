@@ -26,13 +26,13 @@ impl SessionView {
 }
 
 impl SessionView {
-    /// Draw the scroll-to-bottom pill — a small `⮟` button centered just above
-    /// the session prompt box — whenever the viewport is away from the latest
+    /// Draw the scroll-to-bottom pill - a small `⮟` button centered just above
+    /// the session prompt box - whenever the viewport is away from the latest
     /// content, and advance its slide/opacity animation.
     ///
     /// Visibility is purely distance-based (`total_height`/`visible_height`
     /// are the frame's settled layout values): a user who is following the
-    /// bottom — sticky or not — never sees it, so the normal auto-scroll
+    /// bottom - sticky or not - never sees it, so the normal auto-scroll
     /// behavior is untouched. `App::render` calls this after every other
     /// inline layer so the pill is never buried under the prompt, pending
     /// queues, dialogs or the slash menu.

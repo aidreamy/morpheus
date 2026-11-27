@@ -68,7 +68,7 @@ impl RagInput {
     }
 
     /// Paste text into the input. Normalises line endings and strips all
-    /// control characters (including `\n`) — the RAG input is single-line.
+    /// control characters (including `\n`) - the RAG input is single-line.
     pub fn handle_paste(&mut self, text: &str) {
         let normalized = text.replace("\r\n", "\n").replace('\r', "\n");
         let cleaned: String = normalized.chars().filter(|c| !c.is_control()).collect();
@@ -205,7 +205,7 @@ impl RagInput {
     }
 
     /// Number of rows needed to display the input text at the given box width.
-    /// Box width includes borders — internal text width is box_width - 4.
+    /// Box width includes borders - internal text width is box_width - 4.
     /// Uses grapheme-aware display width so CJK/emoji don't cause overflow.
     /// Always keeps one empty row at the top for the DB indicator.
     /// Returns at least 3, capped at MAX_INPUT_HEIGHT.

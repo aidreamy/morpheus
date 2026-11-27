@@ -560,7 +560,7 @@ async fn whole_item_exceeding_the_actual_window_fails_without_slicing_or_committ
     assert_eq!(manager.map_progress(), (0, 1));
 }
 /// IGNORED (hangs, pre-existing): in the full sequential suite this test
-/// blocks forever after earlier tests have run — it passes in isolation and
+/// blocks forever after earlier tests have run - it passes in isolation and
 /// inside its own module, so some earlier test leaves cross-test state that
 /// deadlocks `run_agent_loop` when real `MorpheusTools` are attached. Unrelated
 /// to the bash liveness watchdog (reproduces on a clean tree without it).
@@ -972,7 +972,7 @@ async fn cross_group_audits_cannot_see_another_groups_invalidation() {
     // The first audit group holds only the early summaries: it sees the stale
     // decision but never the later invalidation that justifies dropping it.
     // A compliant auditor must therefore flag the correct drop as an
-    // omission — cross-range context never reaches grouped audits.
+    // omission - cross-range context never reaches grouped audits.
     let early = manager.next_validation_request().unwrap();
     let early_summaries = early
         .prompt
@@ -1006,7 +1006,7 @@ async fn cross_group_audits_cannot_see_another_groups_invalidation() {
     assert!(saw_late_group);
     // The false correction round-trips until the bounded budget is exhausted:
     // two corrections are the limit, then no further correction is offered
-    // and nothing commits — the source stays intact for retry or abort.
+    // and nothing commits - the source stays intact for retry or abort.
     assert!(manager.correction_request().is_some());
     assert!(manager.accept_correction(candidate));
     assert!(manager.next_validation_request().unwrap().start == 0);

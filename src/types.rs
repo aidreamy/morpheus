@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 
-/// One persisted pane of the `/agents` split: which agent CLI it runs and —
-/// once the pane completed a turn — WHICH ACP session to resume, so a
+/// One persisted pane of the `/agents` split: which agent CLI it runs and -
+/// once the pane completed a turn - WHICH ACP session to resume, so a
 /// reopened session (or app) continues the SAME agent context instead of
 /// forking a fresh one. Serialized untagged: `Name` is a bare JSON string,
 /// byte-identical with the pre-binding histories; `Bound`/`Unbound` are
@@ -13,7 +13,7 @@ pub enum AgentPaneRef {
     /// next turn creates a new session and the pane promotes to `Bound`.
     Name(String),
     /// A pane with a durable agent context: `session_id` is the ACP session
-    /// id the pane resumes on its next dispatch (its independent instance —
+    /// id the pane resumes on its next dispatch (its independent instance -
     /// two Claude panes carry two distinct ids).
     Bound {
         agent: String,
@@ -29,7 +29,7 @@ pub enum AgentPaneRef {
     /// A pane with NO agent session but WITH a worktree pin: either a pane
     /// the user isolated before its first turn, or a pane that was REWOUND.
     /// A rewind abandons the agent session (ACP cannot truncate) and the
-    /// abandoned id must never be resumed, but the pin outlives both — a
+    /// abandoned id must never be resumed, but the pin outlives both - a
     /// plain `Name` would drop it and silently move the pane back to the
     /// session cwd on the next restart.
     ///
@@ -52,7 +52,7 @@ pub enum AgentPaneRef {
 /// reworded description reads as "changed"), so the budget caps the synthetic
 /// turns exactly the way `COWORKER_RESUME_BUDGET` caps the pane resumes. Any
 /// non-wake loop start (a user prompt, a queued message, a wake promise)
-/// resets the counter — fresh steering outranks the stale list.
+/// resets the counter - fresh steering outranks the stale list.
 pub const TODO_WAKE_BUDGET: u32 = 2;
 
 impl AgentPaneRef {
@@ -101,7 +101,7 @@ impl From<&str> for AgentPaneRef {
 /// NOT delete: the pane's durable identity plus the position it occupied in
 /// the visible pane list when it was hidden, so a later restore (Ctrl+Z)
 /// puts it back where it was. Hiding only moves a pane ref out of
-/// `Session::agents_panes` into `Session::agents_hidden` — the session file
+/// `Session::agents_panes` into `Session::agents_hidden` - the session file
 /// keeps the pane, its bound agent session is never deleted.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct HiddenPane {
@@ -112,7 +112,7 @@ pub struct HiddenPane {
     #[serde(default)]
     pub index: usize,
     /// The hidden pane's LIVE object identity (`AgentPane::id`) at hide
-    /// time — the same u64 every pane event is stamped with. A turn that
+    /// time - the same u64 every pane event is stamped with. A turn that
     /// was still running when the pane was hidden finishes LATER, and its
     /// terminal binding arrives against an id that answers to no visible
     /// pane: this is the bridge that lets the App's absorb pass promote the
@@ -142,15 +142,15 @@ pub struct Session {
     pub reasoning: Option<String>,
     /// The `/agents` split-pane mode left OPEN on this session: `Some(panes)`
     /// carries the chosen pane set (morpheus only when the user marked it) so
-    /// reopening the session restores the mode with the SAME panes — and,
+    /// reopening the session restores the mode with the SAME panes - and,
     /// for panes that already ran, the SAME agent sessions (`AgentPaneRef` is
     /// serialized untagged: a bare name is byte-identical with the
     /// pre-binding histories, so old sessions load as fresh `Name` panes).
-    /// Persisted by metadata deltas; only the mode and bindings are durable —
+    /// Persisted by metadata deltas; only the mode and bindings are durable -
     /// running turns never are.
     #[serde(default)]
     pub agents_panes: Option<Vec<crate::types::AgentPaneRef>>,
-    /// Whether the `/agents` split-screen MODE itself was left open — the
+    /// Whether the `/agents` split-screen MODE itself was left open - the
     /// companion of `agents_panes`, which also persists while the mode is
     /// closed (a parked split keeps its pane set + bindings for a later
     /// re-entry, but only `true` here restores the SPLIT SCREEN). Persisted
@@ -159,22 +159,22 @@ pub struct Session {
     pub agents_mode_open: bool,
     /// The `/agents` panes the user HID (Backspace on the focused pane) but
     /// did NOT delete: a LIFO stack, last entry = most recently hidden.
-    /// Nothing is removed from the session history — hiding only moves a
+    /// Nothing is removed from the session history - hiding only moves a
     /// pane ref out of `agents_panes` into this stack; Ctrl+Z pops the last
     /// and re-inserts it at its recorded position. Persisted by metadata
     /// deltas alongside `agents_panes`.
     #[serde(default)]
     pub agents_hidden: Vec<HiddenPane>,
     /// Durable user-input history for this session: every prompt the user
-    /// actually sent — to the main agent, to a queued message and to an
-    /// `/agents` pane — in send order, oldest first. Ctrl+↑/↓ walks it.
+    /// actually sent - to the main agent, to a queued message and to an
+    /// `/agents` pane - in send order, oldest first. Ctrl+↑/↓ walks it.
     ///
     /// A pane dispatch belongs to ANOTHER agent's conversation and never
     /// enters this transcript, so without this list it lived only in the
     /// running process and disappeared on restart (or on the first session
-    /// switch). Persisted by metadata deltas — the append case carries just
+    /// switch). Persisted by metadata deltas - the append case carries just
     /// the newest entries, so a file grows by one short delta per prompt.
-    /// UI-only bookkeeping — never model-facing data.
+    /// UI-only bookkeeping - never model-facing data.
     #[serde(default)]
     pub input_history: Vec<String>,
     /// Legacy display bookkeeping: message id → context-manager item ids.
@@ -187,7 +187,7 @@ pub struct Session {
     /// The worktree binding of the MAIN agent (normal chat, no `/agents`
     /// split), from `/worktree add`. `None` while the main agent works in
     /// the session's startup cwd. The main agent is addressable by no pane
-    /// id, so `agents_worktree` can never target it — this binding is
+    /// id, so `agents_worktree` can never target it - this binding is
     /// reachable ONLY through the user's slash command. Persisted so a
     /// reopened session keeps its isolation; `exit` clears it, returning
     /// the main agent to `AppState::working_directory` (the process cwd,
@@ -200,7 +200,7 @@ impl Session {
     /// Assign a unique, stable `tool_call_id` to every tool part that lacks
     /// one. The id is derived from the message id and part index, so it is
     /// deterministic across reloads (a restored session re-derives the same
-    /// keys) and unique per part — two bash boxes in one session never share
+    /// keys) and unique per part - two bash boxes in one session never share
     /// an expansion key.
     ///
     /// This is the identity backbone for per-tool-box UI state (expand/
@@ -368,7 +368,7 @@ pub enum CompactionPhase {
 /// replays the line (finished bars stay visible in the transcript).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InstallPart {
-    /// The model's user-facing name (`Laya`, `Laya-Multilingual`, …) —
+    /// The model's user-facing name (`Laya`, `Laya-Multilingual`, …) -
     /// the line addresses the model by it ("installing Laya ▓▓▓…").
     /// `default` keeps sessions persisted before this field loadable.
     #[serde(default)]
@@ -377,7 +377,7 @@ pub struct InstallPart {
     pub bytes_done: u64,
     /// Total bytes announced so far (grows as further files start).
     pub bytes_total: u64,
-    /// `Some(elapsed_ms)` when the install reached a terminal state —
+    /// `Some(elapsed_ms)` when the install reached a terminal state -
     /// finished (verified) or failed; `None` while running. Mirrors
     /// [`CompactionPart::elapsed_ms`]: the terminal event freezes the line.
     pub elapsed_ms: Option<u64>,
@@ -435,7 +435,7 @@ pub fn now_ms() -> u64 {
 /// agent spinner's label: the equalizer pulse stays the same, the text
 /// beside it reflects the current activity.
 ///
-/// Derived directly from the harness events the TUI already consumes —
+/// Derived directly from the harness events the TUI already consumes -
 /// no extra state channel: `Reasoning` → [`AgentActivity::Pondering`],
 /// a `ToolCall` → [`AgentActivity::for_tool`], a `Token` / loop start →
 /// [`AgentActivity::Working`].
@@ -734,7 +734,7 @@ mod tests {
         assert_eq!(back, refs);
         assert_eq!(back[1].session_id(), Some("sess-42"));
 
-        // An object WITHOUT the session id can never pass for `Bound` —
+        // An object WITHOUT the session id can never pass for `Bound` -
         // and there is no string fallback inside it, so a malformed shape
         // is data corruption, not a legacy list.
         assert!(serde_json::from_str::<AgentPaneRef>(r#"{"agent":"claude"}"#).is_err());

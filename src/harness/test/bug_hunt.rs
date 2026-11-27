@@ -69,7 +69,7 @@ fn bug01_user_input_is_duplicated_in_first_request() {
 // The old bug: run_agent_loop assigned `total_history_tokens` instead of
 // accumulating it, wiping the count built by with_history() so the transcript
 // budget never fired for loaded turns. The transcript counter is gone
-// entirely — the ContextManager is the single owner of the conversation, so
+// entirely - the ContextManager is the single owner of the conversation, so
 // loaded turns cannot be "wiped": they live in the CM and are delivered via
 // the messages array on every iteration.
 #[tokio::test]
@@ -88,7 +88,7 @@ async fn bug02_history_turns_survive_the_loop_in_the_context_manager() {
     let (mut h, _events) = run_loop_and_collect(h, "hi").await;
 
     // The loaded turn is still owned by the CM (single owner) after the loop
-    // and is delivered in the messages payload — nothing was wiped.
+    // and is delivered in the messages payload - nothing was wiped.
     assert!(
         h.context_manager.display_info().total_tokens > 0,
         "loaded history must remain in the context manager after the loop"
@@ -138,7 +138,7 @@ async fn bug03_extraction_failure_retry_has_no_iteration_cap() {
 // When the model emits a tool call and then `stop_agent_loop` in the same
 // response, handle_harness_tool sets `self.stop = true` immediately. The
 // check_stop!() after phase 1 breaks the loop BEFORE the queued tool call is
-// dispatched — mid-work work is silently dropped (matches "loop stopped for no
+// dispatched - mid-work work is silently dropped (matches "loop stopped for no
 // reason").
 #[tokio::test]
 async fn bug04_stop_agent_loop_drops_pending_tool_calls() {
@@ -156,7 +156,7 @@ async fn bug04_stop_agent_loop_drops_pending_tool_calls() {
 
     // The queued tool call must have been PROCESSED (dispatched), not silently
     // dropped. `my_tool` has no dispatch target in new_test(), so a correct
-    // implementation emits ToolError ("no server found") — we accept either a
+    // implementation emits ToolError ("no server found") - we accept either a
     // result OR an error, since both prove dispatch was attempted.
     assert!(
         events.iter().any(|e| {
@@ -165,7 +165,7 @@ async fn bug04_stop_agent_loop_drops_pending_tool_calls() {
                 HarnessEvent::ToolResult { .. } | HarnessEvent::ToolError { .. }
             )
         }),
-        "BUG-04: pending tool call was never dispatched — silently dropped by stop_agent_loop"
+        "BUG-04: pending tool call was never dispatched - silently dropped by stop_agent_loop"
     );
     assert!(
         !h.has_pending_tools(),
@@ -175,7 +175,7 @@ async fn bug04_stop_agent_loop_drops_pending_tool_calls() {
 
 // ── BUG-05 ──────────────────────────────────────────────────────────
 // The permission wait uses tokio::select! with a stop_signal poll, but the
-// ask_questions answer wait is a bare `answer_rx.recv().await` — it cannot be
+// ask_questions answer wait is a bare `answer_rx.recv().await` - it cannot be
 // interrupted. If the TUI never answers, the loop hangs forever with the
 // spinner active.
 #[tokio::test]
@@ -191,7 +191,7 @@ async fn bug05_question_answer_wait_ignores_stop_signal() {
 
     let (tx, mut rx) = mpsc::unbounded_channel();
     // The TUI keeps the answer sender alive for the whole session
-    // (App::answer_tx is stored in app state) — only the loop's own
+    // (App::answer_tx is stored in app state) - only the loop's own
     // stop_signal can interrupt the wait.
     let (_answer_tx, answer_rx) = mpsc::unbounded_channel();
     let (_perm_tx, perm_rx) = mpsc::unbounded_channel();
@@ -224,7 +224,7 @@ async fn bug05_question_answer_wait_ignores_stop_signal() {
     // buggy one stays stuck until the timeout elapses.
     let finished = tokio::time::timeout(std::time::Duration::from_millis(400), &mut handle).await;
 
-    // If the loop is stuck, terminate the task so it does not leak — abort
+    // If the loop is stuck, terminate the task so it does not leak - abort
     // before the assert so cleanup happens even if the assert panics.
     handle.abort();
 
@@ -236,7 +236,7 @@ async fn bug05_question_answer_wait_ignores_stop_signal() {
 
 // ── BUG-07 (structurally fixed) ────────────────────────────────────────
 // The old bug: build_chat_context() appended the ENTIRE ContextManager buffer
-// to the system prompt while the messages array sent the same turns again —
+// to the system prompt while the messages array sent the same turns again -
 // every turn travelled twice per request. The system prompt is now
 // conversation-free: the whole conversation lives in the context manager and
 // is delivered exactly once, via the messages array.
@@ -260,7 +260,7 @@ fn bug07_full_conversation_sent_twice_system_and_messages() {
     let in_messages = joined.contains(marker);
     assert!(
         !(in_system && in_messages),
-        "BUG-07: conversation turn sent twice — system_ctx={in_system}, messages={in_messages}"
+        "BUG-07: conversation turn sent twice - system_ctx={in_system}, messages={in_messages}"
     );
 }
 
@@ -273,7 +273,7 @@ fn bug07_full_conversation_sent_twice_system_and_messages() {
 #[test]
 fn bug08_over_budget_system_message_ships_full_raw_buffer() {
     let marker = "UNIQUE_RAW_BUFFER_MARKER_XYZ";
-    // ~55k tokens — above HISTORY_BUDGET (50_000)
+    // ~55k tokens - above HISTORY_BUDGET (50_000)
     let big = format!("{marker} ") + &"word ".repeat(55_000);
 
     let mut h = Harness::new_test().with_history(&[("user".into(), big.clone())]);
@@ -287,17 +287,17 @@ fn bug08_over_budget_system_message_ships_full_raw_buffer() {
         .join("\n");
 
     // Correct behavior: the over-budget system message must contain a
-    // COMPRESSED summary — never the raw buffer verbatim.
+    // COMPRESSED summary - never the raw buffer verbatim.
     assert!(
         !system_text.contains(marker),
-        "BUG-08: 'Compressed Prior Context' system message contains the FULL raw buffer ({marker}) — the payload grows unboundedly every iteration"
+        "BUG-08: 'Compressed Prior Context' system message contains the FULL raw buffer ({marker}) - the payload grows unboundedly every iteration"
     );
 }
 
 // ── BUG-06 ──────────────────────────────────────────────────────────
 // init_native_tools() runs once at loop start. When a connector error triggers
 // a fallback switch, `self.connector = c.with_model(...)` replaces the
-// connector — but native tool definitions are NOT re-registered on the new one.
+// connector - but native tool definitions are NOT re-registered on the new one.
 // The fallback provider therefore receives zero tool definitions.
 #[tokio::test]
 async fn bug06_fallback_switch_loses_native_tools() {
@@ -324,7 +324,7 @@ async fn bug06_fallback_switch_loses_native_tools() {
 // When the dispatch guards fire (MAX_ITERATIONS or MAX_TOOL_RETRIES), a
 // terminal event (Done/Error) is emitted INSIDE the dispatch loop. The
 // `check_stop!()` right after the loop used to emit a SECOND terminal event
-// (Stopped) because it set self.stop — the TUI received Done+Stopped (or
+// (Stopped) because it set self.stop - the TUI received Done+Stopped (or
 // Error+Stopped), showing a spurious "Interrupted" toast after a normal
 // completion and double-saving the session.
 #[tokio::test]
@@ -366,7 +366,7 @@ async fn bug09_dispatch_guard_emits_single_terminal_event() {
 // ── BUG-10 ──────────────────────────────────────────────────────────
 // The provider can cut the stream at max_tokens with finish_reason = "length"
 // (e.g. Claude's default 4096 output tokens). The harness used to treat this
-// as a normal completion (Done) even though the answer is truncated mid-word —
+// as a normal completion (Done) even though the answer is truncated mid-word -
 // the loop silently ended mid-work. Correct behaviour: continue the loop with
 // a continuation prompt so the model can finish the response.
 #[tokio::test]
@@ -403,7 +403,7 @@ async fn bug10_length_truncation_continues_loop_instead_of_done() {
 
 // ── BUG-11 ──────────────────────────────────────────────────────────
 // Same as BUG-09 but for the MAX_ITERATIONS guard inside the dispatch loop:
-// reaching the iteration cap with pending tools must emit exactly one Done —
+// reaching the iteration cap with pending tools must emit exactly one Done -
 // no spurious Stopped after it.
 //
 // A tool that always fails dispatch triggers MAX_TOOL_RETRIES (3) first, so

@@ -36,7 +36,7 @@ enum WaitExit {
 
 impl Harness {
     /// Run the full agent loop: stream LLM response, dispatch tool calls,
-    /// feed results back to the LLM, and repeat — until the model finishes
+    /// feed results back to the LLM, and repeat - until the model finishes
     /// without requesting tools, stop is called,
     /// or `stop_signal` is set to `true`.
     ///
@@ -83,7 +83,7 @@ impl Harness {
     /// to the model before the NEXT request (the "next request" queue), and
     /// the TUI is acknowledged via [`HarnessEvent::UserMessageInjected`].
     /// The queue is shared by reference with the TUI, which keeps ownership of
-    /// its entries until injection — a deleted or edited message is reflected
+    /// its entries until injection - a deleted or edited message is reflected
     /// here immediately (see [`super::queued_input::QueuedInput`]). Messages
     /// still queued when the loop ends are never injected.
     pub async fn run_agent_loop_with_queued_input(
@@ -123,12 +123,12 @@ impl Harness {
     /// background tasks alike.
     ///
     /// The `MessagePending` exit is why this takes `queued_input`. These
-    /// guards fire after the loop has finished its own work — at that moment
+    /// guards fire after the loop has finished its own work - at that moment
     /// the agent is IDLE from the user's point of view, merely waiting for a
     /// report to come back. Without this arm the wait polled only
     /// `outstanding()`, so a message typed then sat in the queue (the TUI
     /// still reported `Working`, so it never reached the shared drain either)
-    /// until the last coworker answered — the user saw a message go unanswered
+    /// until the last coworker answered - the user saw a message go unanswered
     /// while the agent was plainly not doing anything. Waking on the message
     /// is the fix: the loop takes it immediately, as it would in any other
     /// inter-iteration gap.
@@ -157,7 +157,7 @@ impl Harness {
 
     /// Send pre-rendered completion notes as ToolOutput events + automated
     /// user turns (shared tail of the pre-Done busy-guard waits). True
-    /// when anything was injected — the caller clears the steering text
+    /// when anything was injected - the caller clears the steering text
     /// and continues the loop so the model responds to them.
     fn inject_completion_notes(
         &mut self,
@@ -194,7 +194,7 @@ impl Harness {
         use super::events::{HarnessEvent, ToastVariant};
         // The queue belongs to THIS loop: publish the handle so a blocking
         // dispatch arm (the `agents_call` wait) can wake when the user queues
-        // a message mid-wait. Overwritten at every loop entry — a harness
+        // a message mid-wait. Overwritten at every loop entry - a harness
         // reused across loops must never read a previous loop's queue.
         self.loop_queued_input = Some(queued_input.clone());
         self.context_manager.set_binding_sender(tx.clone());
@@ -224,7 +224,7 @@ impl Harness {
         // Same contract for the improper-stop resumes: the budget is per
         // LOOP, not per Harness lifetime (see `COWORKER_RESUME_BUDGET`). A coworker
         // turn builds a fresh harness today, so this only matters for a
-        // reused one — which must not start with an already-spent budget and
+        // reused one - which must not start with an already-spent budget and
         // close `incomplete` for a cut it never got the chance to recover.
         self.coworker_resumes_left = super::limits::COWORKER_RESUME_BUDGET;
         // The other two per-loop bounds renew on the same contract: a
@@ -234,7 +234,7 @@ impl Harness {
         self.checkup_vetoes_left = super::limits::CHECKUP_VETO_BUDGET;
 
         // Whether ANY tool ran this turn. A turn with zero tool dispatches
-        // is a pure text exchange — the request was answerable directly, so
+        // is a pure text exchange - the request was answerable directly, so
         // the final text is complete by construction and the termination
         // checkup has nothing to audit (see the natural-stop gate below).
         let mut tools_ran = false;
@@ -302,7 +302,7 @@ impl Harness {
         // window instead of the hardcoded default: with a far larger window
         // (e.g. 300k vs the 100k default) the 80% trigger would otherwise
         // fire at a fraction of the model's actual capacity, re-triggering the
-        // LLM compaction on every overflow — the "infinite summarization"
+        // LLM compaction on every overflow - the "infinite summarization"
         // loop. Cached per model + timeout-bounded; on failure the current
         // budget (default or restored snapshot) is kept.
         #[cfg(not(test))]
@@ -310,14 +310,14 @@ impl Harness {
             // Remember the discovery outcome: it is the KNOWN window that
             // drives the hierarchical MapReduce contingency when the held
             // context exceeds it (see `known_checkpoint_window`). A failed
-            // discovery leaves it `None` — unknown window → the split is sized
+            // discovery leaves it `None` - unknown window → the split is sized
             // against the current budget.
             self.discovered_window = None;
             if let Some(window) = discovered_context_window(self.connector.effective_model()).await
             {
                 self.discovered_window = Some(window);
                 // Size the budget to the model's EFFECTIVE window when the
-                // toggle is on, otherwise the full window — the advertised
+                // toggle is on, otherwise the full window - the advertised
                 // capacity is a poor estimate of what the model can actually
                 // reason over (the "sweet spot" sizing, see
                 // `effective_context_window`). The RAW window is kept above
@@ -332,7 +332,7 @@ impl Harness {
         }
 
         // A model switch clears a previously recorded stuck context-window
-        // overflow — the new model gets a fresh chance (keyed by MODEL, so a
+        // overflow - the new model gets a fresh chance (keyed by MODEL, so a
         // switch inside the same provider also clears it).
         self.context_manager
             .sync_model(self.connector.effective_model().unwrap_or("?"));
@@ -360,7 +360,7 @@ impl Harness {
         // Add the initial user input to the context manager (the single owner
         // of the conversation) so the model sees it as a proper `user` message.
         // Skip when it is already the trailing protected user turn (e.g. it was
-        // loaded via with_history) — otherwise the same message is duplicated.
+        // loaded via with_history) - otherwise the same message is duplicated.
         if !self.context_manager.last_user_equals(input) {
             if input.trim().is_empty() && !self.context_manager.user_images.is_empty() {
                 self.context_manager.add_user("[image]");
@@ -373,7 +373,7 @@ impl Harness {
         // NO output between means the earlier input was abandoned: the user
         // cancelled that run with Esc before the LLM produced anything, then
         // typed this one. Drop the abandoned turn(s) so the model never sees
-        // an input the user gave up on — only the newest input stays.
+        // an input the user gave up on - only the newest input stays.
         self.context_manager.remove_abandoned_inputs();
 
         // A failed automatic pass has already exhausted its bounded retries
@@ -416,14 +416,14 @@ impl Harness {
                 if self.stop || stop_signal.load(Ordering::Relaxed) {
                     log::debug!("run_agent_loop STOPPED");
                     // The dying requester's queued coworker requests are dropped
-                    // and their waits resolved with the stop failure — an
+                    // and their waits resolved with the stop failure - an
                     // `agents_call` enqueued by a turn that never gets to
                     // see the answer must not sit in the queue for a
                     // LATER turn to serve (the message was for THIS
                     // conversation's flow). In-flight requests stay: the
                     // coworker finishes its turn normally and the delivery
                     // parks for this requester's tag (a later turn of the
-                    // same loop drains it — the report is not lost).
+                    // same loop drains it - the report is not lost).
                     super::agent_coworkers::cancel_requester(self.coworkers_requester);
                     self.context_manager.close_loop();
                     let context = self.context_manager.save_state();
@@ -456,7 +456,7 @@ impl Harness {
             // "next request" queue) into the model context before this
             // request is built. Each message is popped from the SHARED queue
             // right before it is recorded (pop-on-inject), so a TUI-side
-            // delete or edit of a still-pending message is always honored —
+            // delete or edit of a still-pending message is always honored -
             // an entry the TUI removed can never reach the model. Each
             // injected message is a regular protected user turn and is
             // acknowledged via `UserMessageInjected` so the TUI can move it
@@ -478,7 +478,7 @@ impl Harness {
 
             // /agents coworker reports (background `agents_call` calls): drain
             // THIS requester's finished deliveries next to the background
-            // sub-agent notes above — same contract, same shape. A delivery
+            // sub-agent notes above - same contract, same shape. A delivery
             // tagged for the OTHER requester stays parked: the manager loop
             // must never inject a report the main loop asked for, and vice
             // versa (the requester tag on each delivery routes it home).
@@ -512,7 +512,7 @@ impl Harness {
             // drain the process-wide registry ONCE per iteration, at the top
             // of the turn-building phase, so a task that finished since the
             // last request reaches the model as an explicitly-marked
-            // automated turn — never mistaken for user input. Nested agents
+            // automated turn - never mistaken for user input. Nested agents
             // never drain: a notification belongs to the top-level agent's
             // context (see `as_nested`).
             //
@@ -520,12 +520,12 @@ impl Harness {
             // every non-nested loop drains it. morpheus runs one top-level agent
             // loop per process, so ownership is unambiguous; if two
             // top-level loops ever run concurrently, a notification can land
-            // in the other session's context — revisit then (e.g. an
+            // in the other session's context - revisit then (e.g. an
             // owner-session tag on each task).
             // The manager loop (the /agents split's morpheus coworker) must not drain
             // the TOP-LEVEL background registry either: those notifications
             // belong to the main chat loop's context (the same rule a
-            // nested loop obeys — the requester tag keeps the streams
+            // nested loop obeys - the requester tag keeps the streams
             // separated).
             let background_notes =
                 if self.nested || self.coworkers_requester != super::agent_coworkers::MAIN {
@@ -538,7 +538,7 @@ impl Harness {
                     // The notification rides the EXISTING event variant the
                     // TUI already renders as a chat line (its match is
                     // exhaustive over the enum, so a new variant would
-                    // break the TUI build) — the model-facing injection is
+                    // break the TUI build) - the model-facing injection is
                     // the `add_user` below, marked `[automated
                     // notification]` Claude-Code-style. The note's spawn
                     // `call_ref` routes the completion to the EXACT window
@@ -576,14 +576,14 @@ impl Harness {
             let mut image_recoveries = 0usize;
             let result = loop {
                 // Attempt boundary: the TUI scopes its discard-on-reset to the
-                // message(s) opened after this point — a reset can then never
+                // message(s) opened after this point - a reset can then never
                 // eat the PREVIOUS iteration's transcript.
                 let _ = tx.send(HarnessEvent::BeginAssistant);
                 let messages = self.context_manager.build_messages(&current_input);
                 let tokens_before_attempt = self.context_manager.display_info().total_tokens;
                 // Wire-side accounting (file log, target `morpheus::harness`):
                 // the request's message count and the total serialized size
-                // of the messages array + system prompt — the closest cheap
+                // of the messages array + system prompt - the closest cheap
                 // proxy for what the provider actually bills. The
                 // per-iteration steering message (`current_input`) is logged
                 // separately so a runaway nudge ("continue with...") is
@@ -631,10 +631,10 @@ impl Harness {
                     && overflow_recoveries < 2
                 {
                     overflow_recoveries += 1;
-                    // Context-window contingency: drive the split — it shrinks
+                    // Context-window contingency: drive the split - it shrinks
                     // the WHOLE timeline (every item included) into a fitting
                     // anchor. On success retry immediately; on failure
-                    // the overflow is stuck — surface the (throttled) warning
+                    // the overflow is stuck - surface the (throttled) warning
                     // and fall through to the normal error handling with a
                     // HUMAN-readable message.
                     if matches!(self.context_manager.run(), RunOutcome::Resolved)
@@ -648,14 +648,14 @@ impl Harness {
                     self.notify_context_overflow(&tx);
                 }
                 // The provider stated, in its body, that the model cannot read
-                // images (aiface's typed `ImageInputUnsupported` — never a
+                // images (aiface's typed `ImageInputUnsupported` - never a
                 // bare 400). Act on the EVIDENCE, once:
                 //   1. record the verdict for the process lifetime, so the
                 //      vision-dependent tools stay omitted for every later
                 //      turn and are omitted in native mode right away;
                 //   2. drop the images the conversation is carrying (the
                 //      prompt images of this turn and any screenshot PNG in
-                //      history) — retrying with them would fail identically;
+                //      history) - retrying with them would fail identically;
                 //   3. re-send. The model keeps the screenshot's TEXT payload
                 //      (geometry, legend, saved path), so the turn can still
                 //      finish, and it is told why the picture is gone.
@@ -722,17 +722,17 @@ impl Harness {
                     // ("what did you just do?") must see it. Dropping it here
                     // left the timeline with the bare user turn, so the next
                     // loop's abandoned-input sweep hid the FIRST message too
-                    // — total amnesia about the interrupted exchange. Marked
+                    // - total amnesia about the interrupted exchange. Marked
                     // non-closable: a truncated turn is not a final answer
                     // and must never be promoted to a Closure.
                     // Whitespace-only partial output is not worth recording
                     // either (same trim contract as the normal record site
-                    // below — and `add_assistant_with_reasoning` now drops it
+                    // below - and `add_assistant_with_reasoning` now drops it
                     // anyway, which would consume the reasoning into a no-op).
                     if !assistant_response.trim().is_empty() {
                         // Same DISPLAY-ONLY reasoning contract as the normal
                         // record site: the user watched this thinking render
-                        // before the stop — it must survive a reboot too.
+                        // before the stop - it must survive a reboot too.
                         let reasoning = std::mem::take(&mut self.attempt_reasoning);
                         self.context_manager.add_assistant_with_reasoning(
                             &assistant_response,
@@ -745,7 +745,7 @@ impl Harness {
                     // Any calls still queued belong to a response that never
                     // completed. A queued call has NO context item yet
                     // (items are recorded at dispatch), so dropping it
-                    // leaves no orphan behind — but leaving it in
+                    // leaves no orphan behind - but leaving it in
                     // `tool_issuer` would replay it on the NEXT turn,
                     // running tools the user just cancelled.
                     self.tool_issuer.clear();
@@ -786,7 +786,7 @@ impl Harness {
                     );
                     let _ = tx.send(HarnessEvent::Toast {
                         message: format!(
-                            "{err} — retrying in {:.1}s ({attempt_no}/{}).",
+                            "{err} - retrying in {:.1}s ({attempt_no}/{}).",
                             delay.as_secs_f64(),
                             super::limits::LOOP_RETRY_BUDGET
                         ),
@@ -817,7 +817,7 @@ impl Harness {
                             // Carry the session-level prompt-cache settings
                             // across the rebuild: the TTL choice, the cache-
                             // affinity key and the retention choice belong to
-                            // the SESSION, not the model — a fallback switch
+                            // the SESSION, not the model - a fallback switch
                             // must not silently drop them (each field is only
                             // read by the caller family that implements it).
                             let mut c = c
@@ -831,7 +831,7 @@ impl Harness {
                             }
                             // Re-apply the session-affinity routing: like the
                             // cache settings above, the affinity headers
-                            // belong to the SESSION — a fallback switch must
+                            // belong to the SESSION - a fallback switch must
                             // not drop them or the session's requests would
                             // fan out across cache-cold backends.
                             if let Some(sid) = self.connector.session_id() {
@@ -871,15 +871,15 @@ impl Harness {
                             self.refresh_tool_omissions();
                             self.format_header_context();
                             // Re-register native tool definitions on the new
-                            // connector — otherwise the fallback provider
+                            // connector - otherwise the fallback provider
                             // receives zero tools.
                             self.init_native_tools();
                             // The fallback provider may use a different model
-                            // family — re-route the token encoding.
+                            // family - re-route the token encoding.
                             self.context_manager
                                 .set_model(self.connector.effective_model());
                             // The fallback provider may have a DIFFERENT window
-                            // than the model that failed — re-discover it so
+                            // than the model that failed - re-discover it so
                             // the budget (and the split trigger) match the
                             // ACTIVE model. A stale window from the failed
                             // provider must never size the new one.
@@ -932,7 +932,7 @@ impl Harness {
                 // the styled "Error: …" line), so a toast would only repeat
                 // what is already on screen. The context-window case keeps
                 // its own throttled overflow notification. The
-                // CONTEXT_WINDOW_MARKER is internal — never show it to the
+                // CONTEXT_WINDOW_MARKER is internal - never show it to the
                 // user: translate it to a human message first.
                 let user_msg = if e == CONTEXT_WINDOW_MARKER {
                     format!(
@@ -949,11 +949,11 @@ impl Harness {
             // Record the assistant's text response in the context manager so it
             // is delivered via the messages array on the next iteration. Tool
             // calls are recorded separately as structural items during dispatch;
-            // an output that carried a tool call stays structural too — only
+            // an output that carried a tool call stays structural too - only
             // pure text is closable.
             //
             // Whitespace-only is NOT a response: LLMs routinely emit a bare
-            // `" "` token (the TUI drops it before opening a bubble — see
+            // `" "` token (the TUI drops it before opening a bubble - see
             // `tui/app/events.rs`), so without the trim it would (a) record a
             // `" "` item that bloats the context AND the session JSONL, and
             // (b) slip PAST the natural-stop gate below (which also trims),
@@ -962,7 +962,7 @@ impl Harness {
             // one-shot promotion.
             let had_tools = self.has_pending_tools();
             if !assistant_response.trim().is_empty() {
-                // The attempt's reasoning rides the item (DISPLAY-ONLY — see
+                // The attempt's reasoning rides the item (DISPLAY-ONLY - see
                 // `ContextItem::Assistant::reasoning`); `take` because the
                 // accumulator is cleared per attempt and the next stream
                 // would otherwise leak this turn's thinking into the next.
@@ -978,10 +978,10 @@ impl Harness {
             // sees the pattern even when no specific dispatch error is available.
             if extraction_failures > 0 {
                 let msg = if self.last_failed_raw.is_empty() {
-                    "Invalid JSON tool call — no registered schema matched".to_string()
+                    "Invalid JSON tool call - no registered schema matched".to_string()
                 } else {
                     format!(
-                        "Tool call failed — you sent: {}\nThe JSON did not match any registered tool schema.\nFollow the Tool format and Schema definition above exactly.",
+                        "Tool call failed - you sent: {}\nThe JSON did not match any registered tool schema.\nFollow the Tool format and Schema definition above exactly.",
                         self.last_failed_raw
                     )
                 };
@@ -991,7 +991,7 @@ impl Harness {
             // Textual-output repetition detection: the crush-style window
             // below only sees TOOL interactions, so a model stuck repeating
             // the same THOUGHT with no tool call (a reasoning-only `stop`
-            // the natural-stop gate keeps continuing — observed in the
+            // the natural-stop gate keeps continuing - observed in the
             // field, where the same reasoning paragraph looped for dozens of
             // iterations) would burn the whole nudge budget and then
             // MAX_ITERATIONS, re-sending the growing context every time.
@@ -999,7 +999,7 @@ impl Harness {
             // dispatched tools is covered by the interaction-signature
             // window instead. The visible answer is the tracked text when
             // one was produced; otherwise the attempt's reasoning (still
-            // intact here — the record above skipped the `take` for an empty
+            // intact here - the record above skipped the `take` for an empty
             // response, and the gate's one-shot promotion below can still
             // consume it when this check does not fire).
             if !had_tools {
@@ -1026,7 +1026,7 @@ impl Harness {
                     }
                 }
             } else {
-                // A turn that dispatched tools is progress — and it is
+                // A turn that dispatched tools is progress - and it is
                 // covered by the interaction-signature window below. Clear
                 // the streak so an identical text sandwiching tool work
                 // never counts as a consecutive repeat.
@@ -1034,7 +1034,7 @@ impl Harness {
                 last_output_signature = None;
             }
 
-            // Honor stop only once pending tool calls have been dispatched —
+            // Honor stop only once pending tool calls have been dispatched -
             // never drop queued work because stop was requested mid-stream.
             // Note: `check_stop!()` sends a `Stopped` event as a side effect,
             // so it must only be evaluated when there is nothing left to
@@ -1061,7 +1061,7 @@ impl Harness {
                 if iteration >= MAX_ITERATIONS {
                     // Progress check BEFORE stopping: the hard limit exists to
                     // kill a RUNAWAY loop, and the loop detectors (tool
-                    // signatures, textual repetition) already cover runaway —
+                    // signatures, textual repetition) already cover runaway -
                     // a loop whose recent window shows no stuck repetition is
                     // making real progress, and long multi-step work is
                     // legitimate. Renew the budget (bounded) instead of
@@ -1090,12 +1090,12 @@ impl Harness {
                         // The stop stands. Make it VISIBLE: with no checkup
                         // attached, `review_guard_stop` returns None before
                         // logging anything, so this arm used to end the turn
-                        // with zero trace — no log line, no toast — while
+                        // with zero trace - no log line, no toast - while
                         // dropping every still-queued tool call.
                         let dropped = self.tool_issuer.len();
                         log::warn!(
                             target: "morpheus::harness",
-                            "guard stop: MAX_ITERATIONS={MAX_ITERATIONS} reached (stuck={stuck}) — dropping {dropped} queued tool call(s)"
+                            "guard stop: MAX_ITERATIONS={MAX_ITERATIONS} reached (stuck={stuck}) - dropping {dropped} queued tool call(s)"
                         );
                         let verdict = self.review_guard_stop("max-iterations");
                         let _ = tx.send(HarnessEvent::Toast {
@@ -1122,7 +1122,7 @@ impl Harness {
                 }
 
                 // A model-requested stop (`self.stop` via stop_agent_loop) must
-                // NOT interrupt dispatch of already-queued tool calls — the
+                // NOT interrupt dispatch of already-queued tool calls - the
                 // queue is drained first, then stop is honored after phase 2.
                 // Only an external stop_signal (user Esc) interrupts here.
                 if stop_signal.load(Ordering::Relaxed) {
@@ -1144,7 +1144,7 @@ impl Harness {
                 // Per-call routing identity (same rule the history uses
                 // below): the provider id, or a synthetic one for inline
                 // calls. The synthetic branch uses the harness's MONOTONIC
-                // counter — `iteration` only advances in the outer loop,
+                // counter - `iteration` only advances in the outer loop,
                 // while this inner loop dispatches every tool call of ONE
                 // response, so two parallel inline `subagent_call`s must
                 // never share a ref (that would re-cross-pair exactly the
@@ -1168,7 +1168,7 @@ impl Harness {
                     });
                 }
 
-                // Intercept `ask_questions` — send to TUI, wait for user answer
+                // Intercept `ask_questions` - send to TUI, wait for user answer
                 if info.as_ref().is_some_and(|(_, n, _)| n == "ask_questions") {
                     // log::debug!("run_agent_loop ASK_QUESTIONS intercepted");
 
@@ -1254,7 +1254,7 @@ impl Harness {
                                 None => {
                                     // `None` here means either the channel was
                                     // dropped or the stop signal fired. When the
-                                    // user stopped, break out quietly — the outer
+                                    // user stopped, break out quietly - the outer
                                     // `check_stop!()` sends the Stopped event.
                                     if stop_signal.load(Ordering::Relaxed) {
                                         log::debug!("run_agent_loop answer_rx interrupted by stop");
@@ -1345,7 +1345,7 @@ impl Harness {
                         );
                         self.tool_issuer.pop_front();
                         self.tool_failure_count += 1;
-                        // Record the denial as the call's conversation turn —
+                        // Record the denial as the call's conversation turn -
                         // same rationale as the guardrail-deny path below: a
                         // call that never gets a visible answer gets re-issued,
                         // burning MAX_TOOL_RETRIES lives on the same mistake.
@@ -1365,7 +1365,7 @@ impl Harness {
                         // Halt stops the entire turn
                         if hr.halt {
                             let msg = "Turn halted by hook".to_string();
-                            // Explicit user intent via hook config — never
+                            // Explicit user intent via hook config - never
                             // reviewed by the model.
                             self.emit_terminal_error(&tx, msg, None);
                             terminal_sent = true;
@@ -1374,7 +1374,7 @@ impl Harness {
                         // Run the loop detector before the `continue` skips
                         // the end-of-iteration check (same rationale as the
                         // guardrail-deny path below). A granted recovery
-                        // also `continue`s — straight to the next iteration,
+                        // also `continue`s - straight to the next iteration,
                         // SKIPPING the end-of-iteration detector call: the
                         // firing was already counted in the window here, and
                         // a second push this iteration would consume the
@@ -1432,11 +1432,11 @@ impl Harness {
                     match perm_check {
                         PermissionCheck::Denied(reason) => {
                             // Blocked by mode restrictions (Ask mode, or the Build
-                            // guardrail denying a coordinate form) — skip dispatch
+                            // guardrail denying a coordinate form) - skip dispatch
                             // entirely. The denial MUST be recorded as the call's
                             // conversation turn (like the user-deny path below):
                             // the schema was registered, so a denied call is part
-                            // of normal operation — if the model never sees its
+                            // of normal operation - if the model never sees its
                             // call answered, it re-issues it and each re-issue
                             // burns one of the MAX_TOOL_RETRIES lives.
                             log::debug!(
@@ -1463,7 +1463,7 @@ impl Harness {
                                 call_ref: dispatch_call_ref.clone(),
                             });
                             // The denial just became this iteration's tool
-                            // interaction — run the loop detector HERE, before
+                            // interaction - run the loop detector HERE, before
                             // the `continue` skips the end-of-iteration check:
                             // a stuck model re-issuing an identical denied call
                             // must hit the detector, not the retry budget. A
@@ -1510,7 +1510,7 @@ impl Harness {
 
                             // Pre-approved path check
                             // If all tool paths were previously Allowed (permanent),
-                            // skip the permission dialog — the harness remembers.
+                            // skip the permission dialog - the harness remembers.
                             let paths = super::guardrails::extract_paths_from_args(
                                 &req.tool,
                                 info.as_ref()
@@ -1621,7 +1621,7 @@ impl Harness {
                                                 );
                                             }
                                             super::guardrails::PermissionAction::Deny => {
-                                                // Deny always pops and reports — the harness
+                                                // Deny always pops and reports - the harness
                                                 // is the gatekeeper. Path tools that were
                                                 // previously Allowed retain their allowlist
                                                 // entry, but this Deny means the user does not
@@ -1736,13 +1736,13 @@ impl Harness {
                         }
                         // dispatch_fut dropped here → &mut self released
                     };
-                    // The dispatch is over — every stream it emitted carries
+                    // The dispatch is over - every stream it emitted carries
                     // the ref; drop it so a LATER non-dispatch emission can
                     // never inherit a stale identity.
                     self.active_call_ref = None;
 
                     // If this was AllowOnce, remove the approved paths from the
-                    // allowlist in BOTH success and error cases — we never want
+                    // allowlist in BOTH success and error cases - we never want
                     // AllowOnce paths to leak into future calls.
                     if !allow_once_paths.is_empty()
                         && let Some(morpheus) = self.morpheus_tools.as_mut()
@@ -1786,7 +1786,7 @@ impl Harness {
                                         "run_agent_loop POST_HOOK_HALT tool={tool_name_str}"
                                     );
                                     // The call was pre-recorded: close its chain even on a
-                                    // halt — the tool ran, its output just is not delivered
+                                    // halt - the tool ran, its output just is not delivered
                                     // as a ToolResult event. An open tool_call here would
                                     // make the next request carry an orphan the providers
                                     // reject.
@@ -1797,7 +1797,7 @@ impl Harness {
                                             &output,
                                         );
                                     }
-                                    // Explicit user intent via hook config —
+                                    // Explicit user intent via hook config -
                                     // never reviewed by the model.
                                     self.emit_terminal_error(&tx, reason, None);
                                     terminal_sent = true;
@@ -1926,8 +1926,8 @@ impl Harness {
             // within the recent window means the model is stuck repeating
             // the exact same action (e.g. re-running a failing command).
             // The ladder decides the shape: a report-owing turn's first
-            // firing recovers (steering), everything else stops the loop —
-            // instead of burning tokens up to MAX_ITERATIONS — same safety
+            // firing recovers (steering), everything else stops the loop -
+            // instead of burning tokens up to MAX_ITERATIONS - same safety
             // intent, caught far earlier. (The `break` exits the outer
             // iteration loop directly, so no terminal_sent bookkeeping is
             // needed at this call site; a recovery `continue`s with the
@@ -1947,11 +1947,11 @@ impl Harness {
                     // Model tried but all tool calls failed validation.
                     // Give it another chance with the correction prompt.
                     if iteration >= MAX_ITERATIONS {
-                        // Safety net — emit a terminal event so the TUI does
+                        // Safety net - emit a terminal event so the TUI does
                         // not stay in a "running" state. Heuristic guard:
                         // the stop stands, but the decision model audits it.
                         // VISIBILITY: with no checkup attached the audit is
-                        // None and logs nothing — surface the stop.
+                        // None and logs nothing - surface the stop.
                         log::warn!(
                             target: "morpheus::harness",
                             "guard stop: MAX_ITERATIONS={MAX_ITERATIONS} reached while every tool call failed validation"
@@ -1981,7 +1981,7 @@ impl Harness {
                 // silently emitted Done whenever a provider dialect slipped
                 // through unnormalized (Anthropic `max_tokens`, Gemini
                 // `MAX_TOKENS`/`SAFETY`) or the stream ended without any
-                // finish reason (EOF mid-response) — the loop stopped
+                // finish reason (EOF mid-response) - the loop stopped
                 // mid-action with no error and no user Esc. The whitelist
                 // mirrors `validate_summary_completion`: only a deliberate
                 // text completion counts as finished; anything else
@@ -1990,23 +1990,23 @@ impl Harness {
                     self.last_finish_reason.as_deref(),
                     // `STOP` never arrives from a live provider (the SDK
                     // normalizes lowercase-first); it survives here only for
-                    // mock-queued raw values — kept deliberately to mirror
+                    // mock-queued raw values - kept deliberately to mirror
                     // `validate_summary_completion`.
                     // `tool_calls` is reachable in this no-pending-tools
                     // branch only when every call of the turn was
                     // harness-consumed mid-stream (e.g. a lone
                     // `mask_tool_result`): nothing is left to dispatch, so
-                    // the turn IS complete — continuing would send a bogus
+                    // the turn IS complete - continuing would send a bogus
                     // "cut off" prompt.
                     Some("stop" | "STOP" | "end_turn" | "tool_calls")
                 ) && !self.last_stream_unfinished;
                 if !finished {
                     if iteration >= MAX_ITERATIONS {
-                        // Safety net — emit a terminal event so the TUI does
+                        // Safety net - emit a terminal event so the TUI does
                         // not stay in a "running" state. Heuristic guard:
                         // the stop stands, but the decision model audits it.
                         // VISIBILITY: with no checkup attached the audit is
-                        // None and logs nothing — surface the stop.
+                        // None and logs nothing - surface the stop.
                         log::warn!(
                             target: "morpheus::harness",
                             "guard stop: MAX_ITERATIONS={MAX_ITERATIONS} reached while the turn never reached a completion"
@@ -2029,7 +2029,7 @@ impl Harness {
                     }
                     let reason = self.last_finish_reason.as_deref().unwrap_or("none");
                     // Known non-completion dialects get a toast; `none`
-                    // (plain EOF) and `length` stay silent — the continuation
+                    // (plain EOF) and `length` stay silent - the continuation
                     // prompt below is enough for them.
                     if matches!(
                         reason,
@@ -2042,10 +2042,10 @@ impl Harness {
                             variant: ToastVariant::Warning,
                         });
                     }
-                    // log::debug!("run_agent_loop TRUNCATED (finish reason {reason}) — continuing");
+                    // log::debug!("run_agent_loop TRUNCATED (finish reason {reason}) - continuing");
                     log::info!(
                         target: "morpheus::harness",
-                        "continuation: truncated-stream retry (finish reason {reason}) — full context will be re-sent with a cut-off nudge"
+                        "continuation: truncated-stream retry (finish reason {reason}) - full context will be re-sent with a cut-off nudge"
                     );
                     current_input = "Your previous response was cut off before completion. \
                          Please continue exactly where you left off."
@@ -2073,7 +2073,7 @@ impl Harness {
                     // accumulator is only drained when a non-empty response
                     // is recorded, so it still holds the thinking here).
                     // `trim().is_empty()`: a bare whitespace token (e.g. a
-                    // lone `" "` after the thinking block) is NOT an answer —
+                    // lone `" "` after the thinking block) is NOT an answer -
                     // without the trim it would render as a Closure of one
                     // space and the gate would never fire.
                     // Promote the reasoning into the ONE-SHOT steering message
@@ -2087,26 +2087,26 @@ impl Harness {
                         self.promoted_reasoning_log.push(reasoning.clone());
                         log::info!(
                             target: "laya",
-                            "natural-stop gate: reasoning-only stream (finish reason {reason}) — continuing, reasoning promoted for one turn ({bytes} bytes)",
+                            "natural-stop gate: reasoning-only stream (finish reason {reason}) - continuing, reasoning promoted for one turn ({bytes} bytes)",
                             bytes = reasoning.len()
                         );
                         current_input = format!(
                             "[Harness note: your previous response ended right after your \
                              reasoning, before any answer. Reuse the thinking below instead \
-                             of reasoning again — continue exactly where you left off.]\n\n\
+                             of reasoning again - continue exactly where you left off.]\n\n\
                              <your-previous-reasoning>\n{reasoning}\n</your-previous-reasoning>"
                         );
                         continue;
                     }
                     // (2) Empty response with no reasoning at all: a bare cut
-                    // (or a degenerate empty completion) — never a finished
+                    // (or a degenerate empty completion) - never a finished
                     // turn. Same `trim()` contract as (1): whitespace-only
                     // counts as empty here too.
                     if assistant_response.trim().is_empty() {
                         self.stop_nudges_left -= 1;
                         log::info!(
                             target: "laya",
-                            "natural-stop gate: empty response (finish reason {reason}) — retrying"
+                            "natural-stop gate: empty response (finish reason {reason}) - retrying"
                         );
                         current_input =
                             "Your previous response was empty. Continue with your work."
@@ -2124,7 +2124,7 @@ impl Harness {
                     // A turn that OWES A REPORT is not allowed to end here.
                     // The bound exists so a model that keeps returning empty
                     // completions terminates instead of looping to
-                    // MAX_ITERATIONS — but that argument is about an
+                    // MAX_ITERATIONS - but that argument is about an
                     // UNBOUNDED continuation, not about this one: a `/agents`
                     // morpheus coworker (or the internal sub-agent) has a requester
                     // blocked on its report and `stop_agent_loop` is blocked
@@ -2133,7 +2133,7 @@ impl Harness {
                     // one steering turn (the SAME mechanism every other
                     // continuation uses) under its own per-loop budget
                     // (`COWORKER_RESUME_BUDGET`), and refuses when the USER
-                    // stopped the turn — the one legitimate early end.
+                    // stopped the turn - the one legitimate early end.
                     if let Some(steering) = self.resume_pane_turn(
                         &stop_signal,
                         super::guards::ResumeCause::EmptyStop,
@@ -2144,7 +2144,7 @@ impl Harness {
                     }
                     // Otherwise the stop STANDS (a chat turn, a user stop, or
                     // the resume budget spent), but it stops being silent
-                    // here and is classified honestly downstream — no Closure
+                    // here and is classified honestly downstream - no Closure
                     // is recorded, so a coworker turn reports `incomplete` (never
                     // `cancelled`) and the failure is attributable in the log
                     // and on screen.
@@ -2154,7 +2154,7 @@ impl Harness {
                     log::warn!(
                         target: "laya",
                         "natural-stop gate: EMPTY response with the nudge budget exhausted \
-                         (finish reason {reason}) — the turn ends with no output"
+                         (finish reason {reason}) - the turn ends with no output"
                     );
                     let _ = tx.send(HarnessEvent::Toast {
                         message: "The model returned an empty response repeatedly; this \
@@ -2164,7 +2164,7 @@ impl Harness {
                     });
                 }
 
-                // No tools, no extraction failures, deliberate completion —
+                // No tools, no extraction failures, deliberate completion -
                 // conversation is complete. The final text response becomes
                 // the loop's Closure.
                 //
@@ -2175,7 +2175,7 @@ impl Harness {
                 // by MAX_ITERATIONS, like every other continuation).
                 if let Some(checkup) = self.checkup.as_ref()
                     // An empty final response is a degenerate review input
-                    // for the decision model — treat it as a plain stop.
+                    // for the decision model - treat it as a plain stop.
                     // `trim()`: a whitespace-only "answer" is equally
                     // degenerate (same contract as the gate above).
                     && !assistant_response.trim().is_empty()
@@ -2184,20 +2184,20 @@ impl Harness {
                     // final text is complete by construction and there is
                     // nothing to audit. Running the model here vetoes
                     // exactly the answers it cannot see the point of (a
-                    // measured probe — `crates/morpheus-onnx/tests/eval/
-                    // shape_probe.rs` — showed every request-blind verdict
+                    // measured probe - `crates/morpheus-onnx/tests/eval/
+                    // shape_probe.rs` - showed every request-blind verdict
                     // on a direct answer reads `running`).
                     //
                     // The flag is set only at the `dispatch_next` funnel, so
                     // a cycle whose tool calls were all REFUSED (hook deny,
-                    // permission deny) also lands here unaudited —
+                    // permission deny) also lands here unaudited -
                     // intentional: an explicit user refusal is user-directed
                     // work, and user intent is never reviewed by the model.
                     && tools_ran
                 {
                     let verdict = checkup.review_termination(&assistant_response);
                     // Observability: every natural-stop review lands in
-                    // `laya.log`, including the ones that do NOT veto —
+                    // `laya.log`, including the ones that do NOT veto -
                     // a low-confidence `NotTerminated` (or a `Terminated`)
                     // verdict otherwise leaves NO trace, and "why did it
                     // stop?" becomes unanswerable.
@@ -2213,28 +2213,28 @@ impl Harness {
                         // Bound the veto like every other continuation: this
                         // arm is reached with `finished == true`, so the
                         // `!finished` MAX_ITERATIONS check above never sees
-                        // it — without this bound a persistent model/checkup
+                        // it - without this bound a persistent model/checkup
                         // disagreement on text-only turns would never stop.
                         && iteration < MAX_ITERATIONS
                         // A DEDICATED budget (CHECKUP_VETO_BUDGET), tighter
                         // than MAX_ITERATIONS: the veto re-sends the growing
                         // context, so a persistent disagreement must get
                         // expensive long before the iteration bound. The
-                        // verdict below is still recorded — the audit never
+                        // verdict below is still recorded - the audit never
                         // disappears, it just stops overriding the model.
                         && self.checkup_vetoes_left > 0
                     {
                         self.checkup_vetoes_left -= 1;
                         log::info!(
                             target: "laya",
-                            "checkup: VETOED the natural stop (confidence {:.2}, floor {:.2}) — continuing ({} vetoes left)",
+                            "checkup: VETOED the natural stop (confidence {:.2}, floor {:.2}) - continuing ({} vetoes left)",
                             verdict.confidence,
                             self.checkup_min_confidence,
                             self.checkup_vetoes_left
                         );
                         log::debug!(
                             "run_agent_loop checkup vetoed natural completion \
-                             (confidence {:.2}) — continuing",
+                             (confidence {:.2}) - continuing",
                             verdict.confidence
                         );
                         let _ = tx.send(HarnessEvent::Toast {
@@ -2248,7 +2248,7 @@ impl Harness {
                         // own stop, so the loop must hand the decision
                         // BACK to the model, not argue with it. Any
                         // coaching ("finish the remaining work") confirms
-                        // a running state the model can never disprove —
+                        // a running state the model can never disprove -
                         // it would keep producing summaries and the
                         // checkup would keep vetoing them, the worst-case
                         // infinite loop. A bare `continue` lets the next
@@ -2263,7 +2263,7 @@ impl Harness {
                 // Deterministic "pending work → continue" throttle (dsh-run-guard's
                 // `continue` face), scoped EXACTLY to report-owing turns: a pane
                 // whose own todo list still shows open work must not end its turn
-                // — its requester is blocked on the report, and the pending state
+                // - its requester is blocked on the report, and the pending state
                 // is the model's OWN observable bookkeeping, not a judgement. A
                 // chat turn never reaches this: its stop is the user's to read,
                 // and a stale auto-declared todo must not reopen it (the false
@@ -2276,7 +2276,7 @@ impl Harness {
                     && self.coworker_resumes_left > 0
                     // Outstanding `agents_call` answers outrank the todo
                     // list: the reports arrive momentarily and are fresher
-                    // steering than a "continue the first open item" —
+                    // steering than a "continue the first open item" -
                     // spending a resume before them would burn a unit on
                     // material about to arrive anyway (the wait below).
                     && !super::agent_coworkers::has_outstanding_requests(self.coworkers_requester)
@@ -2290,7 +2290,7 @@ impl Harness {
                         let open_count = listed.lines().count();
                         log::info!(
                             target: "laya",
-                            "natural-stop gate: pending todo items on a report-owing turn — \
+                            "natural-stop gate: pending todo items on a report-owing turn - \
                              resuming instead of ending ({} open, {} resumes left)",
                             open_count,
                             self.coworker_resumes_left - 1
@@ -2308,7 +2308,7 @@ impl Harness {
                 // log::debug!("run_agent_loop DONE (no tools)");
                 // /agents coworker requests still outstanding: the turn does
                 // NOT end while a queued or in-flight `agents_call` answer
-                // is missing — ending it would orphan the wait and lose
+                // is missing - ending it would orphan the wait and lose
                 // the report (same nesting rule as the background
                 // sub-agents below). Wait for the completions; Esc
                 // interrupts the wait and ends the turn normally.
@@ -2319,7 +2319,7 @@ impl Harness {
                     // Tell the TUI the loop is only waiting: a prompt
                     // submitted now is meant for IMMEDIATE delivery, and the
                     // wait below wakes for it. The `false` on the way out is
-                    // emitted for every exit — the flag must never outlive
+                    // emitted for every exit - the flag must never outlive
                     // the condition it describes.
                     let _ = tx.send(HarnessEvent::AwaitingCoworkerReports { awaiting: true });
                     let exit = Self::wait_for_outstanding(&stop_signal, &queued_input, || {
@@ -2342,7 +2342,7 @@ impl Harness {
                         self.inject_completion_notes(&tx, notes);
                         // New input (or just the resolved waits): the stale
                         // steering text must not shadow it. The loop
-                        // continues so the model responds to it — and on a
+                        // continues so the model responds to it - and on a
                         // `MessagePending` exit this is what hands the
                         // waiting user message to the next iteration's drain
                         // instead of parking it behind the reports.
@@ -2352,7 +2352,7 @@ impl Harness {
                 }
                 // Background tasks still outstanding: the turn does NOT end
                 // while work it spawned is running (Claude Code's nesting
-                // rule — an interactive loop waits for its background
+                // rule - an interactive loop waits for its background
                 // sub-agents before finishing). Wait for the completions,
                 // inject the notifications, and CONTINUE the loop so the
                 // model responds to them; Esc interrupts the wait and ends
@@ -2370,12 +2370,12 @@ impl Harness {
                     .await;
                     // Esc during the wait ends the turn normally: no
                     // injection, fall through to the standard Done path
-                    // below (never break without emitting Done — the TUI
+                    // below (never break without emitting Done - the TUI
                     // would stay in a "running" state).
                     //
                     // A waiting user message means the same thing here as in
                     // the coworker guard above: take it now rather than sleeping
-                    // out the background tasks — `inject_completion_notes`
+                    // out the background tasks - `inject_completion_notes`
                     // finds nothing to inject, so the loop re-enters and the
                     // next iteration drains the message.
                     let notes: Vec<(String, String, Option<String>)> = if exit != WaitExit::Resolved
@@ -2423,16 +2423,16 @@ impl Harness {
             // already ends in `tool_calls → tool results`, which is the
             // provider-standard signal that the next assistant turn is the
             // REACTION to those results (the same structural continuation
-            // Codex uses — `while turnInput.length > 0` re-sends only the
+            // Codex uses - `while turnInput.length > 0` re-sends only the
             // history). A synthetic "please continue with your response"
-            // user turn would ask for a RESPONSE instead of the reaction —
-            // the exact trigger of the premature status-message stop — and
+            // user turn would ask for a RESPONSE instead of the reaction -
+            // the exact trigger of the premature status-message stop - and
             // would also inject a fabricated user turn into every cycle of
             // the wire, breaking the exact-prefix property.
             current_input.clear();
 
             // Compact before the next request. The LLM compaction runs when
-            // the total is still over the trigger — the harness performs the
+            // the total is still over the trigger - the harness performs the
             // model call.
             if matches!(self.context_manager.run(), RunOutcome::NeedsLlmCompaction)
                 && !automatic_compaction_failed
@@ -2462,7 +2462,7 @@ impl Harness {
         }
         // log::debug!("run_agent_loop EXIT");
 
-        // Send final context info — the TUI shows this as the last known
+        // Send final context info - the TUI shows this as the last known
         // state until the next agent loop starts.
         let _ = tx.send(HarnessEvent::ContextInfo {
             info: self.context_manager.display_info(),
@@ -2524,7 +2524,7 @@ mod wait_tests {
     /// The reported bug: a loop parked in the pre-Done wait for coworker reports
     /// must take a message the user sends now, instead of sleeping until the
     /// last report lands. Without the `MessagePending` arm this test hangs
-    /// until its own timeout — which is exactly what the user experienced.
+    /// until its own timeout - which is exactly what the user experienced.
     #[test]
     fn a_queued_message_wakes_the_pane_report_wait() {
         let signal = stop();
@@ -2558,7 +2558,7 @@ mod wait_tests {
 
     /// A held message must NOT wake the loop: while the Queue Actions box is
     /// open the user is editing or deleting it, and delivering it then would
-    /// race the edit — the same contract `drain` already honours.
+    /// race the edit - the same contract `drain` already honours.
     #[test]
     fn a_held_message_does_not_wake_the_wait() {
         let signal = stop();
@@ -2598,7 +2598,7 @@ mod wait_tests {
     }
 
     /// Nothing outstanding and nothing queued: the reports landed, so the
-    /// caller injects their notes and continues — the pre-existing behaviour.
+    /// caller injects their notes and continues - the pre-existing behaviour.
     #[test]
     fn resolved_reports_end_the_wait() {
         let signal = stop();

@@ -65,7 +65,7 @@ jobs:
         # on macOS: x86_64-apple-darwin has NO prebuilt binaries at all, and
         # the only aarch64-apple-darwin distribution is built with CoreML,
         # whose static-link stage (CoreML framework +
-        # onnxruntime_providers_coreml) fails on the runner — macOS therefore
+        # onnxruntime_providers_coreml) fails on the runner - macOS therefore
         # excludes `slim-embed` (below). Result: linux ships all three
         # variants, macOS ships `slim` and `slim-speak`, windows ships `slim`
         # and `slim-embed` (voice is Unix-only).
@@ -114,7 +114,7 @@ jobs:
           sudo apt-get update
           # libxkbcommon-dev: linked by the xkbcommon crate (morpheus-tools ->
           # xa11y -> xa11y-linux), which declares the symbols via plain
-          # `extern "C"` — no pkg-config discovery — so the dev package
+          # `extern "C"` - no pkg-config discovery - so the dev package
           # (headers not needed, just the .so for the linker) must be
           # present or the release link fails with
           # `unable to find library -lxkbcommon`.
@@ -171,7 +171,7 @@ jobs:
       # is a dev-only target.
       #
       # MORPHEUS_TELEMETRY_PUBLISHABLE_KEY is a BUILD-TIME constant: option_env!()
-      # bakes the publishable key (safe-to-ship — it only reaches what the
+      # bakes the publishable key (safe-to-ship - it only reaches what the
       # public grants allow) into the binaries. Release builds embed it so the
       # installed CLI can upload telemetry without any user-side env setup;
       # local/dev builds leave it unset and the sink stays idle (fail closed).
@@ -320,7 +320,7 @@ jobs:
             # absence from the registry is not an error. crates.io requires
             # a User-Agent and blocks bot-ish requests without one (403);
             # anything other than a 200 ("published") or 404 ("definitely
-            # not published") — rate limits, network blips — is treated as
+            # not published") - rate limits, network blips - is treated as
             # "unknown" and falls through to cargo publish, where the
             # "already exists" fallback below still resolves it safely.
             code="$(curl -sS -o /dev/null -w '%{http_code}' \
@@ -335,7 +335,7 @@ jobs:
 
             echo "Publishing $crate $crate_version..."
             # 101 is cargo's GENERIC error code, not specifically
-            # "already published" — only treat it as a skip when the log
+            # "already published" - only treat it as a skip when the log
             # confirms the crate already exists on the registry (a race
             # between the index check above and this publish, or a
             # republish of an existing version by hand).

@@ -2,19 +2,19 @@
 //!
 //! Sits between the manager's event stream and the tools:
 //!
-//! * **Storage** — `path → server → diagnostics`, replace-whole-document per
+//! * **Storage** - `path → server → diagnostics`, replace-whole-document per
 //!   publisher (the protocol's own semantics: an empty list clears that
 //!   server's entry). Multiple servers reporting on one file coexist; the
 //!   store is the replay source, so late subscribers always see the latest
 //!   state without having witnessed the pushes.
-//! * **Change tracking** — a global monotonic version bumped on every
+//! * **Change tracking** - a global monotonic version bumped on every
 //!   mutation and mirrored into a watch channel. Cheap change detection for
 //!   the settle-wait loop and for callers deciding whether anything changed
 //!   since their last look.
-//! * **Settle-wait** — [`DiagnosticsEngine::wait_for_settle`] implements the
+//! * **Settle-wait** - [`DiagnosticsEngine::wait_for_settle`] implements the
 //!   quiet-period contract the agent needs after editing a file: return as
 //!   soon as no store mutation happened for [`SETTLE_DEBOUNCE`], bounded by
-//!   the caller's cap (crush ships 300 ms/5 s; opencode 150 ms + early exit —
+//!   the caller's cap (crush ships 300 ms/5 s; opencode 150 ms + early exit -
 //!   both shapes are one function here).
 //!
 //! Ingestion accepts either raw [`PublishDiagnosticsParams`] (push) or the
@@ -280,7 +280,7 @@ fn severity_then_position(diag: &Diagnostic) -> (DiagnosticSeverity, u32, u32, &
 
 /// Inverse of the client's percent-encoding: `file://` URIs to paths.
 ///
-/// Non-`file` schemes yield `None` — servers occasionally publish against
+/// Non-`file` schemes yield `None` - servers occasionally publish against
 /// `untitled:` or `jdt://` documents an agent never touched. The authority
 /// component must be empty or `localhost` (RFC 8089 equivalence); any other
 /// host is not a local file path. Invalid `%` sequences pass through as
@@ -346,7 +346,7 @@ pub fn uri_to_path(uri: &lsp_types::Uri) -> Option<PathBuf> {
 /// Severity filter applied when rendering diagnostics for a model.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum SeverityFilter {
-    /// Only errors (severity 1) — used by passive edit/write feedback.
+    /// Only errors (severity 1) - used by passive edit/write feedback.
     ErrorsOnly,
     /// Errors and warnings.
     WarningAndUp,
@@ -358,7 +358,7 @@ pub enum SeverityFilter {
 /// severity filter, hard item cap with an explicit truncation marker.
 ///
 /// Cross-server duplicates (identical position+message from two publishers)
-/// are collapsed — the model does not care that rust-analyzer and clippy
+/// are collapsed - the model does not care that rust-analyzer and clippy
 /// agree.
 pub fn format_for_model(diags: &[Diagnostic], filter: SeverityFilter, max_items: usize) -> String {
     let max_severity = match filter {
@@ -404,7 +404,7 @@ pub fn format_for_model(diags: &[Diagnostic], filter: SeverityFilter, max_items:
 }
 
 fn format_diagnostic_line(diag: &Diagnostic) -> String {
-    // Spec default for an omitted severity is ERROR — keep the label
+    // Spec default for an omitted severity is ERROR - keep the label
     // consistent with what SeverityFilter::ErrorsOnly already assumed.
     let severity = match diag.severity {
         Some(DiagnosticSeverity::WARNING) => "warning",

@@ -9,7 +9,7 @@
 //! Compositional keywords: `oneOf`/`anyOf` render as alternatives joined
 //! with `|` (capped at 3 branches); `allOf` renders its first subschema
 //! when the level carries no properties of its own (the
-//! `allOf: [{$ref: '#/$defs/step'}]` idiom — the real shape lives in the
+//! `allOf: [{$ref: '#/$defs/step'}]` idiom - the real shape lives in the
 //! definition); `$ref` resolves against the document root's `$defs`.
 //! `enum` is honored on any primitive type (strings, integers, booleans).
 
@@ -18,7 +18,7 @@ use serde_json::Value as JsonValue;
 /// Maximum property nesting rendered before collapsing to `<...>`. Four
 /// levels cover realistic tool schemas (`targets[].file_hash` etc.) while
 /// capping pathological depth. Compositional hops (`$ref` follows, `allOf`
-/// dispatch) do NOT consume this budget — the rendering position does not
+/// dispatch) do NOT consume this budget - the rendering position does not
 /// get structurally deeper by following a reference.
 const MAX_DEPTH: usize = 4;
 
@@ -56,7 +56,7 @@ fn resolve_ref<'a>(schema: &'a JsonValue, root: &'a JsonValue) -> Option<&'a Jso
     Some(current)
 }
 
-/// Whether `prop` points back at `schema` itself — `then: {$ref:
+/// Whether `prop` points back at `schema` itself - `then: {$ref:
 /// '#/$defs/step'}` declared inside `$defs.step`.
 fn refs_self(prop: &JsonValue, schema: &JsonValue, root: &JsonValue) -> bool {
     resolve_ref(prop, root).is_some_and(|target| std::ptr::eq(target, schema))
@@ -77,7 +77,7 @@ fn skeleton(schema: &JsonValue, depth: usize, ref_hops: usize, root: &JsonValue)
     if depth >= MAX_DEPTH || ref_hops >= MAX_REF_HOPS {
         return "<...>".to_string();
     }
-    // `$ref`: the shape lives elsewhere in the same document — follow it
+    // `$ref`: the shape lives elsewhere in the same document - follow it
     // laterally (the rendering position does not get deeper) while charging
     // the hop budget, so a cyclic `$ref` from a third-party MCP schema
     // terminates at [`MAX_REF_HOPS`].
@@ -88,10 +88,10 @@ fn skeleton(schema: &JsonValue, depth: usize, ref_hops: usize, root: &JsonValue)
     }
     // `allOf`: composition of constraints. When this level carries no
     // properties of its own, the real shape lives in the subschemas (the
-    // `allOf: [{$ref: ...}]` idiom) — render the first one. When it HAS
+    // `allOf: [{$ref: ...}]` idiom) - render the first one. When it HAS
     // properties, they already say the shape and the `allOf` entries are
     // conditional constraints, not shape. A dispatch is lateral: it costs
-    // neither depth nor a ref hop (an `allOf` chain is a finite tree —
+    // neither depth nor a ref hop (an `allOf` chain is a finite tree -
     // only `$ref` can loop).
     if !has_own_properties(schema)
         && let Some(first) = schema
@@ -104,7 +104,7 @@ fn skeleton(schema: &JsonValue, depth: usize, ref_hops: usize, root: &JsonValue)
     match schema.get("type") {
         Some(JsonValue::String(t)) => match t.as_str() {
             // A `oneOf`/`anyOf` alongside `type: object` carries the real
-            // shape (each branch a full object schema) — render the union,
+            // shape (each branch a full object schema) - render the union,
             // not an empty object.
             "object" if schema.get("oneOf").is_some() || schema.get("anyOf").is_some() => {
                 union_skeleton(schema, depth, ref_hops, root)
@@ -188,7 +188,7 @@ fn object_skeleton(schema: &JsonValue, depth: usize, ref_hops: usize, root: &Jso
     fields.sort_by_key(|(_, _, marker, _)| if marker.is_empty() { 0 } else { 1 });
     let truncated = fields.len() > MAX_PROPS;
     // A self-referential field (`then: {$ref: '#/$defs/step'}` declared inside
-    // `$defs.step` — how the computer pipelines chain the next step) is both
+    // `$defs.step` - how the computer pipelines chain the next step) is both
     // the field models get wrong most often and one width truncation drops
     // first, which leaves the rejection hint silent about the very shape that
     // was rejected. Keep every dropped self-reference visible as a marker
@@ -250,7 +250,7 @@ fn enum_or_plain(schema: &JsonValue, placeholder: &str) -> String {
         "boolean" => "<bool>",
         _ => "<string>",
     };
-    // A `const` pins a single value (e.g. an action discriminator) — it is
+    // A `const` pins a single value (e.g. an action discriminator) - it is
     // the most informative thing the schema says about the field.
     if let Some(const_value) = schema.get("const").and_then(JsonValue::as_str) {
         return format!("<{const_value}>");
@@ -279,7 +279,7 @@ mod skeleton_tests {
     #[test]
     fn all_of_ref_idiom_renders_the_step_shape() {
         // The computer_keyboard layout: the top level carries only
-        // `allOf: [{$ref}]` — the shape lives in `$defs`. Before the $ref/
+        // `allOf: [{$ref}]` - the shape lives in `$defs`. Before the $ref/
         // allOf support this rendered as an empty `{}` and the rejection
         // hint taught the model nothing.
         let schema = json!({
@@ -312,7 +312,7 @@ mod skeleton_tests {
     #[test]
     fn all_of_with_own_properties_ignores_the_constraints() {
         // The computer_pointer layout: real properties at the top level,
-        // `allOf` entries are conditional constraints — render the
+        // `allOf` entries are conditional constraints - render the
         // properties, never descend into an if/then subschema.
         let schema = json!({
             "type": "object",
@@ -373,7 +373,7 @@ mod skeleton_tests {
     fn cyclic_ref_terminates_at_the_ref_hop_cap() {
         // Third-party MCP schemas can be self-referential; ref-following is
         // the only recursion that can cycle (a serde_json::Value is a finite
-        // tree), so the hop budget — not the structural depth — terminates
+        // tree), so the hop budget - not the structural depth - terminates
         // it.
         let schema = json!({
             "type": "object",

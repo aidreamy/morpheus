@@ -1,7 +1,7 @@
 //! Ported tests: `tests/test_onnx_lang_parity.py`, the empty-questions section
 //! of `tests/test_empty_questions.py`, the temperature-parsing section of
 //! `tests/test_temperature_loading.py`, and the options-over-budget section of
-//! `tests/test_load_errors.py` — everything that does not need a torch
+//! `tests/test_load_errors.py` - everything that does not need a torch
 //! checkpoint or onnxruntime. The stub-session / fake-tokenizer technique is
 //! the upstream one: `_infer` is driven with fixed logits so decoding is
 //! deterministic.
@@ -84,7 +84,7 @@ fn questions() -> Map<String, Value> {
 fn checkpoint_relative_keys_strips_prefix_with_deterministic_precedence() {
     use super::checkpoint_relative_keys;
     // Both spellings of the same artifact: the explicit repo-relative key
-    // must win over the bare one, regardless of HashMap iteration order —
+    // must win over the bare one, regardless of HashMap iteration order -
     // run the conversion repeatedly and require an identical result.
     let map: HashMap<String, String> = [
         ("english/laya.onnx".to_string(), "g1".to_string()),
@@ -117,6 +117,6 @@ fn checkpoint_relative_keys_is_identity_without_a_prefix() {
     .into_iter()
     .collect();
     // Local checkpoints: no subfolder, no stripping. The `onnx` alias
-    // passes through — `verify_digests` resolves it to the graph path.
+    // passes through - `verify_digests` resolves it to the graph path.
     assert_eq!(checkpoint_relative_keys(&map, ""), map);
 }

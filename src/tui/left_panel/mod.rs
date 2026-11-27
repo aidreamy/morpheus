@@ -1,8 +1,8 @@
 //! The left panel: the docked column that coexists with the active route
 //! (home or session) and subtracts its width from the main area.
 //!
-//! Contents — the sessions history list, the usage dashboard and the file
-//! explorer — share the panel's width gate and mode enum, which live here:
+//! Contents - the sessions history list, the usage dashboard and the file
+//! explorer - share the panel's width gate and mode enum, which live here:
 //! the panel owns its identity; the App only consumes it.
 
 pub mod dashboard;
@@ -21,7 +21,7 @@ pub const LEFT_PANEL_WIDTH: u16 = 22;
 pub const MIN_WIDTH_FOR_LEFT_PANEL: u16 = 80;
 
 /// What the left panel currently shows. Ctrl+U jumps straight to the usage
-/// dashboard; Ctrl+B jumps straight back to the session history — the two
+/// dashboard; Ctrl+B jumps straight back to the session history - the two
 /// keys are NOT a toggle, so a user only ever needs to know the one that
 /// shows what they want.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default)]

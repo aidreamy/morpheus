@@ -163,8 +163,8 @@ pub struct SessionView {
     /// Used to detect streaming/tool-status changes without a full cache rebuild.
     last_msg_change_token: u64,
     /// Change-detection token per message (parallel to `msg_height_cache`).
-    /// The incremental path re-estimates ANY message whose token changed —
-    /// not just the last — so a tool box completing/outputting in an older
+    /// The incremental path re-estimates ANY message whose token changed -
+    /// not just the last - so a tool box completing/outputting in an older
     /// message (ToolResult/ToolOutput search every message) keeps its cached
     /// height in sync with what the render actually draws.
     msg_change_tokens: Vec<u64>,
@@ -202,7 +202,7 @@ pub struct SessionView {
     /// consumed by `build_text_regions` to avoid redundant markdown parses.
     msg_cache_text_regions: Vec<Option<Vec<TextRegion>>>,
     /// Reusable scratch buffer for temp renders (up to 5000 rows tall). Kept
-    /// across frames — `Buffer::resize` retains the underlying allocation, so
+    /// across frames - `Buffer::resize` retains the underlying allocation, so
     /// streaming no longer allocates/frees a large buffer every frame, which
     /// fragmented the heap and degraded the TUI over the process lifetime.
     scratch: Option<ratatui::buffer::Buffer>,
@@ -211,7 +211,7 @@ pub struct SessionView {
     /// of every visible message on every frame; reusing one allocation keeps
     /// the scroll-path lookup allocation-free.
     spinner_key_scratch: String,
-    /// Monotonic frame counter — recency stamp for the render-cache LRU.
+    /// Monotonic frame counter - recency stamp for the render-cache LRU.
     render_frame: u64,
     /// Last frame each message's cached cells/regions were used (hit or
     /// stored). `prune_render_cache` evicts the oldest stamps first.
@@ -230,7 +230,7 @@ pub struct SessionView {
     last_streamed_msg: Option<String>,
     /// Caches for the width we are NOT currently rendering at (see
     /// [`WidthCacheSnapshot`]): parked when a full rebuild leaves one width and
-    /// swapped back O(1) when the toggle returns — never cloned.
+    /// swapped back O(1) when the toggle returns - never cloned.
     width_cache_snapshot: Option<Box<WidthCacheSnapshot>>,
 }
 
@@ -247,7 +247,7 @@ enum HeightCacheMode {
     /// Mouse hit-testing (`update_hover` / `handle_mouse`): the cursor must
     /// be mapped against the layout the last render PAINTED. When the caches
     /// are structurally fresh (same session/width/config/tool version) the
-    /// incremental content scan is skipped entirely — re-estimating here
+    /// incremental content scan is skipped entirely - re-estimating here
     /// would mutate the shared caches between frames and desynchronize the
     /// hover/click geometry from the screen (the highlight used to jump onto
     /// the block above a queued message during active streaming). Structural
@@ -262,7 +262,7 @@ enum HeightCacheMode {
 /// visible message from scratch. On a 10-hour transcript that full rebuild was
 /// the ~1s toggle frame that froze the header animation.
 ///
-/// Only the caches that actually depend on line width are captured — the
+/// Only the caches that actually depend on line width are captured - the
 /// scroll position, stream cache, hover/pill state, and the reusable scratch
 /// buffers stay on the view. Restoring the set is a battery of O(1) `Vec`
 /// moves (the heavy cells are never cloned), which is what makes the return
@@ -273,12 +273,12 @@ enum HeightCacheMode {
 /// re-validates those keys in O(1) and the caller discards the snapshot if any
 /// of them drifted.
 struct WidthCacheSnapshot {
-    /// Validity keys — compared O(1) at swap time so a stale snapshot is
+    /// Validity keys - compared O(1) at swap time so a stale snapshot is
     /// dropped instead of ever being trusted.
     session_id: String,
     /// Number of messages this snapshot's vectors cover.
     msg_len: usize,
-    /// Config token this snapshot's caches were built under — tracks the
+    /// Config token this snapshot's caches were built under - tracks the
     /// view's `cache_config_token`, not the current one, so a config change
     /// only invalidates the snapshot if the config is still different when we
     /// try to swap it back in.
@@ -306,10 +306,10 @@ struct WidthCacheSnapshot {
     msg_cache_text_regions: Vec<Option<Vec<TextRegion>>>,
     msg_cache_last_used: Vec<u64>,
     msg_cache_bytes: usize,
-    /// Generation stamp matching `text_regions` — the region build is skipped
+    /// Generation stamp matching `text_regions` - the region build is skipped
     /// when the restored generation equals the freshly-computed one.
     text_regions_gen: u64,
-    /// Selection regions for the captured width — swapped alongside `text_regions_gen`
+    /// Selection regions for the captured width - swapped alongside `text_regions_gen`
     /// because leaving the view's current-width regions while restoring the
     /// old width's stamp would suppress a needed rebuild and break selection.
     text_regions: Vec<TextRegion>,
@@ -350,7 +350,7 @@ impl WidthCacheSnapshot {
     }
 
     /// O(1) swap: the snapshot's caches become the view's active set, and the
-    /// view's outgoing set is parked back in the snapshot — so the next toggle
+    /// view's outgoing set is parked back in the snapshot - so the next toggle
     /// is a swap in the other direction. The caller MUST validate the keys
     /// first; invariants like "active `msg_height_cache.len()` equals every
     /// render-cache vector's length and `prefix_y` is length+1" survive the
@@ -401,7 +401,7 @@ impl WidthCacheSnapshot {
 /// internal padding, gutters), so a row sampled straight from the painted
 /// cells starts with spaces before its first glyph. The content-only contract
 /// requires `text` char 0 to map to screen column `x1`, so the leading blank
-/// run is trimmed and the region is labeled `x1 = x_off + indent` — interior
+/// run is trimmed and the region is labeled `x1 = x_off + indent` - interior
 /// indentation is untouched, and the copy equals exactly the visible glyphs.
 /// Whitespace-only rows contribute no region.
 fn push_sampled_row(
@@ -446,8 +446,8 @@ fn text_regions_generation(
     g = g.wrapping_mul(31).wrapping_add(tool_state_version);
     // NOTE: the previous code folded `msg_change_token(last)` (a full content
     // hash of the last message) into this generation. For a long streamed
-    // message that hash is O(n) and ran on EVERY frame — even after streaming
-    // finished — re-parsing nothing but still forcing `build_text_regions` to
+    // message that hash is O(n) and ran on EVERY frame - even after streaming
+    // finished - re-parsing nothing but still forcing `build_text_regions` to
     // run every frame. The streaming cache now keeps the streaming message's
     // regions fresh incrementally, so the caller passes a cheap O(1) token
     // that changes only while the message actually grows.

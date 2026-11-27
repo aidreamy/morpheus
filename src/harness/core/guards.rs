@@ -3,7 +3,7 @@
 use super::Harness;
 use morpheus_tools::plan::types::{TodoList, TodoStatus};
 
-/// WHY a report-owing turn is being resumed — the `&str` this used to be
+/// WHY a report-owing turn is being resumed - the `&str` this used to be
 /// invited a typo to silently select the wrong steering text, and the value
 /// doubles as log wording, so a type is the only place the two can be kept
 /// consistent.
@@ -15,7 +15,7 @@ pub(crate) enum ResumeCause {
     /// The textual-output repetition detector fired.
     Repetition,
     /// The loop reached a natural completion while its own todo list still
-    /// shows open work (dsh-run-guard's "continue" throttle — the pending
+    /// shows open work (dsh-run-guard's "continue" throttle - the pending
     /// state is the observable, not the model's judgement).
     PendingTodos,
 }
@@ -45,7 +45,7 @@ pub fn todo_rerun_open_items(list: &TodoList) -> String {
 /// The exact pending-todos re-run message: the steering text the natural-stop
 /// gate resumes a report-owing turn with, plus the listed open items. Shared
 /// with the TUI's idle wake (`App::wake_main_agent_if_pending_todos`) so both
-/// surfaces send the SAME words — the list is the record the gate trusts, and
+/// surfaces send the SAME words - the list is the record the gate trusts, and
 /// two phrasings of the same instruction would drift apart.
 ///
 /// The open items are a bookkeeping signal, NOT an unconditional order to
@@ -55,7 +55,7 @@ pub fn todo_rerun_open_items(list: &TodoList) -> String {
 pub fn todo_rerun_message(listed_open_items: Option<&str>) -> String {
     let mut message = String::from(
         "[System note: your todo list still shows open items, but that alone does \
-         NOT mean you must continue — judge from the context. If the work is done, \
+         NOT mean you must continue - judge from the context. If the work is done, \
          or the user said they will take it from here (\"I'll adjust it myself\"), \
          mark the items done/cancelled (plan_todo_write) and end your turn. \
          Continue with the next open item ONLY if real work remains and the user \
@@ -75,7 +75,7 @@ impl Harness {
     /// provider failure as assistant output.
     ///
     /// `checkup_verdict`: the decision model's audit of the stop, from
-    /// [`Self::review_guard_stop`] — `None` for explicit stops (hook halt)
+    /// [`Self::review_guard_stop`] - `None` for explicit stops (hook halt)
     /// and infrastructure failures (provider error, context window).
     pub(super) fn emit_terminal_error(
         &mut self,
@@ -91,7 +91,7 @@ impl Harness {
         });
     }
 
-    /// Whether this loop owes a REPORT — the one class of turn that must
+    /// Whether this loop owes a REPORT - the one class of turn that must
     /// never end on a stop nobody asked for.
     ///
     /// Two loops owe one:
@@ -103,7 +103,7 @@ impl Harness {
     ///   (stripped by role in `core::build`).
     ///
     /// The main chat loop owes no report: its stop is final, the user reads
-    /// the answer and asks again. It therefore never resumes — the reason
+    /// the answer and asks again. It therefore never resumes - the reason
     /// this helper is gated on the loop's ROLE rather than on the stop shape
     /// alone.
     pub(crate) fn owes_report(&self) -> bool {
@@ -111,27 +111,27 @@ impl Harness {
     }
 
     /// Continue a REPORT-OWING turn whose loop stopped without anybody
-    /// asking it to — returning the steering message for the next iteration,
+    /// asking it to - returning the steering message for the next iteration,
     /// or `None` when the stop must stand.
     ///
     /// This is the missing seam behind the field defect: a `/agents` coworker
     /// whose loop ended right after a reasoning (or on an exhausted
     /// natural-stop budget) closed the turn `incomplete`, handing its
     /// requester "the pane produced no report" for work that was one
-    /// attempt away from delivering one. The loop COULD have continued — a
+    /// attempt away from delivering one. The loop COULD have continued - a
     /// continuation is just the history plus one steering turn, exactly what
-    /// every other `continue` in the loop does — nothing but the absence of
+    /// every other `continue` in the loop does - nothing but the absence of
     /// this helper made the stop final.
     ///
     /// The stop STANDS when any of these holds, and each is exact rather
     /// than heuristic:
     ///
-    /// 1. The loop owes no report ([`Self::owes_report`]) — a chat turn's
+    /// 1. The loop owes no report ([`Self::owes_report`]) - a chat turn's
     ///    stop is the user's to read.
     /// 2. The USER stopped it: `self.stop` / the shared `stop_signal`, the
     ///    SAME flags `check_stop!` reads. For a coworker `self.stop` cannot come
     ///    from the model (`stop_agent_loop` is blocked), so this is the
-    ///    user's stop and nothing else — the single legitimate early end.
+    ///    user's stop and nothing else - the single legitimate early end.
     /// 3. The resume budget is spent ([`super::limits::COWORKER_RESUME_BUDGET`]).
     ///    Kept per LOOP, because the inner nudges renew per ENTRY and would
     ///    otherwise make the resume unbounded.
@@ -154,7 +154,7 @@ impl Harness {
         if self.stop || stop_signal.load(Ordering::Relaxed) {
             log::debug!(
                 target: "laya",
-                "pane resume declined: the USER stopped this turn ({reason}) — the stop stands"
+                "pane resume declined: the USER stopped this turn ({reason}) - the stop stands"
             );
             return None;
         }
@@ -180,7 +180,7 @@ impl Harness {
             ResumeCause::EmptyStop => {
                 "[harness:loop-guard:empty-stop] [Harness note: your previous attempt \
                  ended with no output at all before you delivered the report this turn \
-                 exists to produce. Your context is intact — nothing was lost. Continue \
+                 exists to produce. Your context is intact - nothing was lost. Continue \
                  from exactly where you were cut and finish the task, ending with your \
                  final report.]"
                     .to_string()
@@ -192,7 +192,7 @@ impl Harness {
             // NOT end without delivering: the requester is blocked on the
             // report, and "the work is done" without one reads as
             // incomplete. The wake surface (the TUI's main-agent idle
-            // wake) has no such obligation — the conditional core above
+            // wake) has no such obligation - the conditional core above
             // is shared, this suffix is the pane-side contract.
             steering.push_str(
                 "\n\n[This turn owes your requester a final report: reconcile \
@@ -211,7 +211,7 @@ impl Harness {
         log::warn!(
             target: "laya",
             "pane resume ({reason}): this turn owes a report and NOBODY asked it to \
-             stop (no user stop, no `stop_agent_loop` for a coworker) — re-sending the \
+             stop (no user stop, no `stop_agent_loop` for a coworker) - re-sending the \
              context instead of closing `incomplete` ({} resumes left)",
             self.coworker_resumes_left
         );
@@ -219,8 +219,8 @@ impl Harness {
     }
 
     /// Audit a heuristic guard stop (MAX_TOOL_RETRIES, MAX_ITERATIONS, loop
-    /// detection) with the decision model. The stop itself always stands —
-    /// the guards are cost/safety nets — but the verdict is recorded on the
+    /// detection) with the decision model. The stop itself always stands -
+    /// the guards are cost/safety nets - but the verdict is recorded on the
     /// terminal event and toasted when the model disagrees, so an improper
     /// stop is never silent. Returns `None` when no checkup is attached.
     ///
@@ -243,7 +243,7 @@ impl Harness {
             verdict.confidence
         );
         // A guard firing while the model believes the task is NOT done is a
-        // suspicious stop — surface it instead of only recording it.
+        // suspicious stop - surface it instead of only recording it.
         if verdict.decision == TerminationDecision::NotTerminated {
             log::warn!(target: "laya", "{summary}");
             log::warn!("{summary}");

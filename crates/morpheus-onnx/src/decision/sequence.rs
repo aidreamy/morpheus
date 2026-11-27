@@ -37,7 +37,7 @@ pub fn build_sequence(
 }
 
 /// The [`build_sequence`] core for callers that already rendered the
-/// question's options — the agent path renders once and reuses both the
+/// question's options - the agent path renders once and reuses both the
 /// sequence and the option count, instead of re-rendering per use.
 pub(crate) fn build_sequence_with_options(
     tok: &dyn Tokenizer,

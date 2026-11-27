@@ -106,7 +106,7 @@ pub fn stream_hash_lines(source: &str, options: StreamOptions) -> Vec<String> {
     let mut saw_any_line = false;
     let mut remaining = source;
 
-    // Process complete lines delimited by '\n' — mirrors the TS for-await
+    // Process complete lines delimited by '\n' - mirrors the TS for-await
     // loop that feeds lines to the emitter as they arrive.
     while let Some(nl) = remaining.find('\n') {
         let (head, tail) = (&remaining[..nl], &remaining[nl + 1..]);
@@ -117,7 +117,7 @@ pub fn stream_hash_lines(source: &str, options: StreamOptions) -> Vec<String> {
     }
 
     // Remaining content after the last '\n' (the TS TextDecoder flush path).
-    // If the source ends with '\n', remaining is "" and we skip it — no
+    // If the source ends with '\n', remaining is "" and we skip it - no
     // phantom blank line for a trailing newline.
     if !remaining.is_empty() {
         let tail = remaining.strip_suffix('\r').unwrap_or(remaining);

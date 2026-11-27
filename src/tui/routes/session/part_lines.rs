@@ -7,13 +7,13 @@ pub(super) fn compaction_color(theme: &Theme) -> RGBA {
 
 /// The chat line text for the LLM "Summarizing" box. `now` is the current
 /// wall-clock millis: while the stopwatch line is running the elapsed number
-/// ticks every frame (the moving number IS the activity signal — no spinner
+/// ticks every frame (the moving number IS the activity signal - no spinner
 /// needed); when it finalizes the same line freezes.
 pub(super) fn compaction_line(part: &CompactionPart, now: u64) -> String {
     let elapsed = part
         .elapsed_ms
         .unwrap_or_else(|| now.saturating_sub(part.started_at));
-    // Millisecond precision — the second counter flips visibly.
+    // Millisecond precision - the second counter flips visibly.
     let secs = elapsed as f64 / 1000.0;
     format!("llm compaction · {secs:.3}")
 }
@@ -50,7 +50,7 @@ pub(super) fn install_line(part: &InstallPart, now: u64) -> String {
     } else {
         // The frozen byte counts can LAG the Finished event (the last
         // Progress update is throttled), so the completion branch forces
-        // the bar to full instead of trusting them — the label reads 100%,
+        // the bar to full instead of trusting them - the label reads 100%,
         // the bar must match.
         let bar = crate::component::budget::render_budget_bar(100);
         format!("installed {subject} {bar} 100%")
@@ -58,7 +58,7 @@ pub(super) fn install_line(part: &InstallPart, now: u64) -> String {
 }
 
 /// Max body lines of the COLLAPSED "Summarizing" box. When the streamed
-/// summary exceeds it, only the LAST lines stay visible — the top lines
+/// summary exceeds it, only the LAST lines stay visible - the top lines
 /// visually leave the box (an LRU-like scroll-up effect, nothing is actually
 /// removed). Expanded, the box grows to fit the whole text.
 pub(super) const SUMMARIZING_COLLAPSED_LINES: u16 = 8;

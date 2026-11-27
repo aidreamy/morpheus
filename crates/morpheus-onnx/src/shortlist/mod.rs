@@ -22,7 +22,7 @@
 //!   `system_one` (`getattr(agent, "system_one", None)`), raising
 //!   `TypeError("agent must provide predict or system_one")` when the agent
 //!   provides neither. In the Rust port a caller only has an `impl
-//!   PredictRunner`, which *is* the predict seam — the fallback is the
+//!   PredictRunner`, which *is* the predict seam - the fallback is the
 //!   trivial `AgentLike::predict == system_one` identity (the alias lives
 //!   in `laya/agent.rs`, mirrored by `Router::system_one` in `laya/router.rs`),
 //!   so no second method is plumbed through the
@@ -87,7 +87,7 @@ pub fn shortlist_choice(
 }
 
 /// `predict_shortlist`: shortlist each choice question, then call predict
-/// once (upstream: "call ``predict`` or ``system_one`` once" — in this port
+/// once (upstream: "call ``predict`` or ``system_one`` once" - in this port
 /// the predict seam is the only seam, see the module divergences).
 ///
 /// Non-choice questions are forwarded unchanged. A choice whose label count
@@ -386,7 +386,7 @@ fn option_texts(items: &[(Value, Option<&Value>)]) -> Result<Vec<String>> {
         // so the key goes through `py_str` here (JSON map keys are always
         // strings, so dict criteria pass through unchanged). Two labels that
         // stringify alike would collapse in the map and trip the `could not
-        // render every choice option` guard below — the same guard upstream
+        // render every choice option` guard below - the same guard upstream
         // raises when rendering loses an option.
         let key_str = py_str(key);
         crit.entry(key_str)

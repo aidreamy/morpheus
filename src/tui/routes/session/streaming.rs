@@ -4,20 +4,20 @@
 //! While tokens append to the last `Text` part, the previous implementation
 //! re-parsed and re-rendered the whole growing message on every frame: a full
 //! pulldown parse for the height estimate, a full markdown render for the
-//! cells, and full-content hashes for cache invalidation — O(n) per frame
+//! cells, and full-content hashes for cache invalidation - O(n) per frame
 //! (so O(n²) over a long stream), which made the TUI grind to a halt while
 //! streaming and stayed slow after the stream ended because the last-message
 //! hash kept running on every frame.
 //!
 //! This module keeps a persistent render of the streaming text part and only
-//! re-renders the trailing open block each frame — the current paragraph line,
-//! an open code fence, a list, or a blockquote — from a stable split point
+//! re-renders the trailing open block each frame - the current paragraph line,
+//! an open code fence, a list, or a blockquote - from a stable split point
 //! (see [`tail_scan`]); the prefix before it is rendered once and reused
 //! verbatim. Per-frame cost is therefore O(delta) for the common shapes:
 //! paragraphs (split at the last line) and multi-block tails (closed blocks
 //! are reused through the renderer's per-block cache). A SINGLE open block
 //! that grows without bound (one huge fence/list) is still re-rendered whole
-//! per frame — linear, but bounded by that block and unchanged for
+//! per frame - linear, but bounded by that block and unchanged for
 //! realistic snippet sizes.
 
 use ratatui::buffer::Buffer;
@@ -78,7 +78,7 @@ pub(crate) struct StreamingTextCache {
     /// incremental parser state and per-block render cache every frame, so
     /// an open list/fence/quote tail (one huge growing top-level block, or
     /// many stabilized blocks) was fully re-parsed and re-rendered each
-    /// frame — O(tail) per frame, O(n²) over a long stream. Persisting the
+    /// frame - O(tail) per frame, O(n²) over a long stream. Persisting the
     /// instance keeps closed blocks' rendered rows cached across frames;
     /// only the unstable trailing blocks re-render per frame (O(delta)).
     tail_md: MarkdownRenderable,
@@ -176,7 +176,7 @@ impl StreamingTextCache {
                 // Slice heights are additive EXCEPT for each internal slice
                 // boundary's inter-block separator: fold in both the boundary
                 // consumed by this advance (at prev_split) and its estimate.
-                // The stabilized segment keeps its trailing feed row — it is
+                // The stabilized segment keeps its trailing feed row - it is
                 // an INTERIOR slice; what follows positions itself after it.
                 prev_prefix_h
                     .saturating_add(boundary_blank_rows(text, prev_split))
@@ -236,7 +236,7 @@ impl StreamingTextCache {
         // instead of re-rendering the whole slice from a cold cache like a
         // fresh-per-frame instance did.
         //
-        // The theme setters were applied once at construction — a theme or
+        // The theme setters were applied once at construction - a theme or
         // width change replaces this whole cache via the caller's identity
         // check (config_token includes theme_gen), and cached block entries
         // additionally validate width + style fingerprint on every hit.
@@ -272,7 +272,7 @@ impl StreamingTextCache {
         self.cells.content()
     }
 
-    /// Raw (pre-sanitize) bytes consumed so far — a cheap O(1) monotonic
+    /// Raw (pre-sanitize) bytes consumed so far - a cheap O(1) monotonic
     /// token that changes exactly when streamed content grows.
     pub(crate) fn raw_len(&self) -> usize {
         self.raw_len
@@ -441,7 +441,7 @@ pub(crate) struct StreamState {
     pub(crate) message_id: String,
     pub(crate) part_hs: Vec<u16>,
     pub(crate) height: u16,
-    /// Monotonic raw-byte count of the streamed text — a cheap O(1) token
+    /// Monotonic raw-byte count of the streamed text - a cheap O(1) token
     /// that changes exactly when streamed content grows.
     pub(crate) raw_len: usize,
 }
@@ -462,7 +462,7 @@ pub(crate) struct StreamingMessageCache {
     /// build/update. The incremental path only patches the Text part, so a
     /// changed stamp on ANY other part (a folding Reasoning block, a
     /// completing tool box) must invalidate the identity and force a fresh
-    /// full rebuild — the part count alone cannot see an in-place fold.
+    /// full rebuild - the part count alone cannot see an in-place fold.
     pub(crate) part_stamps: Vec<u64>,
     /// Full-width (w × h) cells of the message (border + margins + parts).
     pub(crate) cells: Vec<ratatui::buffer::Cell>,

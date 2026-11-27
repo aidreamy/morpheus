@@ -83,7 +83,7 @@ struct PanelLayout {
 /// gutter widths and per-panel content (wrap) budgets. Computed ONCE and
 /// shared by `render_split_view` and `split_painted_rows`, so the wrap
 /// budget the row count uses is exactly the wrap budget the renderer
-/// paints with — no drift, no duplicated arithmetic.
+/// paints with - no drift, no duplicated arithmetic.
 struct SplitGeometry {
     left_x: u16,
     sep_x: u16,
@@ -98,7 +98,7 @@ struct SplitGeometry {
 
 impl SplitGeometry {
     /// Lay out the split view for `area` over `split_lines`. `None` when
-    /// the area is too narrow for two panels — the renderer paints
+    /// the area is too narrow for two panels - the renderer paints
     /// nothing there, and the row counter mirrors that with zero rows.
     fn for_lines(area: &Rect, show_line_numbers: bool, split_lines: &[SplitLine]) -> Option<Self> {
         if area.width < 3 {
@@ -183,7 +183,7 @@ pub struct DiffRenderable {
     /// Tree-sitter language for syntax-highlighting the code body of
     /// added/removed/context lines (e.g. `"rust"`). `None` disables it.
     code_lang: Option<String>,
-    /// Theme syntax colors — the same palette `MarkdownRenderable` uses for
+    /// Theme syntax colors - the same palette `MarkdownRenderable` uses for
     /// fenced code blocks, so diffs and codeblocks share one coloration.
     syntax_colors: SyntaxColors,
     /// Fallback foreground for code without a highlight category.
@@ -471,7 +471,7 @@ impl DiffRenderable {
     }
 
     /// Wrap one diff line's content into visual spans that fit `max_w`
-    /// display columns — word wrapping, so long lines fold at word
+    /// display columns - word wrapping, so long lines fold at word
     /// boundaries instead of being cut off at the box edge. Each span
     /// carries the byte offset of its first grapheme in the line's content,
     /// so highlighting maps back into the full line. Headers and hunk
@@ -545,7 +545,7 @@ impl DiffRenderable {
             })
             .collect();
 
-        // One highlight pass per line over its full content — a token
+        // One highlight pass per line over its full content - a token
         // folded across wrap rows keeps a single color on every row.
         type SideCats = Option<Vec<Option<HighlightCategory>>>;
         let cats: Vec<(SideCats, SideCats)> = split_lines
@@ -620,8 +620,8 @@ impl DiffRenderable {
     /// Leaf padding: columns of leaf-colored blank space between the area's
     /// left edge and the line-number gutter. Shifts the gutter (and the
     /// content after it) off the leaf edge; the trailing background fill
-    /// mirrors it on the right edge. Shared by BOTH views — split panels and
-    /// the unified leaf — so their line numbers land on the same column.
+    /// mirrors it on the right edge. Shared by BOTH views - split panels and
+    /// the unified leaf - so their line numbers land on the same column.
     const LEAF_PAD: u16 = 1;
 
     /// The highlight map for one split-panel side: one pass over the line's
@@ -643,10 +643,10 @@ impl DiffRenderable {
     /// Render one line within a split panel.
     ///
     /// `chunk` carries the pre-wrapped content to paint on THIS visual row
-    /// (`text` unset on a first row paints `content_part` whole — the caller
+    /// (`text` unset on a first row paints `content_part` whole - the caller
     /// wraps when the content can exceed the panel). On continuation rows
-    /// (`is_continuation`) the gutter paints in the content background — no
-    /// sign, no line number — so a folded line reads as one block.
+    /// (`is_continuation`) the gutter paints in the content background - no
+    /// sign, no line number - so a folded line reads as one block.
     fn render_split_line(
         &self,
         buf: &mut Buffer,
@@ -692,7 +692,7 @@ impl DiffRenderable {
 
         let content_style = Style::default().bg(default_bg);
         // File headers (`--- a/` / `+++ b/`) read in the same red/green the
-        // sign characters use — painted on the FONT, background untouched —
+        // sign characters use - painted on the FONT, background untouched -
         // so they match the unified view's header coloring.
         let content_style = match line {
             Some(li) if matches!(li.line_type, DiffLineType::FileHeader) => {
@@ -788,7 +788,7 @@ impl DiffRenderable {
             x += 1;
         }
 
-        // Content — the caller's pre-wrapped chunk when one was handed in
+        // Content - the caller's pre-wrapped chunk when one was handed in
         // (word wrapping at the box edge), else the whole content truncated
         // at the panel edge. A continuation row without a chunk paints only
         // background: this side is shorter than its wrapped counterpart, so
@@ -808,11 +808,11 @@ impl DiffRenderable {
                     .text
                     .unwrap_or_else(|| Self::content_part(&li.content, li.line_type))
             };
-            // Code lines keep the side's precomputed highlight map — one
+            // Code lines keep the side's precomputed highlight map - one
             // pass over the full content, so a token folded across wrap
             // rows keeps a single color. `is_code` comes from the line type
-            // (as in the unified view), so an un-highlightable code line —
-            // no language or unsupported — still paints through
+            // (as in the unified view), so an un-highlightable code line -
+            // no language or unsupported - still paints through
             // `code_style(None, …)`: the code background and default code
             // foreground, never the bare content style.
             let is_code = matches!(
@@ -891,7 +891,7 @@ impl DiffRenderable {
 
     /// Foreground for the `--- a/` / `+++ b/` file headers: the removed /
     /// added sign colors, so the headers read in the same red/green the diff
-    /// lines use — painted on the FONT, never as a background. Anything else
+    /// lines use - painted on the FONT, never as a background. Anything else
     /// (none today) keeps the hunk-header color.
     fn file_header_fg(&self, content: &str) -> RGBA {
         if content.starts_with("+++") {
@@ -1043,7 +1043,7 @@ impl DiffRenderable {
     /// [`SplitGeometry`] with `render_split_view`, so the wrap budget
     /// counted here is exactly the wrap budget the renderer paints with.
     /// A width too narrow for two panels paints nothing (the renderer's
-    /// early return) — mirrored with zero rows.
+    /// early return) - mirrored with zero rows.
     fn split_painted_rows(&self, area_width: u16) -> usize {
         let split_lines = self.build_split_lines();
         let area = Rect::new(0, 0, area_width, 1);
@@ -1166,7 +1166,7 @@ impl DiffRenderable {
                 li.line_type,
                 DiffLineType::Add | DiffLineType::Remove | DiffLineType::Context
             );
-            // One highlight pass over the line's full content — a token
+            // One highlight pass over the line's full content - a token
             // folded across wrap rows keeps a single color on every row.
             let cats = if is_code {
                 self.highlight_cats(content_w)
@@ -1242,13 +1242,13 @@ impl DiffRenderable {
                 }
 
                 // Render content, highlighted with the line's single
-                // precomputed highlight map — `wl_start` offsets the grapheme
+                // precomputed highlight map - `wl_start` offsets the grapheme
                 // byte positions back into the full content, so a token
                 // folded across rows keeps one color.
                 let mut byte_pos = *wl_start;
                 for (grapheme, w) in unicode_util::graphemes_with_width(wl) {
                     let len = grapheme.len();
-                    // Skip control characters (e.g. \t in diffs) — see above.
+                    // Skip control characters (e.g. \t in diffs) - see above.
                     let is_control = grapheme.chars().any(char::is_control);
                     let cat_pos = byte_pos;
                     byte_pos += len;

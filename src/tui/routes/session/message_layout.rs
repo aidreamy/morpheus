@@ -11,7 +11,7 @@ impl SessionView {
     /// Messages whose estimated height is 0 occupy no content rows and can
     /// never satisfy the render overlap test (`msg_bottom > vp_top &&
     /// msg_top < vp_bottom` with `msg_bottom == msg_top`), so skipping them is
-    /// safe — the walk would have skipped them anyway.
+    /// safe - the walk would have skipped them anyway.
     pub(super) fn find_first_visible(&self, scroll_y: i32) -> usize {
         let n = self.msg_height_cache.len();
         let mut lo = 0usize;

@@ -3,7 +3,7 @@
 //!
 //! Lives at `src/cli` (app level, not TUI level) and is declared by
 //! `src/tui/main.rs` with an explicit `#[path]`, because the help screen is
-//! painted with the user's active theme — a TUI asset — while everything else
+//! painted with the user's active theme - a TUI asset - while everything else
 //! (session lookup, update, paths) is plain command-line work.
 //!
 //! The grammar is deliberately small and hand-parsed: `morpheus` is an interactive
@@ -63,9 +63,9 @@ pub enum Invocation {
     Update(update::UpdateOptions),
     /// `morpheus paths`
     Paths,
-    /// `morpheus whatsapp` — the WhatsApp interface without the TUI.
+    /// `morpheus whatsapp` - the WhatsApp interface without the TUI.
     WhatsApp,
-    /// `morpheus --check-keyring` — the keyring diagnostic, unchanged.
+    /// `morpheus --check-keyring` - the keyring diagnostic, unchanged.
     CheckKeyring,
     /// Print help and exit 0. `None` = the top-level page.
     Help(Option<String>),
@@ -186,7 +186,7 @@ fn parse_command(command: &str, rest: &[String]) -> Result<Invocation, CliError>
         }
         "help" => Ok(Invocation::Help(help_subject(rest)?)),
         other => Err(CliError::new(format!(
-            "unknown command '{other}' — available commands: {}",
+            "unknown command '{other}' - available commands: {}",
             COMMANDS.join(", ")
         ))),
     }
@@ -204,9 +204,7 @@ fn parse_update(rest: &[String]) -> Result<Invocation, CliError> {
             }
             version => {
                 if options.target.is_some() {
-                    return Err(CliError::new(
-                        "only one version can be installed at a time",
-                    ));
+                    return Err(CliError::new("only one version can be installed at a time"));
                 }
                 options.target = Some(version.to_string());
             }
@@ -229,7 +227,7 @@ fn help_subject(rest: &[String]) -> Result<Option<String>, CliError> {
         Ok(Some(subject.clone()))
     } else {
         Err(CliError::new(format!(
-            "unknown command '{subject}' — available commands: {}",
+            "unknown command '{subject}' - available commands: {}",
             COMMANDS.join(", ")
         )))
     }

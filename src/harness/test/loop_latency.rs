@@ -5,7 +5,7 @@
 //! stream extraction, context compaction, tool dispatch) and prove two things:
 //!
 //! 1. The harness's own per-iteration work is **milliseconds** even with a
-//!    large conversation and a 100k-token budget — local compute is NOT the
+//!    large conversation and a 100k-token budget - local compute is NOT the
 //!    30s–1min "between tool calls" the user observes.
 //! 2. The dominant wall-clock between tool calls is the provider round-trip
 //!    (prefill) over a conversation that grows to ~80% of a 100k-token budget
@@ -15,7 +15,7 @@
 //!
 //! Two behaviors here are correct-by-design and are asserted only as facts:
 //! write/execute tools gate on a user permission dialog (the loop blocks until
-//! the human answers — the intended contract), and multiple tool calls from
+//! the human answers - the intended contract), and multiple tool calls from
 //! one response are dispatched sequentially (preserves the agent's intent).
 //! Neither is a defect; both are measured only to characterise the wall clock.
 
@@ -58,7 +58,7 @@ fn fill_tool_rounds(cm: &mut ContextManager, rounds: usize) -> usize {
     payload_bytes
 }
 
-/// PROOF 1 — the harness's own per-iteration work is milliseconds, even with a
+/// PROOF 1 - the harness's own per-iteration work is milliseconds, even with a
 /// large conversation. If the 30s–1min "between tool calls" were local compute,
 /// this test would show it. It does not: the whole local loop (message
 /// rendering + compaction tick + budget info) stays well under 1 second.
@@ -96,7 +96,7 @@ async fn per_iteration_local_work_is_milliseconds_even_with_large_conversation()
     assert!(info_ms < 200.0, "display_info() took {info_ms:.1} ms");
 }
 
-/// PROOF 2 — streaming + per-token extraction of a 2000-token response is fast.
+/// PROOF 2 - streaming + per-token extraction of a 2000-token response is fast.
 /// The per-chunk `tokio::select!` + 50ms stop-poll machinery does not add any
 /// meaningful latency to a prompt provider (chunks are processed the moment
 /// the stream yields them).
@@ -123,15 +123,15 @@ async fn streaming_and_extraction_of_many_tokens_is_fast() {
     );
 }
 
-/// PROOF 3 — with the default 100k budget, the conversation is held in full
+/// PROOF 3 - with the default 100k budget, the conversation is held in full
 /// (nothing trimmed) until ~80% (80k estimated tokens), and every loop
 /// iteration re-serializes the ENTIRE conversation for the provider. That is
 /// the dominant per-iteration cost driver: provider prefill on a prompt that
-/// only grows. A small budget compacts promptly — proving the phases work, but
+/// only grows. A small budget compacts promptly - proving the phases work, but
 /// only fire extremely late at the default budget.
 #[tokio::test]
 async fn default_budget_holds_entire_conversation_until_80_percent() {
-    // (a) Default budget: fill past 50k estimated tokens — run() must NOT trim.
+    // (a) Default budget: fill past 50k estimated tokens - run() must NOT trim.
     let mut cm = ContextManager::new(MAX_CONTEXT_TOKENS);
     let mut payload_bytes = 0usize;
     let mut rounds = 0usize;
@@ -164,12 +164,12 @@ async fn default_budget_holds_entire_conversation_until_80_percent() {
         before.total_tokens
     );
     eprintln!(
-        "[perf] {rounds} tool rounds held: {} estimated tokens, rendered payload ≈ {payload_bytes} bytes — the FULL payload is re-sent to the provider on EVERY loop iteration",
+        "[perf] {rounds} tool rounds held: {} estimated tokens, rendered payload ≈ {payload_bytes} bytes - the FULL payload is re-sent to the provider on EVERY loop iteration",
         before.total_tokens
     );
 
     // (b) A small budget over the trigger asks for the LLM compaction (the
-    // only compaction — there is no deterministic compression anymore), and
+    // only compaction - there is no deterministic compression anymore), and
     // never silently trims content: `run()` returns NeedsLlmCompaction and the
     // total stays exactly as it was, so the harness drives the LLM summary.
     let mut small = ContextManager::new(4_000);
@@ -206,7 +206,7 @@ async fn default_budget_holds_entire_conversation_until_80_percent() {
     );
 }
 
-/// PROOF 4 — the system header (instructions + all tool schemas) is cloned and
+/// PROOF 4 - the system header (instructions + all tool schemas) is cloned and
 /// re-sent as the system message on every iteration. Even without MCP servers,
 /// it is tens of KB; the clone itself is cheap, but the provider re-prefills it
 /// every iteration alongside the full conversation.
@@ -233,7 +233,7 @@ async fn system_header_is_resent_every_iteration() {
     assert!(ms < 500.0, "100 header clones took {ms:.1} ms");
 }
 
-/// FACT (correct-by-design) — write/execute tools always gate the agent loop
+/// FACT (correct-by-design) - write/execute tools always gate the agent loop
 /// on the user: in Build mode `check_tool_permission` returns NeedsApproval
 /// for these tools even with in-root relative paths, and `run_agent_loop`
 /// blocks on `perm_rx.recv()` until the human answers. This is the intended
@@ -269,7 +269,7 @@ fn write_and_execute_tools_always_gate_on_user_permission() {
         );
     }
 
-    // Read-only, in-root relative paths pass through without a dialog — so the
+    // Read-only, in-root relative paths pass through without a dialog - so the
     // "simple" reads are not human-gated, but every write/exec is.
     let read = check_tool_permission(
         "fs_read",
@@ -283,10 +283,10 @@ fn write_and_execute_tools_always_gate_on_user_permission() {
     );
 }
 
-/// PROOF 6 — the loop machinery itself adds nothing: a full 6-iteration agent
+/// PROOF 6 - the loop machinery itself adds nothing: a full 6-iteration agent
 /// loop with an instant (mock) provider completes in well under 2s. Therefore
 /// the 30s–1min per tool call the user sees cannot come from the harness's
-/// synchronous work — it comes from the provider round-trip (prefill on a
+/// synchronous work - it comes from the provider round-trip (prefill on a
 /// growing 100k-token context) and from human-gated permission dialogs.
 #[tokio::test]
 async fn full_agent_loop_with_fast_provider_is_fast() {

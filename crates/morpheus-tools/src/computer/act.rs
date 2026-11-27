@@ -1,26 +1,26 @@
-//! `computer_act` — semantic actions AND keyboard as one pipeline on the
+//! `computer_act` - semantic actions AND keyboard as one pipeline on the
 //! accessibility tree (no screen coordinates involved).
 //!
 //! One step is EITHER a semantic action on the element matched by
 //! `selector` (auto-waiting for visible + enabled), OR a keyboard action
-//! (`key`/`text` via the SHARED keyboard engine), OR a `wait` pause — and
+//! (`key`/`text` via the SHARED keyboard engine), OR a `wait` pause - and
 //! steps chain via `then` with shell `&&` semantics, each only if the
 //! previous succeeded, the first failure aborting the chain with the exact
 //! failing step and everything that completed.
 //!
 //! This file is ONLY the pipeline: chain walking, wait steps and step
-//! classification. The step KINDS live in their components — semantic
+//! classification. The step KINDS live in their components - semantic
 //! dispatch in [`super::touch`], keyboard dispatch in [`super::keyboard`]
-//! — so each can be reused by other tools without carrying this pipeline
+//! - so each can be reused by other tools without carrying this pipeline
 //! along.
 //!
 //! The schema skeleton (`then` → `then` → `wait`) is IDENTICAL to
 //! `computer_control`'s on purpose: the model learns the pipeline shape
-//! once and carries it across both tools — only each tool's particular
+//! once and carries it across both tools - only each tool's particular
 //! step kind differs (semantic actions here, pointer actions there).
 //!
 //! FOCUS CAVEAT: a semantic `press` focuses the target on many toolkits
-//! but NOT reliably on every one — the one mechanism that always moves OS
+//! but NOT reliably on every one - the one mechanism that always moves OS
 //! keyboard focus is a real click, which is `computer_control`'s job. If
 //! chained typing keeps missing the field, click the field element there
 //! instead.
@@ -35,7 +35,7 @@ use super::keyboard::{self, MAX_WAIT_MS};
 use super::touch;
 use super::types::{ActOutput, ComputerAct};
 
-/// Maximum number of steps in a `then` pipeline (the root step included) —
+/// Maximum number of steps in a `then` pipeline (the root step included) -
 /// the same cap `computer_control` uses, so the two pipelines behave alike.
 pub const ACT_CHAIN_MAX_DEPTH: usize = 8;
 
@@ -51,12 +51,12 @@ pub const ACT_CHAIN_MAX_DEPTH: usize = 8;
 /// an unknown key/modifier name, a missing `value`/`numeric_value`/`range`
 /// payload, a wait that is 0 or over the cap, or a chain deeper than
 /// [`ACT_CHAIN_MAX_DEPTH`]. Returns `Err` mid-chain (earlier steps stay
-/// applied — they were real actions) when the app or a visible+enabled
+/// applied - they were real actions) when the app or a visible+enabled
 /// selector match does not appear within the timeout, or the platform
 /// rejects the action.
 pub async fn act(input: &ComputerAct) -> Result<ActOutput, String> {
     validate_chain(input, ACT_CHAIN_MAX_DEPTH)?;
-    // `spawn_blocking` needs 'static — clone the (small) input struct in.
+    // `spawn_blocking` needs 'static - clone the (small) input struct in.
     let owned = input.clone();
     tokio::task::spawn_blocking(move || act_blocking(&owned))
         .await
@@ -81,13 +81,13 @@ pub(crate) fn validate_chain(step: &ComputerAct, remaining: usize) -> Result<(),
 
 /// Validate ONE step. A step is a WAIT step when `wait` is present (it is
 /// standalone), a KEYBOARD step when `key`/`text` is present, and otherwise
-/// a SEMANTIC step — the field groups are disjoint, and mixing them in one
+/// a SEMANTIC step - the field groups are disjoint, and mixing them in one
 /// step is a mistake the model should hear about. The kind-specific rules
 /// live in the components.
 pub(crate) fn validate_step(step: &ComputerAct) -> Result<(), String> {
     const TOOL: &str = "computer_act";
 
-    // Wait step: STANDALONE — it carries no action, so any other field next
+    // Wait step: STANDALONE - it carries no action, so any other field next
     // to it is ambiguous about what the wait applies to.
     if let Some(ms) = step.wait {
         let extra: Vec<&str> = [
@@ -113,7 +113,7 @@ pub(crate) fn validate_step(step: &ComputerAct) -> Result<(), String> {
         .collect();
         if !extra.is_empty() {
             return Err(format!(
-                "{TOOL}: `wait` is a standalone step — it takes no {}",
+                "{TOOL}: `wait` is a standalone step - it takes no {}",
                 extra.join(", ")
             ));
         }
@@ -122,14 +122,14 @@ pub(crate) fn validate_step(step: &ComputerAct) -> Result<(), String> {
         }
         if ms > MAX_WAIT_MS {
             return Err(format!(
-                "{TOOL}: `wait` is capped at {MAX_WAIT_MS} ms per step — \
+                "{TOOL}: `wait` is capped at {MAX_WAIT_MS} ms per step - \
                  chain several wait steps for longer pauses"
             ));
         }
         return Ok(());
     }
 
-    // Hold/release step: STANDALONE key-state manipulation — every other
+    // Hold/release step: STANDALONE key-state manipulation - every other
     // field would silently misstate what the step does.
     if step.hold.is_some() || step.release.is_some() {
         let (names, taken, release_alongside) = if let Some(names) = &step.hold {
@@ -164,7 +164,7 @@ pub(crate) fn validate_step(step: &ComputerAct) -> Result<(), String> {
         .collect();
         if !extra.is_empty() {
             return Err(format!(
-                "{TOOL}: {taken} is a standalone step — it takes no {}",
+                "{TOOL}: {taken} is a standalone step - it takes no {}",
                 extra.join(", ")
             ));
         }
@@ -186,7 +186,7 @@ pub(crate) fn validate_step(step: &ComputerAct) -> Result<(), String> {
         return Err(format!("{TOOL}: provide `key` or `text`, not both"));
     }
     if key.is_some() || text.is_some() {
-        // Keyboard step: typing goes into whatever holds keyboard focus —
+        // Keyboard step: typing goes into whatever holds keyboard focus -
         // semantic targeting here has no meaning and would silently
         // disagree with it.
         for (present, name) in [
@@ -205,13 +205,13 @@ pub(crate) fn validate_step(step: &ComputerAct) -> Result<(), String> {
         ] {
             if present {
                 return Err(format!(
-                    "{TOOL}: {name} belongs to a semantic-action step — a keyboard step \
+                    "{TOOL}: {name} belongs to a semantic-action step - a keyboard step \
                      types into the focused element; act on the target element in an \
                      earlier step, then chain the typing via `then`. On a SHELL SURFACE \
                      the pattern is: a semantic `press` with `surface` first (that is \
                      what moves keyboard focus to the flyout), then this keyboard step \
                      with no `surface`. If the typed text keeps missing the field, click \
-                     the field element with computer_control instead — a real click is \
+                     the field element with computer_control instead - a real click is \
                      the one mechanism that reliably moves keyboard focus"
                 ));
             }
@@ -219,7 +219,7 @@ pub(crate) fn validate_step(step: &ComputerAct) -> Result<(), String> {
         if text.is_some() {
             if step.held.is_some() {
                 return Err(format!(
-                    "{TOOL}: `held` is rejected with `text` ({text:?}) — backends \
+                    "{TOOL}: `held` is rejected with `text` ({text:?}) - backends \
                      synthesize case/shift; use `key` with `held` for chords"
                 ));
             }
@@ -234,7 +234,7 @@ pub(crate) fn validate_step(step: &ComputerAct) -> Result<(), String> {
     touch::validate(step, TOOL)
 }
 
-/// True when walking the chain will need the input simulator — i.e. some
+/// True when walking the chain will need the input simulator - i.e. some
 /// step is a keyboard step (semantic actions go through the accessibility
 /// tree, waits through `std::thread`, neither touches the simulator).
 /// Acquiring the simulator lazily keeps a purely semantic chain working on
@@ -242,7 +242,7 @@ pub(crate) fn validate_step(step: &ComputerAct) -> Result<(), String> {
 ///
 /// The recursion must pass THROUGH wait steps, not stop at them: a wait
 /// may carry a `then` continuation (the canonical settle-then-type chain),
-/// so only the keyboard classification of each step decides — never an
+/// so only the keyboard classification of each step decides - never an
 /// early `false` on the wait itself.
 pub(crate) fn chain_needs_sim(step: &ComputerAct) -> bool {
     keyboard::is_keyboard_step(step.key.as_deref(), step.text.as_deref())
@@ -270,7 +270,7 @@ fn act_blocking(input: &ComputerAct) -> Result<ActOutput, String> {
             if done.is_empty() {
                 format!("computer_act: step {index}: {e}{held}")
             } else {
-                format!("computer_act: step {index}: {e} — completed: {done}{held}")
+                format!("computer_act: step {index}: {e} - completed: {done}{held}")
             }
         })?;
         completed.push(format!("{sent}{}", step_feedback(step)));

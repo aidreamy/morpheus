@@ -133,7 +133,7 @@ fn retry_after_secs(header: &str) -> Option<Duration> {
     // Form 2: HTTP-date (IMF-fixdate, the only form modern servers emit;
     // the legacy RFC 850 / asctime forms are not worth the parse risk).
     // NaiveDateTime + and_utc: the wire format carries no numeric offset, and
-    // DateTime::parse_from_str REQUIRES one — it would reject every header.
+    // DateTime::parse_from_str REQUIRES one - it would reject every header.
     // The literal " GMT" must stay in the pattern: parse consumes the WHOLE
     // string, and the trailing marker would otherwise fail the parse.
     let target = chrono::NaiveDateTime::parse_from_str(header, "%a, %d %b %Y %H:%M:%S GMT")
@@ -209,7 +209,7 @@ pub(crate) async fn flush(
     match result {
         Ok(()) => FlushOutcome::Sent(payload.len()),
         // Permanent rejection: the payload is invalid (schema changed, too
-        // big). Re-queueing would poison the queue head — drop the batch.
+        // big). Re-queueing would poison the queue head - drop the batch.
         Err(SendError::Permanent) => FlushOutcome::Rejected,
         // Transient failure: re-queue for the next flush (the drain removed
         // them from the file, so pushing back is exactly right).
@@ -225,9 +225,9 @@ pub(crate) async fn flush(
 /// Why a batch send failed.
 #[derive(Debug)]
 enum SendError {
-    /// 4xx other than 429 — retrying cannot succeed.
+    /// 4xx other than 429 - retrying cannot succeed.
     Permanent,
-    /// Network error, 5xx or 429 — may succeed later.
+    /// Network error, 5xx or 429 - may succeed later.
     Transient,
 }
 
@@ -263,7 +263,7 @@ async fn send_batch(
                     .and_then(|v| v.to_str().ok())
                     .and_then(retry_after_secs);
             }
-            // Any other 4xx: the payload is bad — retrying won't help.
+            // Any other 4xx: the payload is bad - retrying won't help.
             Ok(response) if response.status().is_client_error() => {
                 return Err(SendError::Permanent);
             }

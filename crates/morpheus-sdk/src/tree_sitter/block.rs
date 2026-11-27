@@ -6,7 +6,7 @@ use tree_sitter::Tree;
 
 use crate::hashline::types::BlockSpan;
 
-/// `text` is needed to convert line numbers to byte offsets — tree-sitter
+/// `text` is needed to convert line numbers to byte offsets - tree-sitter
 /// stores positions as byte offsets, not line numbers.
 pub(crate) fn resolve_block(tree: &Tree, text: &str, line: u32) -> Option<BlockSpan> {
     let row = line.checked_sub(1)? as usize;

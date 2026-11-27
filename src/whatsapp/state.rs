@@ -45,7 +45,7 @@ pub struct StoredChat {
     #[serde(default)]
     pub context: Option<ContextManagerState>,
     /// The chat's own simulated-typing choice (`/human`), or `None` when it
-    /// has never chosen — the `whatsapp.humanize` default from `setup.json`
+    /// has never chosen - the `whatsapp.humanize` default from `setup.json`
     /// applies until then. Absent means "no choice", which is the old
     /// behavior, so no schema bump is needed.
     #[serde(default, skip_serializing_if = "Option::is_none")]

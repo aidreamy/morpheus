@@ -1,5 +1,5 @@
-//! Ported tests: the error-policy sections of `tests/test_hooks.py` — raise
-//! vs continue, the on_error chain, the failure path running end hooks — plus
+//! Ported tests: the error-policy sections of `tests/test_hooks.py` - raise
+//! vs continue, the on_error chain, the failure path running end hooks - plus
 //! the on_error-with-raise-disabled edge from the review.
 
 use super::*;

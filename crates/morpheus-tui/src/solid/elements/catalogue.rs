@@ -237,7 +237,7 @@ impl Renderable for LineBreakRenderable {
     }
 }
 
-/// A link renderable — styled text with a URL.
+/// A link renderable - styled text with a URL.
 pub struct LinkRenderable {
     inner: SpanRenderable,
 }

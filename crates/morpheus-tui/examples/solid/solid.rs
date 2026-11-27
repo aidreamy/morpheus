@@ -1,4 +1,4 @@
-//! Demonstrate `morpheus_tui::solid` — the reactive rendering layer: the
+//! Demonstrate `morpheus_tui::solid` - the reactive rendering layer: the
 //! component catalogue, `DynamicRenderable`, slot placeholders, the plugin
 //! `SlotRegistry`, reconciler DOM ops, and the utility helpers.
 //!
@@ -211,7 +211,7 @@ fn main() {
 
     // ── 10. Scaffolded parts (informational only) ──────────────────────────
     // The renderer traits, hooks, and scrollback are declared but not yet
-    // backed by implementations — we note their existence without using them.
+    // backed by implementations - we note their existence without using them.
     println!("== 10. scaffolded API surface ==");
     println!("  Renderer/RendererOptions traits: declared in solid::renderer");
     println!("  hooks (on_keyboard/on_focus/...): empty stubs");
@@ -222,7 +222,7 @@ fn main() {
 
     // ── 11. Composition: catalogue widgets side by side ────────────────────
     // Container widgets (BoxRenderable) draw only their own frame in
-    // `render_self` — children are drawn by the managed Renderer, which
+    // `render_self` - children are drawn by the managed Renderer, which
     // walks the whole tree. In the direct buffer path, render each leaf.
     let mut s1 = SpanRenderable::new();
     s1.set_text("hello ".into());

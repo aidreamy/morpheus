@@ -6,9 +6,9 @@
 //!
 //! Two layers:
 //!
-//! - [`Patcher::apply`] — high-level, all-or-nothing. Preflights every
+//! - [`Patcher::apply`] - high-level, all-or-nothing. Preflights every
 //!   section in memory before any write hits disk, then commits in order.
-//! - [`Patcher::prepare`] / [`Patcher::commit`] — granular primitives
+//! - [`Patcher::prepare`] / [`Patcher::commit`] - granular primitives
 //!   for callers that need per-section control (e.g. batched LSP flush,
 //!   custom interleaving). `prepare` performs all the read-side work,
 //!   validates the section snapshot tag (with recovery), and applies the
@@ -190,7 +190,7 @@ pub struct Patcher<F: Filesystem, S: SnapshotStore> {
 impl<F: Filesystem, S: SnapshotStore> Patcher<F, S> {
     /// Create a new patcher.
     ///
-    /// `snapshots` is required — section tags are opaque store pointers and
+    /// `snapshots` is required - section tags are opaque store pointers and
     /// without a store the patcher cannot validate or recover them.
     pub fn new(fs: F, snapshots: S, block_resolver: Option<BlockResolver>) -> Self {
         let snapshots = Arc::new(Mutex::new(snapshots));
@@ -479,7 +479,7 @@ impl<F: Filesystem, S: SnapshotStore> Patcher<F, S> {
         //   - the file drifted → resolve against the tagged snapshot's text so the
         //     resulting ranges flow through the 3-way-merge recovery below.
         // When a block edit needs the tagged snapshot but it is unavailable, the
-        // range cannot be placed safely — reject with a MismatchError (re-read).
+        // range cannot be placed safely - reject with a MismatchError (re-read).
         let resolved: Vec<Edit> = if has_block_edit(edits) {
             let base = match expected {
                 None => normalized.to_string(),
@@ -544,7 +544,7 @@ impl<F: Filesystem, S: SnapshotStore> Patcher<F, S> {
         }
         // Head/tail-only inserts are position-stable: "start"/"end" cannot move
         // with content drift, so a stale tag is non-fatal. Apply onto the live
-        // content and warn instead of hard-failing — unlike an anchored
+        // content and warn instead of hard-failing - unlike an anchored
         // mismatch, which cannot be safely relocated and must reject.
         if !has_anchor_scoped_edit(&resolved) {
             let mut result =

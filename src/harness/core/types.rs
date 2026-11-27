@@ -18,7 +18,7 @@ pub enum Mode {
     Ask,
     Yolo,
     /// Direct-shell mode: the TUI becomes a plain terminal. Every prompt
-    /// input is dispatched straight to the bash tool — NO LLM call is ever
+    /// input is dispatched straight to the bash tool - NO LLM call is ever
     /// made. The command and its output are recorded in the context manager
     /// as HIDDEN items ([`super::context::ContextItem::UserCommand`]): they
     /// persist to the session JSONL for the user, but the model never sees
@@ -27,8 +27,8 @@ pub enum Mode {
     Command,
     /// Coordination mode: every tool EXCEPT the four that write/edit files
     /// (`fs_write`, `fs_edit`, `fs_edit_lines`, `fs_ast_edit`) stays
-    /// available — `fs_rollback` included (it only restores, never rewrites)
-    /// — and `bash_run` stays exposed but denies commands that write to the
+    /// available - `fs_rollback` included (it only restores, never rewrites)
+    /// - and `bash_run` stays exposed but denies commands that write to the
     /// filesystem (the mode-level bash blocklist, checked at the guardrail).
     /// Built for delegation: the manager plans with TODO, delegates the
     /// actual file work to sub-agents and `/agents` coworkers, and observes.

@@ -2,7 +2,7 @@
 //!
 //! [`Recall`] provides a semantic search operation that looks up entries
 //! in a `LanceDB` vector store. The tool is a **low-level building block**
-//! — it accepts a pre-computed embedding vector directly and returns matching
+//! - it accepts a pre-computed embedding vector directly and returns matching
 //! entries. The harness (`MorpheusTools` dispatch) wraps this with embedding logic
 //! so the LLM only sees a simple `{ db_name, query, limit }` interface.
 //!
@@ -19,9 +19,9 @@
 //! # High-level usage (harness dispatch)
 //!
 //! The LLM calls `recall_search` with just:
-//! - `db_name` — which database to query
-//! - `query` — natural-language search text (embedded by the harness)
-//! - `limit` — how many results to return (optional, default 5)
+//! - `db_name` - which database to query
+//! - `query` - natural-language search text (embedded by the harness)
+//! - `limit` - how many results to return (optional, default 5)
 //!
 //! The harness resolves the DB from its registry, creates the appropriate
 //! embedder (local fastembed or cloud provider), embeds the query, and
@@ -55,7 +55,7 @@ use crate::ToolDescription;
 
 /// Read-only vector search tool backed by `LanceDB`.
 ///
-/// Stateless wrapper — all configuration is passed via
+/// Stateless wrapper - all configuration is passed via
 /// [`RecallSearchInput`] at call time.
 ///
 /// Use [`with_description`](Self::with_description) to append custom context
@@ -71,11 +71,11 @@ impl Default for Recall {
     }
 }
 
-/// Default description for `recall_search` — short, self-contained, standalone.
+/// Default description for `recall_search` - short, self-contained, standalone.
 const DEFAULT_DESCRIPTION: &str = concat!(
     "Search an active knowledge base for entries semantically similar to your query. ",
     "Returns matching entries with their IDs and content. ",
-    "Read-only — never writes to the database. ",
+    "Read-only - never writes to the database. ",
     "Use this to retrieve relevant context from stored knowledge. ",
     "Only the database name and query text are needed."
 );

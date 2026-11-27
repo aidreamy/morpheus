@@ -2,8 +2,8 @@
 //! morpheus-standardized UI they open.
 //!
 //! A harness publishes its commands through ACP
-//! (`available_commands_update`) with ITS OWN spellings — `/models` on one,
-//! `/model` on another, `/llm` on a third — and the slash menu shows those
+//! (`available_commands_update`) with ITS OWN spellings - `/models` on one,
+//! `/model` on another, `/llm` on a third - and the slash menu shows those
 //! names verbatim. What gets standardized is what happens AFTER the user
 //! picks one: equivalent commands across harnesses open the SAME kind of
 //! morpheus box (the model list, the provider list …),
@@ -11,16 +11,16 @@
 //!
 //! Three buckets, resolved by [`resolve`]:
 //!
-//! 1. **Config-box groups** ([`CommandGroup::target`]) — the command opens
+//! 1. **Config-box groups** ([`CommandGroup::target`]) - the command opens
 //!    the standardized select box bound to one of the session's ACP config
 //!    options (matched by id or by category, since harnesses predate
 //!    categories: the model option may be `model` or only carry the
 //!    `Model` category).
-//! 2. **Blocked** ([`is_blocked`]) — commands that make no sense inside
+//! 2. **Blocked** ([`is_blocked`]) - commands that make no sense inside
 //!    `/agents` (yolo / bypass / permission modes: the split already runs
 //!    auto-approve, so exposing the toggle would only fight the harness)
 //!    are filtered OUT of the menu entirely.
-//! 3. **Direct** — everything else falls through to the group-less base:
+//! 3. **Direct** - everything else falls through to the group-less base:
 //!    the command is sent to the pane AS the prompt (`/name args…`) and the
 //!    harness interprets it. No per-agent maintenance: an unmapped command
 //!    still appears and still works.
@@ -43,7 +43,7 @@ pub struct CommandGroup {
     /// (lowercase, `-`/space folded to `_`, no leading slash).
     pub names: &'static [&'static str],
     /// The config option the standardized box binds to. `None` for
-    /// direct-passthrough groups (none yet — every mapped group has a box).
+    /// direct-passthrough groups (none yet - every mapped group has a box).
     pub target: Option<ConfigTarget>,
 }
 
@@ -70,7 +70,7 @@ pub const COMMAND_GROUPS: &[CommandGroup] = &[
     },
 ];
 
-/// Commands NEVER exposed in the `/agents` slash menu, per group —
+/// Commands NEVER exposed in the `/agents` slash menu, per group -
 /// permission-control toggles the split's YOLO contract already decides
 /// (the harnesses run auto-approved, so exposing the toggle would only let
 /// the user fight the mode the panes exist in). Applied on top of every
@@ -91,7 +91,7 @@ pub const BLOCKED_COMMANDS: &[&str] = &[
     "permission",
     "permission_mode",
     "permissionmode",
-    // Claude's permission-mode VALUE that switches edits to auto-accept —
+    // Claude's permission-mode VALUE that switches edits to auto-accept -
     // a permission toggle by any other name (no permission stem in it, so
     // the substring fallback below can never catch it).
     "accept_edits",
@@ -104,7 +104,7 @@ pub const BLOCKED_COMMANDS: &[&str] = &[
 /// Entries land here as we tune per agent from each harness's own docs:
 pub const AGENT_BLOCKED_OVERRIDES: &[(&str, &[&str])] = &[
     // claude-code publishes its own `/agents` through ACP stamped
-    // "(removed)" — the harness retired it, and offering it would both run
+    // "(removed)" - the harness retired it, and offering it would both run
     // a dead command and collide with morpheus's own `/agents` spelling.
     ("claude", &["agents"]),
 ];
@@ -117,7 +117,7 @@ pub use morpheus::harness::agent_mode::map_mode_to_agent;
 ///
 /// Harnesses publish descriptions of wildly different shapes: opencode's
 /// `customize-opencode` carries the ENTIRE skill brief (a wrapped paragraph
-/// that floods the menu row — the built-in skill's full trigger document,
+/// that floods the menu row - the built-in skill's full trigger document,
 /// per opencode's own skill registry), and claude's skill commands carry
 /// multi-page trigger documentation. The menu shows the agent's exact
 /// command NAME verbatim; the description is UNWRAPPED to its first
@@ -173,7 +173,7 @@ pub fn normalize(name: &str) -> String {
 /// permission/privacy family: harness spellings drift (`permissions_mode`
 /// vs `permission_mode`, `accept_edits`, `--yolo`), and a missed spelling
 /// here would expose a toggle the YOLO mode must keep decided server-side.
-/// Only these three stems qualify — no generic substring pass (an innocent
+/// Only these three stems qualify - no generic substring pass (an innocent
 /// `compact` shares no stem with them).
 #[must_use]
 pub fn is_blocked(agent: &str, name: &str) -> bool {
@@ -204,25 +204,25 @@ pub fn resolve(name: &str) -> Option<&'static CommandGroup> {
 
 /// The menu entries SYNTHESIZED from the session's own ACP config options.
 ///
-/// The probe and each harness's own ACP surface (opencode issue #27942 —
+/// The probe and each harness's own ACP surface (opencode issue #27942 -
 /// `model`/`mode` are NOT in its `available_commands_update`; the kilo ACP
 /// publishes only prompt-commands) proved the mapping above can never rely
-/// on a harness PUBLISHING a command: the most useful controls — model,
-/// provider, mode — reach the client as session config OPTIONS
+/// on a harness PUBLISHING a command: the most useful controls - model,
+/// provider, mode - reach the client as session config OPTIONS
 /// (`session/new` / `session/resume` payloads and `config_option_update`s),
 /// with no slash command advertising them at all. Reasoning effort is NOT
-/// synthesized here: it follows the morpheus model-picker flow — a SECOND box
+/// synthesized here: it follows the morpheus model-picker flow - a SECOND box
 /// opened after the model pick (see the app's config confirm), and it
 /// simply never appears for agents without a controllable level.
 /// So for every mapped group whose config option the pane actually holds,
-/// the menu synthesizes the group's entry (the group id as the name — the
-/// one spelling morpheus standardizes on — and the group's one-liner). The box
+/// the menu synthesizes the group's entry (the group id as the name - the
+/// one spelling morpheus standardizes on - and the group's one-liner). The box
 /// that opens is the SAME standardized box a published command would have
 /// opened, bound to the pane's own option.
 ///
 /// Groups whose option is absent or valueless (gemini publishes ZERO config
 /// options; a boolean-only option mirrors with an empty value list) are
-/// omitted — a dead entry would only route into the "still loading" toast.
+/// omitted - a dead entry would only route into the "still loading" toast.
 pub fn synthesized_group_commands(
     options: &[morpheus_agents::events::AgentConfigOption],
 ) -> Vec<crate::ui::slash_menu::SlashCommand> {
@@ -260,7 +260,7 @@ mod tests {
         assert_eq!(resolve("PROVIDERS").unwrap().id, "provider");
         assert_eq!(resolve("modes").unwrap().id, "mode");
         // Reasoning is NOT a mapped group anymore: the morpheus flow chains the
-        // level sub-box after the model pick instead of its own entry — the
+        // level sub-box after the model pick instead of its own entry - the
         // spellings resolve to nothing (direct passthrough), like any
         // unknown command.
         for name in ["reasoning", "thinking", "thought", "effort"] {
@@ -293,7 +293,7 @@ mod tests {
         assert!(!is_blocked("claude", "models"));
         assert!(!is_blocked("claude", "compact"));
         // Per-agent override: claude's own retired `/agents` (the harness
-        // stamps it "(removed)") is blocked only for claude — other
+        // stamps it "(removed)") is blocked only for claude - other
         // harnesses may publish a live `/agents`.
         assert!(is_blocked("claude", "agents"));
         assert!(!is_blocked("opencode", "agents"));
@@ -403,7 +403,7 @@ mod tests {
     #[test]
     fn synthesis_covers_every_option_backed_group_per_agent() {
         // opencode: model + mode options only (its ACP publishes no
-        // model/mode COMMANDS — issue #27942).
+        // model/mode COMMANDS - issue #27942).
         let opencode = vec![
             option(
                 "model",
@@ -419,7 +419,7 @@ mod tests {
         assert_eq!(names, vec!["models", "mode"]);
 
         // kilo: model + mode (effort/thought_level exists but is NOT
-        // synthesized — it chains after the model pick instead).
+        // synthesized - it chains after the model pick instead).
         let kilo = vec![
             option("model", Some("model"), &["kilo/google/gemini-3-pro-image"]),
             option("effort", Some("thought_level"), &["thinking"]),
@@ -431,7 +431,7 @@ mod tests {
             .collect();
         assert_eq!(names, vec!["models", "mode"]);
 
-        // cline: provider and model BOTH category "model" — the two-pass
+        // cline: provider and model BOTH category "model" - the two-pass
         // match must bind the models entry to id `model`, the provider
         // entry to id `provider`.
         let cline = vec![
@@ -465,7 +465,7 @@ mod tests {
             .collect();
         assert_eq!(names, vec!["models", "mode"]);
 
-        // claude: model + mode (fast is a boolean — valueless; the effort
+        // claude: model + mode (fast is a boolean - valueless; the effort
         // option chains after the model pick, no standalone entry).
         let claude = vec![
             option("mode", Some("mode"), &["default", "plan", "auto"]),
@@ -485,7 +485,7 @@ mod tests {
 
     #[test]
     fn synthesized_entry_names_resolve_back_to_their_group() {
-        // Every synthesized name must route back to its own group — the
+        // Every synthesized name must route back to its own group - the
         // entry the menu shows and the box that opens can never disagree.
         let kilo = vec![
             option("effort", Some("thought_level"), &["thinking"]),

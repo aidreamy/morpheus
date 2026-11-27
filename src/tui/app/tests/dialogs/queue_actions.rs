@@ -239,7 +239,7 @@ async fn requeue_position_tracks_delivered_heads() {
     app.poll_events();
 
     // The hint slid from index 1 to 0: the edited message returns to the
-    // FRONT, ahead of the untouched "request-three" — not appended.
+    // FRONT, ahead of the untouched "request-three" - not appended.
     app.enqueue_pending_message(QueueTarget::NextRequest, "request-two".into());
     assert_eq!(
         app.state
@@ -308,7 +308,7 @@ async fn deleting_a_row_before_the_hint_shifts_its_home_slot() {
     app.run_queue_action(0, QueueTarget::NextRequest, 1);
     // Delete the row that sat BEFORE the edited message's home slot.
     app.run_queue_action(1, QueueTarget::NextRequest, 0);
-    // Re-submit: with "request-one" gone, index 1 clamps to the end — but
+    // Re-submit: with "request-one" gone, index 1 clamps to the end - but
     // the hint slid to 0, so the message must land at the FRONT, not after
     // unrelated survivors.
     app.enqueue_pending_message(QueueTarget::NextRequest, "request-two".into());
@@ -400,7 +400,7 @@ async fn opening_queue_actions_holds_the_next_effective_message() {
         "the grace window still holds the delivery"
     );
 
-    // Once the window expires, the pump delivers FIFO again — one in-flight
+    // Once the window expires, the pump delivers FIFO again - one in-flight
     // message at a time, retired only on acknowledgment.
     app.queue_actions_grace_until = Some(Instant::now() - Duration::from_millis(1));
     assert!(!app.queue_actions_hold_active());
@@ -459,7 +459,7 @@ async fn in_flight_message_survives_loop_end_without_injection() {
     app.pump_queued_messages();
     assert!(app.next_request_in_flight);
 
-    // Loop end without auto-start: nothing may be lost — the in-flight head
+    // Loop end without auto-start: nothing may be lost - the in-flight head
     // is still owned by the queues (promoted to next-loop semantics, the
     // long-standing end-of-run behavior).
     app.handle_loop_end(false);
@@ -481,7 +481,7 @@ async fn loop_end_while_held_defers_the_auto_start() {
     open_queue_actions(&mut app, QueueTarget::NextLoop, 0, "loop-one");
 
     // Clean end while held: neither promotion nor auto-start may touch the
-    // queues — stored dialog indexes must stay valid.
+    // queues - stored dialog indexes must stay valid.
     assert!(app.handle_loop_end(true));
     assert!(app.queue_actions_deferred_start);
     let queues = app.state.current_pending_queues().unwrap();
@@ -565,7 +565,7 @@ async fn hovered_queue_row_background_is_white() {
         "hovered message text row must be white"
     );
     // Layout row 9 starts the SECOND next-request message (its top pad): it
-    // must keep the queue color — hovering one message never bleeds into
+    // must keep the queue color - hovering one message never bleeds into
     // the next one's band.
     assert_ne!(
         buf[(5, 14)].style().bg,
@@ -606,7 +606,7 @@ async fn queue_cap_paints_mode_color_and_labels() {
     let up = |c: u8| (f32::from(c) * 0.85 + 255.0 * 0.15).round() as u8;
     let band_bg = ratatui::style::Color::Rgb(up(r), up(g), up(b));
     // Cap width = max(60 * 20%, 9) = 12 columns, right-aligned before the
-    // right `│` (column 61): columns 49..=60. Row 0 is a top pad row — the
+    // right `│` (column 61): columns 49..=60. Row 0 is a top pad row - the
     // cap fills it in the mode color.
     assert_eq!(
         buf[(50, 5)].style().bg,
@@ -640,12 +640,12 @@ async fn queue_cap_paints_mode_color_and_labels() {
 
     let cap_row = |y: u16| -> String { (49..61).map(|x| buf[(x, y)].symbol()).collect() };
     // Loop bands (middle rows at layout rows 1 and 4 → y=6 and y=9) read
-    // CLOSURE — those messages only leave the queue when a fresh agent loop
+    // CLOSURE - those messages only leave the queue when a fresh agent loop
     // starts, closing out the current run.
     assert!(cap_row(6).contains("CLOSURE"), "got {:?}", cap_row(6));
     assert!(cap_row(9).contains("CLOSURE"), "got {:?}", cap_row(9));
     // Request bands (middle rows at layout rows 7 and 10 → y=12 and y=15)
-    // read NEXT — those messages go out on the very next request of the
+    // read NEXT - those messages go out on the very next request of the
     // running loop.
     assert!(cap_row(12).contains("NEXT"), "got {:?}", cap_row(12));
     assert!(cap_row(15).contains("NEXT"), "got {:?}", cap_row(15));
@@ -666,7 +666,7 @@ async fn queue_cap_paints_mode_color_and_labels() {
         "cap label must be black or white per the cap luminance"
     );
 
-    // Hovering a message keeps the cap's mode color — it is the identity
+    // Hovering a message keeps the cap's mode color - it is the identity
     // chip, not part of the white highlight.
     app.hovered_queue_row = Some((1, 0));
     let mut buf2 = ratatui::buffer::Buffer::empty(ratatui::layout::Rect::new(0, 0, 80, 24));
@@ -705,7 +705,7 @@ async fn edited_submit_after_loop_end_requeues_instead_of_direct_send() {
         queues.next_request.is_empty(),
         "leftover next-request messages are promoted like a clean loop end"
     );
-    // FIFO chain: "loop-one" heads the queue — the edited message waits in
+    // FIFO chain: "loop-one" heads the queue - the edited message waits in
     // its due slot instead of jumping ahead as a direct input.
     assert_eq!(
         queues.next_loop.iter().collect::<Vec<_>>(),
@@ -808,7 +808,7 @@ async fn plain_submit_without_outstanding_edit_still_sends_directly() {
 }
 
 // ── Bug 1: a DELETE of an in-flight "next request" message must retract it
-// from the shared queued-input queue too — previously the removal was only
+// from the shared queued-input queue too - previously the removal was only
 // visual and the model still received the text on the next request. ──────
 
 #[tokio::test]
@@ -884,7 +884,7 @@ async fn editing_in_flight_next_request_head_retracts_the_stale_copy() {
 }
 
 // ── Bug 2: editing the head of the Next (immediate) queue holds the chain
-// until the edit is submitted — a running loop waits at closure, an idle
+// until the edit is submitted - a running loop waits at closure, an idle
 // chain waits before its auto-start. ─────────────────────────────────────
 
 #[tokio::test]
@@ -1005,7 +1005,7 @@ async fn editing_next_queue_head_while_working_waits_at_loop_closure() {
 }
 
 // Editing a NON-head message (or deleting any message) must never pause the
-// chain — the hold is exclusive to the head of the Next queue.
+// chain - the hold is exclusive to the head of the Next queue.
 
 #[tokio::test]
 async fn editing_a_non_head_message_never_holds_the_chain() {

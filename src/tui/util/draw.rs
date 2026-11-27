@@ -127,7 +127,7 @@ pub fn draw_text_line(buf: &mut Buffer, text: &str, x: u16, y: u16, max_w: u16, 
 
 /// Compact variant of [`draw_text_line`]: control characters are dropped
 /// BEFORE column assignment (`filter().enumerate()`), so unlike
-/// [`draw_text_line`] they leave no gap — `"\nABC"` starts `ABC` at `x`.
+/// [`draw_text_line`] they leave no gap - `"\nABC"` starts `ABC` at `x`.
 /// This is the dialog/slash-menu semantics: their labels come from
 /// curated/static strings where a gap would be a visible artifact.
 pub fn draw_text_line_compact(

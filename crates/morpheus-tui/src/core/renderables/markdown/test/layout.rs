@@ -29,7 +29,7 @@ fn test_code_block_lines() {
     let h = estimate_height(text, 80);
     assert_eq!(
         h, 3,
-        "2-line langless block = 1 top-padding row + 2 code rows — the \
+        "2-line langless block = 1 top-padding row + 2 code rows - the \
          phantom trailing blank is not reserved (got {h})"
     );
 }
@@ -215,13 +215,13 @@ fn glyph_row(buf: &Buffer, x: u16, h: u16, ch: char) -> Option<u16> {
     (0..h).find(|&y| buf.cell((x, y)).is_some_and(|c| c.symbol().starts_with(ch)))
 }
 
-/// The language-less fence's top gap must be INTRINSIC to the block — the
-/// twin of its bottom padding — not borrowed from the inter-block margin
+/// The language-less fence's top gap must be INTRINSIC to the block - the
+/// twin of its bottom padding - not borrowed from the inter-block margin
 /// rule. Regression pins for the three shapes that used to lose the gap:
 /// fence as the FIRST block (no predecessor to borrow a margin from), and
 /// fences inside a quote or a list item (inter-block margins only exist
 /// between top-level blocks). A fence after a separated block must show
-/// exactly ONE blank row, not two (the margin is waived — the fence brings
+/// exactly ONE blank row, not two (the margin is waived - the fence brings
 /// its own gap), matching the labelled variant's geometry.
 #[test]
 fn test_langless_fence_owns_top_padding() {
@@ -232,7 +232,7 @@ fn test_langless_fence_owns_top_padding() {
         buf
     }
 
-    // First block: code starts on row 1 (was row 0 — glued to the top).
+    // First block: code starts on row 1 (was row 0 - glued to the top).
     let buf = render("```\ncode\n```", 40, 6);
     assert_eq!(
         glyph_row(&buf, 2, 6, 'c'),
@@ -243,7 +243,7 @@ fn test_langless_fence_owns_top_padding() {
     // estimate counts only up to the last glyph row (padding + code = 2).
     assert_eq!(estimate_height("```\ncode\n```", 40), 2);
 
-    // After a paragraph: para(0), ONE blank row(1), code(2) — no double gap.
+    // After a paragraph: para(0), ONE blank row(1), code(2) - no double gap.
     let buf = render("para\n\n```\ncode\n```", 40, 8);
     assert_eq!(glyph_row(&buf, 0, 8, 'p'), Some(0));
     assert_eq!(
@@ -273,8 +273,8 @@ fn test_langless_fence_owns_top_padding() {
 }
 
 /// Pins `estimate_height` against the ACTUAL rendered rows for code blocks
-/// across widths. A divergence between the two — e.g. an estimate of 7 rows
-/// for content that renders in 27 — silently breaks the chat layout (clipped
+/// across widths. A divergence between the two - e.g. an estimate of 7 rows
+/// for content that renders in 27 - silently breaks the chat layout (clipped
 /// or overlapping content), and the loose single-value layout tests above
 /// cannot see it. This test is the false-positive guard: it compares the two
 /// implementations directly, so any change to the renderer OR the estimator
@@ -287,7 +287,7 @@ fn test_code_block_estimate_matches_render() {
         // Language tag (top gap row carries the label).
         "```rust\nfn main() {}\n```",
         "```python\ndef f():\n    return 1\n```",
-        // Text BEFORE and AFTER the block — the clipping regression.
+        // Text BEFORE and AFTER the block - the clipping regression.
         "Some text.\n\n```\ncode\n```\n\nThe end.",
         "```json\n{\"a\": 1}\n```\n\nFinal paragraph.",
         // A long unbroken code line that must wrap.
@@ -308,7 +308,7 @@ fn test_code_block_estimate_matches_render() {
             // The estimate must never be SMALLER than the rendered glyph
             // height: an under-estimate clips the message in the chat. (A
             // block at the very end of the text over-estimates by the blank
-            // padding rows, which the glyph scan does not count — harmless.)
+            // padding rows, which the glyph scan does not count - harmless.)
             assert!(
                 est >= actual,
                 "estimate {est} < rendered {actual} rows for {text:?} at max_w={w} \
@@ -345,7 +345,7 @@ fn test_block_height_memo_distinguishes_final_vs_interior() {
 
 /// The streaming layout re-measures a growing document every frame while the
 /// memo warms up incrementally. Whatever is measured through the cache must
-/// equal the from-scratch value for the same text and width — here exercised
+/// equal the from-scratch value for the same text and width - here exercised
 /// by measuring the long doc first (populating entries) and then verifying a
 /// longer doc whose prefix shares blocks still lands on the expected total.
 #[test]

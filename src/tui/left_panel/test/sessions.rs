@@ -25,7 +25,7 @@ fn backspace_requests_delete_of_the_selected_session() {
         SessionsAction::RequestDelete("s1".to_string())
     );
 
-    // Move to the second row — backspace targets it.
+    // Move to the second row - backspace targets it.
     view.select_next(summaries.len());
     assert_eq!(
         view.handle_key(KeyCode::Backspace, &summaries),
@@ -76,7 +76,7 @@ fn hover_moves_the_shared_selection_without_switching() {
     // Panel rows 0..20: header 0..2, items from row 2.
     let area = Rect::new(0, 0, 22, 20);
 
-    // Hovering the third row moves the keyboard-shared selection there —
+    // Hovering the third row moves the keyboard-shared selection there -
     // and reports a hit, but performs no action by itself.
     assert!(view.follow_hover(&hover(5, 4), area, &summaries, &SessionStatus::Idle));
     assert_eq!(view.selection.selected_index, 2);

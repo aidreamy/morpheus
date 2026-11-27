@@ -1,5 +1,5 @@
 //! Ported tests: the ONNXAgent parity, mutation and context sections of
-//! `tests/test_hooks.py` — start fires before the encode, rewrites reach the
+//! `tests/test_hooks.py` - start fires before the encode, rewrites reach the
 //! sequence, the run_id is shared per call and the end context carries usage.
 
 use super::*;

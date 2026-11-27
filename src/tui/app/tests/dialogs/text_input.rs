@@ -6,7 +6,7 @@ use crossterm::event::{KeyCode, KeyModifiers};
 /// and closes; an invalid one keeps the box open.
 #[tokio::test]
 async fn hook_input_dialog_saves_valid_hook_and_rejects_invalid() {
-    // setup.save() persists to $HOME — point it at a scratch dir so the
+    // setup.save() persists to $HOME - point it at a scratch dir so the
     // test never touches the developer's real config. The lock keeps the
     // two hook tests from racing each other's environment.
     let _guard = HOME_LOCK.lock();
@@ -142,7 +142,7 @@ async fn hook_input_click_positions_cursor() {
     });
 
     // Derive geometry from the SAME terminal size the app will use when
-    // handling the click — including the panel's width demand, which the
+    // handling the click - including the panel's width demand, which the
     // app reads from the open dialog (the hook hint widens the panel
     // past the 56-column base).
     let term = app.terminal_size();
@@ -298,7 +298,7 @@ async fn mcp_form_draft_follows_manual_erasure() {
 }
 
 /// An invalid endpoint keeps the panel open WITHOUT discarding the other
-/// fields — the user fixes the one line instead of restarting a wizard.
+/// fields - the user fixes the one line instead of restarting a wizard.
 #[tokio::test]
 async fn mcp_form_rejects_invalid_endpoint_and_keeps_edits() {
     let _guard = HOME_LOCK.lock();
@@ -415,7 +415,7 @@ fn form_mouse(
 }
 
 /// Value-row geometry of a hook form field, derived from the SAME
-/// terminal size the app uses when handling the mouse — including the
+/// terminal size the app uses when handling the mouse - including the
 /// panel's width demand read from the open dialog.
 fn hook_field_row(app: &App, values: &[&str], field: usize) -> (u16, u16) {
     let term = app.terminal_size();
@@ -750,7 +750,7 @@ async fn registration_form_ctrl_w_deletes_word_and_other_ctrl_is_ignored() {
 
 /// While the panel owns the keyboard, Ctrl+C copies the active field
 /// through the shared selection helper instead of opening the quit
-/// confirm — even when the field is empty (still consumed, nothing to
+/// confirm - even when the field is empty (still consumed, nothing to
 /// copy).
 #[tokio::test]
 async fn registration_form_ctrl_c_copies_active_field_instead_of_quitting() {
@@ -792,7 +792,7 @@ async fn registration_form_ctrl_c_copies_active_field_instead_of_quitting() {
 
 /// Regression: the copy toast must paint ABOVE the modal registration
 /// panel. The toast used to render before the dialog, so the panel buried
-/// it — Ctrl+C looked completely dead (zero feedback) even when the
+/// it - Ctrl+C looked completely dead (zero feedback) even when the
 /// clipboard write itself succeeded.
 #[tokio::test]
 async fn registration_form_copy_toast_paints_above_the_panel() {
@@ -806,7 +806,7 @@ async fn registration_form_copy_toast_paints_above_the_panel() {
     type_text(&mut app, "docs");
 
     // The real copy path. CI has no clipboard backend, so this shows the
-    // "... clipboard write unavailable" toast — same paint order as the
+    // "... clipboard write unavailable" toast - same paint order as the
     // success toast.
     assert!(app.copy_registration_form_field());
 

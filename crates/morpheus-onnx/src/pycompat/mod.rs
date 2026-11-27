@@ -1,6 +1,6 @@
 //! Python runtime parity helpers: `repr()`, `str()`, `%g` formatting,
 //! `json.dumps(..., ensure_ascii=False)` with the default separators, and
-//! `round()` — the primitive spellings the prompt surface depends on.
+//! `round()` - the primitive spellings the prompt surface depends on.
 //!
 //! Every prompt-rendering decision model ported from Python renders through
 //! these, so the strings a tokenizer sees match the upstream prompts byte
@@ -123,7 +123,7 @@ pub fn py_g(x: f64) -> String {
 /// Parity note: byte-exact with `json.dumps` for the magnitudes the prompt
 /// surface carries (criterion descriptions and state text are short scalars).
 /// Extreme floats differ in exponent spelling (`1e+16` vs `1e16`), and
-/// serde_json has no NaN/Infinity to begin with — unreachable here.
+/// serde_json has no NaN/Infinity to begin with - unreachable here.
 pub fn py_json_dumps(value: &Value) -> String {
     fn dump(v: &Value, out: &mut String) {
         match v {
@@ -226,7 +226,7 @@ pub fn py_round(value: f64) -> f64 {
 
 /// Python `float(value)` over the JSON surface: numbers pass through, bools
 /// are 1.0/0.0 (`bool` is an `int` in Python), numeric strings parse, and
-/// `None` or a non-numeric string raise — reported here as `None`.
+/// `None` or a non-numeric string raise - reported here as `None`.
 pub fn py_float(value: &Value) -> Option<f64> {
     match value {
         Value::Number(n) => n.as_f64(),

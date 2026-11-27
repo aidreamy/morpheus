@@ -2,7 +2,7 @@
 //!
 //! The store is per directory (`{data}/sessions/{cwd-hash}/`), so "continue"
 //! means "the most recently active session of the directory morpheus was started
-//! in" — the same isolation the TUI's session list has. Resolution happens
+//! in" - the same isolation the TUI's session list has. Resolution happens
 //! before the terminal is initialized, which is why the messages are plain
 //! stderr lines instead of toasts.
 
@@ -13,7 +13,7 @@ use crate::cli::LaunchOptions;
 /// The session id to open on startup, if the command line asked for one.
 ///
 /// `Ok(None)` means "start normally" (no flag, or `-c` with nothing to
-/// continue — a warning is printed and a fresh session is the right place to
+/// continue - a warning is printed and a fresh session is the right place to
 /// land).
 /// `Err` is reserved for an explicit `-s <id>` that cannot be honoured: the
 /// user named a session, so silently starting elsewhere would be a lie.
@@ -38,7 +38,7 @@ pub fn resolve(options: &LaunchOptions) -> Result<Option<String>, String> {
         Some(summary) => Ok(Some(summary.session_id)),
         None => {
             eprintln!(
-                "morpheus: nothing to continue in {cwd} yet — starting a new session.\n  Sessions are stored per directory, so `-c` only resumes sessions started here."
+                "morpheus: nothing to continue in {cwd} yet - starting a new session.\n  Sessions are stored per directory, so `-c` only resumes sessions started here."
             );
             Ok(None)
         }

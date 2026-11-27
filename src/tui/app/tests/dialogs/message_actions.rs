@@ -166,7 +166,7 @@ async fn message_actions_fork_branches_new_session_up_to_message() {
     assert!(old.title.contains("(fork)"));
     assert_ne!(old.id, "t", "the fork is a brand-new session id");
     // Regression: the fork must be persisted to disk so it survives restarts.
-    // The save runs on the FIFO writer thread, so poll briefly for it — but
+    // The save runs on the FIFO writer thread, so poll briefly for it - but
     // with the lock RELEASED: holding HOME_LOCK across ~2s of sleeps would
     // stall every other isolated test behind this one. The store captured
     // its absolute sessions dir at App::new, so the poll below does not
@@ -228,7 +228,7 @@ async fn message_actions_dialog_renders_title_and_options() {
 
 #[tokio::test]
 async fn message_actions_older_user_message_shows_all_options() {
-    // Append-only context: ANY user message can be reverted/forked — the
+    // Append-only context: ANY user message can be reverted/forked - the
     // legacy "last user message only" restriction is gone.
     let _guard = HOME_LOCK.lock();
     isolate_home();
@@ -376,8 +376,8 @@ async fn message_actions_older_user_message_keyboard_cycles_three_options() {
 
 /// The real crash flow: a click on a user message in the transcript opens the
 /// Message Actions box. Sweep every viewport row through the app's real mouse
-/// dispatch (Down+Up + a re-render after each hit) so the panic — wherever it
-/// hides on this path — reproduces in CI.
+/// dispatch (Down+Up + a re-render after each hit) so the panic - wherever it
+/// hides on this path - reproduces in CI.
 #[tokio::test]
 async fn clicking_a_user_message_opens_message_actions_without_panicking() {
     let _guard = HOME_LOCK.lock();
@@ -424,7 +424,7 @@ async fn clicking_a_user_message_opens_message_actions_without_panicking() {
 /// Regression for the real crash: clicking a MULTILINE user prompt opened
 /// the Message Actions box whose preview carried a raw `\n` into
 /// `draw_text_line`, panicking ratatui's `cell_width` ("control character
-/// passed to cell_width without filtering") on the frame after the open —
+/// passed to cell_width without filtering") on the frame after the open -
 /// the TUI died with a garbled screen. Uses the exact session that crashed
 /// (multiline prompt + HTTP-401 error assistant line), restored through the
 /// real disk load path.
@@ -474,7 +474,7 @@ async fn clicking_multiline_user_message_opens_message_actions_without_panicking
 
     // Sweep every viewport row through the app's real mouse dispatch so any
     // panic on the click-to-open-to-render path reproduces in CI. Row 0 is
-    // the header — its left edge is the back link, whose Up handler runs the
+    // the header - its left edge is the back link, whose Up handler runs the
     // Esc pipeline and can open the quit confirm, so sweeping it would spend
     // the rest of the sweep on that dialog. Start below the header.
     let mut opened = 0;
@@ -608,7 +608,7 @@ async fn pane_fork_branches_the_pane_session_not_the_main_one() {
         _ => {}
     }
     // The fork was fired FROM the split: the split parked (mode closed,
-    // panes preserved) and the fork takes the VISIBLE view — switching the
+    // panes preserved) and the fork takes the VISIBLE view - switching the
     // session behind an open split left the screen on the pane grid while
     // the fork existed only behind it.
     assert!(app.agents_split.is_none(), "the split parked on the fork");
@@ -635,7 +635,7 @@ async fn pane_fork_branches_the_pane_session_not_the_main_one() {
 }
 
 /// Revert from a pane click truncates the PANE's stored session and rebuilds
-/// the pane's timeline from it — the main view's session stays untouched.
+/// the pane's timeline from it - the main view's session stays untouched.
 #[tokio::test]
 async fn pane_revert_truncates_the_pane_session_and_rebuilds_the_timeline() {
     let _guard = HOME_LOCK.lock();
@@ -672,7 +672,7 @@ async fn pane_revert_truncates_the_pane_session_and_rebuilds_the_timeline() {
 
 /// The menu's scope is the CLICK's identity, not the pane kind: a USER echo
 /// offers Revert/Fork on an ACP pane too (the timeline path), while an
-/// `agents_call` input — no user ordinal — stays Copy-only.
+/// `agents_call` input - no user ordinal - stays Copy-only.
 #[tokio::test]
 async fn pane_dialog_offers_actions_for_user_echoes_on_every_pane_kind() {
     let _guard = HOME_LOCK.lock();
@@ -743,7 +743,7 @@ async fn pane_dialog_offers_actions_for_user_echoes_on_every_pane_kind() {
 /// actions feature (legacy single-line JSONL, no embedded context, no
 /// message boundaries) still forks from a pane bound to it. The store
 /// resolves the legacy branch, `context_selection` falls back to the
-/// id-keyed selection, and the fork lands as a store session — no refusal
+/// id-keyed selection, and the fork lands as a store session - no refusal
 /// toast, no silent no-op.
 #[tokio::test]
 async fn pane_fork_works_on_a_legacy_prefeature_session() {
@@ -1135,7 +1135,7 @@ async fn pane_revert_on_an_acp_pane_truncates_the_timeline_and_resets_the_sessio
 /// An `agents_call` prompt sits between two of the user's prompts: the pane
 /// session stores it as a user message, but it has NO echo ordinal. The
 /// action must align the prompt sequence by text and target the prompt the
-/// user actually clicked — the raw ordinal used to revert/fork the agent's
+/// user actually clicked - the raw ordinal used to revert/fork the agent's
 /// call instead.
 #[tokio::test]
 async fn pane_action_targets_the_clicked_prompt_across_agent_call_prompts() {
@@ -1229,7 +1229,7 @@ async fn pane_action_targets_the_clicked_prompt_across_agent_call_prompts() {
 /// boundaries when the two lists line up, and Revert/Fork resolve a clicked
 /// message through those boundaries. Compaction checkpoints, runtime errors
 /// and Command-mode user commands each own a group despite not being prose
-/// turns — a projection that skipped or merged one would silently disable
+/// turns - a projection that skipped or merged one would silently disable
 /// both actions on the whole session, which is exactly the bug this pins.
 #[test]
 fn manager_context_display_keeps_one_message_per_context_group() {
@@ -1320,7 +1320,7 @@ fn manager_context_display_keeps_one_message_per_context_group() {
         display[1].1
     );
     // The result's output landed on the call's own message, not a group of
-    // its own — the pairing `update_ctx_ids` reproduces.
+    // its own - the pairing `update_ctx_ids` reproduces.
     let tool = display[2]
         .1
         .iter()
@@ -1340,7 +1340,7 @@ fn manager_context_display_keeps_one_message_per_context_group() {
 /// When the clicked prompt cannot be matched to the pane's stored session AND
 /// an `agents_call` prompt makes the raw ordinal ambiguous, the action must
 /// REFUSE. Reverting or forking the wrong turn is destructive and silent, so
-/// the honest answer is a toast — the fallback this replaced used to act on
+/// the honest answer is a toast - the fallback this replaced used to act on
 /// position alone.
 #[tokio::test]
 async fn pane_action_refuses_an_unmatched_prompt_instead_of_guessing() {

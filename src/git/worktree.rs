@@ -3,13 +3,13 @@
 //! Pure git/FS machinery, no UI and no pane knowledge: the callers (the
 //! `/worktree` slash command and the `agents_worktree` tool) decide WHICH
 //! pane gets isolated and with whose authority; this module only knows how
-//! to create git worktrees. It never removes worktrees or their branches —
+//! to create git worktrees. It never removes worktrees or their branches -
 //! those are permanent artifacts of the user's repository.
 //!
 //! Design constraints (from the approved plan):
 //!
 //! - Worktrees live under `<OS temp>/morpheus-worktrees/<slug>` by default. The
-//!   tool layer never accepts a path from the agent — the agent can only
+//!   tool layer never accepts a path from the agent - the agent can only
 //!   ever pin a pane into this managed directory (an explicit path comes
 //!   exclusively from the user's `/worktree add <path> <branch>`).
 //! - Branch names are pre-validated (empty, leading dash, whitespace) so a
@@ -71,7 +71,7 @@ pub enum WorktreeError {
     #[error("invalid worktree name `{0}`: no leading dash, no whitespace or control characters")]
     InvalidName(String),
     /// An explicitly requested worktree path already exists. Default paths
-    /// never hit this — they get a `-2`-style collision suffix instead.
+    /// never hit this - they get a `-2`-style collision suffix instead.
     #[error("worktree path `{0}` already exists")]
     PathExists(String),
     /// The `git` binary could not be spawned at all (missing or unexcutable).
@@ -82,7 +82,7 @@ pub enum WorktreeError {
     /// would have the agent edit files that belong to no checkout of this
     /// repo (typically a checkout of a DIFFERENT project), silently.
     #[error(
-        "`{path}` exists but is not a git worktree of {repo} — give the path of an existing \
+        "`{path}` exists but is not a git worktree of {repo} - give the path of an existing \
          worktree of this repository, or a path that does not exist yet"
     )]
     NotAWorktree { path: String, repo: String },
@@ -90,7 +90,7 @@ pub enum WorktreeError {
     /// isolate: the pane would run in the session's directory and its
     /// branch would be whatever the user checks out there next.
     #[error(
-        "`{path}` is the main checkout of this repository, not a linked worktree — there is \
+        "`{path}` is the main checkout of this repository, not a linked worktree - there is \
          nothing to isolate there; give a path that does not exist yet to create a worktree"
     )]
     MainCheckout { path: String },
@@ -98,14 +98,14 @@ pub enum WorktreeError {
     /// so there is no branch name the argument could be checked against.
     #[error(
         "the worktree at `{path}` is on a detached HEAD, so it has no branch to match \
-         `{expected}` — check out a branch there, or give a path that does not exist yet"
+         `{expected}` - check out a branch there, or give a path that does not exist yet"
     )]
     DetachedHead { path: String, expected: String },
     /// The worktree is on a different branch than the one asked for. An
     /// argument that silently had no effect is exactly the wrong-branch
     /// failure this refusal exists to prevent.
     #[error(
-        "the worktree at `{path}` is on `{actual}`, not `{expected}` — pass `{actual}` to \
+        "the worktree at `{path}` is on `{actual}`, not `{expected}` - pass `{actual}` to \
          attach to it, or a path that does not exist yet"
     )]
     BranchMismatch {
@@ -149,7 +149,7 @@ pub enum Binding {
 /// `bare`, `prunable <reason>`. Only the path and the branch matter here;
 /// the FIRST entry is always the main checkout. Lines are split with
 /// [`str::lines`], so CRLF output parses too, and the remainder of the line
-/// is taken verbatim — paths with spaces survive.
+/// is taken verbatim - paths with spaces survive.
 #[must_use]
 fn parse_worktree_list(out: &str) -> Vec<WorktreeEntry> {
     let mut entries: Vec<WorktreeEntry> = Vec::new();
@@ -188,7 +188,7 @@ pub fn list(repo: &Path) -> Result<Vec<WorktreeEntry>, WorktreeError> {
 /// when canonicalisation fails (a broken symlink, a path that vanished).
 ///
 /// Public because the callers that decide whether a checkout is ALREADY
-/// bound must answer the same question — "is this the same directory?" —
+/// bound must answer the same question - "is this the same directory?" -
 /// that the engine asks when it looks a path up. Two spellings of one
 /// checkout must never be treated as two checkouts there either.
 #[must_use]
@@ -264,7 +264,7 @@ fn adopt(
 /// [`create`], except that an EXPLICIT path which already exists is
 /// validated and ADOPTED when it is a worktree of `repo` on `expected`
 /// branch (see [`Binding`]). The managed-root form (`path: None`) never
-/// adopts — it always creates, exactly as before.
+/// adopts - it always creates, exactly as before.
 ///
 /// This is why worktrees can stay permanent: `/worktree exit` only drops the
 /// binding, so without adoption an existing checkout would be unreachable
@@ -344,7 +344,7 @@ pub fn validate_name(name: &str) -> Result<(), WorktreeError> {
 /// Resolve an explicitly typed worktree path against `repo`.
 ///
 /// `git` runs with `current_dir(repo)`, so a RELATIVE path means "relative
-/// to the repo" — and the value this engine STORES must mean the same
+/// to the repo" - and the value this engine STORES must mean the same
 /// thing, because it later becomes a pane's session cwd, process cwd and
 /// sandbox root, all resolved against the morpheus process's own cwd. Storing
 /// the raw text (`. /wt`) silently pinned the pane to a different tree.
@@ -363,7 +363,7 @@ fn absolute_against(repo: &Path, explicit: &Path) -> PathBuf {
 }
 
 /// Run `git` inside `repo` and return its stdout. A non-zero exit surfaces
-/// git's stderr verbatim — its refusal messages ("contains modified or
+/// git's stderr verbatim - its refusal messages ("contains modified or
 /// untracked files, use --force …") are exactly what the caller wants to
 /// show, so they are never paraphrased away.
 fn git(repo: &Path, args: &[&str]) -> Result<String, WorktreeError> {
@@ -400,7 +400,7 @@ fn branch_exists(repo: &Path, name: &str) -> Result<bool, WorktreeError> {
 /// The branch rule: a name that does not exist yet is created with
 /// `git worktree add <path> -b <name>` (based on the repo's current HEAD);
 /// a name that DOES exist but is checked out in no worktree is REUSED with
-/// `git worktree add <path> <branch>` — an unbound branch is free to check
+/// `git worktree add <path> <branch>` - an unbound branch is free to check
 /// out, and rebinding it is what the user asked for. A branch already
 /// checked out in another worktree is left to git's own refusal ("… is
 /// already checked out at …"), surfaced verbatim.
@@ -408,13 +408,13 @@ fn branch_exists(repo: &Path, name: &str) -> Result<bool, WorktreeError> {
 /// `path`: the checkout directory. `None` (the agent-driven case) pins it
 /// under [`worktrees_root()`] at the name's slug. An explicit path (the
 /// user-driven case) is resolved against `repo` FIRST (a relative path is
-/// relative to the repo, exactly as git reads it) and must not exist —
+/// relative to the repo, exactly as git reads it) and must not exist -
 /// nothing is created at or under a path the user did not type empty.
 ///
 /// The `-2`, `-3`, … suffix on the default path covers ONE case: two
 /// DIFFERENT branch names whose slugs are identical (`Fix.Issue` and
 /// `fix-issue`), where both branches are legal and only the directory
-/// collides. It cannot rescue a repeated SAME name — that fails earlier, on
+/// collides. It cannot rescue a repeated SAME name - that fails earlier, on
 /// the branch ref (`-b` refuses an existing ref; an existing ref bound to
 /// another worktree keeps git's own refusal), which is the correct outcome:
 /// one branch, one worktree.
@@ -479,7 +479,7 @@ pub fn create(
 mod tests {
     use super::*;
 
-    /// A real throwaway repo with one commit on its default branch —
+    /// A real throwaway repo with one commit on its default branch -
     /// `git worktree add` needs a HEAD to branch from.
     fn repo() -> (tempfile::TempDir, PathBuf) {
         let dir = tempfile::tempdir().expect("tempdir");
@@ -533,7 +533,7 @@ mod tests {
         assert_eq!(wt.name, "feature/x");
         assert_eq!(wt.assigned_by, AssignedBy::User);
         // The checkout is real: a linked worktree's `.git` is a FILE whose
-        // `gitdir:` target holds this worktree's HEAD — follow it and check
+        // `gitdir:` target holds this worktree's HEAD - follow it and check
         // the branch there.
         assert!(worktree_dir.join(".git").is_file());
         let git_file = std::fs::read_to_string(worktree_dir.join(".git")).expect("git file");
@@ -547,8 +547,8 @@ mod tests {
         assert!(head.contains("refs/heads/feature/x"), "{head}");
     }
 
-    /// A RELATIVE explicit path means "relative to the repo" — the same
-    /// thing git means when it runs with `current_dir(repo)` — and the value
+    /// A RELATIVE explicit path means "relative to the repo" - the same
+    /// thing git means when it runs with `current_dir(repo)` - and the value
     /// stored for the pane must say exactly that, because it later becomes a
     /// session/process cwd rooted at the morpheus process, not at the repo.
     #[test]
@@ -612,7 +612,7 @@ mod tests {
         );
         // Leave no litter in the SHARED temp root: this test owns these two
         // checkouts, so it unregisters and deletes them itself (the engine
-        // never deletes worktrees — that is a product rule for USER
+        // never deletes worktrees - that is a product rule for USER
         // worktrees, not for a test's own throwaway ones).
         for wt in [&first, &second] {
             let _ = git(
@@ -624,7 +624,7 @@ mod tests {
     }
 
     /// Feature A/1: a second `add` at the SAME path with the SAME branch
-    /// adopts — no second checkout appears in `git worktree list`.
+    /// adopts - no second checkout appears in `git worktree list`.
     #[test]
     fn a_second_add_at_the_same_path_and_branch_adopts_without_a_new_checkout() {
         let (_dir, repo) = repo();
@@ -653,7 +653,7 @@ mod tests {
         );
     }
 
-    /// Feature A/1 (managed form): `path: None` ALWAYS creates — the managed
+    /// Feature A/1 (managed form): `path: None` ALWAYS creates - the managed
     /// root form never adopts, it suffixes.
     #[test]
     fn the_managed_root_form_never_adopts() {
@@ -717,7 +717,7 @@ mod tests {
             }
             other => panic!("expected NotAWorktree, got {other:?}"),
         }
-        // (b) a worktree of a DIFFERENT repository — the likely mistake.
+        // (b) a worktree of a DIFFERENT repository - the likely mistake.
         let foreign = _other_dir.path().join("foreign-wt");
         create(
             &other_repo,

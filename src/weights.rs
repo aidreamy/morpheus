@@ -6,7 +6,7 @@
 //!
 //! The install itself is `morpheus_onnx::hub::install`: cache-first,
 //! `sha256sums.txt` verified before success. Downloads are driven by the TUI's
-//! Download router — never by a chat turn — so this module exposes a plain
+//! Download router - never by a chat turn - so this module exposes a plain
 //! blocking call with a progress callback and no event plumbing of its own.
 
 #[cfg(feature = "onnx")]
@@ -16,7 +16,7 @@ use std::sync::{Arc, Mutex};
 use crate::setup::{DecisionHub, DecisionModel};
 
 /// The graph candidates, quantized first (the mirror may not ship the int8
-/// twin yet — the installer falls back to fp32).
+/// twin yet - the installer falls back to fp32).
 const GRAPHS: &[&str] = &["laya.int8.onnx", "laya.onnx"];
 
 /// One install target resolved from the setup config: which repo, which
@@ -28,7 +28,7 @@ pub struct WeightsTarget {
     /// The checkpoint's subfolder inside the mirror (`None` = repo root).
     pub subfolder: Option<String>,
     /// The revision pin. `Some` when the config pins one; `None` resolves
-    /// the mirror's current revision on the first install — the snapshot
+    /// the mirror's current revision on the first install - the snapshot
     /// stays cached, so later sessions reuse it without re-resolving.
     pub revision: Option<String>,
     /// The model's user-facing name (upstream family + checkpoint, or the
@@ -57,7 +57,7 @@ impl WeightsTarget {
 /// The revision pin is scoped to the MIRROR: `pinned_revision` records the
 /// SHA the mirror resolved to on its first download, so it applies only
 /// when the target's repo IS the effective mirror. A `Custom` kind
-/// pointing at a different hub repo never carries it — a stale mirror SHA
+/// pointing at a different hub repo never carries it - a stale mirror SHA
 /// would 404 against that repo and permanently disable the audit.
 #[cfg(feature = "onnx")]
 pub fn resolve_target(model: &DecisionModel, hub: &DecisionHub) -> Option<WeightsTarget> {
@@ -192,7 +192,7 @@ struct Files {
 impl Files {
     /// `init(size, filename)`: a file starts (or resumes). A NEW file adds
     /// its size to the running total; a RE-init (resume/retry) replaces the
-    /// file's previous accounting — its old size and position leave the
+    /// file's previous accounting - its old size and position leave the
     /// sums, the resumed window re-accumulates from zero.
     fn start_file(&mut self, name: String, size: u64) {
         match self.table.get_mut(&name) {

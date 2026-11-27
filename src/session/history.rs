@@ -157,45 +157,45 @@ pub(crate) enum MetadataDelta {
     },
     /// The `/agents` split-pane mode left on this session: `Some` carries
     /// the chosen pane set (morpheus only when the user marked it) so reopening
-    /// the session restores the mode with the same panes — and, for panes
+    /// the session restores the mode with the same panes - and, for panes
     /// that already ran, the SAME agent sessions (`AgentPaneRef` is
     /// serialized untagged: a bare name is byte-identical with the
     /// pre-binding deltas, so old histories replay as fresh `Name` panes).
     /// `None` records the mode being closed. `mode_open` distinguishes the
     /// split SCREEN being left open (`true`) from a PARKED set (`false`,
-    /// pane list retained but the mode left the screen) — persisted only
+    /// pane list retained but the mode left the screen) - persisted only
     /// with newer deltas; older payloads default to `false`, so a session
     /// an old build left open reopens parked (one `/agents` re-attaches).
-    /// UI-only bookkeeping — never model-facing data.
+    /// UI-only bookkeeping - never model-facing data.
     Agents {
         panes: Option<Vec<crate::types::AgentPaneRef>>,
         #[serde(default)]
         mode_open: bool,
         /// The LIFO stack of panes the user HID (Backspace) but did not
-        /// delete — carried alongside the visible `panes` so a Ctrl+Z
+        /// delete - carried alongside the visible `panes` so a Ctrl+Z
         /// restores the most recently hidden pane. Older payloads default
-        /// to empty (nothing was ever hidden). UI-only bookkeeping — never
+        /// to empty (nothing was ever hidden). UI-only bookkeeping - never
         /// model-facing data.
         #[serde(default)]
         hidden: Vec<crate::types::HiddenPane>,
         /// The MAIN agent's worktree binding (`/worktree` with no split
         /// open). Carried on the same delta as the pane set because it is
-        /// the same kind of fact — where an agent works — and it saves a
+        /// the same kind of fact - where an agent works - and it saves a
         /// second delta shape. Older payloads default to `None` (the main
         /// agent worked in the session's startup cwd), so old histories
-        /// replay unchanged. UI-only bookkeeping — never model-facing data.
+        /// replay unchanged. UI-only bookkeeping - never model-facing data.
         #[serde(default)]
         main_worktree: Option<crate::git::worktree::PaneWorktree>,
     },
     /// The durable input history (see `Session::input_history`) REPLACED
     /// wholesale: a fork inheriting the parent's list, or a reconciliation
-    /// after a load. UI-only bookkeeping — never model-facing data.
+    /// after a load. UI-only bookkeeping - never model-facing data.
     InputHistory { entries: Vec<String> },
     /// The durable input history EXTENDED with the user's newest inputs, in
-    /// send order — the normal case, so the history file grows by one short
+    /// send order - the normal case, so the history file grows by one short
     /// delta per prompt instead of a full copy of the list. Replayed by
     /// appending; older payloads never carry it (no history existed).
-    /// UI-only bookkeeping — never model-facing data.
+    /// UI-only bookkeeping - never model-facing data.
     InputHistoryAppend { entries: Vec<String> },
 }
 
@@ -1845,7 +1845,7 @@ not-json"#;
 
     /// A `MetadataDelta::Agents` carrying a hidden stack replays into the
     /// projection: the visible panes AND the hidden stack both land on the
-    /// session (hiding never deletes the pane — it only moves it here).
+    /// session (hiding never deletes the pane - it only moves it here).
     #[test]
     fn agents_delta_replays_the_visible_set_and_the_hidden_stack() {
         let hidden = vec![crate::types::HiddenPane {
@@ -1889,7 +1889,7 @@ not-json"#;
     }
 
     /// A payload written before the hidden stack existed (no `hidden` key)
-    /// replays as an empty stack — the visible set is untouched.
+    /// replays as an empty stack - the visible set is untouched.
     #[test]
     fn legacy_agents_delta_without_hidden_defaults_to_empty() {
         let event = HistoryEvent::new(

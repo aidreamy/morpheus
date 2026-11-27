@@ -1,5 +1,5 @@
-//! Demonstrate `bash`: the streaming output contract — stdout/stderr chunks
-//! then a single exit-status item — plus environment variables, working
+//! Demonstrate `bash`: the streaming output contract - stdout/stderr chunks
+//! then a single exit-status item - plus environment variables, working
 //! directory, the hard runtime cap (with and without partial output), the
 //! security validation that rejects absolute paths and dangerous patterns,
 //! and PTY mode.
@@ -76,8 +76,8 @@ async fn main() {
     show("non-zero exit", &run_and_render(&bash, "exit 42").await);
 
     // 4. A signal death: killed by SIGKILL (9); exit_code is None.
-    //    Windows/ConPTY has no signal concept — a killed child surfaces as
-    //    a non-zero exit code — so this demo is Unix-only.
+    //    Windows/ConPTY has no signal concept - a killed child surfaces as
+    //    a non-zero exit code - so this demo is Unix-only.
     #[cfg(unix)]
     show(
         "killed by signal",
@@ -99,14 +99,14 @@ async fn main() {
     // 7. Hard runtime cap with partial output: the printed prefix survives,
     //    then a `runtime cap:` diagnostic and a final `signal: -1` item
     //    arrive. (Hangs themselves are handled automatically by the
-    //    liveness watchdog — no timeout argument exists.)
+    //    liveness watchdog - no timeout argument exists.)
     let bash_timed = Bash::new().cwd(dir.to_string_lossy()).timeout(300);
     show(
         "runtime cap (partial output kept)",
         &run_and_render(&bash_timed, "echo partial && sleep 10").await,
     );
 
-    // 8. A zero cap kills before the child can write anything — exactly
+    // 8. A zero cap kills before the child can write anything - exactly
     //    one deterministic item, `signal: -1`.
     let bash_zero = Bash::new().cwd(dir.to_string_lossy()).timeout(0);
     show(

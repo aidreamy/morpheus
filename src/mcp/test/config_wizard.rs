@@ -59,7 +59,7 @@ fn wizard_routes_credential_by_shape() {
         McpTransport::Http(http) => assert_eq!(http.api_key_env, None),
         McpTransport::Stdio(_) => panic!("expected http"),
     }
-    // stdio servers take credentials from their own environment — a
+    // stdio servers take credentials from their own environment - a
     // client-side key there is always a config mistake.
     let err = build_mcp_entry("loc", "npx -y server", "", "$KEY").unwrap_err();
     assert!(err.contains("stdio"), "{err}");

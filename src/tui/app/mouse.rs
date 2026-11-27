@@ -100,7 +100,7 @@ impl App {
 
         // The /agents picker is a top-most modal: it owns clicks over its
         // centered box (toggle the row, wheel to navigate) before the split
-        // panes, the slash menu or the transcript can react — but never
+        // panes, the slash menu or the transcript can react - but never
         // before an open dialog box (see `dialog_box_open` above).
         if !dialog_box_open && self.agents_picker.visible {
             match self
@@ -122,9 +122,9 @@ impl App {
         // starts a copy-by-selection drag (the chat's contract) AND moves
         // prompt focus to that pane, a release inside the pane copies the
         // selection, and the wheel scrolls the pane under the pointer (the
-        // right panel's per-section scroll contract — the other panes stay
-        // put). Checked before the slash menu and selection logic — the
-        // panes replace the transcript while the split mode is active — but
+        // right panel's per-section scroll contract - the other panes stay
+        // put). Checked before the slash menu and selection logic - the
+        // panes replace the transcript while the split mode is active - but
         // AFTER any open dialog box: an exit confirm floating over the
         // panes keeps its clicks.
         if !dialog_box_open
@@ -190,22 +190,20 @@ impl App {
                             if let Some(split) = self.agents_split.as_mut() {
                                 split.answer_pending_permission(
                                     index,
-                                    morpheus_agents::events::PanePermissionAnswer::Selected(
-                                        id,
-                                    ),
+                                    morpheus_agents::events::PanePermissionAnswer::Selected(id),
                                 );
                             }
                             return Ok(true);
                         }
                     }
                     // Outside any option row (or a non-focused pane): fall
-                    // through — the focus/selection handling below runs and
+                    // through - the focus/selection handling below runs and
                     // the click focuses the pane (its box becomes
                     // answerable).
                 }
                 // Per-pane scroll pill (the shared `⮟` component): a click
                 // jumps that pane back to the live tail and re-engages its
-                // auto-follow. Checked before focus/selection — the pill is
+                // auto-follow. Checked before focus/selection - the pill is
                 // a button, not a selection anchor.
                 if matches!(event_type, MouseEventType::Down)
                     && button == MouseButton::Left
@@ -231,7 +229,7 @@ impl App {
                     MouseEventType::Down if button == MouseButton::Left => {
                         // Double-click on a pane toggles its EXPANSION: the
                         // pane takes the session area, the others keep
-                        // running off-screen (the events never stopped) —
+                        // running off-screen (the events never stopped) -
                         // and the second press inside the expanded pane
                         // restores the grid. Detector: the same pane
                         // pressed twice within the double-click window.
@@ -240,12 +238,12 @@ impl App {
                         // so Ctrl+O and the double-click stay in sync).
                         const DOUBLE_CLICK: Duration = Duration::from_millis(400);
                         // A click on a pane's INPUT box (the sent-prompt
-                        // box) is a deliberate target — never a maximize
+                        // box) is a deliberate target - never a maximize
                         // gesture: the double-click detector MUST NOT
                         // consume it. Without this guard a user re-clicking
                         // inside the box within 400ms (e.g. aiming at the
                         // smaller box) has the press swallowed by
-                        // `toggle_maximized` instead of landing — the
+                        // `toggle_maximized` instead of landing - the
                         // "needs several clicks" report. Focus and the box
                         // click coexist: both fire below as usual.
                         let on_input_box = self.agents_split.as_ref().is_some_and(|split| {
@@ -314,7 +312,7 @@ impl App {
                         // surface the press started on (prompt/chat drag
                         // ending over a pane): fall through to the generic
                         // dispatch so it copies and clears instead of dying
-                        // silently here — and leave the focus alone (a
+                        // silently here - and leave the focus alone (a
                         // foreign release must not steal it).
                         if let Some(split) = &mut self.agents_split
                             && split.has_selection()
@@ -392,7 +390,7 @@ impl App {
                 self.scroll_pill_pressed = false;
                 // Scroll-to-bottom pill: a press on the `↓` button jumps back
                 // to the latest content and re-engages the sticky auto-follow.
-                // Checked before any selection/prompt bookkeeping — the pill
+                // Checked before any selection/prompt bookkeeping - the pill
                 // is a button, not a selection anchor. Skipped while a modal
                 // dialog or the slash menu is visible: both paint ABOVE the
                 // pill, so a click there belongs to them.
@@ -418,7 +416,7 @@ impl App {
                     return Ok(true);
                 }
                 self.mouse_down_pos = Some((x, y));
-                // NOTE: `press_started_in_prompt` is NOT armed here — it is
+                // NOTE: `press_started_in_prompt` is NOT armed here - it is
                 // armed by the anchor blocks below, only when a prompt text
                 // anchor was actually created (a click on the box's
                 // border/label rows or on the left padding creates none, and
@@ -487,7 +485,7 @@ impl App {
                 // (question text, Text answer, custom draft) anchors a mouse
                 // copy selection, mirroring the chat prompt's press-and-drag.
                 // Option labels, gaps, tab bar and footer fall through to the
-                // dialog's ordinary click dispatch on release — they never
+                // dialog's ordinary click dispatch on release - they never
                 // anchor one; a press there just drops a lingering selection.
                 if matches!(self.mode(), AppMode::Session) && self.question_dialog.visible {
                     let qa = self.question_dialog_area();
@@ -501,7 +499,7 @@ impl App {
 
                 // Press inside the free-gateway dialog's copyable regions
                 // (explanation body, device code, verification URL) anchors a
-                // copy selection — same pattern as the question dialog. Any
+                // copy selection - same pattern as the question dialog. Any
                 // press inside the drawn box is CONSUMED: on a non-copyable
                 // cell (gap row, padding) it just clears the selection, it
                 // never arms the chat's drag selection underneath.
@@ -645,7 +643,7 @@ impl App {
                     }
                     return Ok(true);
                 }
-                // Drag with a question-dialog selection active extends it —
+                // Drag with a question-dialog selection active extends it -
                 // but only while the pointer stays over the SAME copyable
                 // region the press anchored on (the dialog's extend ignores
                 // foreign regions; option rows yield None and keep the
@@ -665,7 +663,7 @@ impl App {
                 // verification URL). A drag belongs to the box when it was
                 // ANCHORED in it (gap rows only pause the extension) OR the
                 // PRESS started inside it (the options row, the question row
-                // and the footer are click targets, not copy anchors — but
+                // and the footer are click targets, not copy anchors - but
                 // their drags must never spill into the chat's selection
                 // either). Both cases consume unconditionally.
                 let press_started_in_box = self
@@ -691,7 +689,7 @@ impl App {
                     // We need prompt_area to be in scope below, so compute it first.
                     let prompt_area = self.compute_prompt_area();
                     // Ownership first: a drag that ANCHORED inside the prompt
-                    // stays the prompt's for its whole life — even when the
+                    // stays the prompt's for its whole life - even when the
                     // pointer leaves the box (below it: the only direction
                     // that extends a selection from the prompt's tail).
                     // Re-deriving ownership per event from the CURRENT pointer
@@ -766,7 +764,7 @@ impl App {
                 self.press_started_in_prompt = false;
                 // Release of a scroll-to-bottom pill press: swallow it so the
                 // chat content underneath the pill's old row never sees the
-                // click (the pill is gone by now — the jump re-attached the
+                // click (the pill is gone by now - the jump re-attached the
                 // bottom and a fresh frame cleared its hit rect).
                 if self.scroll_pill_pressed {
                     self.scroll_pill_pressed = false;
@@ -784,7 +782,7 @@ impl App {
                 self.release_was_drag = is_drag;
 
                 // A PLAIN click (no drag) on a copyable cell anchored a
-                // selection the drag-only copy block below never consumes —
+                // selection the drag-only copy block below never consumes -
                 // the leftover anchor would then swallow the NEXT chat drag
                 // (the drag arm routes every event to the box while it
                 // lives). Drop it now; the click continues to the ordinary
@@ -794,7 +792,7 @@ impl App {
                 }
 
                 // Clicks that start and land over the open session-list
-                // left panel belong to the left panel — never to whatever occupies
+                // left panel belong to the left panel - never to whatever occupies
                 // the same row in the chat (the prompt input or a user
                 // message). Route them there before any chat handling below
                 // so a session click is not stolen by the prompt's focus
@@ -838,8 +836,8 @@ impl App {
 
                     // Auto-copy a question-dialog drag selection on release
                     // (question text / Text answer / custom draft). The bare
-                    // anchor — a drag that never re-entered a copyable region
-                    // — also consumes the release: it started inside the
+                    // anchor - a drag that never re-entered a copyable region
+                    // - also consumes the release: it started inside the
                     // dialog and must not act as a click on whatever row the
                     // pointer is over now.
                     if matches!(self.mode(), AppMode::Session)
@@ -855,11 +853,11 @@ impl App {
                     }
 
                     // Auto-copy a free-gateway dialog drag selection on
-                    // release (body / device code / URL) — the SAME drag
+                    // release (body / device code / URL) - the SAME drag
                     // pattern as the question dialog. The bare anchor also
                     // consumes the release so it never clicks through. A
                     // drag that STARTED in the box without an anchor (press
-                    // on the options/question row) is consumed too — it
+                    // on the options/question row) is consumed too - it
                     // must never reach the session-view copy below.
                     if self.free_gateway_dialog.visible
                         && self.gateway_dialog_route()
@@ -957,7 +955,7 @@ impl App {
                             );
                             // Build regions for the whole content span between
                             // anchor and focus, not just the currently visible
-                            // window — the drag may have auto-scrolled across
+                            // window - the drag may have auto-scrolled across
                             // scroll boundaries.
                             let (cs_start, cs_end) =
                                 self.session_view.selection_content_range(sy, y);
@@ -1024,7 +1022,7 @@ impl App {
         // NOTE: `last_scroll_time` must only be reset when a scroll is actually
         // processed. Resetting it on ANY mouse event (Move/Down/Up) made the
         // first wheel notch after moving the mouse land inside the 50ms window
-        // and get dropped — the visible "lag" when starting to scroll after idle.
+        // and get dropped - the visible "lag" when starting to scroll after idle.
         let now = Instant::now();
         let scroll_elapsed = now.duration_since(self.last_scroll_time);
         if matches!(
@@ -1248,7 +1246,7 @@ impl App {
         }
 
         // Flat-list route pickers (Internal Tools, ADD Provider) own their
-        // non-release hover events too — same contract as the model picker
+        // non-release hover events too - same contract as the model picker
         // above: the regular dispatch below runs only on release, so without
         // this path the row highlight could never follow the mouse.
         if matches!(
@@ -1335,7 +1333,7 @@ impl App {
                         // and the internal-tools list).
                         self.state.right_panel.subagent_list_hover_at(y);
                         // Corner hints (f1/f2/f3/f4) light white under the
-                        // cursor — hover focus, equal for every hint.
+                        // cursor - hover focus, equal for every hint.
                         self.state.right_panel.set_hint_hover(x, y);
                     } else if let Some(split) = self.agents_split.as_mut() {
                         // The /agents split owns the session surface: the
@@ -1388,7 +1386,7 @@ impl App {
             }
             // Sessions-list follow for routes WITHOUT a session surface
             // (home): the left panel overlays every route, but the
-            // Session-gated hover block above never fires there — without
+            // Session-gated hover block above never fires there - without
             // this the same list follows the cursor in session and ignores
             // it on home. Same contract: a miss keeps the current
             // selection, hover never switches, deletes, or opens anything.
@@ -1410,7 +1408,7 @@ impl App {
             return Ok(true);
         }
 
-        // Header back button — invoke the same Esc pipeline used by the
+        // Header back button - invoke the same Esc pipeline used by the
         // keyboard so every route keeps its existing return/close behavior.
         // Handle on release so one click cannot execute Esc twice (Down + Up).
         if event_type == MouseEventType::Up
@@ -1429,7 +1427,7 @@ impl App {
             return Ok(true);
         }
 
-        // ⧉ copy button of a copyable toast (e.g. the update announcement) —
+        // ⧉ copy button of a copyable toast (e.g. the update announcement) -
         // copy the payload to the clipboard. Toasts render on top of all
         // chrome, so their button outranks the links below in z-order; the
         // toast's own lifetime clears the hitbox when it is dismissed.
@@ -1453,7 +1451,7 @@ impl App {
             return Ok(true);
         }
 
-        // Session footer's update button (`v0.1.2` in `v0.1.1 → v0.1.2`) —
+        // Session footer's update button (`v0.1.2` in `v0.1.1 → v0.1.2`) -
         // run the release install pipeline.
         // Guarded by dialog visibility: this click INSTALLS software and
         // closes the app, so it must never fire through a modal dialog
@@ -1509,7 +1507,7 @@ impl App {
                 DialogAction::Login => {
                     // The API-key dialog's Login button: swap the box for
                     // the device sign-in display and start the background
-                    // flow. The provider comes from the dialog's own state —
+                    // flow. The provider comes from the dialog's own state -
                     // nothing else in the stack carries it. The shared
                     // entry keeps click and Tab on one code path.
                     if let Some(d) = self.dialog.current()
@@ -1579,12 +1577,12 @@ impl App {
                                         None
                                     };
                                 if let Some((model, provider)) = selection {
-                                    // Applies the model — or pushes the reasoning
+                                    // Applies the model - or pushes the reasoning
                                     // sub-dialog when the model supports it.
                                     self.confirm_model_entry(&model, &provider);
                                 }
                                 // confirm_model_entry pops the dialog itself (or
-                                // stacked a reasoning dialog on top) — skip the
+                                // stacked a reasoning dialog on top) - skip the
                                 // unconditional pop below in that case.
                                 return Ok(true);
                             }
@@ -1665,7 +1663,7 @@ impl App {
                             }
                             DialogType::ApiKeyInput { .. } | DialogType::LocalUrlInput { .. } => {
                                 // Keep the dialog open when the input was
-                                // rejected (e.g. invalid local URL) — matches
+                                // rejected (e.g. invalid local URL) - matches
                                 // the Enter-key behavior.
                                 if self.save_text_input_dialog() {
                                     self.dialog.pop();
@@ -1685,7 +1683,7 @@ impl App {
                 }
                 DialogAction::Dismissed if self.is_telemetry_consent_visible() => {
                     // A click outside the consent box dismisses it; like Esc,
-                    // that is a "No" — the box asks permission, so an
+                    // that is a "No" - the box asks permission, so an
                     // accidental dismissal must never leave collection on.
                     self.resolve_telemetry_consent(false);
                     return Ok(true);
@@ -1693,7 +1691,7 @@ impl App {
                 DialogAction::Dismissed => {
                     // The /agents config box dismissed by click: drop its
                     // dispatch context with the box (no restore semantics
-                    // like the model/theme pickers — nothing to revert).
+                    // like the model/theme pickers - nothing to revert).
                     if self.is_agent_config_dialog_visible() {
                         self.agent_config_edit = None;
                         self.dialog.pop();
@@ -1754,7 +1752,7 @@ impl App {
                     self.question_dialog.submitted = false;
                     self.prompt_view.focus();
                 } else if consumed && !self.question_dialog.visible {
-                    // Dismissed via footer esc click — mirror the Esc-key path.
+                    // Dismissed via footer esc click - mirror the Esc-key path.
                     self.stop_signal.store(true, Ordering::Relaxed);
                     let _ = self
                         .answer_tx
@@ -1792,9 +1790,9 @@ impl App {
             }
         }
 
-        // 5b. Free-gateway recommendation dialog (inline, Session only —
+        // 5b. Free-gateway recommendation dialog (inline, Session only -
         // every trigger lives in a session). The rect comes from
-        // `free_gateway_dialog_area` — the SAME geometry render draws with
+        // `free_gateway_dialog_area` - the SAME geometry render draws with
         // (`session_main_area` already handles the right-panel subtraction
         // per mode), so click rows and drawn rows can never disagree.
         if self.free_gateway_dialog.visible && self.gateway_dialog_route() {
@@ -1824,7 +1822,7 @@ impl App {
             {
                 // A pending `agents_worktree` ask RESOLVES FIRST: while it
                 // is parked, this box belongs to it (the ask is the
-                // agent's, the answer is the user's, resolved App-side —
+                // agent's, the answer is the user's, resolved App-side -
                 // never sent into the main loop's `perm_tx`).
                 if self.pending_worktree_confirmation.is_some() {
                     self.resolve_pending_worktree_permission(action);
@@ -1863,7 +1861,7 @@ impl App {
         {
             if let Some(queues) = self.state.current_pending_queues() {
                 // Map the clicked visual row back to the message that owns it
-                // using the same layout the renderer draws — including each
+                // using the same layout the renderer draws - including each
                 // message's own padding rows, which resolve to their owner.
                 let row = (y - pending_area.y) as usize;
                 let Some((queue_idx, msg_idx)) =
@@ -1901,7 +1899,7 @@ impl App {
                 if let Some(message_id) = self.session_view.pending_message_action.take() {
                     let session = self.state.current_session();
                     // Any USER message offers Revert/Fork (append-only context
-                    // makes the mapping valid for the whole timeline) — legacy
+                    // makes the mapping valid for the whole timeline) - legacy
                     // rule was "last user message only". Assistant messages
                     // keep Copy-only.
                     let is_user_message = session
@@ -1926,7 +1924,7 @@ impl App {
             }
         }
 
-        // 8c. Router view — the prompt-correction fields own their mouse
+        // 8c. Router view - the prompt-correction fields own their mouse
         // rows before the existing agent-loop fallback router sees a click.
         if matches!(self.mode(), AppMode::Router) && !self.dialog.visible() {
             let area = self.terminal_size();
@@ -1986,7 +1984,7 @@ impl App {
             }
         }
 
-        // 8a. Settings view — mouse click on a setting row toggles it
+        // 8a. Settings view - mouse click on a setting row toggles it
         if matches!(self.mode(), AppMode::Settings) && !self.dialog.visible() {
             let settings_area = self.settings_route_area(self.terminal_size());
             if let Some(clicked_idx) =
@@ -2100,7 +2098,7 @@ impl App {
             return Ok(true);
         }
 
-        // 8b. Internal Tools view — mouse click on a tool row toggles it
+        // 8b. Internal Tools view - mouse click on a tool row toggles it
         if matches!(self.mode(), AppMode::InternalTools) && !self.dialog.visible() {
             let tools_area = self.internal_tools_mouse_area();
             if let Some(clicked_idx) = self.internal_tools_view.handle_mouse(&mouse, tools_area) {
@@ -2113,12 +2111,12 @@ impl App {
                 );
                 return Ok(true);
             }
-        } // 8ba. Rag view — mouse click on DB list row or Create DB button
+        } // 8ba. Rag view - mouse click on DB list row or Create DB button
         if self.handle_rag_mouse_click(&mouse) {
             return Ok(true);
         }
 
-        // 8c. AddProvider view — mouse click on a provider row opens API key input
+        // 8c. AddProvider view - mouse click on a provider row opens API key input
         if matches!(self.mode(), AppMode::AddProvider) && !self.dialog.visible() {
             let tools_area = self.add_provider_mouse_area();
             if let Some(clicked_idx) = self.add_provider_view.handle_mouse(&mouse, tools_area) {
@@ -2150,7 +2148,7 @@ impl App {
         Ok(true)
     }
 
-    /// Hit-test area of the ADD Provider route — the single source of truth
+    /// Hit-test area of the ADD Provider route - the single source of truth
     /// shared by the hover-follow path and the click path, so both agree with
     /// what the render drew (the route occupies everything below the header).
     fn add_provider_mouse_area(&self) -> Rect {
@@ -2164,7 +2162,7 @@ impl App {
         )
     }
 
-    /// Hit-test area of the Internal Tools route — the same shared-geometry
+    /// Hit-test area of the Internal Tools route - the same shared-geometry
     /// contract as [`Self::add_provider_mouse_area`]: one rect for hover and
     /// click so both agree with what the render drew.
     fn internal_tools_mouse_area(&self) -> Rect {
@@ -2178,7 +2176,7 @@ impl App {
         )
     }
 
-    /// Geometry of the inline question dialog — the single source of truth
+    /// Geometry of the inline question dialog - the single source of truth
     /// shared by the wheel arms, the click path and `render.rs`, so region
     /// routing always agrees with what is drawn. Only meaningful while
     /// `question_dialog.visible`: render then hides the prompt, pending
@@ -2186,7 +2184,7 @@ impl App {
     pub(crate) fn question_dialog_area(&self) -> Rect {
         let area = self.terminal_size();
         // The same content area render uses (open left panel AND right panel
-        // subtracted) so the rect always matches the drawn geometry — a
+        // subtracted) so the rect always matches the drawn geometry - a
         // left panel-only main area would draw and hit-test over the panel.
         let main_area = self.session_main_area(area).main;
         // When question dialog is visible, prompt is hidden (like OpenCode)
@@ -2216,7 +2214,7 @@ impl App {
 
     /// Whether the point lies inside the free-gateway dialog's DRAWN rect
     /// (visible + routed + within `free_gateway_dialog_area`). Shared by the
-    /// press/drag arms so a press on ANY cell of the box — copyable or not —
+    /// press/drag arms so a press on ANY cell of the box - copyable or not -
     /// is consumed by the box and never reaches the chat underneath. A
     /// MODAL stacked on top owns the input first: the box can stay visible
     /// underneath another dialog, and its hit-test must not steal presses
@@ -2233,7 +2231,7 @@ impl App {
 
     /// Whether an in-flight mouse drag BELONGS to the free-gateway dialog:
     /// it was anchored inside the box, so it must never spill into the
-    /// chat's drag selection — even when the cursor crosses gap rows,
+    /// chat's drag selection - even when the cursor crosses gap rows,
     /// padding or leaves the rect mid-drag (the hit-test yields `None`
     /// there and the extension just pauses). NOT the same check as
     /// [`Self::gateway_dialog_contains`] (which tests a point): this one
@@ -2305,7 +2303,7 @@ impl App {
         if matches!(self.left_panel, Mode::Explorer) {
             // Explorer click: expand/collapse a directory or open a file
             // in the editor. Clicks never steal focus semantics from the
-            // session list — the explorer owns the panel while active.
+            // session list - the explorer owns the panel while active.
             let action = self
                 .file_explorer
                 .as_mut()
@@ -2327,7 +2325,7 @@ impl App {
                     use crate::ui::toast::{ToastOptions, ToastVariant};
                     self.toast_state.show(ToastOptions {
                         title: Some("Switch session".into()),
-                        message: "The agent is working — wait for it to finish.".into(),
+                        message: "The agent is working - wait for it to finish.".into(),
                         variant: ToastVariant::Warning,
                         duration_ms: 4000,
                     });

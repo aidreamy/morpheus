@@ -1,10 +1,10 @@
 //! The `/agents` standardized config box: a mapped command group (models /
 //! provider / mode) opens ONE morpheus-style picker bound to the focused
-//! pane's OWN ACP config option (matched by id or category — see
+//! pane's OWN ACP config option (matched by id or category - see
 //! `agent_command_map::ConfigTarget`). Confirming a row records the pick
 //! on the pane's config cache; every turn re-applies the pane's picks
 //! inside its own ACP connection (`apply_session_picks`), the only path
-//! that survives — ACP config options are per-connection state.
+//! that survives - ACP config options are per-connection state.
 //!
 //! Reasoning follows the morpheus model-picker flow, not its own entry: a
 //! model pick chains the thought-level sub-box as a SECOND dialog when
@@ -12,7 +12,7 @@
 //! it does not (no synthesized levels, no fallback). That sub-box also
 //! renders the morpheus reasoning shape: NO Search line (a level list never
 //! needs one) and the "Reasoning" title regardless of the harness's own
-//! spelling — the search flag rides the box ([`DialogType::
+//! spelling - the search flag rides the box ([`DialogType::
 //! AgentConfigList`]), the large option catalogs keep theirs.
 
 use super::super::App;
@@ -25,21 +25,21 @@ use morpheus_agents::events::AgentConfigOption;
 
 impl App {
     /// Open the standardized config box for the FOCUSED pane, bound to the
-    /// option `target` selects. Requires the pane's cached config options —
+    /// option `target` selects. Requires the pane's cached config options -
     /// populated by the focus-time snapshot probe, or a harness-initiated
     /// config-option update notification. Without a cache (probe still in
-    /// flight, or the harness never advertised options) nothing opens — the
+    /// flight, or the harness never advertised options) nothing opens - the
     /// pane's own state shows why.
     /// Whether an option's box carries the Search line: the large option
     /// catalogs (the model list can publish 115 values) keep the morpheus
-    /// search; the thought-level box drops it — a level list is a handful
+    /// search; the thought-level box drops it - a level list is a handful
     /// of rows, and the morpheus reasoning picker has no search either.
     fn option_uses_search(option: &AgentConfigOption) -> bool {
         !(option.id == "reasoning" || option.category.as_deref() == Some("thought_level"))
     }
 
     /// The standardized box title for `option`: the harness's own name,
-    /// except the thought-level box — it renders "Reasoning" (the morpheus
+    /// except the thought-level box - it renders "Reasoning" (the morpheus
     /// picker's title) however the harness spells its option (`Effort`,
     /// `Thought level` …), the one word the user never has to relearn.
     fn option_title(option: &AgentConfigOption) -> String {
@@ -87,7 +87,7 @@ impl App {
         });
         // Preselect the current value so Enter re-applies it harmlessly.
         // `filter.selected` is the box's SINGLE source of truth (render,
-        // keyboard, mouse and confirm all read it — a `d.selected` mirror
+        // keyboard, mouse and confirm all read it - a `d.selected` mirror
         // here would let the highlight and the applied value drift apart).
         if let Some(d) = self.dialog.current_mut()
             && let DialogType::AgentConfigList { filter, .. } = &mut d.dialog_type
@@ -128,8 +128,8 @@ impl App {
     /// the (filtered) option rows with the component's wrap, Enter records
     /// the selected value as the pane's pick (every turn re-applies it),
     /// Esc closes, and typing/Backspace edits the shared Search filter
-    /// (resetting the selection to the first row — the morpheus list-box
-    /// behavior). All three read/write `filter.selected` — the box's
+    /// (resetting the selection to the first row - the morpheus list-box
+    /// behavior). All three read/write `filter.selected` - the box's
     /// single source of truth, the same field the render arm and the
     /// confirm path use, so the highlight can never drift from what Enter
     /// applies. Returns true when the key was consumed.
@@ -191,10 +191,10 @@ impl App {
 
     /// Resolve the box's selected row and record it on the PANE. ACP config
     /// options are per-connection state (a set issued on a disposable
-    /// connection dies with it — verified against opencode and kilo), so
+    /// connection dies with it - verified against opencode and kilo), so
     /// the pick's home is the pane cache: every turn re-applies it inside
     /// its own connection (`run_session`'s `apply_session_picks`), the
-    /// only path the harnesses respect. Recording is synchronous — no
+    /// only path the harnesses respect. Recording is synchronous - no
     /// background set whose slow response could race a newer pick.
     pub(in crate::app) fn confirm_agent_config_selection(&mut self) {
         let Some(context) = self.agent_config_edit.take() else {
@@ -210,11 +210,11 @@ impl App {
                     options, filter, ..
                 } => {
                     // The FILTERED rows, indexed by the box's single source
-                    // of truth — Enter must apply the row the search
+                    // of truth - Enter must apply the row the search
                     // painted and the highlight sits on, not an invisible
                     // unfiltered twin. An empty filtered list (a filter
                     // that matches nothing) must NOT fall back to an empty
-                    // value at the harness — the same guard the open path
+                    // value at the harness - the same guard the open path
                     // applies for value-less options.
                     let rows = filter_matches(options, &filter.filter);
                     rows.get(filter.clamped(rows.len()))
@@ -226,7 +226,7 @@ impl App {
         self.dialog.pop();
         let Some(selection) = selection else {
             // No row to apply (empty filtered list): close the box without
-            // dispatching anything — the same no-op the mouse arm gives a
+            // dispatching anything - the same no-op the mouse arm gives a
             // click on the header.
             return;
         };
@@ -235,7 +235,7 @@ impl App {
         // same split generation, the same pane, and the pane still bound
         // to the same agent. A teardown-and-rebuild under an open box
         // (session switch, re-pick) would otherwise dispatch a stale
-        // config id into a rebuilt pane that merely shares the index —
+        // config id into a rebuilt pane that merely shares the index -
         // the confirm-time epoch read the comment below used to claim
         // protection was sampled too late to ever reject anything.
         if self.agents_pane_epoch != open_epoch
@@ -249,10 +249,10 @@ impl App {
         }
         // The pick lives on the PANE, not on a remote session: ACP config
         // options are per-connection state (a set issued on a disposable
-        // connection dies with it — verified against opencode and kilo),
+        // connection dies with it - verified against opencode and kilo),
         // so what makes the choice stick is the pane cache re-applied by
         // EVERY turn (`run_session`'s `apply_session_picks`). Record it
-        // now — even before the pane has any session — and move the badge
+        // now - even before the pane has any session - and move the badge
         // with it, so the pane shows the pick from its next prompt on.
         // The model option's id, resolved through the SAME two-pass
         // `match_option` the box opening used: cline categorizes BOTH its
@@ -289,7 +289,7 @@ impl App {
                 info.model = Some(selection.clone());
                 model_pick = true;
                 // CLI parity: the pane's pick is per-connection state, but the
-                // user's choice itself is global — the agent's own CLI
+                // user's choice itself is global - the agent's own CLI
                 // remembers its last picked model for every NEW session, and
                 // the headless ACP harness never runs the layer that would.
                 // This store is the client-side record: written ONLY here (a
@@ -312,13 +312,13 @@ impl App {
         }
         // The morpheus reasoning flow, replicated: AFTER the model pick, the
         // pane's own thought-level option (when the harness advertises one
-        // with a real choice) opens as a SECOND box — the same UX as the
+        // with a real choice) opens as a SECOND box - the same UX as the
         // model picker's reasoning sub-dialog, so the user never learns a
         // second shape. An agent without a controllable level simply gets
         // no second box: nothing is synthesized where the harness offers
         // none. Opened AFTER the record block above (the option borrow is
         // done) and bound to its OWN config id through the same context
-        // capture — the next confirm is an ordinary pick, no chaining.
+        // capture - the next confirm is an ordinary pick, no chaining.
         if model_pick {
             let follow_up = self
                 .agents_split

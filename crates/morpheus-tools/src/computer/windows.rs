@@ -1,4 +1,4 @@
-//! `computer_windows` — list the windows of ONE application, or operate on
+//! `computer_windows` - list the windows of ONE application, or operate on
 //! one of them (activate/minimize/maximize/restore/close/move/resize).
 //!
 //! The window listing is the bridge from app-level ambiguity ("which of
@@ -66,7 +66,7 @@ pub fn validate(input: &ComputerWindows) -> Result<(), String> {
     if input.nth.is_some() && input.selector.is_none() {
         return Err(format!("{TOOL}: `nth` requires `selector`"));
     }
-    // BOTH pairing rules first — a lone coordinate would otherwise slip
+    // BOTH pairing rules first - a lone coordinate would otherwise slip
     // through to dispatch and coerce the missing member to 0 (a window
     // silently moved to (x, 0)), exactly like the pointer engine's
     // `x`-without-`y` guard.
@@ -108,12 +108,12 @@ pub fn validate(input: &ComputerWindows) -> Result<(), String> {
         _ => {
             if payload_move {
                 return Err(format!(
-                    "{TOOL}: `x`/`y` belong to action `move` — pair them with `action` (`width`/`height` with `resize`)"
+                    "{TOOL}: `x`/`y` belong to action `move` - pair them with `action` (`width`/`height` with `resize`)"
                 ));
             }
             if payload_size {
                 return Err(format!(
-                    "{TOOL}: `width`/`height` belong to action `resize` — pair them with `action` (`x`/`y` with `move`)"
+                    "{TOOL}: `width`/`height` belong to action `resize` - pair them with `action` (`x`/`y` with `move`)"
                 ));
             }
         }
@@ -197,7 +197,7 @@ pub(crate) fn manage(
         .as_deref()
         .map(str::trim)
         .filter(|s| !s.is_empty());
-    // (target element, its index in windows() order — known only for the
+    // (target element, its index in windows() order - known only for the
     // default first-window targeting; the re-observation below matches by
     // title when known and by index otherwise.)
     let (element, listed_index) = match selector {
@@ -255,7 +255,7 @@ pub(crate) fn manage(
 
     // Post-observation: re-list (the platform's live state, never the
     // stale snapshot the target Element carries) and re-find the SAME
-    // window — by title when the target had one, else by its listing
+    // window - by title when the target had one, else by its listing
     // position.
     let listed = listed_index;
     let title = element.data().name.clone();

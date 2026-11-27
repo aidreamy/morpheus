@@ -8,12 +8,12 @@
 //! 2. open the server-wide event stream BEFORE dispatching (no missed parts),
 //! 3. dispatch the turn: a plain message goes to
 //!    `POST /session/:id/prompt_async`, while a `/command` the server
-//!    advertises goes to `POST /session/:id/command` — the endpoint that
+//!    advertises goes to `POST /session/:id/command` - the endpoint that
 //!    actually executes it,
 //! 4. stream parts as [`SubagentEvent`]s, answering permission requests as
 //!    they arrive (headless auto-approve, or the pane's own answer), and
 //!    forwarding usage, retries and the session title,
-//! 5. end on `session.idle` — or on the caller's stop signal, which is
+//! 5. end on `session.idle` - or on the caller's stop signal, which is
 //!    turned into `POST /session/:id/abort` and the agent's own idle.
 //!
 //! The report contract is the same as the ACP path's: only the text written
@@ -76,7 +76,7 @@ async fn ensure_session(http: &Http, resume: Option<&str>) -> Result<String, Str
 ///
 /// Picks use the ACP config-option convention (`(option id, value)`); the
 /// model option this crate publishes for OpenCode is `model`, whose values
-/// are `provider/model` — exactly what the server's prompt body takes.
+/// are `provider/model` - exactly what the server's prompt body takes.
 #[must_use]
 pub(super) fn model_from_picks(picks: &[(String, String)]) -> Option<api::ModelRef> {
     picks

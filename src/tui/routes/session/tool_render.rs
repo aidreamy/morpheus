@@ -23,7 +23,7 @@ pub(crate) const fn blank_border_chars() -> BorderCharacters {
     }
 }
 
-/// Left-rail border: `│` on the left side only, everything else blank —
+/// Left-rail border: `│` on the left side only, everything else blank -
 /// the chat/tool message gutter.
 pub(crate) const fn left_border_chars() -> BorderCharacters {
     BorderCharacters {
@@ -292,7 +292,7 @@ impl ToolRenderState {
         let display = tool_display(&part.tool);
 
         match (is_running, self.tool_spinners.get_mut(tool_id)) {
-            // Tool is running but no spinner yet — create one.
+            // Tool is running but no spinner yet - create one.
             // Beam starts ON the text (pos 0.0) so it's immediately visible.
             (true, None) => {
                 let text = tool_inline_text(part);
@@ -304,7 +304,7 @@ impl ToolRenderState {
                 spinner.set_beam_pos(0.0);
                 self.tool_spinners.insert(tool_id.to_string(), spinner);
             }
-            // Tool is running but spinner is idle — replace with fresh active.
+            // Tool is running but spinner is idle - replace with fresh active.
             (true, Some(spinner)) if spinner.is_idle() => {
                 let text = tool_inline_text(part);
                 let highlight = tool_color(display)
@@ -315,11 +315,11 @@ impl ToolRenderState {
                 s.set_beam_pos(0.0);
                 *spinner = s;
             }
-            // Tool completed without ever being seen as Running — no spinner.
+            // Tool completed without ever being seen as Running - no spinner.
             // New tools get their spinner created directly in the ToolCall event
             // handler (app.rs), not here. Historical tools should never show one.
             (false, None) => {}
-            // Tool is no longer running — signal the spinner to finish its
+            // Tool is no longer running - signal the spinner to finish its
             // sweep at a visible speed. Covers both Completed and Failed.
             (false, Some(spinner)) if spinner.is_active() => {
                 spinner.with_speed(0.05);
@@ -339,7 +339,7 @@ impl ToolRenderState {
     }
 
     /// Drop spinners that have finished (phase Idle). Idle spinners are never
-    /// rendered — every render path filters with `!is_idle()` — so keeping
+    /// rendered - every render path filters with `!is_idle()` - so keeping
     /// them would grow the map by one entry per tool call the session ever
     /// made. Dropping them bounds the map by the number of tools currently
     /// animating, and a re-created spinner is indistinguishable.
@@ -539,7 +539,7 @@ pub(crate) fn input_content(input: &serde_json::Value) -> Option<String> {
 
 /// True when a completed write carries warnings (e.g. missing file_hash or
 /// hash mismatch). In that case the write did NOT modify the file and the
-/// renderer falls back to the label-only view — shared by the renderer,
+/// renderer falls back to the label-only view - shared by the renderer,
 /// the height estimate and `tool_is_block` so all three agree.
 pub(crate) fn write_has_warnings(part: &ToolPart) -> bool {
     part.output
@@ -551,7 +551,7 @@ pub(crate) fn write_has_warnings(part: &ToolPart) -> bool {
 
 /// Number of content rows the write box draws, or `None` when `render_write`
 /// falls back to the inline label. Mirrors the renderer's predicate exactly:
-/// completed + no warnings + non-empty `input.content` (NOT `output` — the
+/// completed + no warnings + non-empty `input.content` (NOT `output` - the
 /// output of a successful write is a short JSON receipt, unrelated in size
 /// to the previewed content).
 pub(crate) fn write_box_lines(part: &ToolPart) -> Option<u16> {
@@ -569,7 +569,7 @@ pub(crate) fn write_box_lines(part: &ToolPart) -> Option<u16> {
 /// How many rows the write box's code panel PAINTS at the given chat width,
 /// or `None` when `render_write` falls back to the inline label (same
 /// predicate as [`write_box_lines`]). The count comes from the shared
-/// wrapped-row counter at the panel's actual wrap budget — see
+/// wrapped-row counter at the panel's actual wrap budget - see
 /// [`code_panel_rows`]. Shared by the renderer and `estimate_part_height`
 /// so a wrapped preview is never sized shorter than what it paints.
 pub(crate) fn write_box_rows(part: &ToolPart, max_w: u16) -> Option<u16> {
@@ -579,7 +579,7 @@ pub(crate) fn write_box_rows(part: &ToolPart, max_w: u16) -> Option<u16> {
 }
 
 /// Columns a tool box's content row may use: the box paints its text at
-/// `x + TOOL_BOX_X_PAD` with `max_w - TOOL_BOX_X_PAD` usable columns — the
+/// `x + TOOL_BOX_X_PAD` with `max_w - TOOL_BOX_X_PAD` usable columns - the
 /// single source both the renderers and the row estimator wrap against.
 pub(crate) fn tool_box_content_w(max_w: u16) -> u16 {
     max_w.saturating_sub(TOOL_BOX_X_PAD)
@@ -655,14 +655,14 @@ pub(crate) fn edit_diff_content(part: &ToolPart) -> Option<String> {
     }
 }
 
-/// How many rows the edit diff box's body paints at the given chat width —
+/// How many rows the edit diff box's body paints at the given chat width -
 /// capped at 30 exactly like `render_edit`'s body area. Shared by the
 /// renderer and `estimate_part_height` so both derive the box height from
 /// the SAME source. The count comes from `DiffRenderable::painted_rows`,
 /// NOT from `diff.lines().count()`: the split view (chat width ≥ 100)
 /// pairs consecutive `-`/`+` source lines on one row, so sizing the box by
 /// raw line count left up to ~2× its height in unpainted panel rows below
-/// the content — a bottom padding several times the top padding.
+/// the content - a bottom padding several times the top padding.
 pub(crate) fn edit_box_rows(part: &ToolPart, max_w: u16) -> u16 {
     let Some(diff_content) = edit_diff_content(part) else {
         return 0;
@@ -716,7 +716,7 @@ pub(crate) fn extract_diff_from_json(output: &str) -> Option<String> {
 /// message, so two same-tool calls in different messages shared one key and
 /// the older row's finished spinner re-animated when its twin call started
 /// (the map entry flipped back to Active and both rows rendered the beam).
-/// The positional fallback is legacy only — production parts always carry a
+/// The positional fallback is legacy only - production parts always carry a
 /// `call-N` id (live ones from the ToolCall handler, loaded ones from
 /// `ensure_tool_call_ids`).
 pub fn spinner_key(display: &str, tool_call_id: Option<&str>, part_idx: u16) -> String {
@@ -731,7 +731,7 @@ pub fn spinner_key(display: &str, tool_call_id: Option<&str>, part_idx: u16) -> 
 /// display key benefit from pre-creation (the beam must be visible even if
 /// the tool finishes before the next render). The remaining renderers either
 /// draw no spinner at all (`write`/`edit`/`question`/`todo`) or manage a
-/// `generic`-keyed one themselves in [`render_generic`] — for those a
+/// `generic`-keyed one themselves in [`render_generic`] - for those a
 /// pre-created entry under the tool's own display would never be consumed
 /// and, with call-id keys, would leak one forever-Active spinner per call
 /// for the whole app run (invisible, but scanned by
@@ -749,7 +749,7 @@ pub fn tool_pre_creates_spinner(display: &str) -> bool {
 /// `write`/`edit`/`question`/`todo` draw none, and everything else falls
 /// through to [`render_generic`], which manages a `generic`-keyed spinner.
 /// Both the ToolCall handler (pre-creation) and the cache-bypass check in
-/// the session renderer must ask THIS — asking for the display directly
+/// the session renderer must ask THIS - asking for the display directly
 /// would miss generic-managed spinners, and pre-creating under a key no
 /// renderer reads leaks one forever-Active entry per call.
 pub fn renderer_spinner_key(
@@ -828,7 +828,7 @@ pub fn render_shell(ctx: &mut ToolRenderCtx, part: &ToolPart, part_idx: u16) {
         let title = format!("$ {command}");
         let content_w = tool_box_content_w(ctx.max_w);
         // Wrapped rows: long output lines fold onto extra visual rows inside
-        // the box instead of being cut off at its edge (shared counter —
+        // the box instead of being cut off at its edge (shared counter -
         // `estimate_part_height` sizes the box from the same source).
         let lines = tool_box_rows(display.lines(), None, content_w)
             .max(1)
@@ -977,7 +977,7 @@ fn draw_highlighted_code_with_ln(
 
         // Word-wrapped spans: each chunk carries its byte offset within
         // `line`, added to `byte_offset` to index the FULL-content highlight
-        // map — so a token folded across wrap rows keeps a single color.
+        // map - so a token folded across wrap rows keeps a single color.
         // `word_wrap_spans` always yields at least one chunk per line (a
         // blank line arrives as a single empty chunk), so every source line
         // reserves exactly the rows the shared counter counted.
@@ -1141,7 +1141,7 @@ pub fn render_write(ctx: &mut ToolRenderCtx, part: &ToolPart) {
     if let Some(display_lines) = write_box_rows(part, ctx.max_w) {
         // `write_box_rows` already caps the SOURCE lines at 20 and counts
         // their WRAPPED rows; passing that count as the painter's row cap
-        // makes the panel paint exactly the rows the box reserves — the
+        // makes the panel paint exactly the rows the box reserves - the
         // painter walks source lines in order and stops after the same
         // wrapped-row total, so no row is clipped and none is left blank.
         let max_lines = display_lines;
@@ -1199,7 +1199,7 @@ pub fn render_edit(ctx: &mut ToolRenderCtx, part: &ToolPart) {
         *ctx.line_h = area.height;
 
         let mut border_box = BoxRenderable::new();
-        // Morpheus-only override — see `Theme::diff_panel_background`.
+        // Morpheus-only override - see `Theme::diff_panel_background`.
         border_box.set_background_color(Some(
             ctx.theme
                 .diff_panel_background
@@ -1262,7 +1262,7 @@ fn search_tool_summary(part: &ToolPart) -> (Option<String>, bool) {
             // Fallback to O(n) count if cache not available (shouldn't happen in normal flow)
             output.lines().count() as u32
         });
-        return ((count > 0).then(|| format!(" — {count} matches")), false);
+        return ((count > 0).then(|| format!(" - {count} matches")), false);
     }
     let Ok(json) = serde_json::from_str::<serde_json::Value>(output) else {
         return (None, false);
@@ -1300,7 +1300,7 @@ fn search_tool_summary(part: &ToolPart) -> (Option<String>, bool) {
     if parts.is_empty() {
         return (None, warning);
     }
-    (Some(format!(" — {}", parts.join(", "))), warning)
+    (Some(format!(" - {}", parts.join(", "))), warning)
 }
 
 /// Extract the display-ready glob output text from a completed tool part.
@@ -1496,7 +1496,7 @@ pub fn render_glob(ctx: &mut ToolRenderCtx, part: &ToolPart, part_idx: u16) {
 
     let content_w = tool_box_content_w(ctx.max_w);
     // Wrapped rows: long path lines fold onto extra visual rows inside the
-    // box instead of being cut off at its edge (shared counter —
+    // box instead of being cut off at its edge (shared counter -
     // `estimate_part_height` sizes the box from the same source).
     let lines = tool_box_rows(display.lines(), None, content_w)
         .max(1)
@@ -1984,7 +1984,7 @@ pub fn tool_copy_text(part: &ToolPart) -> Option<String> {
             let content = input_content(&part.input).unwrap_or_default();
             (!content.is_empty()).then(|| content.lines().take(20).collect::<Vec<_>>().join("\n"))
         }
-        // NOTE: keyed on the RAW tool name — tool_display("subagent_call")
+        // NOTE: keyed on the RAW tool name - tool_display("subagent_call")
         // falls through to "generic", so a display-keyed arm never matches.
         _ if part.tool == "subagent_call" => {
             // The chat never DRAWS the subagent body (render_generic keeps
@@ -1992,7 +1992,7 @@ pub fn tool_copy_text(part: &ToolPart) -> Option<String> {
             // copies this text. `part.output` is the persisted
             // SubAgentCallOutput envelope (or a plain report on the
             // internal path) whose first line is the CONSUMED severity
-            // header — copying it would leak `<!-- severity: ... -->` into
+            // header - copying it would leak `<!-- severity: ... -->` into
             // the user's clipboard. Unwrap the envelope and strip the
             // header, mirroring exactly what the box displays
             // (subagent_display_output → subagent_visible_body).
@@ -2086,7 +2086,7 @@ pub fn render_todo(ctx: &mut ToolRenderCtx, part: &ToolPart) {
     }
     let content_w = tool_box_content_w(ctx.max_w);
     // Wrapped rows: long descriptions fold onto extra visual rows inside
-    // the box instead of being cut off at its edge (shared counter —
+    // the box instead of being cut off at its edge (shared counter -
     // `estimate_part_height` sizes the box from the same source).
     let total_lines = tool_box_rows(formatted.iter(), None, content_w).max(1);
     let box_h = total_lines.saturating_add(2);

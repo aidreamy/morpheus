@@ -35,7 +35,7 @@ pub struct Deps<'a> {
 /// each of them, and let diagnostics settle.
 ///
 /// Fails when no catalog spec claims the file (unsupported type) or every
-/// spawn failed — an explicit message beats an empty result the model would
+/// spawn failed - an explicit message beats an empty result the model would
 /// misread as "clean".
 pub async fn prepare(deps: &Deps<'_>, path: &Path) -> Result<Vec<Arc<LanguageServer>>, String> {
     let handles = deps
@@ -69,7 +69,7 @@ pub async fn prepare(deps: &Deps<'_>, path: &Path) -> Result<Vec<Arc<LanguageSer
 /// first whole-word occurrence of `symbol` located directly in the file.
 ///
 /// All coordinate math goes through the SDK's position helpers honoring the
-/// server-negotiated encoding — engines never hand-roll it.
+/// server-negotiated encoding - engines never hand-roll it.
 pub async fn resolve_target(
     deps: &Deps<'_>,
     path: &Path,
@@ -158,7 +158,7 @@ pub fn provider_enabled<T>(provider: &Option<OneOf<bool, T>>) -> bool {
 ///
 /// Clients without the capability are skipped; per-client errors are logged
 /// and skipped unless every capable client failed. A null result (server
-/// understood but found nothing) does NOT stop the fan-out — a secondary
+/// understood but found nothing) does NOT stop the fan-out - a secondary
 /// server may still know the answer. When NO client is capable, a distinct
 /// error surfaces instead of an empty result masquerading as "not found".
 pub async fn first_answer<T, P, F>(
@@ -247,7 +247,7 @@ pub(crate) fn symbol_kind_name(kind: morpheus_sdk::lsp::lsp_types::SymbolKind) -
 /// by byte offset so splicing never shifts pending ranges.
 ///
 /// Handles both `changes` and `documentChanges`: our capabilities announce
-/// `documentChanges=false`, so conforming servers use `changes` — but both
+/// `documentChanges=false`, so conforming servers use `changes` - but both
 /// are handled defensively; some servers ignore negotiation.
 pub fn flatten_workspace_edit(
     edit: &WorkspaceEdit,
@@ -367,7 +367,7 @@ pub fn apply_edits(path: &Path, planned: &[PlannedEdit]) -> Result<(), String> {
         let earlier = pair[1];
         if earlier.span.end > later.span.start {
             return Err(format!(
-                "overlapping edits in {} — aborting without writing",
+                "overlapping edits in {} - aborting without writing",
                 path.display()
             ));
         }

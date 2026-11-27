@@ -12,7 +12,7 @@ use crate::util::draw::draw_text_line;
 use crate::util::list_selection::ListSelection;
 
 /// Per-project tool-blocklist file, stored in the directory morpheus was started
-/// from. Keeps one project's blocklist from leaking into another's — the
+/// from. Keeps one project's blocklist from leaking into another's - the
 /// global scope (`setup.json`) is opt-in via the Global toggle.
 const PROJECT_TOOLS_FILE: &str = ".morpheus-tools.json";
 
@@ -93,7 +93,7 @@ pub fn save_disabled_tools(
 /// and the persisted storage in sync with the active scope:
 ///
 /// - Global row: persist the scope choice itself to `setup.json` and reload
-///   `disabled` from the newly selected scope's stored set — the toggle
+///   `disabled` from the newly selected scope's stored set - the toggle
 ///   survives a restart even before any tool is toggled in that scope.
 /// - Tool row: persist the set to the active scope (`setup.json` when
 ///   global, `<cwd>/.morpheus-tools.json` otherwise).
@@ -209,12 +209,12 @@ pub struct InternalToolsView {
     /// When `true` the blocklist is written to the global `setup.json` and
     /// applies to every project; when `false` (the default) it is scoped to
     /// the cwd via `.morpheus-tools.json`. Rendered as the toggle row above the
-    /// tool list — default OFF, hence the ✗ symbol.
+    /// tool list - default OFF, hence the ✗ symbol.
     pub global: bool,
     pub changed: bool,
     /// How many rows actually fit in the current viewport. Updated on every
     /// render so that scrolling, clamping and mouse hit-testing all agree on
-    /// the same value — otherwise items scroll out of view while free space
+    /// the same value - otherwise items scroll out of view while free space
     /// below the list is wasted (same fix as the ADD Provider router).
     /// Counts the Global toggle row: index 0 is Global, 1.. are tools.
     visible_count: usize,
@@ -316,7 +316,7 @@ impl InternalToolsView {
     }
 
     /// Move the visual selection to the row under the pointer WITHOUT
-    /// toggling it — the same hover-follow contract as the model picker and
+    /// toggling it - the same hover-follow contract as the model picker and
     /// the ADD Provider list. Returns whether the pointer hit a tool row;
     /// hovering outside the list keeps the current selection.
     pub fn follow_hover(&mut self, mouse: &MouseEvent, area: Rect) -> bool {
@@ -374,7 +374,7 @@ impl InternalToolsView {
         let desc_x = row_x + cols.desc_x as u16;
 
         // One unified loop: row j on screen renders selection index
-        // scroll_offset + j — index 0 is the Global scope toggle, index n ≥ 1
+        // scroll_offset + j - index 0 is the Global scope toggle, index n ≥ 1
         // is internal_tools()[n - 1]. The Global row scrolls with the list,
         // so the render, the mouse hit-test and the selection window can
         // never disagree on which index a screen row shows.
@@ -722,7 +722,7 @@ mod tests {
     }
 
     /// The hover-follow contract: a Move over a row moves the highlight and
-    /// reports a hit, while a Move outside the list keeps the selection —
+    /// reports a hit, while a Move outside the list keeps the selection -
     /// the same behavior the model picker and the ADD Provider list give
     /// their rows. Hovering never toggles a tool.
     #[test]
@@ -758,7 +758,7 @@ mod tests {
     }
 
     /// Column alignment regression: every drawn row must start its name and
-    /// its description at the SAME x — the fixed-column layout, not a
+    /// its description at the SAME x - the fixed-column layout, not a
     /// free-form string that drifts per row.
     #[test]
     fn columns_align_across_rows() {

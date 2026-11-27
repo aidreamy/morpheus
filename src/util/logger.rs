@@ -1,7 +1,7 @@
 //! File-based logger for debugging the agent loop and tool dispatch.
 //!
 //! Writes structured log entries to `<tmpdir>/morpheus/log/stdout.log` with
-//! timestamps — the same directory that receives the MCP stdio servers'
+//! timestamps - the same directory that receives the MCP stdio servers'
 //! stderr (`mcp_server_<label>_<ts>.log`), so everything observable about a
 //! broken MCP connection lives in one place.
 //!
@@ -12,7 +12,7 @@
 //!   is truncated at 16 MiB so a long session cannot fill the disk.
 //! - **Release builds**: `log::debug!()` and `log::trace!()` are stripped at
 //!   compile time by Cargo's default `release` profiles. Only `info!()`,
-//!   `warn!()`, and `error!()` calls survive — the logger caps at `Info`, so
+//!   `warn!()`, and `error!()` calls survive - the logger caps at `Info`, so
 //!   the MCP connection lifecycle (dialing, settled, per-server failures)
 //!   stays visible even outside a debug build.
 
@@ -117,15 +117,15 @@ impl Log for FileLogger {
 ///
 /// Writes to `<tmpdir>/morpheus/log/stdout.log` in append mode (creating the
 /// directory and the file as needed). The path comes from
-/// [`std::env::temp_dir`] — the std-native, cross-platform temp location —
+/// [`std::env::temp_dir`] - the std-native, cross-platform temp location -
 /// so every entry point funnels into the same stream the MCP server logs
 /// share. `scope` identifies the caller (e.g. `"tui_main"`) and is stamped
 /// into the session's first line, so appends from different entry points
 /// stay attributable.
 ///
-/// - **Debug builds**: sets the max log level to `Debug` — workspace debug
+/// - **Debug builds**: sets the max log level to `Debug` - workspace debug
 ///   calls and all `info!()`, `warn!()`, and `error!()` calls are captured.
-/// - **Release builds**: sets the max log level to `Info` — info, warnings
+/// - **Release builds**: sets the max log level to `Info` - info, warnings
 ///   and errors are recorded (the MCP lifecycle logs are Info).
 ///
 /// # Panics
@@ -179,7 +179,7 @@ pub fn try_init(scope: &str) -> Result<(), String> {
 
     // Session banner: with multiple entry points appending to one file,
     // this is what makes each run's block attributable (and shows the
-    // process started at all — the #1 question when "nothing happens").
+    // process started at all - the #1 question when "nothing happens").
     log::info!(
         "──── morpheus logger init (scope={scope}, pid={}) ────",
         std::process::id()
@@ -220,7 +220,7 @@ mod tests {
     }
 
     // `set_len` on the temp-dir log file is denied by Windows ACLs in some
-    // setups (Os error 5, ERROR_ACCESS_DENIED) — the truncation logic itself
+    // setups (Os error 5, ERROR_ACCESS_DENIED) - the truncation logic itself
     // is platform-independent.
     #[cfg(unix)]
     #[test]

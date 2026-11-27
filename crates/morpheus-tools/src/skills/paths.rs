@@ -2,8 +2,8 @@
 //!
 //! On Windows the harness is frequently launched from Git Bash / MSYS, whose
 //! `HOME` uses POSIX drive syntax (`/c/Users/...`). Native Rust filesystem
-//! calls do not understand that spelling — `Path::new("/c/Users/rooti/.skills")
-//! .is_dir()` is false on Windows — so the `~/.skills` default source was
+//! calls do not understand that spelling - `Path::new("/c/Users/rooti/.skills")
+//! .is_dir()` is false on Windows - so the `~/.skills` default source was
 //! silently dropped and the `skills_*` tools reported an empty list.
 //!
 //! These helpers convert MSYS-style paths to their native Windows spelling
@@ -16,10 +16,10 @@
 /// Pure and platform-independent: returns `None` unless the string matches
 /// exactly `/<drive-letter>/...`. Paths like `/usr/local`, `//server/share`,
 /// relative paths, and already-native `C:/...` paths are left untouched
-/// (forward slashes are kept — they are valid on Windows).
+/// (forward slashes are kept - they are valid on Windows).
 ///
 /// Note: on Windows `/<letter>/...` is therefore ALWAYS interpreted as MSYS
-/// drive syntax — it cannot denote a root-relative `C:\<letter>\...` path.
+/// drive syntax - it cannot denote a root-relative `C:\<letter>\...` path.
 /// This matches MSYS semantics but is an inherent heuristic.
 #[must_use]
 pub fn msys_to_windows(path: &str) -> Option<String> {
@@ -35,7 +35,7 @@ pub fn msys_to_windows(path: &str) -> Option<String> {
 /// Normalize `path` to a native filesystem spelling.
 ///
 /// On Windows, MSYS-style drive paths (`/c/...`) are rewritten to `C:/...`;
-/// everything else — and every path on non-Windows — passes through
+/// everything else - and every path on non-Windows - passes through
 /// unchanged.
 #[must_use]
 pub fn normalize_shell_path(path: &str) -> String {
@@ -52,7 +52,7 @@ pub fn normalize_shell_path(path: &str) -> String {
 /// Best-effort home directory resolution for skill-source defaults.
 ///
 /// Prefers `HOME` (normalizing MSYS spellings on Windows) when it points at
-/// an existing directory, then falls back to `USERPROFILE` — always set on
+/// an existing directory, then falls back to `USERPROFILE` - always set on
 /// Windows, which covers the common broken case of an MSYS `HOME` inherited
 /// from a Git Bash parent process. Returns `None` when neither resolves.
 #[must_use]

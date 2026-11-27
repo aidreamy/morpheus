@@ -4,7 +4,7 @@
 //! optional/defaulted: the server is a separate, independently versioned
 //! project, so an unknown or new field must never break a turn. Events are
 //! handled as [`serde_json::Value`] (see [`super::event`]) for the same
-//! reason — the event union grows with every server release.
+//! reason - the event union grows with every server release.
 //!
 //! Naming follows the server's own camelCase wire format (`sessionID`,
 //! `messageID`, `providerID`, …), so the `ID` suffixes are spelled out.
@@ -13,7 +13,7 @@ use std::collections::HashMap;
 
 use serde::{Deserialize, Serialize};
 
-/// `GET /global/health` — liveness plus the server version.
+/// `GET /global/health` - liveness plus the server version.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Health {
     #[serde(default)]
@@ -386,7 +386,7 @@ pub struct Command {
     pub description: Option<String>,
 }
 
-/// `GET /config/providers` — the providers and the models each one serves.
+/// `GET /config/providers` - the providers and the models each one serves.
 #[derive(Debug, Clone, Default, Deserialize)]
 pub struct Providers {
     #[serde(default)]
@@ -470,7 +470,7 @@ pub struct ModelRef {
 impl ModelRef {
     /// Parse the `provider/model` spelling the server uses everywhere else
     /// (config values, model lists). `None` for a value without a provider
-    /// prefix — the server cannot address such a model.
+    /// prefix - the server cannot address such a model.
     #[must_use]
     pub fn parse(value: &str) -> Option<Self> {
         let (provider, model) = value.split_once('/')?;

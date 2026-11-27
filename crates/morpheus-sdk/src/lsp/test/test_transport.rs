@@ -298,7 +298,7 @@ async fn notifications_arrive_in_order() {
 /// The incoming queue applies backpressure instead of buffering unboundedly
 /// (Zed `INCOMING_MESSAGE_QUEUE_CAPACITY`): when the consumer stops reading,
 /// at most a small slack beyond capacity is buffered while the rest waits in
-/// the pipe — then everything drains once consumption resumes.
+/// the pipe - then everything drains once consumption resumes.
 #[tokio::test]
 async fn bounded_incoming_queue_applies_backpressure() {
     const TOTAL: usize = crate::lsp::transport::INCOMING_CAPACITY * 4;
@@ -476,7 +476,7 @@ async fn dropping_transport_fails_pending_and_flips_exit() {
     let fut = transport.request("doomed", None, Duration::from_secs(30));
     drop(transport); // owner walked away
 
-    // The pending request fails promptly — not after its deadline.
+    // The pending request fails promptly - not after its deadline.
     let err = tokio::time::timeout(Duration::from_millis(500), fut)
         .await
         .expect("pending request must fail on drop, not hang until timeout")

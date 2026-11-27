@@ -48,7 +48,7 @@ pub struct WriteResult {
 /// Strip hashline display prefixes (`[path#hash]` headers and `N:` line prefixes)
 /// from content the model may have copied from read/search output.
 ///
-/// The input must already be LF-normalized (no `\r`, no BOM) — the caller
+/// The input must already be LF-normalized (no `\r`, no BOM) - the caller
 /// canonicalizes with [`normalize::normalize_to_lf`] first, mirroring `read`.
 #[allow(clippy::unwrap_used)]
 fn strip_write_content(content: &str) -> (String, bool) {
@@ -83,7 +83,7 @@ fn strip_write_content(content: &str) -> (String, bool) {
 }
 
 /// Make a file executable when its content starts with a `#!` shebang.
-/// Errors are swallowed — chmod failure must not abort a successful write.
+/// Errors are swallowed - chmod failure must not abort a successful write.
 #[cfg(unix)]
 async fn maybe_make_executable(path: &str) -> bool {
     use std::os::unix::fs::PermissionsExt;
@@ -123,15 +123,15 @@ pub async fn write(metadata: FsMetadata, tg: FsWrite) -> Result<Vec<WriteResult>
         let normalized_input = normalize::normalize_to_lf(&normalize::strip_bom(&target.text).text);
         let (clean_text, stripped) = strip_write_content(&normalized_input);
 
-        // An inconsistent configuration — a path in both the allowlist and
-        // the blocklist — is a hard error, not a per-file warning.
+        // An inconsistent configuration - a path in both the allowlist and
+        // the blocklist - is a hard error, not a per-file warning.
         if let GuardResult::Mismatch(msg) = validate_path(
             &target.path,
             &metadata.root,
             metadata.allowlist.as_deref(),
             metadata.blocklist.as_deref(),
         ) {
-            return Err(format!("permission denied: `{}` — {msg}", target.path));
+            return Err(format!("permission denied: `{}` - {msg}", target.path));
         }
 
         if clean_text.trim().is_empty() {

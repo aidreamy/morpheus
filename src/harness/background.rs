@@ -3,7 +3,7 @@
 //!
 //! The registry is PROCESS-WIDE on purpose: the TUI builds a fresh
 //! [`Harness`](super::core::Harness) for every turn, while a background
-//! sub-agent outlives the turn that spawned it — a per-harness registry
+//! sub-agent outlives the turn that spawned it - a per-harness registry
 //! would lose every task the moment the spawning loop ends. Completion
 //! records are written by the sub-agent's own thread/task (never by a
 //! watcher awaited on the spawning runtime, which may be gone by the time a
@@ -48,24 +48,24 @@ struct BackgroundTask {
     /// Routing identity of the `subagent_call` that spawned this task (the
     /// per-call ref the TUI bound the window with at `ToolCall` time). The
     /// completion notification carries it back so the report lands in ITS
-    /// window — two parallel same-CLI spawns share the agent name but never
+    /// window - two parallel same-CLI spawns share the agent name but never
     /// the ref.
     call_ref: Option<String>,
-    /// Head of the prompt the task was spawned with — context for the model
+    /// Head of the prompt the task was spawned with - context for the model
     /// when it lists several tasks at once.
     input_preview: String,
     status: BackgroundStatus,
     started_ms: u64,
     finished_ms: Option<u64>,
     /// Final report, or the last available partial output on failure (the
-    /// partial work is never dropped — a failed task's notification carries
+    /// partial work is never dropped - a failed task's notification carries
     /// it so the parent can build on it).
     output: Option<String>,
     /// Why the task failed, when it failed.
     error: Option<String>,
     /// Whether the completion notification has been drained for delivery
     /// into the parent model context (once; `subagent_status` never
-    /// consumes it — push and poll are independent).
+    /// consumes it - push and poll are independent).
     notified: bool,
 }
 
@@ -77,7 +77,7 @@ struct RegistryState {
 
 /// Cap for a stored report: only the TAIL is kept past it (the conclusion is
 /// the useful part of a sub-agent report). Also applied by
-/// `subagent_status` — the poll result and the notification see the same
+/// `subagent_status` - the poll result and the notification see the same
 /// text.
 const OUTPUT_MAX_CHARS: usize = 8192;
 
@@ -175,7 +175,7 @@ pub fn has_running_tasks() -> bool {
 }
 
 /// Record the outcome of a background task. Called by the sub-agent's own
-/// thread/task when it finishes — never from the spawning loop, whose
+/// thread/task when it finishes - never from the spawning loop, whose
 /// runtime may already be gone by then. `output` carries the final report
 /// (or the last available partial output on failure); a non-empty `error`
 /// marks the task failed.
@@ -243,7 +243,7 @@ fn entry_json(task: &BackgroundTask) -> serde_json::Value {
 
 /// Drain the completion notifications of every finished-but-undelivered
 /// task, marking them delivered. Called by the TOP-LEVEL agent loop at the
-/// start of each iteration (nested agents must not drain — a notification
+/// start of each iteration (nested agents must not drain - a notification
 /// would otherwise be injected into the sub-agent's context instead of the
 /// main agent's). Empty when nothing finished since the last drain.
 /// Each ready note pairs with its task's spawn-time `call_ref` so the TUI
@@ -262,8 +262,8 @@ pub fn take_ready_notifications() -> Vec<(String, Option<String>)> {
 }
 
 fn notification_text(task: &BackgroundTask) -> String {
-    // The notification enters the parent context as a USER turn — a stronger
-    // injection surface than a tool result — so EVERY sub-agent-controlled
+    // The notification enters the parent context as a USER turn - a stronger
+    // injection surface than a tool result - so EVERY sub-agent-controlled
     // text is sanitized before delivery: the report AND the failure reason
     // (raw harness stderr can carry the same `<system-reminder>` imitation
     // and fabricated turn markers the report can). Oversized text is
@@ -298,7 +298,7 @@ fn notification_text(task: &BackgroundTask) -> String {
 /// before it enters the parent's model context (Claude Code-style output
 /// sanitization): the report must never be able to fake a system reminder or
 /// fabricate a turn boundary. `pub(crate)`: the /agents pane bridge
-/// (`panes.rs`) sanitizes pane reports the same way — they enter the
+/// (`panes.rs`) sanitizes pane reports the same way - they enter the
 /// requester's context as a user turn with the same trust level.
 pub(crate) fn sanitize(text: &str) -> String {
     let text = text
@@ -349,7 +349,7 @@ fn truncate_tail(text: &str, max: usize) -> String {
 /// the TUI builds a fresh runtime thread per turn and drops it when the loop
 /// ends, which would cancel a task left awaiting on that runtime. A
 /// dedicated global runtime owns detached tasks for the process lifetime
-/// instead (the internal nested-harness path does not need this — its
+/// instead (the internal nested-harness path does not need this - its
 /// completion is recorded on the sub-agent's own std::thread).
 pub fn spawn_detached<F>(future: F)
 where
@@ -370,13 +370,13 @@ mod tests {
     use super::*;
 
     /// The registry is a process-global singleton, and the push/poll tests
-    /// assert on the DRAIN side (`take_ready_notifications`) — parallel
+    /// assert on the DRAIN side (`take_ready_notifications`) - parallel
     /// tests would drain each other's notifications. Serialize every test
     /// that touches the registry behind one lock.
     ///
     /// The guard also RESETS the registry when dropped: a test that leaves a
     /// `Running` task behind (e.g. the prune fixture) would otherwise wedge
-    /// every later `run_agent_loop` test in the same process — the loop's
+    /// every later `run_agent_loop` test in the same process - the loop's
     /// busy-guard waits for outstanding background tasks before `Done`, and
     /// a leaked `Running` entry never completes.
     fn registry_lock() -> RegistryGuard<'static> {
@@ -387,12 +387,12 @@ mod tests {
 
     /// RAII wrapper around [`registry_lock`]'s mutex: resetting the registry
     /// when the guard drops guarantees a test cannot leak registry entries
-    /// (notably a `Running` task) into later tests in the same process — the
+    /// (notably a `Running` task) into later tests in the same process - the
     /// `run_agent_loop` busy-guard waits for outstanding background tasks
     /// before `Done`, so a leaked `Running` entry wedges every later
     /// agent-loop test until the 5s event timeout.
     struct RegistryGuard<'a> {
-        /// Held for the guard's lifetime; never dereferenced directly — its
+        /// Held for the guard's lifetime; never dereferenced directly - its
         /// purpose is to keep the registry serialized until the test ends.
         #[allow(dead_code)]
         guard: std::sync::MutexGuard<'a, ()>,

@@ -24,7 +24,7 @@ pub struct AgentEntry {
     /// The user's multi-select mark. Toggleable; survives navigation AND
     /// filter edits (narrowing the list never discards a mark).
     pub selected: bool,
-    /// How many instances of this CLI to spawn when the pick confirms —
+    /// How many instances of this CLI to spawn when the pick confirms -
     /// typed digits land in THIS field while the row is marked, so "two
     /// Claude panes" is a single pick. The string is the raw typed digits
     /// (`""` = the `DEFAULT_INSTANCES` placeholder shown in italic); it is
@@ -33,11 +33,11 @@ pub struct AgentEntry {
 }
 
 /// The default instance count a pick carries when the user leaves the
-/// count input untouched: ONE instance — typing a count is an explicit
+/// count input untouched: ONE instance - typing a count is an explicit
 /// multi-instance gesture, not the default.
 pub const DEFAULT_INSTANCES: usize = 1;
 
-/// The MAXIMUM instance count a pick may request — the pane-grid ceiling
+/// The MAXIMUM instance count a pick may request - the pane-grid ceiling
 /// for ONE agent CLI. The single knob for the limit: the count input
 /// rejects any digit that would push the parsed count past it, the confirm
 /// parse clamps to it, and the persisted pre-mark path clamps too. Bump
@@ -56,7 +56,7 @@ pub struct AgentPick {
 impl AgentEntry {
     /// The parsed instance count: the typed digits when valid, the DEFAULT
     /// placeholder otherwise (empty input = one instance). The result never
-    /// exceeds `MAX_INSTANCES` — the count input already rejects
+    /// exceeds `MAX_INSTANCES` - the count input already rejects
     /// overflowing digits, so this clamp only guards persisted or
     /// programmatic values typed under a SMALLER previous limit.
     #[must_use]
@@ -71,7 +71,7 @@ impl AgentEntry {
     /// INFORMATIVE placeholder when untouched. The `[1-9]` bracket form is
     /// the classic editable-slot glyph: brackets say "type here", the range
     /// inside gives min AND max in one cluster (the min doubles as the
-    /// default — Enter on an untouched row confirms `DEFAULT_INSTANCES`,
+    /// default - Enter on an untouched row confirms `DEFAULT_INSTANCES`,
     /// so there is no "type 1" redundancy). Both bounds read from the
     /// constants, so raising the ceiling re-labels every row with no
     /// further change.
@@ -108,7 +108,7 @@ pub enum AgentsPickerAction {
 /// Central multi-select dialog for the `/agents` command: pick which agent
 /// CLIs may receive delegated work.
 ///
-/// The first entry is always the synthetic `morpheus` manager — the top-level
+/// The first entry is always the synthetic `morpheus` manager - the top-level
 /// agent that delegates to the ACP harnesses below it. The remaining entries
 /// mirror [`morpheus_agents::acp::ACP_AGENTS`] in registry order.
 ///
@@ -120,7 +120,7 @@ pub enum AgentsPickerAction {
 /// Input contract (same split as [`crate::ui::slash_menu::SlashMenu`]): the
 /// App feeds raw key/mouse events through [`AgentsPicker::handle_key`] and
 /// [`AgentsPicker::handle_mouse`], and consumes the returned
-/// [`AgentsPickerAction`] — the component keeps no knowledge of App focus.
+/// [`AgentsPickerAction`] - the component keeps no knowledge of App focus.
 pub struct AgentsPicker {
     pub visible: bool,
     pub entries: Vec<AgentEntry>,
@@ -196,7 +196,7 @@ impl AgentsPicker {
         // Marks live only for the session the picker is open: Esc discards
         // and confirm hands them to the App via the action payload, so a
         // reopen always starts from a clean slate. The filter follows the
-        // same rule — it never leaks between opens.
+        // same rule - it never leaks between opens.
         for entry in &mut self.entries {
             entry.selected = false;
         }
@@ -205,7 +205,7 @@ impl AgentsPicker {
     }
 
     /// Indices into `entries` that survive the current search filter, in
-    /// listing order. The single source of truth for the filtered view —
+    /// listing order. The single source of truth for the filtered view -
     /// keyboard, mouse and render all read the same list so a click can
     /// never land on a row the renderer did not draw.
     fn filtered_indices(&self) -> Vec<usize> {
@@ -228,7 +228,7 @@ impl AgentsPicker {
             .collect()
     }
 
-    /// The marked entries WITH their instance counts, in listing order —
+    /// The marked entries WITH their instance counts, in listing order -
     /// the confirm payload. Each marked row expands to ONE pick; the split
     /// grid is the one that multiplies it into `instances` panes.
     #[must_use]
@@ -243,7 +243,7 @@ impl AgentsPicker {
             .collect()
     }
 
-    /// The entry under the cursor, if any — the instance-count input's
+    /// The entry under the cursor, if any - the instance-count input's
     /// target. EVERY row owns the qualifier digits (the count field is a
     /// per-row input the user types into directly, marker or not): typing
     /// digits on a row selects it with that count in one gesture.
@@ -264,7 +264,7 @@ impl AgentsPicker {
         }
     }
 
-    /// Add a character to the search filter — the same contract the /models
+    /// Add a character to the search filter - the same contract the /models
     /// filter follows: an edit resets the selection to the top of the
     /// narrowed list so the highlight always lands on a row that exists.
     fn push_filter(&mut self, ch: char) {
@@ -302,7 +302,7 @@ impl AgentsPicker {
     }
 
     /// Keyboard entry point. Esc cancels and discards; printable characters
-    /// edit the search filter (Space excluded — Space toggles the mark) —
+    /// edit the search filter (Space excluded - Space toggles the mark) -
     /// EXCEPT digits while the cursor sits on a MARKED row: those fill the
     /// row's instance-count field ("how many panes of this CLI"), the
     /// Backspace sibling that pops it. A filter edit resets the cursor to
@@ -322,7 +322,7 @@ impl AgentsPicker {
             // the search would otherwise toggle rows invisibly (agent names
             // never contain spaces, so the filter loses nothing).
             (KeyCode::Char(' '), _) => self.toggle_at_cursor(),
-            // Digits edit the instance count of the row UNDER THE CURSOR —
+            // Digits edit the instance count of the row UNDER THE CURSOR -
             // marker or not (crossterm marks SHIFT with the modifier, and
             // shift+digit is not a symbol the count cares about). Typing a
             // count is itself the selection gesture: the row auto-marks so
@@ -333,7 +333,7 @@ impl AgentsPicker {
                     // The count input enforces the MAX_INSTANCES ceiling.
                     // Appending first: a digit that keeps the count inside
                     // the ceiling extends the number ("2" -> "8"). A digit
-                    // that would OVERFLOW ("3" -> "32") is not discarded —
+                    // that would OVERFLOW ("3" -> "32") is not discarded -
                     // it REPLACES the field (the replace gesture). That is
                     // what makes the count freely editable: "3" then "2"
                     // reads 2 (down), "3" then "9" reads 9 (up to the
@@ -358,12 +358,12 @@ impl AgentsPicker {
                         self.cursor.note_activity();
                     }
                     // Both out of range (e.g. a lone "0" stays the default
-                    // placeholder): the keypress is a no-op — the field
+                    // placeholder): the keypress is a no-op - the field
                     // keeps whatever the user had.
                 }
                 AgentsPickerAction::Consumed
             }
-            // Plain typing (SHIFT for uppercase included — crossterm marks
+            // Plain typing (SHIFT for uppercase included - crossterm marks
             // shifted letters with SHIFT) lands in the search field.
             (KeyCode::Char(ch), KeyModifiers::NONE | KeyModifiers::SHIFT) => {
                 self.push_filter(ch);
@@ -373,7 +373,7 @@ impl AgentsPicker {
             // key while it has content), THEN falls back to the filter.
             (KeyCode::Backspace, _) => {
                 // The row under the cursor owns Backspace FIRST (its count
-                // field pops while it has content — marker or not), THEN
+                // field pops while it has content - marker or not), THEN
                 // the filter (the classic search-erase).
                 if let Some(index) = self.entry_at_cursor()
                     && !self.entries[index].instances.is_empty()
@@ -407,7 +407,7 @@ impl AgentsPicker {
 
     /// Mouse entry point over the same `area` passed to [`Self::render`]:
     /// a click on a row INSIDE the box toggles it, wheel moves the cursor,
-    /// and a click OFF the box dismisses the modal — the same outside-click
+    /// and a click OFF the box dismisses the modal - the same outside-click
     /// contract the other dialog boxes use. The window math is shared with
     /// render via [`Self::row_window`], so a click can only ever land on a
     /// row that is drawn.
@@ -431,13 +431,13 @@ impl AgentsPicker {
                     self.selection.select_next(self.filtered_indices().len());
                     AgentsPickerAction::Consumed
                 }
-                // Click OFF the box dismisses the picker (left button — the
+                // Click OFF the box dismisses the picker (left button - the
                 // dismissal gate the other dialogs use; marks are discarded
                 // by close). The dismiss lands on the PRESS, which also
                 // anchors releases: an Up that lands outside can only be
                 // seen here when its press started INSIDE the box (an
                 // outside press already closed the picker, so the Up never
-                // reaches this arm) — a fat-finger overshoot release must
+                // reaches this arm) - a fat-finger overshoot release must
                 // not act as a dismiss click, the free-gateway dialog's
                 // drag-ownership rule.
                 MouseEventType::Down if !inside_box && mouse.button == MouseButton::Left => {
@@ -463,7 +463,7 @@ impl AgentsPicker {
             MouseEventType::Move | MouseEventType::Drag | MouseEventType::Down => {
                 // Cursor follow (the model picker's hover contract): the
                 // highlight sticks to the pointer as it sweeps the list,
-                // long before any release event reaches the dispatch —
+                // long before any release event reaches the dispatch -
                 // without this the cursor could never follow the mouse.
                 self.selection.selected_index = row;
                 AgentsPickerAction::Consumed
@@ -488,7 +488,7 @@ impl AgentsPicker {
     /// window, scrolled so the cursor row stays visible. The window size is
     /// the box's dynamic row budget (same clamp as the /models dialog), so
     /// the list only scrolls when the box is genuinely too small. Render and
-    /// mouse hit-testing both call this — one source of truth, like the
+    /// mouse hit-testing both call this - one source of truth, like the
     /// slash menu.
     fn row_window(&self, area: Rect) -> (usize, usize) {
         let visible = self.dialog_box(area).height.saturating_sub(4) as usize;
@@ -504,7 +504,7 @@ impl AgentsPicker {
         (start, len)
     }
 
-    /// Centered dialog box for a full-screen `area` — the single source of
+    /// Centered dialog box for a full-screen `area` - the single source of
     /// geometry for render and mouse hit-testing, so a click can never land
     /// on a row the renderer did not draw. Sizing parity with /models:
     /// width clamps at 50/30 and the height grows with the filtered listing
@@ -531,7 +531,7 @@ impl AgentsPicker {
     /// Which listing row (0-based within the visible window) sits at
     /// terminal point (`x`, `y`), as an index within the FILTERED list. The
     /// hit-test covers BOTH axes: a click beside the box on the same row
-    /// band must NOT toggle a row — only a cell the renderer actually drew
+    /// band must NOT toggle a row - only a cell the renderer actually drew
     /// does. Rows are drawn between the gap row and the bottom padding row.
     fn row_at(&self, x: u16, y: u16, area: Rect) -> Option<usize> {
         let (start, len) = self.row_window(area);
@@ -562,7 +562,7 @@ impl AgentsPicker {
         let text = rgba_color(theme.text);
         let muted = rgba_color(theme.text_muted);
 
-        // Solid background panel — the same bare floating surface the other
+        // Solid background panel - the same bare floating surface the other
         // dialogs use (`clear_dialog_surface` semantics: spaces on the fill,
         // every modifier stripped, cells opted out of the diff pipeline so
         // the frame redraws as a unit). NO border characters: the TUI's
@@ -577,9 +577,9 @@ impl AgentsPicker {
             }
         }
 
-        // Title band: the dialogs' header contract — paddingLeft 4, bold
+        // Title band: the dialogs' header contract - paddingLeft 4, bold
         // title, and a muted "esc" tucked into the header's right edge (no
-        // shortcut billboard along the bottom — space/enter are the obvious
+        // shortcut billboard along the bottom - space/enter are the obvious
         // actions).
         let header_pad = 4;
         let header_x = box_area.x + header_pad;
@@ -605,7 +605,7 @@ impl AgentsPicker {
             Style::default().fg(muted).bg(fill),
         );
 
-        // Search row — the exact component the /models dialog renders: a
+        // Search row - the exact component the /models dialog renders: a
         // "Search" placeholder while the filter is empty, otherwise the
         // filter text, with the shared blinking caret on top of either.
         let cursor_state = self.cursor.current_state(now);
@@ -717,13 +717,13 @@ impl AgentsPicker {
                 Style::default().fg(text).bg(row_bg)
             };
             let name_x = box_area.x + 4;
-            // The instance-count column — the former install-hint slot,
+            // The instance-count column - the former install-hint slot,
             // right-aligned against the border. EVERY row owns it: the
             // count field is a per-row input the user types into directly
             // (digits land on the row under the cursor and auto-mark it).
-            // The untouched rows show the `×[1-9]` placeholder — brackets
+            // The untouched rows show the `×[1-9]` placeholder - brackets
             // mark the slot as TYPABLE, the range gives min AND max (the
-            // min doubles as the default: Enter without typing keeps 1) —
+            // min doubles as the default: Enter without typing keeps 1) -
             // in ITALIC muted, LIT UP when the cursor sits on the row so
             // the typable slot announces itself where the user is looking.
             // Typed digits paint in plain row text.
@@ -758,7 +758,7 @@ impl AgentsPicker {
 
 /// Whether an entry matches the picker's search filter: the filter matches
 /// the agent name, the same contract the /models filter uses in spirit
-/// (visible text only — the rows carry nothing beyond the name, so matching
+/// (visible text only - the rows carry nothing beyond the name, so matching
 /// an invisible column would produce confusing empty-looking results).
 /// Case-insensitive substring match.
 fn entry_matches_filter(entry: &AgentEntry, filter: &str) -> bool {
@@ -810,7 +810,7 @@ mod tests {
     }
 
     /// Same geometry the tests render into: full-screen area. Kept in sync
-    /// with `render`'s sizing on purpose — if the layout constants drift,
+    /// with `render`'s sizing on purpose - if the layout constants drift,
     /// these tests fail loudly instead of hit-testing rows that no longer
     /// exist.
     fn picker_area() -> Rect {
@@ -847,7 +847,7 @@ mod tests {
         marked.handle_key(KeyCode::Char('2'), KeyModifiers::NONE);
         // An over-ceiling digit is NOT discarded: "2" then "5" would read
         // 25 > MAX_INSTANCES as an append, so the 5 REPLACES the field (the
-        // correction gesture) — and it must NOT leak into the filter either:
+        // correction gesture) - and it must NOT leak into the filter either:
         // the marked row owns the qualifier slot.
         marked.handle_key(KeyCode::Char('5'), KeyModifiers::NONE);
 
@@ -895,7 +895,7 @@ mod tests {
     fn digits_on_an_unmarked_row_edit_the_count_and_auto_mark() {
         let mut picker = picker();
         // Cursor on morpheus but UNMARKED: the count field is a per-row input
-        // the user types into directly — a digit fills the field AND marks
+        // the user types into directly - a digit fills the field AND marks
         // the row, making "claude, 2, Enter" a complete pick without
         // touching Space. (The filter is search text for LETTERS only.)
         picker.handle_key(KeyCode::Char('2'), KeyModifiers::NONE);
@@ -948,7 +948,7 @@ mod tests {
     fn instance_count_never_exceeds_max_instances() {
         // The MAX_INSTANCES ceiling is enforced PROGRESSIVELY at the input:
         // with the limit at 9, "99" is unreachable ("9" then "9" reads 99 >
-        // 9) — the field can only ever hold a value the ceiling admits,
+        // 9) - the field can only ever hold a value the ceiling admits,
         // never one the parse would have to clamp away.
         let mut capped = picker();
         capped.handle_key(KeyCode::Char(' '), KeyModifiers::NONE);
@@ -961,7 +961,7 @@ mod tests {
         );
         assert_eq!(capped.entries[0].parsed_instances(), MAX_INSTANCES);
 
-        // Anything above the ceiling is rejected the same way — with the
+        // Anything above the ceiling is rejected the same way - with the
         // ceiling at 9 every single digit parses, so the guard shows on the
         // second keystroke (9 then 4 would read 94 > 9).
         capped.handle_key(KeyCode::Backspace, KeyModifiers::NONE);
@@ -1329,7 +1329,7 @@ mod tests {
         let area = picker_area();
         // Drag-ownership rule (the free-gateway dialog's contract): a press
         // INSIDE the box must not let its release act as a dismiss click
-        // when the pointer slips past the box edge mid-press — a fat-finger
+        // when the pointer slips past the box edge mid-press - a fat-finger
         // overshoot must not silently discard every mark.
         // Down on a row (x = 30, y = 20 is the box's row band), release
         // outside at x = 5.

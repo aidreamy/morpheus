@@ -1,5 +1,5 @@
 //! Ported test: the published-repos half of the `resolve_revision` section of
-//! `tests/test_revisions.py` — the pins are data of these checkpoints, so the
+//! `tests/test_revisions.py` - the pins are data of these checkpoints, so the
 //! test travels with them.
 
 use crate::hub::resolve_revision;

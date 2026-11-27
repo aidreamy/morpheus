@@ -4,7 +4,7 @@ use super::*;
 /// `buf` starting at (`dst_x`, `dst_y`).
 ///
 /// The render loop's hottest blits used to go through `buf.cell_mut((x, y))`
-/// per cell — each call pays a position→index conversion plus bounds check.
+/// per cell - each call pays a position→index conversion plus bounds check.
 /// `Buffer` stores cells contiguous per row, so copying one `Cell` slice per
 /// row amortizes that to a single bounds check per row: the per-frame cost of
 /// scrolling/streaming a large transcript drops accordingly (this is what
@@ -183,7 +183,7 @@ pub(super) fn hash_parts(msg: &Message) -> u64 {
                 // it finalizes (elapsed_ms transitions None → Some), and so a
                 // streamed "Summarizing" body (phase Llm text) invalidates the
                 // cache as tokens arrive. While the stopwatch alone ticks, the
-                // hash stays stable — the ticking bypasses the cell cache via
+                // hash stays stable - the ticking bypasses the cell cache via
                 // `msg_has_running_compaction`.
                 hasher.write(&[0u8]);
                 hasher.write(&c.started_at.to_le_bytes());

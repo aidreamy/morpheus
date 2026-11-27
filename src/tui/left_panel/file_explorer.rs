@@ -104,7 +104,7 @@ impl FileExplorerView {
     }
 
     /// Depth-first walk of expanded directories. Directories sort before
-    /// files, each group case-insensitively by name — the convention every
+    /// files, each group case-insensitively by name - the convention every
     /// file explorer user already knows.
     fn walk(
         dir: &Path,
@@ -209,7 +209,7 @@ impl FileExplorerView {
                 ExplorerAction::None
             }
             KeyCode::Left => {
-                // Scrolled? Bring the view back first — navigation
+                // Scrolled? Bring the view back first - navigation
                 // (collapse / jump to parent) only once fully returned.
                 if self.h_scroll > 0 {
                     self.h_scroll = self.h_scroll.saturating_sub(H_SCROLL_STEP);
@@ -276,7 +276,7 @@ impl FileExplorerView {
         self.selection.clamp(self.entries.len());
 
         // Horizontal scroll: the view can only be shifted as far as the
-        // widest visible row actually overflows — collapsing a directory
+        // widest visible row actually overflows - collapsing a directory
         // or shrinking the panel snaps the view back for free. Row width
         // = gutter (2/level) + arrow + space + name.
         let viewport_w = area.width.saturating_sub(1) as usize;
@@ -380,7 +380,7 @@ impl FileExplorerView {
             };
             // Status-driven appearance: a file's git state colors its name
             // (VS Code-style), LSP findings add a trailing marker, and
-            // directories — which aggregate everything below them — get the
+            // directories - which aggregate everything below them - get the
             // same treatment, so a collapsed directory already shows its
             // state before it is expanded.
             let entry_status = statuses.entry_status(&entry.path, entry.is_dir);
@@ -397,7 +397,7 @@ impl FileExplorerView {
             // offset, one char at a time: the arrow rides with the muted
             // guide color (tree chrome, like the `├─` connectors) and the
             // name carries the row style. Chars scrolled past the panel's
-            // left padding or the right edge are simply not painted — no
+            // left padding or the right edge are simply not painted - no
             // column arithmetic can underflow, however deep the row.
             let clip_left = area.x as i32 + 1;
             let right = area.right() as i32;
@@ -428,7 +428,7 @@ impl FileExplorerView {
         }
     }
 
-    /// Name color for one row's git state — the diff palette the transcript's
+    /// Name color for one row's git state - the diff palette the transcript's
     /// diff view already uses, so "modified/added/deleted" reads the same
     /// everywhere in the TUI. Clean rows keep the caller's default style
     /// (`fallback`).
@@ -447,7 +447,7 @@ impl FileExplorerView {
         Style::default().fg(fg)
     }
 
-    /// Trailing LSP marker for a row: `✗` in `error` or `⚠` in `warning` —
+    /// Trailing LSP marker for a row: `✗` in `error` or `⚠` in `warning` -
     /// the same glyphs and colors the passive LSP notes below tool output
     /// use. `None` when the entry has no LSP findings.
     fn lsp_marker(status: &EntryStatus, theme: &Theme) -> Option<(char, Style)> {

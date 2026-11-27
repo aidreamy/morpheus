@@ -10,14 +10,14 @@ pub enum CursorState {
     On,
     /// Cursor is in blink-off phase (focused, but blink timer says off).
     Off,
-    /// Terminal is not focused — cursor should be static and dimmed.
+    /// Terminal is not focused - cursor should be static and dimmed.
     Blur,
 }
 
 /// A reusable cursor component with configurable focus/blur behavior and blink timing.
 ///
 /// The cursor tracks input activity and blink timing, returning a [`CursorState`]
-/// that callers feed to [`paint_cursor_cell`] — the ONE shared look: on On the
+/// that callers feed to [`paint_cursor_cell`] - the ONE shared look: on On the
 /// cell's colors are inverted so the glyph under the caret stays visible, and on
 /// Off/Blur the glyph is dimmed. All cursor sites (chat prompt, search bars,
 /// dialog inputs, the RAG URL field, pickers) render through it.
@@ -93,13 +93,13 @@ impl Default for Cursor {
 /// inverted (text color becomes the background, background becomes the
 /// foreground), so the character under the cursor stays readable.
 ///
-/// This is the ONE shared cursor look — every component that renders a
+/// This is the ONE shared cursor look - every component that renders a
 /// `Cursor` (search bars, dialog inputs, the RAG URL field, pickers) calls
 /// this instead of stamping a `█`/`▒` block glyph that would erase the
 /// character beneath it.
 ///
-/// - `On`: color inversion — the underlying glyph shows through.
-/// - `Off`/`Blur`: dimmed tint — same glyph, muted foreground.
+/// - `On`: color inversion - the underlying glyph shows through.
+/// - `Off`/`Blur`: dimmed tint - same glyph, muted foreground.
 pub fn paint_cursor_cell(
     cell: &mut Cell,
     state: CursorState,

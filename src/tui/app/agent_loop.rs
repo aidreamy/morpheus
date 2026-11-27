@@ -25,7 +25,7 @@ static COMMAND_CALL_SEQ: std::sync::atomic::AtomicU64 = std::sync::atomic::Atomi
 /// One tokio runtime for the whole process, shared by the agent loop, the
 /// Command-mode executor and background device sign-ins (gateway
 /// recommendation): the LSP singleton's ingestion/auto-discovery tasks and
-/// the language servers' transport tasks must outlive individual turns —
+/// the language servers' transport tasks must outlive individual turns -
 /// a per-turn runtime would kill them (and, via `kill_on_drop`, the server
 /// processes) the moment a turn ends. It lives in the library's harness
 /// assembly (`morpheus::assembly`) and is re-exported here for the TUI's own
@@ -37,7 +37,7 @@ impl App {
     /// a Queue Actions box is open (the queued indexes it carries must stay
     /// stable until its action runs), the user is still inside the
     /// [`QUEUE_ACTIONS_GRACE`] window granted when the box was opened, or
-    /// the user is editing the head of a queue (the head hold — see
+    /// the user is editing the head of a queue (the head hold - see
     /// [`App::edit_hold_queue`]).
     pub(super) fn queue_actions_hold_active(&self) -> bool {
         if self.is_queue_actions_dialog_visible() || self.edit_hold_queue.is_some() {
@@ -49,8 +49,8 @@ impl App {
 
     /// Promote leftover "next request" messages into the "next agent loop"
     /// queue (FIFO, appended behind its existing items). An outstanding
-    /// edit-requeue hint pointing at `next_request` — and an open Queue
-    /// Actions box targeting it — are remapped so they keep identifying the
+    /// edit-requeue hint pointing at `next_request` - and an open Queue
+    /// Actions box targeting it - are remapped so they keep identifying the
     /// same message after the promotion.
     pub(super) fn promote_next_request_to_next_loop(&mut self, id: &str) {
         let old_loop_len;
@@ -104,7 +104,7 @@ impl App {
     /// that window (the delete/edit race of the old fire-and-forget channel
     /// is closed by construction). The NEXT-queue head-edit hold
     /// deliberately does NOT block the drain: a running loop keeps consuming
-    /// "next request" messages — only its closure waits.
+    /// "next request" messages - only its closure waits.
     pub(super) fn sync_queued_input_hold(&self) {
         let hard_hold = self.is_queue_actions_dialog_visible()
             || self
@@ -114,7 +114,7 @@ impl App {
     }
 
     /// Deliver queued messages to the running agent loop and start deferred
-    /// loops — but only while the queue-actions hold
+    /// loops - but only while the queue-actions hold
     /// ([`App::queue_actions_hold_active`]) is not active.
     ///
     /// "Next request" messages are forwarded ONE PER CALL so the next
@@ -129,7 +129,7 @@ impl App {
         // runs every main-loop iteration, so grace-window expiry is noticed
         // here too.
         self.sync_queued_input_hold();
-        // Full hold: a Queue Actions box or the grace window — nothing may
+        // Full hold: a Queue Actions box or the grace window - nothing may
         // move until they clear. (A NEXT-queue head edit only pauses the
         // chain START below, never these deliveries.)
         if self.is_queue_actions_dialog_visible()
@@ -142,7 +142,7 @@ impl App {
 
         // A clean loop end wanted to auto-start the first "next loop"
         // message but was held; run it now that the hold expired. The
-        // promotion of leftover "next request" messages happens here too —
+        // promotion of leftover "next request" messages happens here too -
         // never while a Queue Actions box holds indexes into the deque.
         if self.queue_actions_deferred_start && self.state.status == SessionStatus::Idle {
             // The user is editing the head of the NEXT queue: the chain may
@@ -157,7 +157,7 @@ impl App {
                 .as_ref()
                 .is_some_and(|owner| current.as_ref() != Some(owner))
             {
-                // The user switched sessions — keep the flag armed so the
+                // The user switched sessions - keep the flag armed so the
                 // owning session's auto-start still fires when it (or any
                 // session without a live owner) is back in front.
                 return;
@@ -198,10 +198,10 @@ impl App {
     pub(super) fn start_agent_loop(&mut self, msg: String) {
         // The pending-todos wake budget: the wake flags its OWN start so the
         // state survives it; ANY other start (a user prompt, a queued
-        // message, a wake promise) is fresh steering — it resets the budget
+        // message, a wake promise) is fresh steering - it resets the budget
         // and the listing dedup, so the stale list may wake again after it.
         // The flag ALSO marks the input as system-injected: a wake turn
-        // carries no visible prompt — the harness note goes to the MODEL
+        // carries no visible prompt - the harness note goes to the MODEL
         // only, and the transcript stays silent (the user asked to be left
         // alone; a synthetic user bubble saying "continue" would contradict
         // that).
@@ -214,11 +214,11 @@ impl App {
         }
 
         // A real agent turn: the Done handler may do LLM work again (title
-        // generation) — the per-turn Command-mode suppression ends here.
+        // generation) - the per-turn Command-mode suppression ends here.
         self.command_mode_turn = false;
 
         // Command mode: the TUI is a plain terminal. The input is dispatched
-        // straight to the bash tool — the agent loop (and with it the LLM)
+        // straight to the bash tool - the agent loop (and with it the LLM)
         // never runs, so there is no connector to build either.
         if self.state.mode == morpheus::harness::Mode::Command {
             self.start_command_execution(msg);
@@ -238,7 +238,7 @@ impl App {
         if self.state.current_session_id.is_none() {
             // Entry funnel: the fresh session must be locked at creation,
             // not left claimable by another morpheus process (see
-            // `claim_fresh_session_id` — the switch guard only refuses
+            // `claim_fresh_session_id` - the switch guard only refuses
             // EXISTING claims, and a brand-new id has none).
             let Some((id, now_ms)) = self.session_store.claim_fresh_session_id() else {
                 log::error!("could not claim a fresh session id: agent turn aborted");
@@ -247,7 +247,7 @@ impl App {
             let title: String = msg.chars().take(40).collect();
             self.state.add_empty_session(id.clone(), title, now_ms);
             self.state.current_session_id = Some(id);
-            // Fresh session: the header's cost widget starts clean — no
+            // Fresh session: the header's cost widget starts clean - no
             // balance carried over from the previous session.
             self.hypercredit_balance = None;
             // First message after a fresh boot/a deletion: the fresh session
@@ -265,7 +265,7 @@ impl App {
             self.title_generated = false;
         }
 
-        // Display transcript: the submitted prompt as a user message — a
+        // Display transcript: the submitted prompt as a user message - a
         // pending-todos WAKE turn is system-injected and stays OFF the
         // transcript entirely (model-only steering; nothing to show).
         if !is_todo_wake && let Some(session) = self.state.current_session_mut() {
@@ -292,7 +292,7 @@ impl App {
         // input (and reset the projection bridge for the new turn). A no-op
         // while the mirror is closed or the `/agents` split is not open.
         // A system-injected wake turn clears the PREVIOUS turn's echo
-        // instead of echoing a prompt nobody sent — the wake's steering is
+        // instead of echoing a prompt nobody sent - the wake's steering is
         // model-only, and its streamed output must not sit under a stale
         // prompt rail.
         if is_todo_wake {
@@ -372,7 +372,7 @@ impl App {
 
         // Session-level prompt-cache settings: the user's TTL/retention
         // choices (Settings screen) and the session id as the OpenAI
-        // cache-affinity key — a routing hint, never user data.
+        // cache-affinity key - a routing hint, never user data.
         let anthropic_ttl_1h = self.setup.anthropic_cache_ttl_1h();
         let openai_cache_retention = self.setup.openai_cache_retention().map(String::from);
         let cache_key = self.state.current_session_id.clone();
@@ -401,7 +401,7 @@ impl App {
 
         // Alt+0 (no pane focused) does NOT change this loop: the main
         // agent runs its own mode's normal prompt and tool set whether or
-        // not the `/agents` split is open — the manager/pane prompts and
+        // not the `/agents` split is open - the manager/pane prompts and
         // the coordinator blocklist are gone. Coordination stays available
         // through `agents_call`, and the anti-replication invariants live
         // in the harness itself (`with_own_coworker_id` + the dispatch guards),
@@ -424,7 +424,7 @@ impl App {
         // Decision-model checkup config (Settings screen → setup.json).
         // Cloned into the agent thread; the resident model loads at
         // harness assembly time (never hot), inside the thread, exactly
-        // once per assembly — fail-open disables the audit on load error.
+        // once per assembly - fail-open disables the audit on load error.
         #[cfg(feature = "onnx")]
         let checkup_config = self.setup.decision.clone();
         // RAG recall context
@@ -450,7 +450,7 @@ impl App {
         // model-facing history source: the display transcript is never parsed
         // into the context. No context records (a fresh session, or a file
         // that is missing/corrupt) means the loop starts with an empty
-        // context — the user is told via toast below.
+        // context - the user is told via toast below.
         let ctx_state: Option<morpheus::harness::ContextManagerState> = self
             .state
             .current_session_id
@@ -470,7 +470,7 @@ impl App {
                     // ONE assembly (morpheus::assembly): the connector,
                     // cache headers, MCP, RAG, effective-context budget and
                     // skills are decided here and built by the shared
-                    // assembler — the main loop adds only its own session
+                    // assembler - the main loop adds only its own session
                     // identity (the mode's normal prompt comes with the
                     // mode; no instruction override).
                     let assembly = HarnessAssembly {
@@ -487,7 +487,7 @@ impl App {
                         disabled_tools,
                         // The mode's OWN instructions (None = the harness
                         // applies the mode's default prompt): manager-mode
-                        // overrides are gone — Alt+0 with no focused pane
+                        // overrides are gone - Alt+0 with no focused pane
                         // runs the plain normal-mode agent, coordination
                         // rides `agents_call` and the anti-replication
                         // invariants live in the harness itself.
@@ -556,7 +556,7 @@ impl App {
     }
 
     /// Command-mode executor: the TUI as a plain terminal. Dispatches the
-    /// user-typed input straight to the bash tool — NO LLM call, no agent
+    /// user-typed input straight to the bash tool - NO LLM call, no agent
     /// loop, no connector. The command and its output are recorded in the
     /// session context as HIDDEN items (persisted to the JSONL, never shown
     /// to the model), and the TUI renders the run through the existing
@@ -568,7 +568,7 @@ impl App {
         // command still needs a session to live in.
         if self.state.current_session_id.is_none() {
             // Entry funnel (command-mode path): same rule as the agent-loop
-            // bootstrap — the fresh session must carry this process's
+            // bootstrap - the fresh session must carry this process's
             // open-lock from birth, or another morpheus process could adopt it.
             let Some((id, now_ms)) = self.session_store.claim_fresh_session_id() else {
                 log::error!("could not claim a fresh session id: command aborted");
@@ -582,7 +582,7 @@ impl App {
                 crate::routes::session::right_panel::types::RightPanelState::new();
         }
         // Command-mode turn: the Done handler skips ALL LLM work (notably
-        // the async title generation — the mode's contract is that NO LLM
+        // the async title generation - the mode's contract is that NO LLM
         // call is ever made) via `command_mode_turn`, WITHOUT latching
         // `title_generated`: a session that later receives real agent turns
         // still gets its semantic title.
@@ -624,7 +624,7 @@ impl App {
             self.setup.appearance.spinner,
         ));
         // The PTY panel entry is created by the ToolCall event handler below
-        // (exactly like an agent-loop bash_run) — starting it here too would
+        // (exactly like an agent-loop bash_run) - starting it here too would
         // leave a second, forever-Running entry in the panel.
 
         let event_tx = self.event_tx.clone();
@@ -670,7 +670,7 @@ impl App {
                 input: serde_json::json!({ "command": command }),
                 // Command mode runs OUTSIDE the agent loop's dispatch:
                 // no per-call routing identity exists (no parallel
-                // sub-agents here) — the TUI keeps its default pairing.
+                // sub-agents here) - the TUI keeps its default pairing.
                 call_ref: None,
             });
 
@@ -712,7 +712,7 @@ impl App {
 
             // Finish through the standard Done path: the TUI persists the
             // session WITH this context snapshot (hidden items included) and
-            // resets the status — no LLM was ever involved.
+            // resets the status - no LLM was ever involved.
             let _ = event_tx.send(HarnessEvent::Done {
                 context: context.save_state(),
                 checkup_verdict: None,
@@ -721,10 +721,10 @@ impl App {
     }
 
     /// A persisted session whose context records went missing (deleted session
-    /// file, corrupt payload) would silently "forget" the whole conversation —
+    /// file, corrupt payload) would silently "forget" the whole conversation -
     /// JSONL: a brand-new session's FIRST prompt also has a message on screen
     /// with no context records yet (they are only written by Done/Stopped/
-    /// snapshot saves) — that is normal, not data loss. Known interim noise:
+    /// snapshot saves) - that is normal, not data loss. Known interim noise:
     /// an early TUI-side failure persists the display messages alone, so a
     /// resend warns even though nothing reached the model either (accepted;
     /// TODO.md task 4 routes more saves through the context-aware path).
@@ -745,7 +745,7 @@ impl App {
             use crate::ui::toast::{ToastOptions, ToastVariant};
             self.toast_state.show(ToastOptions {
                 title: Some("Context lost".into()),
-                message: "Session context not found — the conversation \
+                message: "Session context not found - the conversation \
                           starts without history."
                     .into(),
                 variant: ToastVariant::Warning,
@@ -757,13 +757,13 @@ impl App {
     /// Called when an agent loop terminates. Leftover "next request"
     /// messages that were never injected are promoted to the "next agent
     /// loop" queue (they behave like it: they wait for the next run). When
-    /// `start_next` is true (the run ended cleanly — Done or Stopped) the
+    /// `start_next` is true (the run ended cleanly - Done or Stopped) the
     /// first queued next-loop message starts a fresh loop (FIFO). If the
     /// queue-actions hold is active, that start is deferred instead:
     /// [`App::pump_queued_messages`] starts it once the user closes the
     /// actions box and the grace window expires. On Error the queues
     /// stay parked: the user decides when to resend (e.g. after switching the
-    /// model) — a later manual message rolls them in.
+    /// model) - a later manual message rolls them in.
     pub(super) fn handle_loop_end(&mut self, start_next: bool) -> bool {
         // Reset the shared queued-input queue: a finished loop drained
         // everything it injected; anything left must not leak into the next.
@@ -774,7 +774,7 @@ impl App {
         if self.active_loop_session_id.is_some()
             && self.active_loop_session_id.as_deref() != Some(id.as_str())
         {
-            // The user switched sessions while the loop ran — leave the queues
+            // The user switched sessions while the loop ran - leave the queues
             // untouched for the session that owns them (and do NOT touch the
             // viewed session's deferred-start flag).
             return false;
@@ -806,10 +806,10 @@ impl App {
                 .get_mut(&id)
                 .and_then(|q| q.next_loop.pop_front())
         } else {
-            // Error path: park the queues — no auto-start.
+            // Error path: park the queues - no auto-start.
             None
         };
-        // Row indexes shifted after the promotion — drop the highlight.
+        // Row indexes shifted after the promotion - drop the highlight.
         self.hovered_queue_row = None;
         match next {
             Some(msg) => {

@@ -65,7 +65,7 @@ impl SessionView {
     /// `render_shell` boxes any bash with output (Running or Completed),
     /// `render_glob` boxes any glob with listable output, `render_write`
     /// boxes a completed write with non-empty input content and no warnings
-    /// (its output is a short receipt — size comes from the input),
+    /// (its output is a short receipt - size comes from the input),
     /// `render_edit` boxes a completed edit with an extractable diff,
     /// `render_read` boxes any completed read with parseable content,
     /// `render_todo` boxes any non-running tool with listable output
@@ -121,7 +121,7 @@ impl SessionView {
                     return 1;
                 }
                 // Hide TODO tools that are running or have no output (cleared by dedup)
-                // — they take no visual space and no copyable text. Only show on failure.
+                // - they take no visual space and no copyable text. Only show on failure.
                 if tool_render::tool_display(&t.tool) == "todo"
                     && !matches!(t.status, ToolStatus::Failed(_))
                     && (matches!(t.status, ToolStatus::Running)
@@ -199,7 +199,7 @@ impl SessionView {
                         // rows are counted too and none fold out of view.
                         let diff_rows = tool_render::edit_box_rows(t, max_w.saturating_sub(2));
                         // line_h = diff_rows + 2 (top padding + body +
-                        // bottom padding; no title — the diff shows the path
+                        // bottom padding; no title - the diff shows the path
                         // itself) + 2 for external margins (top + bottom)
                         diff_rows + 4
                     } else if tool_render::tool_display(&t.tool) == "write" {
@@ -274,7 +274,7 @@ impl SessionView {
                         config.thinking_mode,
                     );
                     if expanded {
-                        // Header row + the wrap-aware markdown body height —
+                        // Header row + the wrap-aware markdown body height -
                         // the same estimate render_reasoning lays out with,
                         // so the cached height matches the drawn block even
                         // when long paragraphs wrap into extra rows.

@@ -8,7 +8,7 @@
 //!
 //! The account can talk to its own agent: a message to the "Message yourself"
 //! chat arrives as `from_me`, addressed to the account's own chat, and that is
-//! what `WhatsApp::is_prompt` recognises — the same rule the crate's own
+//! what `WhatsApp::is_prompt` recognises - the same rule the crate's own
 //! `serve` loop uses. The engine does not deliver this device's own sends back
 //! to it, and the ids every send reserves are kept as a guard, so a self chat
 //! cannot loop. The reply keeps the chat id it arrived with (see the crate
@@ -87,7 +87,7 @@
 //! TUI-only commands (`theme`, `spinner`, …) are deliberately not
 //! published. Detection is conservative: a message is a command only when it
 //! starts with `/`, names a **registered** command, and that name is a bare
-//! word — so `/usr/bin/env` or `/home/me/report.txt` stay normal messages.
+//! word - so `/usr/bin/env` or `/home/me/report.txt` stay normal messages.
 //!
 //! # Tools that need approval
 //!
@@ -172,7 +172,7 @@ pub async fn run() -> i32 {
         .and_then(|path| path.to_str().map(String::from))
         .unwrap_or_else(|| ".".to_string());
 
-    println!("Morpheus — WhatsApp interface");
+    println!("Morpheus - WhatsApp interface");
     println!("Device store: {}", store_path.display());
     println!("Working directory: {cwd}");
     println!("Waiting for a pairing code…");
@@ -378,7 +378,7 @@ enum Stop {
 ///
 /// SQLite runs in WAL mode, so the `-wal` and `-shm` sidecars belong to the
 /// session too; leaving them behind can keep the dead state alive. Missing
-/// files are fine — the store may never have written them.
+/// files are fine - the store may never have written them.
 async fn clear_device_store(path: &Path) -> std::io::Result<()> {
     for candidate in [
         path.to_path_buf(),

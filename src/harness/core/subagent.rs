@@ -16,7 +16,7 @@ impl Harness {
     /// harness is itself a full agent loop, and awaiting it inline would
     /// make `run_agent_loop`'s future recursive (an infinitely sized type),
     /// while the harness type is not `Send` (it owns the MCP manager). Its
-    /// events are bridged to the TUI as a plain `ToolOutput` stream — the
+    /// events are bridged to the TUI as a plain `ToolOutput` stream - the
     /// tools it calls and any snapshot/summary events are dropped, so the
     /// main agent never sees its intermediate work and nothing is written
     /// to disk. Only the final report (the nested loop's `Closure`) is
@@ -26,7 +26,7 @@ impl Harness {
     ///
     /// Returns an error when the nested harness ends WITHOUT a final text
     /// report (connector error, user stop, model never answering), when its
-    /// thread panicked, or when the channel closed — the real reason is
+    /// thread panicked, or when the channel closed - the real reason is
     /// surfaced instead of a silent empty result.
     #[allow(clippy::unwrap_used)]
     pub(super) async fn run_internal_subagent(
@@ -38,7 +38,7 @@ impl Harness {
     ) -> Result<String, String> {
         // The sub-agent cannot ask the user questions, capture the live
         // terminal, or stop the loop on its own (it must end with a written
-        // report — see SUBAGENT_BLOCKED_TOOLS); those tools are disabled so
+        // report - see SUBAGENT_BLOCKED_TOOLS); those tools are disabled so
         // the model never sees them.
         let mut disabled = self.disabled_tools.clone();
         disabled.extend(SUBAGENT_BLOCKED_TOOLS.iter().map(|t| t.to_string()));
@@ -85,7 +85,7 @@ impl Harness {
                 Ok(rt) => rt,
                 Err(e) => {
                     // Zombie-Running guard: a background task whose runtime
-                    // failed to build must be marked failed HERE — the
+                    // failed to build must be marked failed HERE - the
                     // thread returns before the normal completion path
                     // runs, and a task left Running never notifies, is
                     // never pruned, and (busy guard) blocks later
@@ -109,7 +109,7 @@ impl Harness {
                         // sub-agent spawns are rejected (the nested loop
                         // cannot outlive its parent to deliver a
                         // notification) and completion notifications are
-                        // never drained into its context — they belong to
+                        // never drained into its context - they belong to
                         // the top-level agent (see `as_nested`).
                         .as_nested()
                         .with_fallbacks(fallbacks)
@@ -118,14 +118,14 @@ impl Harness {
                         // Same skill sources as the parent harness.
                         .with_skills(parent_skills.unwrap_or_default());
                     // The header (instructions + tool list) is NOT built by
-                    // run_agent_loop itself — the TUI does it before every
+                    // run_agent_loop itself - the TUI does it before every
                     // loop. Build it here so the sub-agent sees its own
                     // prompt and its own (blocklisted) tool set.
                     nested.format_header_context();
 
                     // Bridge: translate the nested loop's plain event stream
                     // into the SAME typed SubagentEvent stream the external
-                    // ACP path emits — message and thought chunks, tool
+                    // ACP path emits - message and thought chunks, tool
                     // calls with their results/errors (FIFO-paired: the
                     // harness guarantees the Nth result matches the Nth
                     // call), the plan_todo_write TODO as the plan, and the
@@ -154,43 +154,44 @@ impl Harness {
                             if Harness::forward_nested_accounting(&event, bridge_tx.as_ref()) {
                                 continue;
                             }
-                            let subagent_events: Vec<
-                                morpheus_agents::events::SubagentEvent,
-                            > = match event {
-                                super::events::HarnessEvent::Token { text } => {
-                                    vec![InternalEventBridge::message(text)]
-                                }
-                                super::events::HarnessEvent::Reasoning { text } => {
-                                    vec![InternalEventBridge::thought(text)]
-                                }
-                                super::events::HarnessEvent::ToolCall { tool, input, .. } => {
-                                    let mut events = vec![internal.tool_call(&tool, &input)];
-                                    if tool == "plan_todo_write"
-                                        && let Some(plan) =
-                                            InternalEventBridge::plan_from_todo_write(&input)
-                                    {
-                                        events.push(plan);
+                            let subagent_events: Vec<morpheus_agents::events::SubagentEvent> =
+                                match event {
+                                    super::events::HarnessEvent::Token { text } => {
+                                        vec![InternalEventBridge::message(text)]
                                     }
-                                    events
-                                }
-                                super::events::HarnessEvent::ToolResult { output, .. } => {
-                                    internal.tool_result(&output).into_iter().collect()
-                                }
-                                super::events::HarnessEvent::ToolError { error, .. } => {
-                                    internal.tool_error(&error).into_iter().collect()
-                                }
-                                super::events::HarnessEvent::ContextInfo { info } => {
-                                    vec![InternalEventBridge::usage(
-                                        info.total_tokens,
-                                        info.max_tokens,
-                                    )]
-                                }
-                                super::events::HarnessEvent::Error { message, .. } => {
-                                    *err_capture.lock().unwrap() = Some(message);
-                                    Vec::new()
-                                }
-                                _ => Vec::new(),
-                            };
+                                    super::events::HarnessEvent::Reasoning { text } => {
+                                        vec![InternalEventBridge::thought(text)]
+                                    }
+                                    super::events::HarnessEvent::ToolCall {
+                                        tool, input, ..
+                                    } => {
+                                        let mut events = vec![internal.tool_call(&tool, &input)];
+                                        if tool == "plan_todo_write"
+                                            && let Some(plan) =
+                                                InternalEventBridge::plan_from_todo_write(&input)
+                                        {
+                                            events.push(plan);
+                                        }
+                                        events
+                                    }
+                                    super::events::HarnessEvent::ToolResult { output, .. } => {
+                                        internal.tool_result(&output).into_iter().collect()
+                                    }
+                                    super::events::HarnessEvent::ToolError { error, .. } => {
+                                        internal.tool_error(&error).into_iter().collect()
+                                    }
+                                    super::events::HarnessEvent::ContextInfo { info } => {
+                                        vec![InternalEventBridge::usage(
+                                            info.total_tokens,
+                                            info.max_tokens,
+                                        )]
+                                    }
+                                    super::events::HarnessEvent::Error { message, .. } => {
+                                        *err_capture.lock().unwrap() = Some(message);
+                                        Vec::new()
+                                    }
+                                    _ => Vec::new(),
+                                };
                             if let Some(tx) = &bridge_tx {
                                 for event in subagent_events {
                                     let _ = tx.send(super::events::HarnessEvent::SubagentEvent {
@@ -228,7 +229,7 @@ impl Harness {
                             // ignored the DSL. ASYMMETRY vs the external
                             // arm: the internal loop has no stop-reason
                             // signal here, so ANY `Some(final_answer)` is
-                            // treated as completed — the external arm
+                            // treated as completed - the external arm
                             // additionally requires `end_turn`. In practice
                             // a stopped internal turn closes without a
                             // final answer (final_answer is `None`), so the
@@ -236,12 +237,10 @@ impl Harness {
                             // learns to emit partial answers on stop, gate
                             // this on the stop reason like tools.rs does.
                             // Failed turns (the `None` arm below) are never
-                            // touched — tinting a partial or errored turn
+                            // touched - tinting a partial or errored turn
                             // would misreport it.
                             let report = if is_review && !report.trim().is_empty() {
-                                morpheus_agents::severity::enforce_severity_header(
-                                    &report, true,
-                                )
+                                morpheus_agents::severity::enforce_severity_header(&report, true)
                             } else {
                                 report
                             };
@@ -265,7 +264,7 @@ impl Harness {
                             // connector error, a user stop, or the model
                             // never writing an answer). Surface the real
                             // reason instead of silently returning an empty
-                            // result — the caller must be able to adapt.
+                            // result - the caller must be able to adapt.
                             let reason = last_error.lock().unwrap().clone().unwrap_or_else(|| {
                                 if stop_check.load(Ordering::Relaxed) {
                                     "the internal sub-agent was stopped by the user".to_string()
@@ -281,7 +280,7 @@ impl Harness {
                 })
             }));
             // Background mode: the sub-agent's OWN thread records the
-            // outcome in the process-wide registry — never a watcher on the
+            // outcome in the process-wide registry - never a watcher on the
             // spawning runtime, which may be gone by the time the task
             // finishes (the TUI builds a fresh runtime per turn). The
             // completion notification is delivered by the TOP-LEVEL loop's
@@ -313,7 +312,7 @@ impl Harness {
             }
         });
 
-        // Background mode: return the spawn receipt IMMEDIATELY — the
+        // Background mode: return the spawn receipt IMMEDIATELY - the
         // caller keeps working and the report arrives later as an automated
         // completion notification (push) or via `subagent_status` (poll).
         // The receipt is enveloped as a `SubAgentCallOutput` (the shape the

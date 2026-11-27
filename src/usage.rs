@@ -3,10 +3,10 @@
 //! Persists one record per real API request in a global JSONL log
 //! (`{data_dir}/usage/usage.jsonl`) and aggregates it into the token and
 //! dollar figures the dashboard shows. Token counters and the dollar figure
-//! are both taken verbatim from the provider's OWN response — its usage
+//! are both taken verbatim from the provider's OWN response - its usage
 //! object and the REAL cost it reports inside it. A provider that reports no
 //! cost yields a record WITHOUT a price (its tokens still count) and it is
-//! excluded from dollar totals — nothing is ever estimated locally.
+//! excluded from dollar totals - nothing is ever estimated locally.
 //! `aiface::connector::supports_cost_reporting` lists the providers that
 //! report costs today.
 
@@ -38,7 +38,7 @@ pub struct UsageRecord {
     pub id: u64,
     /// Unix millisecond timestamp of the request.
     pub ts: u64,
-    /// The session that owned the request — lets us recompute a specific
+    /// The session that owned the request - lets us recompute a specific
     /// session's spend even after switching away and back.
     pub session_id: String,
     /// Provider that served the request (e.g. `"opencode"`, `"claude"`).
@@ -48,13 +48,13 @@ pub struct UsageRecord {
     /// Real per-request token usage (input/output/cache split).
     pub usage: TokenUsage,
     /// REAL cost (USD) the provider itself reported in its usage object
-    /// (`usage.cost` — OpenRouter, Charm Hyper, OpenCode Zen/Go). The
-    /// authoritative billed amount, recorded verbatim — never re-priced
+    /// (`usage.cost` - OpenRouter, Charm Hyper, OpenCode Zen/Go). The
+    /// authoritative billed amount, recorded verbatim - never re-priced
     /// locally. `None` when the provider does not report a cost.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cost_usd: Option<f64>,
     /// REAL cost in the provider's NATIVE prepaid unit when that is not USD
-    /// (Charm Hyper: Hypercredits), parallel to `cost_usd` — both come from
+    /// (Charm Hyper: Hypercredits), parallel to `cost_usd` - both come from
     /// the same `usage.cost` object in one response. Lets the session view
     /// render Charm spend in ◆ (the unit the user's balance is denominated
     /// in) while `cost_usd` still feeds the cross-provider dollar totals.
@@ -114,7 +114,7 @@ impl UsageStore {
     /// Read every record currently in the log (reverse-chronological callers
     /// sort themselves).
     ///
-    /// Assigns fresh unique runtime `id`s (0..n) — ids are never persisted
+    /// Assigns fresh unique runtime `id`s (0..n) - ids are never persisted
     /// (serde skip), so records loaded from disk would otherwise ALL carry
     /// id 0 and collide in in-memory maps.
     pub fn load(&self) -> Vec<UsageRecord> {

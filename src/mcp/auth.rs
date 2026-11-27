@@ -4,14 +4,14 @@
 //! `Authorization: Bearer <key>`, the spec's access-token usage). The
 //! credential is resolved at dial time with a strict priority:
 //!
-//! 1. **OS keyring** — the credential the registration wizard stored under
+//! 1. **OS keyring** - the credential the registration wizard stored under
 //!    the morpheus service, keyed `mcp:<server>` (same store as provider keys).
 //!    This is the primary source: it never touches `setup.json` or process
 //!    environments.
-//! 2. **Environment variable** — the entry's `api_key_env` (set with
+//! 2. **Environment variable** - the entry's `api_key_env` (set with
 //!    `$VAR` in the wizard or by hand in `setup.json`), consulted only when
 //!    the keyring holds nothing.
-//! 3. **Typed failure** — when the entry declares `api_key_env` but neither
+//! 3. **Typed failure** - when the entry declares `api_key_env` but neither
 //!    source yields a value, [`resolve_key`] returns
 //!    [`McpError::CredentialMissing`]: the server is skipped with a
 //!    `Failed` snapshot instead of dialing into a guaranteed 401.
@@ -32,14 +32,14 @@ fn keyring_id(server_name: &str) -> String {
 
 /// Resolve the API key for `server_name` at dial time: keyring first, then
 /// the entry's environment variable. `Ok(None)` means "no credential
-/// needed" — the entry declares neither a stored key nor `api_key_env`.
+/// needed" - the entry declares neither a stored key nor `api_key_env`.
 ///
 /// # Errors
 ///
 /// [`McpError::CredentialMissing`] when `api_key_env` is configured but
 /// neither the keyring nor the environment provides a value. A keyring
 /// *lookup* failure (locked store, dbus error) degrades to the env fallback
-/// instead of failing the connection — the variable may still be set.
+/// instead of failing the connection - the variable may still be set.
 pub fn resolve_key(
     server_name: &str,
     api_key_env: Option<&str>,
@@ -48,8 +48,8 @@ pub fn resolve_key(
         Ok(Some(key)) => return Ok(Some(key)),
         // NoEntry is the normal "not stored here" case: fall through to
         // the env fallback silently. Any OTHER keyring error (locked
-        // store, dbus failure) is logged redacted — the error type only,
-        // never a value — then degrades to the env fallback, which may
+        // store, dbus failure) is logged redacted - the error type only,
+        // never a value - then degrades to the env fallback, which may
         // still succeed.
         Err(err) => {
             log::debug!(
@@ -86,7 +86,7 @@ fn stored_key(server_name: &str) -> Result<Option<String>, keyring::Error> {
 }
 
 /// Store (or overwrite) the server's API key in the OS keyring. The value
-/// never reaches `setup.json` — callers drop it right after this returns.
+/// never reaches `setup.json` - callers drop it right after this returns.
 pub fn store_key(server_name: &str, key: &str) -> Result<(), keyring::Error> {
     keyring::Entry::new(SERVICE, &keyring_id(server_name))?.set_password(key)
 }

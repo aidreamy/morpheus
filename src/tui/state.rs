@@ -17,7 +17,7 @@ const SESSION_CACHE_SIZE: usize = 10;
 /// - [`Self::next_loop`] messages wait for the current loop to end and then
 ///   start a fresh loop (the "next agent loop" queue).
 ///
-/// Deliberately kept out of the persisted session model — this is transient
+/// Deliberately kept out of the persisted session model - this is transient
 /// UI state that lives for the app's lifetime only.
 #[derive(Debug, Clone, Default)]
 pub struct PendingQueues {
@@ -59,7 +59,7 @@ pub struct AppState {
     pub scroll_y: i32,
     pub content_height: i32,
     /// Where morpheus itself starts: the process cwd, captured once in
-    /// `App::new` and never mutated afterwards. Two things read it — the
+    /// `App::new` and never mutated afterwards. Two things read it - the
     /// session store root (it LOCATES the session, so it must not move) and
     /// `/worktree exit` (it RESTORES this, so it must not move). Anything
     /// describing where the MAIN AGENT works reads
@@ -71,7 +71,7 @@ pub struct AppState {
     pub git_branch: Option<String>,
     pub mode: Mode,
     /// Whether LSP is enabled at all (`MORPHEUS_LSP`). Distinct from how many
-    /// servers are running — the footer shows "disabled" only when false.
+    /// servers are running - the footer shows "disabled" only when false.
     pub lsp_available: bool,
     /// Catalog names of the language servers currently active; rendered as
     /// colored tags in the prompt footer. Empty disables the tags.
@@ -137,7 +137,7 @@ impl AppState {
     /// Add a full session (with its messages) and a matching summary.
     ///
     /// Every tool part is assigned a unique `tool_call_id` first (see
-    /// [`Session::ensure_tool_call_ids`]) — restored/legacy sessions must not
+    /// [`Session::ensure_tool_call_ids`]) - restored/legacy sessions must not
     /// share per-tool-type expansion keys, or expanding one box would toggle
     /// every other box of the same tool.
     pub fn add_session(&mut self, mut session: Session) {
@@ -159,7 +159,7 @@ impl AppState {
         self.session_cache.put(session.id.clone(), session);
     }
 
-    /// Add a placeholder empty session to the cache. No summary is created yet —
+    /// Add a placeholder empty session to the cache. No summary is created yet -
     /// the session only appears in the sidebar once it has been persisted (i.e.,
     /// it has valid content and has been saved to disk).
     pub fn add_empty_session(&mut self, id: String, title: String, created_at: u64) {
@@ -234,7 +234,7 @@ impl AppState {
     }
 
     /// Returns the current session if one is selected and in cache.
-    /// Uses `peek` to avoid mutating LRU order on reads — the current session
+    /// Uses `peek` to avoid mutating LRU order on reads - the current session
     /// is kept alive by `current_session_mut()` and `switch_to_session()`.
     pub fn current_session(&self) -> Option<&Session> {
         self.current_session_id
@@ -252,7 +252,7 @@ impl AppState {
     /// `&AppState`, and they must report the same directory the agent's
     /// turns use.
     ///
-    /// Not for `working_directory`'s own two readers — the session store
+    /// Not for `working_directory`'s own two readers - the session store
     /// root and `/worktree exit` both need the STARTUP cwd and must keep
     /// reading the field directly.
     #[must_use]
@@ -274,7 +274,7 @@ impl AppState {
     /// upserted into the cache (so subsequent switches are fast).
     ///
     /// Returns `false` when the target session is already open in another
-    /// morpheus process — the switch is refused and the caller is expected to
+    /// morpheus process - the switch is refused and the caller is expected to
     /// surface that to the user. Otherwise releases the previous session's
     /// open-lock, claims the target's and performs the switch.
     pub fn switch_to_session(
@@ -303,7 +303,7 @@ impl AppState {
             }
             // The old session is no longer open in this process: free its
             // open-lock so another morpheus instance can take it over. Re-selecting
-            // the session already being viewed must NOT release — the claim
+            // the session already being viewed must NOT release - the claim
             // just re-verified above is the one this process keeps holding.
             if oid != &session_id {
                 store.release_session_lock(oid);

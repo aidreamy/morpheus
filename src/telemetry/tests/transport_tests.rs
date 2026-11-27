@@ -59,7 +59,7 @@ impl Fixture {
         );
         let server_config = Arc::new(
             // Explicit provider: reqwest pulls aws-lc-rs into the test binary,
-            // so rustls cannot auto-select — pin ring (what our dev-dep uses).
+            // so rustls cannot auto-select - pin ring (what our dev-dep uses).
             rustls::ServerConfig::builder_with_provider(
                 rustls::crypto::ring::default_provider().into(),
             )
@@ -188,7 +188,7 @@ impl Fixture {
     }
 
     /// The production client configuration (https_only, no redirects, no
-    /// proxy — identical hardening to `sink::client()`) PLUS the fixture's
+    /// proxy - identical hardening to `sink::client()`) PLUS the fixture's
     /// throwaway certificate, which is the ONLY way a loopback TLS server can
     /// be reached. The hardening under test (redirect refusal, https-only) is
     /// exactly what production uses.
@@ -235,7 +235,7 @@ fn find_subsequence(haystack: &[u8], needle: &[u8]) -> Option<usize> {
 
 #[tokio::test]
 async fn control_actual_5xx_responses_preserve_events() {
-    // 500/502/503/504 are TRANSIENT — the drained batch is
+    // 500/502/503/504 are TRANSIENT - the drained batch is
     // re-queued with identical content, never dropped.
     for status in [500, 502, 503, 504] {
         let fixture = Fixture::start(json!([{"status": status}])).await;
@@ -346,7 +346,7 @@ async fn retry_after_http_date_is_honored() {
 #[tokio::test]
 async fn https_redirect_to_plain_http_is_refused() {
     // Safe outcome: with the hardened client, a 307 redirect to
-    // plain HTTP is NEVER followed — no byte of the batch reaches the second
+    // plain HTTP is NEVER followed - no byte of the batch reaches the second
     // origin. The unhandled 3xx is classified transient and re-queued.
     let fixture = Fixture::start(json!([{"status": 307, "redirect_plain": true}])).await;
     let queue = fixture.queue();

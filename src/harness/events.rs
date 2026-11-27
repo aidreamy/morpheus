@@ -32,7 +32,7 @@ pub enum HarnessEvent {
     /// re-streams failed attempts from the beginning; this event scopes what
     /// the TUI may later discard on [`HarnessEvent::ClearAssistant`]: only
     /// the message(s) opened AFTER this boundary belong to the current
-    /// attempt — the previous iteration's transcript must never be popped.
+    /// attempt - the previous iteration's transcript must never be popped.
     BeginAssistant,
     /// The SDK retried a mid-stream failure and is about to re-stream the
     /// response from the beginning: the TUI must drop any partial assistant
@@ -46,13 +46,13 @@ pub enum HarnessEvent {
         /// Per-call routing identity: the provider's tool-call id (or a
         /// synthetic one for inline calls). Streams carry the SAME ref
         /// back, so the TUI can bind every sub-agent window to the EXACT
-        /// call that spawned it — parallel sub-agents (same or different
+        /// call that spawned it - parallel sub-agents (same or different
         /// CLIs) each get their own window traffic. `None` only for
         /// callers outside the agent loop's dispatch (command mode).
         call_ref: Option<String>,
     },
     /// Successful result of a dispatched tool call.
-    /// Ordered sequentially — the Nth `ToolResult` matches the Nth `ToolCall`.
+    /// Ordered sequentially - the Nth `ToolResult` matches the Nth `ToolCall`.
     ToolResult {
         output: String,
         /// The dispatching call's routing identity (see `ToolCall`): binds
@@ -60,7 +60,7 @@ pub enum HarnessEvent {
         call_ref: Option<String>,
     },
     /// A tool call that failed during dispatch.
-    /// Ordered sequentially — the Nth `ToolError` matches the Nth `ToolCall`.
+    /// Ordered sequentially - the Nth `ToolError` matches the Nth `ToolCall`.
     ToolError {
         error: String,
         /// The dispatching call's routing identity (see `ToolCall`).
@@ -117,14 +117,14 @@ pub enum HarnessEvent {
         /// right-panel window. Parallel background sub-agents (ACP,
         /// `run_in_background: true`) each have a Running window, so a
         /// "last Running window" choice would land the report in a
-        /// SIBLING's window — both leak. `None` everywhere else (bash,
-        /// find, `subagent_status` notifications — those self-identify
+        /// SIBLING's window - both leak. `None` everywhere else (bash,
+        /// find, `subagent_status` notifications - those self-identify
         /// through their wrapper text) and whenever no routing hint is
         /// known: the TUI keeps its last-Running default.
         agent: Option<String>,
         /// Per-call routing identity (see `ToolCall`): binds this stream/
         /// report to the EXACT dispatching call. The TUI prefers this over
-        /// the `agent` hint — two parallel calls of the SAME agent CLI
+        /// the `agent` hint - two parallel calls of the SAME agent CLI
         /// share the hint but never the ref, so an output can never land
         /// in a sibling's window (the input1↔output1 cross-pairing bug).
         call_ref: Option<String>,
@@ -140,20 +140,20 @@ pub enum HarnessEvent {
         tool: String,
         /// Per-call routing identity (see `ToolCall`): the live mini-chat
         /// timeline (thoughts, tool rows, plans) belongs to ONE call's
-        /// window — without it, parallel sub-agents would interleave each
+        /// window - without it, parallel sub-agents would interleave each
         /// other's activity lines.
         call_ref: Option<String>,
         /// The typed event.
         event: morpheus_agents::events::SubagentEvent,
     },
     /// One live event of the `/agents` split-pane mode. Each pane is an
-    /// independent ACP (or nested morpheus) turn driven directly by the TUI —
-    /// outside the agent loop's `subagent_call` dispatch — so pane index
+    /// independent ACP (or nested morpheus) turn driven directly by the TUI -
+    /// outside the agent loop's `subagent_call` dispatch - so pane index
     /// replaces `call_ref` as the routing identity: the pane's own event
     /// channel is the multiplexer the harness tool path cannot provide.
     /// `epoch` is the dispatch-time generation of the split slots (`App::
     /// agents_pane_epoch`): a slot swap (fresh confirm, park, switch, close)
-    /// bumps it, and the handler drops every event of a STALE epoch — a
+    /// bumps it, and the handler drops every event of a STALE epoch - a
     /// stopped turn's terminal delivery can never land in a replacement
     /// pane that merely shares the index.
     AgentsPaneEvent {
@@ -163,7 +163,7 @@ pub enum HarnessEvent {
         /// (`AgentPane::id`). The event handler routes by THIS, not the
         /// index: a pane set rebuilt around a still-running turn (a fresh
         /// picker confirm that keeps the pane) keeps the pane's id, so the
-        /// stream follows the pane to its new index — and a pane the
+        /// stream follows the pane to its new index - and a pane the
         /// rebuild dropped carries an id no pane answers to, so its events
         /// are dropped instead of corrupting a replacement's timeline.
         /// `0` = never assigned (tests / unstamped senders); those fall
@@ -174,8 +174,8 @@ pub enum HarnessEvent {
         /// The pane's TURN this event belongs to (`AgentPane::turn_id` at
         /// dispatch). The epoch guard only covers slot swaps: a turn the
         /// user stopped (Ctrl+X) keeps winding down for a while, and if the
-        /// pane's next turn — a queued message, or a prompt sent right
-        /// after the stop — has already begun, its events would otherwise
+        /// pane's next turn - a queued message, or a prompt sent right
+        /// after the stop - has already begun, its events would otherwise
         /// paint the dead turn's output into the live one. `0` = unstamped
         /// (chrome refreshes and replay, which belong to no turn); those
         /// are always accepted.
@@ -189,7 +189,7 @@ pub enum HarnessEvent {
     /// reason and the session id for the pane's next resume. `epoch` is the
     /// dispatch-time split-slot generation: a stale Done (the pane's set
     /// was replaced or torn down while the turn was being cancelled) is
-    /// dropped — its session id must never bind into a replacement pane or
+    /// dropped - its session id must never bind into a replacement pane or
     /// a different session's metadata.
     AgentsPaneDone {
         /// Index into `App::agents_split`'s panes.
@@ -203,7 +203,7 @@ pub enum HarnessEvent {
         /// handler applies a Done only to the turn it belongs to: a stopped
         /// turn (Ctrl+X closes the pane SYNTETICALLY, then its thread keeps
         /// winding down) whose terminal Done arrives AFTER the pane's next
-        /// turn began must not close that new turn — doing so cleared the
+        /// turn began must not close that new turn - doing so cleared the
         /// new turn's stop signal and running flag, which left the pane
         /// looking idle while the agent kept working, and made every further
         /// Ctrl+X a no-op. `0` = unstamped (tests); accepted as before.
@@ -218,7 +218,7 @@ pub enum HarnessEvent {
     },
     /// A `/agents` pane's cold-restore REPLAY ended. The pane rehydrated
     /// its timeline from the agent's own `session/load` history replay
-    /// (the `AgentsPaneEvent`s that preceded this one) — nothing was
+    /// (the `AgentsPaneEvent`s that preceded this one) - nothing was
     /// prompted, nothing changed in the agent's context. `ok` is false
     /// when the replay pass failed (stale id, harness without
     /// `loadSession`, spawn failure): the pane keeps its (empty) live
@@ -249,7 +249,7 @@ pub enum HarnessEvent {
     /// A fatal error occurred. The harness paths carry the context snapshot
     /// WITH the display-only error item already recorded
     /// ([`ContextManager::add_error`]) so the TUI can persist the styled
-    /// error line right away — the loop is over, no `Done` snapshot follows.
+    /// error line right away - the loop is over, no `Done` snapshot follows.
     /// `None` when the failure happened outside the harness context (thread
     /// runtime, connector construction, panic): the TUI then records the
     /// error item itself.
@@ -279,7 +279,7 @@ pub enum HarnessEvent {
     /// The main loop has entered (or left) its pre-Done busy-guard wait for
     /// `/agents` pane reports.
     ///
-    /// The loop is `Working` throughout — it is not Idle — but it is IDLE in
+    /// The loop is `Working` throughout - it is not Idle - but it is IDLE in
     /// the only sense the user cares about: it finished its own work and is
     /// merely waiting for a report to come back. The TUI needs that
     /// distinction to decide what a submitted prompt means: in this state the
@@ -306,7 +306,7 @@ pub enum HarnessEvent {
     /// The LLM compaction (the last-resort fallback) lifecycle. The harness
     /// drives the model call (the context manager is synchronous and LLM-free),
     /// so these events are emitted by the harness around the summarization
-    /// call — `Started` before it, `Finished`/`Failed` after.
+    /// call - `Started` before it, `Finished`/`Failed` after.
     LlmCompaction {
         /// Which stage of the LLM compaction this event reports.
         event: LlmCompactionEvent,
@@ -339,7 +339,7 @@ pub enum HarnessEvent {
     /// A user-visible notification, rendered by the TUI through its existing
     /// toast system. Emitted when the context-window overflow could not be
     /// relieved (the split could not fit the context) or a provider error
-    /// survived its retries — the session keeps working, but the user must act
+    /// survived its retries - the session keeps working, but the user must act
     /// (switch the model, start a new session).
     Toast {
         /// The message to display.
@@ -369,7 +369,7 @@ pub enum HarnessEvent {
     ///
     /// Emitted once per API call (each agent-loop request, LLM compaction,
     /// etc.) after its stream finishes. Counters come straight from the
-    /// provider's own usage object — never a local estimate. The TUI stamps
+    /// provider's own usage object - never a local estimate. The TUI stamps
     /// the current session id + timestamp and persists it for cost tracking.
     Usage {
         /// The normalized per-request token usage (including cache accounting).
@@ -379,15 +379,15 @@ pub enum HarnessEvent {
         /// The model that served the request.
         model: String,
         /// REAL cost (USD) reported by the provider inside its usage object
-        /// (`usage.cost` — OpenRouter, Charm Hyper, OpenCode Zen/Go). The
+        /// (`usage.cost` - OpenRouter, Charm Hyper, OpenCode Zen/Go). The
         /// authoritative billed amount and the ONLY price the TUI shows:
         /// there is no local estimate fallback. `None` when the provider
-        /// does not report a cost — the record stays unpriced (excluded
+        /// does not report a cost - the record stays unpriced (excluded
         /// from dollar totals; its tokens still count).
         reported_cost: Option<f64>,
         /// REAL cost in the provider's NATIVE prepaid unit when that is not
         /// USD (Charm Hyper: `usage.cost.hypercredits`), parallel to
-        /// `reported_cost` — both come from the same `usage.cost` object.
+        /// `reported_cost` - both come from the same `usage.cost` object.
         /// Internal bookkeeping (session spend sums); NOT what the header
         /// renders. `None` for providers that bill natively in USD.
         reported_cost_credits: Option<f64>,
@@ -432,9 +432,9 @@ pub enum LlmCompactionEvent {
     /// The next streamed tokens are the candidate/final checkpoint rather
     /// than phase status; the TUI clears the transient progress text first.
     OutputStarted,
-    /// The summary was produced and applied — the context was compacted.
+    /// The summary was produced and applied - the context was compacted.
     Finished,
-    /// The summarization call failed or produced no output — the compaction
+    /// The summarization call failed or produced no output - the compaction
     /// is skipped this round and the context stays as it was.
     Failed,
 }

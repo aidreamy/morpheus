@@ -3,9 +3,9 @@
 //! Kept separate from [`super::ipc`] so the transport module reads as the
 //! protocol it implements, not as its error taxonomy. Two error families:
 //!
-//! - [`Ipc`] — transport/protocol failures on either side of the socket
+//! - [`Ipc`] - transport/protocol failures on either side of the socket
 //!   (framing, parse, closed peer, remote JSON-RPC error object).
-//! - [`Lifecycle`] — process management failures in `activation` (spawn,
+//! - [`Lifecycle`] - process management failures in `activation` (spawn,
 //!   socket never appeared, binary missing).
 
 /// Transport and protocol failures.
@@ -18,7 +18,7 @@ pub(crate) enum Ipc {
     /// The frame did not parse as JSON, or as a JSON-RPC 2.0 message.
     #[error("malformed message")]
     Parse,
-    /// Structurally invalid — batching, missing id, both result and error.
+    /// Structurally invalid - batching, missing id, both result and error.
     #[error("invalid request")]
     InvalidRequest,
     /// Typed params/results failed to deserialize.
@@ -28,7 +28,7 @@ pub(crate) enum Ipc {
     #[error("frame exceeds the size cap")]
     FrameTooLarge,
     /// A response (or the handshake) did not arrive within the call
-    /// timeout — enforced via socket timeouts, never by hanging the turn.
+    /// timeout - enforced via socket timeouts, never by hanging the turn.
     #[error("call timed out")]
     Timeout,
     /// The daemon on the other end is not who we expected (foreign daemon

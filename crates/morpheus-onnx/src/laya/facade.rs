@@ -3,7 +3,7 @@
 //!
 //! [`ModelKind`] names a checkpoint the way the Router does (`english`,
 //! `multilingual`, `typed-decisions`); this module resolves those names to
-//! the laya hub repos and subfolders — the only place outside `checkpoints`
+//! the laya hub repos and subfolders - the only place outside `checkpoints`
 //! that maps a kind to laya artifacts. Revisions stay opt-in, exactly as
 //! upstream: an explicit `revision` in the options wins, otherwise the Hub
 //! default is used so existing offline caches keep working; the reviewed
@@ -79,7 +79,7 @@ fn resolve(kind: ModelKind) -> (String, Option<String>) {
 
 /// The ONNX agent behind the facade handle: the shared-agent handle the
 /// Router uses, exposed through the [`DecisionModel`] surface. An `Arc`
-/// clone shares one agent with no outer lock — a prediction reads immutable
+/// clone shares one agent with no outer lock - a prediction reads immutable
 /// state and drives interior-mutable seams, so `decide` calls run
 /// concurrently (the forward pass itself serialises inside `OrtSession`).
 struct OnnxModel {

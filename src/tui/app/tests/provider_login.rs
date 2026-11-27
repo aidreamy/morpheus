@@ -4,9 +4,9 @@ use crate::ui::dialogs::{DeviceLoginPhase, DialogType};
 use crossterm::event::KeyCode;
 
 /// An app with the ADD Provider API-key dialog open for Charm, holding a
-/// half-typed key — the exact surface the Login button sits in. Call it
+/// half-typed key - the exact surface the Login button sits in. Call it
 /// while holding `HOME_LOCK` (the caller owns the guard for the WHOLE
-/// test — App::new reads setup through the redirected home).
+/// test - App::new reads setup through the redirected home).
 /// (No marker or provider setup needed: the ProviderDialog pump arms never
 /// touch the gateway offer state.)
 fn provider_app() -> App {
@@ -34,11 +34,11 @@ fn in_flight(app: &mut App) {
 }
 
 /// REGRESSION (review R1): the sign-in display must be PUSHED over the
-/// API-key input — never a `replace()`, which wipes the whole stack and
+/// API-key input - never a `replace()`, which wipes the whole stack and
 /// destroys the half-typed key the user may still want to paste manually.
 /// The real spawn runs here: on a machine with network access the flow
 /// reaches charm.sh and `announce_device_transaction` opens the SYSTEM
-/// BROWSER — run explicitly (`cargo test -- --ignored`).
+/// BROWSER - run explicitly (`cargo test -- --ignored`).
 #[ignore = "spawns the real charm.sh device flow, which opens the system browser"]
 #[tokio::test]
 async fn login_pushes_the_sign_in_over_the_key_input() {
@@ -154,7 +154,7 @@ async fn started_event_updates_only_the_live_box() {
 }
 
 /// REGRESSION (review R1, resolve side): on success BOTH the sign-in box
-/// and the API-key input beneath it pop — the credential that input was
+/// and the API-key input beneath it pop - the credential that input was
 /// opened to collect just landed in the keyring. The live provider config
 /// is never touched (no takeover from the provider dialog).
 #[tokio::test]
@@ -183,7 +183,7 @@ async fn authorized_pops_both_boxes_and_never_takes_over() {
     );
 }
 
-/// REGRESSION (review R1): on failure ONLY the sign-in box pops — the user
+/// REGRESSION (review R1): on failure ONLY the sign-in box pops - the user
 /// lands back on the API-key input with the half-typed key intact, the
 /// manual paste path preserved.
 #[tokio::test]
@@ -214,7 +214,7 @@ async fn failed_returns_to_the_half_typed_key_input() {
     assert!(!app.gateway_signing_in);
 }
 
-/// Esc pops the sign-in box only — the background flow keeps polling (the
+/// Esc pops the sign-in box only - the background flow keeps polling (the
 /// flag stays up) and its outcome still reports via toast, never forcing
 /// the box back. Every other key is swallowed (sovereignty), Esc is the
 /// only way out.

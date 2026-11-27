@@ -85,7 +85,7 @@ fn repeated_render_is_deterministic() {
 }
 
 /// Rendering an instance twice with unchanged inputs must equal a fresh
-/// instance's render — i.e. cache hits are faithful.
+/// instance's render - i.e. cache hits are faithful.
 #[test]
 fn cached_rerender_matches_fresh() {
     let content = "| A | B |\n|---|---|\n| long cell data | x |\n\npara after table\n";

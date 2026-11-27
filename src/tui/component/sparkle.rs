@@ -6,7 +6,7 @@
 //! The component owns only its phase machine; the caller (the session header
 //! render path) supplies the strip, the current session key and focus. Cells
 //! that already carry text, modifiers, or diff directives are never touched,
-//! and frames are not scheduled from here — the app's render loop redraws at
+//! and frames are not scheduled from here - the app's render loop redraws at
 //! its normal cadence, and unchanged cells produce no terminal diff output.
 //!
 //! Session router only: armed once per session id, dismissed outside the
@@ -85,7 +85,7 @@ pub struct SparkleFrame<'a> {
     /// Theme foreground, used as the bright end of the star blend.
     pub foreground: (u8, u8, u8),
     /// Local time in minutes since midnight. The flourish only plays (and
-    /// only loops) inside the night window — see `in_night_window`.
+    /// only loops) inside the night window - see `in_night_window`.
     pub local_minutes: u16,
 }
 
@@ -103,7 +103,7 @@ impl SparkleState {
     }
 
     /// Whether the flourish is currently playing (Visible phase). The idle
-    /// render loop uses this to keep its poll timeout short — a time-driven
+    /// render loop uses this to keep its poll timeout short - a time-driven
     /// animation would otherwise step at the (much slower) idle redraw rate.
     pub const fn is_animating(&self) -> bool {
         matches!(self.phase, Phase::Visible(_))

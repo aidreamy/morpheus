@@ -1,16 +1,16 @@
-//! Tree-sitter helpers used by the applier's boundary machinery — a port of
+//! Tree-sitter helpers used by the applier's boundary machinery - a port of
 //! upstream `packages/hashline/src/syntax.ts` (now
 //! `crates/pi-edit/src/modes/hashline/syntax.rs` in oh-my-pi).
 //!
 //! Three queries, all keyed by the file's display path (→ language by
 //! extension):
 //!
-//! - [`parses_cleanly`] — does this text parse without syntax errors? The
+//! - [`parses_cleanly`] - does this text parse without syntax errors? The
 //!   oracle that replaced the old hand-rolled delimiter-balance scanner:
 //!   a candidate result is only trusted when the real grammar accepts it.
-//! - [`node_chain`] — named-node chain containing a 1-indexed line,
+//! - [`node_chain`] - named-node chain containing a 1-indexed line,
 //!   innermost first (used to classify lines and find enclosing constructs).
-//! - [`enclosing_boundaries`] — for each multi-line named node whose span
+//! - [`enclosing_boundaries`] - for each multi-line named node whose span
 //!   crosses the edge of a line window, the boundary line outside that
 //!   window (the "matching bracket" generalization).
 //!
@@ -19,7 +19,7 @@
 //! upstream's syntax cache. The shared [`crate::tree_sitter::TreeSitter`]
 //! pool is deliberately NOT used here: it re-parses incrementally off the
 //! previous tree for a path, which is only sound when the caller also feeds
-//! the matching `tree.edit()` ranges — boundary probes swap whole arbitrary
+//! the matching `tree.edit()` ranges - boundary probes swap whole arbitrary
 //! texts, and a stale-tree incremental parse yields a corrupt syntax tree.
 use std::{
     collections::{HashMap, VecDeque},
@@ -199,7 +199,7 @@ pub fn node_chain(lines: &[String], path: &str, line: u32) -> Vec<NodeSpan> {
 /// closing line, and vice versa). Returns the sorted unique boundary lines.
 ///
 /// An unrecognized language or a file that does not parse returns an empty
-/// list — boundaries are advisory hints for repair heuristics, never trusted
+/// list - boundaries are advisory hints for repair heuristics, never trusted
 /// without a parse-provable file.
 #[must_use]
 pub fn enclosing_boundaries(lines: &[String], path: &str, start: u32, end: u32) -> Vec<u32> {

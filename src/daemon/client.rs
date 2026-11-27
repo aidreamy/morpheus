@@ -1,5 +1,5 @@
 //! The generic daemon client: connect (activating on demand), call, fail
-//! open. Fully synchronous — see `ipc` for why std is the right runtime.
+//! open. Fully synchronous - see `ipc` for why std is the right runtime.
 //!
 //! The connection policy is deliberately stateless: **every call gets a
 //! fresh connection**. A daemon call happens once per turn end, so a local

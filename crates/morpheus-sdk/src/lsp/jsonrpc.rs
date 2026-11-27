@@ -11,7 +11,7 @@
 //! occasionally print logs or other garbage into stdout (shell wrappers are a
 //! common offender). Non-header, non-empty lines before the `Content-Length`
 //! line are therefore skipped with a debug log instead of tearing down the
-//! session. A frame announcing an absurd body size is rejected outright —
+//! session. A frame announcing an absurd body size is rejected outright -
 //! that is corruption, not logging.
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
@@ -33,7 +33,7 @@ pub const MAX_FRAME_SIZE: usize = 64 * 1024 * 1024;
 
 const HEADER_DELIMITER: &str = "\r\n";
 const CONTENT_LENGTH_HEADER: &str = "content-length";
-/// Blank line that terminates the header block (spec) — bare `\n` accepted
+/// Blank line that terminates the header block (spec) - bare `\n` accepted
 /// because several servers get line endings wrong.
 const BLANK_LINE_ENDINGS: [&[u8]; 2] = [b"\r\n", b"\n"];
 
@@ -61,7 +61,7 @@ pub mod error_codes {
 ///
 /// Servers are free to use numeric or string ids; both must round-trip exactly
 /// (no coercion between `"2"` and `2`). Numeric ids are [`i64`] because some
-/// servers emit large numeric ids on their own requests — failing to parse one
+/// servers emit large numeric ids on their own requests - failing to parse one
 /// would leave the server waiting for our response forever.
 #[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
 #[serde(untagged)]
@@ -134,7 +134,7 @@ pub enum IncomingMessage {
         /// Raw params, present when the server sent them.
         params: Option<Value>,
     },
-    /// A response to one of our requests. Never routed to consumers — the
+    /// A response to one of our requests. Never routed to consumers - the
     /// transport resolves the matching pending entry instead.
     Response {
         /// Id of the originating request.
@@ -167,7 +167,7 @@ struct OutgoingNotification<'a> {
 ///
 /// Exactly one of `result`/`error` is ever serialized because construction is
 /// split across two builders ([`encode_response_ok`] /
-/// [`encode_response_err`]) — the "both fields present" class of protocol bug
+/// [`encode_response_err`]) - the "both fields present" class of protocol bug
 /// is unrepresentable.
 #[derive(Serialize)]
 struct OutgoingResponse<'a> {
@@ -195,7 +195,7 @@ struct RawMessage {
     // NOTE: `result: null` and a missing `result` both deserialize to `None`.
     // Per zed's precedent (input_handler.rs) a response carrying neither a
     // usable result nor an error is treated as success-with-null rather than
-    // rejected — several servers answer `shutdown` with a bare null.
+    // rejected - several servers answer `shutdown` with a bare null.
     #[serde(default)]
     result: Option<Value>,
     #[serde(default)]
@@ -316,7 +316,7 @@ pub async fn read_frame<R: AsyncBufRead + Unpin>(
             .map_err(|_| LspError::InvalidFrame("header block is not UTF-8".into()))?
             .trim_end_matches(['\r', '\n']);
 
-        // The blank line terminates the header block — but only counts once a
+        // The blank line terminates the header block - but only counts once a
         // Content-Length was seen; stray blanks before headers (junk from
         // non-conformant servers) are skipped.
         if BLANK_LINE_ENDINGS.contains(&header_buf.as_slice()) {
@@ -346,7 +346,7 @@ pub async fn read_frame<R: AsyncBufRead + Unpin>(
             });
         }
         if seen_length.replace(length).is_some() {
-            // Two different lengths leave framing ambiguous — reject instead
+            // Two different lengths leave framing ambiguous - reject instead
             // of silently picking one (Helix does the same).
             return Err(LspError::InvalidFrame(
                 "duplicate Content-Length header".into(),
@@ -357,7 +357,7 @@ pub async fn read_frame<R: AsyncBufRead + Unpin>(
     body_buf.resize(content_length, 0);
     reader.read_exact(body_buf).await?;
     // Zero-copy on the happy path; `take` leaves an empty (reused) buffer
-    // behind. The error path sacrifices the buffer — corrupt streams end the
+    // behind. The error path sacrifices the buffer - corrupt streams end the
     // session anyway.
     String::from_utf8(std::mem::take(body_buf))
         .map_err(|_| LspError::InvalidFrame("frame body is not UTF-8".into()))

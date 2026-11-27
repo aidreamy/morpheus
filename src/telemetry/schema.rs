@@ -41,7 +41,7 @@ impl EventType {
 
 /// Closed set of LLM providers, mirroring the SDK's allowlist. Any provider
 /// name not in this list is hashed by [`crate::telemetry::sanitize`] before it
-/// can enter an event — a custom provider name can embed identity (company,
+/// can enter an event - a custom provider name can embed identity (company,
 /// personal name, internal host), exactly like a filesystem path.
 pub const PROVIDER_ALLOWLIST: &[&str] = &[
     "openai",
@@ -57,7 +57,7 @@ pub const PROVIDER_ALLOWLIST: &[&str] = &[
     "opencode",
 ];
 
-/// Error categories. Closed set — an error is represented by its category plus
+/// Error categories. Closed set - an error is represented by its category plus
 /// a fingerprint of its normalized message, never by the raw message.
 #[derive(
     Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord, Hash, serde::Serialize, serde::Deserialize,
@@ -94,7 +94,7 @@ impl ErrorCategory {
 }
 
 /// A validated, app-internal error source identifier (closed
-/// allowlist, not a charset validator — a syntactic check still lets a
+/// allowlist, not a charset validator - a syntactic check still lets a
 /// private project name like `acme::confidential_merger` through).
 /// Construct only through [`ErrorSource::validate`]; anything outside the
 /// allowlist is rejected (fail closed).
@@ -104,7 +104,7 @@ impl ErrorCategory {
 pub struct ErrorSource(String);
 
 /// Closed set of telemetry-visible internal modules (wire names). Adding a
-/// module is a deliberate, reviewed change — exactly like the provider and
+/// module is a deliberate, reviewed change - exactly like the provider and
 /// tool allowlists.
 pub const SOURCE_ALLOWLIST: &[&str] = &["harness::core", "harness::a", "harness::b"];
 
@@ -124,7 +124,7 @@ impl ErrorSource {
     }
 
     /// Test-only: an over-long filler source used to exercise size caps.
-    /// NOT on [`SOURCE_ALLOWLIST`], so it cannot be produced by `validate` —
+    /// NOT on [`SOURCE_ALLOWLIST`], so it cannot be produced by `validate` -
     /// tests use it only to inflate serialized size before the cap check.
     #[doc(hidden)]
     pub fn test_filler(len: usize) -> Self {
@@ -180,7 +180,7 @@ impl Feature {
 }
 
 /// Tool names/categories on the wire (allowlist). `normalize_tool` maps exact
-/// built-in dispatch names to these categories. Unknown names are NOT shipped raw — they
+/// built-in dispatch names to these categories. Unknown names are NOT shipped raw - they
 /// fall into the `other` bucket, since a tool name can embed project context.
 pub const TOOL_ALLOWLIST: &[&str] = &[
     "bash",

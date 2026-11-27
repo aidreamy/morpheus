@@ -27,7 +27,7 @@ fn rm(path: &str) {
     let _ = std::fs::remove_file(path);
 }
 
-// record() — unit tests (no disk I/O needed)
+// record() - unit tests (no disk I/O needed)
 
 #[test]
 #[serial]
@@ -126,7 +126,7 @@ fn record_strips_bom_before_storing() {
     );
 }
 
-// restore() — success paths (require real disk I/O)
+// restore() - success paths (require real disk I/O)
 
 #[tokio::test]
 #[serial]
@@ -431,7 +431,7 @@ async fn restore_header_is_valid_hashline_format() {
     rm(&path);
 }
 
-// restore() — error paths
+// restore() - error paths
 
 #[tokio::test]
 #[serial]
@@ -506,7 +506,7 @@ async fn restore_error_already_at_target_version() {
     .await
     .unwrap();
 
-    // Now try to restore to h again — disk already has h
+    // Now try to restore to h again - disk already has h
     let err = restore(RestoreInput {
         path: path.clone(),
         hash: Some(h.clone()),
@@ -556,7 +556,7 @@ async fn restore_error_hash_none_on_externally_modified_file() {
     write(&path, "session wrote this\n");
     let h = record(&path, "session wrote this\n").unwrap();
 
-    // External modification — disk content not in session history
+    // External modification - disk content not in session history
     write(&path, "externally changed content\n");
 
     let err = restore(RestoreInput {
@@ -599,7 +599,7 @@ async fn restore_error_disk_read_failure_non_utf8() {
     .err()
     .expect("should fail on non-utf8 or missing history");
 
-    // The error comes from the read phase — it should mention the path.
+    // The error comes from the read phase - it should mention the path.
     assert!(
         err.contains("failed to read") || err.contains("no previous"),
         "should surface a read error or history error, got: {err}"
@@ -664,7 +664,7 @@ fn record_one_byte_over_max_snapshot_bytes_is_rejected() {
     );
 }
 
-// Gap tests — real agent scenarios not previously covered
+// Gap tests - real agent scenarios not previously covered
 
 #[test]
 #[serial]
@@ -935,7 +935,7 @@ async fn restore_error_when_file_grew_beyond_snapshot_limit() {
     // snapshot (v2). With hash=None, the disk content (v2) is not in the
     // store, producing an "external modification" error.
     // The error is technically imprecise (agent wrote it, not an external
-    // tool), but the actionable part — listing known hashes — is correct.
+    // tool), but the actionable part - listing known hashes - is correct.
     let path = tmp("grew_beyond_limit");
     write(&path, "small content\n");
     let h_small = record(&path, "small content\n").unwrap();
@@ -944,7 +944,7 @@ async fn restore_error_when_file_grew_beyond_snapshot_limit() {
     // silently skipping it because the content is too large)
     let large = "x".repeat(MAX_SNAPSHOT_BYTES + 1);
     write(&path, &large);
-    // record() returns None — the oversized content is not stored
+    // record() returns None - the oversized content is not stored
     assert!(
         record(&path, &large).is_none(),
         "oversized content must not be recorded"
@@ -965,7 +965,7 @@ async fn restore_error_when_file_grew_beyond_snapshot_limit() {
     // When the path is still in the store (not evicted by concurrent tests),
     // the error must list the known hash so the agent can use it explicitly.
     // If the path was evicted by LRU pressure from parallel tests the error
-    // changes to "no rollback history" and the hash is not listed — that
+    // changes to "no rollback history" and the hash is not listed - that
     // behaviour is separately covered by restore_fails_with_clear_error_after_path_eviction.
     if err.contains("modified externally") {
         assert!(

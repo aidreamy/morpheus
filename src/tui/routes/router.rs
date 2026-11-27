@@ -64,8 +64,8 @@ fn luma(color: Color) -> f32 {
 
 /// Nudge a block's background one step toward legibility for the hover
 /// highlight: dark surfaces blend toward white, light ones toward black
-/// (same pivot as `theme::contrast_color`). `Color::Reset` — the transparent
-/// theme convention for "no fill" — is returned untouched so the wash is a
+/// (same pivot as `theme::contrast_color`). `Color::Reset` - the transparent
+/// theme convention for "no fill" - is returned untouched so the wash is a
 /// no-op there.
 fn lightened(color: Color) -> Color {
     let (r, g, b) = match color {
@@ -83,8 +83,8 @@ fn lightened(color: Color) -> Color {
 /// Paint the hover wash over one block. `idle_bg` is the block's resting
 /// background fill; a cell is touched ONLY while its current bg still equals
 /// that fill, so overlays painted with their own background (the primary
-/// title bands) keep their color. `Cell::set_style` patches — `None` fields
-/// keep the cell's values — so the glyphs the block already drew stay put
+/// title bands) keep their color. `Cell::set_style` patches - `None` fields
+/// keep the cell's values - so the glyphs the block already drew stay put
 /// and only the background lightens. The cursor is the last known mouse
 /// position (`None` when the pointer left the router).
 fn paint_block_hover(buf: &mut Buffer, block: Rect, cursor: Option<(u16, u16)>, idle_bg: Color) {
@@ -112,7 +112,7 @@ fn paint_block_hover(buf: &mut Buffer, block: Rect, cursor: Option<(u16, u16)>, 
 /// Whether a click on a list row lands on the row's visible text. Rows are
 /// rendered from `row_x` one cell per char, so the text occupies exactly
 /// `text.chars().count()` columns; a click past it hits the row's empty
-/// trailing space and means a focus switch only — never a selection. The
+/// trailing space and means a focus switch only - never a selection. The
 /// two-char selection prefix ("🞴 " / "  ") must be included in `text` so
 /// the length matches what the render drew.
 fn click_lands_on_text(mouse_x: u16, row_x: u16, text: &str) -> bool {
@@ -130,7 +130,7 @@ fn row_marker(selected: bool) -> &'static str {
     if selected { "🞴 " } else { "  " }
 }
 
-/// `provider  model` rows — shared by the automatic list and the
+/// `provider  model` rows - shared by the automatic list and the
 /// correction tab's model catalog.
 fn model_row_text(marker: &str, entry: &ModelEntry) -> String {
     format!("{marker}{}  {}", entry.provider, entry.model)
@@ -166,7 +166,7 @@ fn prompt_fallback_row_text(
 
 /// Resolve a click inside a scrolled list to the absolute entry index.
 /// `None` when the click is above the rows or past the rendered rows
-/// (empty space under a short list) — such clicks mean "focus the box"
+/// (empty space under a short list) - such clicks mean "focus the box"
 /// only, never a selection.
 fn clicked_row_index(
     mouse_y: u16,
@@ -387,11 +387,10 @@ impl RouterView {
     /// options lead the list. No filter: the registry is small and fixed.
     fn acp_agents_ordered(&self) -> Vec<morpheus_agents::acp::Agent> {
         let installed = morpheus_agents::acp::detect_installed();
-        let (mut present, mut missing): (Vec<_>, Vec<_>) =
-            morpheus_agents::acp::all_agent_names()
-                .into_iter()
-                .filter_map(morpheus_agents::acp::find_agent)
-                .partition(|agent| installed.contains(&agent.name));
+        let (mut present, mut missing): (Vec<_>, Vec<_>) = morpheus_agents::acp::all_agent_names()
+            .into_iter()
+            .filter_map(morpheus_agents::acp::find_agent)
+            .partition(|agent| installed.contains(&agent.name));
         present.append(&mut missing);
         present
     }
@@ -813,8 +812,7 @@ impl RouterView {
                     let text = acp_row_text(
                         "  ",
                         agent.name,
-                        morpheus_agents::acp::installed_agents_snapshot()
-                            .contains(&agent.name),
+                        morpheus_agents::acp::installed_agents_snapshot().contains(&agent.name),
                     );
                     if click_lands_on_text(mouse.x, choice_x, &text) {
                         self.selected_acp_agent = agent_index;
@@ -842,7 +840,7 @@ impl RouterView {
                 ) {
                     // Same selection rule as every other list: the click
                     // must land on the rendered row text. Within it, the
-                    // click mirrors Enter — the model toggles into the
+                    // click mirrors Enter - the model toggles into the
                     // correction route.
                     let text = model_row_text("  ", &filtered[idx]);
                     if click_lands_on_text(mouse.x, choice_x, &text) {
@@ -1081,7 +1079,7 @@ impl RouterView {
             );
             draw_text_line(buf, &text, choice_x, y, choice_w, style);
         }
-        // The ACP block owns its `background_element` band — hover lightens
+        // The ACP block owns its `background_element` band - hover lightens
         // exactly that band (and only its cells; overlays like row text
         // carry no bg of their own here, so the wash reads through).
         paint_block_hover(buf, layout.prompt_acp, self.hover_cell, acp_bg);
@@ -1218,7 +1216,7 @@ impl RouterView {
             } else {
                 Style::default().fg(fg)
             };
-            // Order still matters in a chain, so the number stays — but the
+            // Order still matters in a chain, so the number stays - but the
             // row highlight is the standard 🞴 marker, no background wash.
             let text = prompt_fallback_row_text(row_marker(selected), index, entry);
             draw_text_line(buf, &text, fallback_x, y, fallback_w, style);
@@ -1322,7 +1320,7 @@ impl RouterView {
 
                 let is_selected = models_focused && idx == self.selection.selected_index;
                 // Standard TUI selection: 🞴 marker + fg color only, never a
-                // background wash — same pattern as the prompt-corrector tab.
+                // background wash - same pattern as the prompt-corrector tab.
                 let style = if is_selected {
                     Style::default().fg(primary)
                 } else {
@@ -1397,7 +1395,7 @@ impl RouterView {
         }
 
         // Hover highlight for the exact blocks on this tab: wash the
-        // available-models surface and the fallback-chain panel — rows,
+        // available-models surface and the fallback-chain panel - rows,
         // titles and the primary title band included, everything that
         // still carries the block's resting background.
         let cursor = self.hover_cell;
@@ -1487,7 +1485,7 @@ mod tests {
     /// Render into a buffer pre-filled the way `App::render` fills the frame
     /// (every cell carrying the theme background). The hover wash only lights
     /// cells already carrying a block's resting background, so tests need that
-    /// underlying fill to exist — the real app always provides it.
+    /// underlying fill to exist - the real app always provides it.
     fn render_buffer_with_frame_bg(
         view: &mut RouterView,
         area: Rect,
@@ -1792,7 +1790,7 @@ mod tests {
     #[test]
     fn prompt_corrector_model_rows_toggle_from_clicks() {
         // Regression: clicking the correction tab's model list only moved
-        // focus — Enter toggled the highlighted model but the mouse could
+        // focus - Enter toggled the highlighted model but the mouse could
         // not. A click on the row text must mirror Enter.
         let mut view = RouterView::new();
         view.set_active_tab(RouterTab::PromptCorrector);
@@ -1863,7 +1861,7 @@ mod tests {
     fn auto_tab_click_selection_is_bounded_by_the_row_text() {
         // Regression: a click used to apply to the whole row, so clicking
         // the empty space after a model's name added it to the fallback
-        // chain — ambiguous with the click-to-switch-focus gesture. A
+        // chain - ambiguous with the click-to-switch-focus gesture. A
         // selection must be bound to the exact rendered string; anything
         // past it behaves like a directed Tab (focus moves, nothing else).
         let mut view = RouterView::new();
@@ -1939,10 +1937,7 @@ mod tests {
 
         // ACP agents are ordered installed-first with no filter involved.
         let agents = view.acp_agents_ordered();
-        assert_eq!(
-            agents.len(),
-            morpheus_agents::acp::ACP_AGENTS.len()
-        );
+        assert_eq!(agents.len(), morpheus_agents::acp::ACP_AGENTS.len());
     }
 
     #[test]

@@ -109,7 +109,7 @@ fn strip_think_tags(text: &str) -> String {
                 &result[start + end + "</think>".len()..]
             );
         } else {
-            // Unclosed think tag — keep text after the tag, remove the tag itself.
+            // Unclosed think tag - keep text after the tag, remove the tag itself.
             result = format!("{}{}", &result[..start], &result[start + "<think>".len()..]);
             break;
         }

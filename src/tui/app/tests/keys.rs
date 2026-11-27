@@ -47,7 +47,7 @@ async fn toggled_mode_persists_and_restores_for_new_sessions() {
 /// Alt+digit pane hotkeys must work THROUGH the /agents picker and the
 /// slash menu: the modal boxes used to swallow modified digit chords (their
 /// handlers ignore non-text chars, so the key was consumed with no visible
-/// effect and — with the picker open — the user could not leave picker mode
+/// effect and - with the picker open - the user could not leave picker mode
 /// via pane jumps either). The hotkeys are sovereign: with the split open,
 /// `Alt+0` unfocuses (the MAIN agent) and `Alt+1..Alt+9` focus a pane,
 /// while the picker's own marks stay untouched.
@@ -124,7 +124,7 @@ async fn alt_digit_switches_pane_through_the_slash_menu() {
     assert!(app.prompt_view.input.is_empty());
 }
 
-/// A PLAIN digit is a pane hotkey only while the prompt draft is empty —
+/// A PLAIN digit is a pane hotkey only while the prompt draft is empty -
 /// once the user texts, digits belong to the draft again (the fallback
 /// ownership rule the /agents picker regime relied on).
 #[tokio::test]
@@ -181,11 +181,11 @@ async fn digits_never_act_as_hotkeys_without_the_split() {
 
 /// Documents WHY plain arrow keys can never switch agent queues on
 /// terminals that strip the ALT modifier from arrow encodings (`\x1b[D`,
-/// `\x1bOD`): crossterm then reports a PLAIN Left/Right, which — while an
-/// agent queue is focused — steps THAT queue's history instead. The bytes
+/// `\x1bOD`): crossterm then reports a PLAIN Left/Right, which - while an
+/// agent queue is focused - steps THAT queue's history instead. The bytes
 /// are indistinguishable from a real plain arrow press. (Alt+← / Alt+→
 /// queue-switching was removed: subagents are presented as ONE list, not
-/// per-CLI groups — Shift+B / Shift+N remain the queue switchers.)
+/// per-CLI groups - Shift+B / Shift+N remain the queue switchers.)
 #[tokio::test]
 async fn plain_left_arrow_with_agent_focus_steps_queue_not_switch() {
     use crate::routes::session::right_panel::types::{PanelFocus, RightPanelState};
@@ -204,7 +204,7 @@ async fn plain_left_arrow_with_agent_focus_steps_queue_not_switch() {
     panel.panel_focus = Some(PanelFocus::Agent("opencode".to_string()));
     app.state.right_panel = panel;
 
-    // Plain Left (modifiers NONE): steps opencode's queue back — the
+    // Plain Left (modifiers NONE): steps opencode's queue back - the
     // focused queue's history navigation, NOT a queue switch.
     app.process_key_event(mod_key(KeyCode::Left, KeyModifiers::NONE))
         .unwrap();
@@ -221,7 +221,7 @@ async fn plain_left_arrow_with_agent_focus_steps_queue_not_switch() {
 }
 
 /// Shift+B / Shift+N switch agent queues while the right panel owns the
-/// keyboard — the encoding survives terminals that strip Alt from
+/// keyboard - the encoding survives terminals that strip Alt from
 /// arrows (crossterm derives SHIFT from the uppercase letter).
 #[tokio::test]
 async fn shift_b_n_switch_agent_queue_when_panel_focused() {
@@ -282,10 +282,10 @@ async fn shift_b_n_type_normally_without_panel_focus() {
     assert_eq!(app.state.right_panel.panel_focus, None);
 }
 
-/// Issue 4 — Esc while a right-panel block is focused ONLY folds it back
+/// Issue 4 - Esc while a right-panel block is focused ONLY folds it back
 /// into the list: the agent loop keeps running (stop signal untouched),
 /// the focus is released and the key is CONSUMED. The old flow cleared
-/// the focus but let the same Esc reach the loop-stop path — one press
+/// the focus but let the same Esc reach the loop-stop path - one press
 /// both left the block and killed the loop.
 #[tokio::test]
 async fn esc_on_a_focused_panel_block_folds_back_without_stopping_the_loop() {
@@ -302,7 +302,7 @@ async fn esc_on_a_focused_panel_block_folds_back_without_stopping_the_loop() {
         panel.complete_last_pty(format!("{agent} report\n"));
     }
     // An EXPANDED subagent block is focused (the two-session default is
-    // list mode — force the expanded single-window view first).
+    // list mode - force the expanded single-window view first).
     panel.subagent_list_mode = Some(false);
     panel.panel_focus = Some(PanelFocus::Agent("kilo".to_string()));
     app.state.right_panel = panel;
@@ -323,7 +323,7 @@ async fn esc_on_a_focused_panel_block_folds_back_without_stopping_the_loop() {
     );
     assert!(
         !app.stop_signal.load(std::sync::atomic::Ordering::Relaxed),
-        "the loop must keep running — issue 4"
+        "the loop must keep running - issue 4"
     );
     assert_eq!(
         app.state.status,
@@ -332,7 +332,7 @@ async fn esc_on_a_focused_panel_block_folds_back_without_stopping_the_loop() {
     );
 }
 
-/// Issue 4 — the NEXT Esc (focus already released by the fold-back) runs
+/// Issue 4 - the NEXT Esc (focus already released by the fold-back) runs
 /// the normal stop semantics: with the agent loop still Working and no
 /// modal box open, it interrupts the loop.
 #[tokio::test]
@@ -360,7 +360,7 @@ async fn esc_after_the_fold_back_stops_the_loop_normally() {
     assert!(!app.stop_signal.load(std::sync::atomic::Ordering::Relaxed));
     assert_eq!(app.state.right_panel.panel_focus, None);
 
-    // Second Esc: focus is out of the block — the normal stop.
+    // Second Esc: focus is out of the block - the normal stop.
     app.process_key_event(mod_key(KeyCode::Esc, KeyModifiers::NONE))
         .unwrap();
     assert!(
@@ -455,7 +455,7 @@ async fn ctrl_p_in_agents_mode_reopens_a_panel_hidden_in_normal_chat() {
     assert!(!app.main_mirror_open());
     assert!(!app.right_panel_visible(120));
 
-    // A third press reopens it — the toggle keeps working both ways.
+    // A third press reopens it - the toggle keeps working both ways.
     app.process_key_event(mod_key(KeyCode::Char('p'), KeyModifiers::CONTROL))
         .unwrap();
     assert!(app.right_panel_visible(120));
@@ -469,7 +469,7 @@ async fn ctrl_p_in_agents_mode_reopens_a_panel_hidden_in_normal_chat() {
     assert!(!app.right_panel_visible(120));
 }
 
-/// Regression: `is_in_right_panel` is also visibility-aware — after Ctrl+P
+/// Regression: `is_in_right_panel` is also visibility-aware - after Ctrl+P
 /// the panel's old screen band belongs to the chat, so scroll/click events
 /// there must never be routed to the (hidden) panel.
 #[tokio::test]
@@ -556,7 +556,7 @@ async fn esc_while_working_sets_stop_signal_despite_sidebar_focus() {
 }
 
 /// Regression (PRIORITY RULE): with the slash menu open, ESC belongs to
-/// the BOX first — it closes the menu and must NOT interrupt a running
+/// the BOX first - it closes the menu and must NOT interrupt a running
 /// agent loop. Only the SECOND Esc, with no box open anymore, flags the
 /// stop signal.
 #[tokio::test]
@@ -579,7 +579,7 @@ async fn esc_while_working_closes_slash_menu_first_stop_on_second_esc() {
     );
     assert!(!app.slash_menu.visible, "ESC keeps closing the slash menu");
 
-    // Second Esc: no box open anymore — now the loop is interrupted.
+    // Second Esc: no box open anymore - now the loop is interrupted.
     app.process_key_event(mod_key(KeyCode::Esc, KeyModifiers::NONE))
         .unwrap();
     assert!(
@@ -589,7 +589,7 @@ async fn esc_while_working_closes_slash_menu_first_stop_on_second_esc() {
 }
 
 /// Regression (PRIORITY RULE, the motivating bug): the model-picker box
-/// opened via slash commands must own ESC while an agent loop runs — the
+/// opened via slash commands must own ESC while an agent loop runs - the
 /// first Esc closes the box (restoring the original model) and the loop
 /// keeps going; only the second Esc, with no box left on screen,
 /// interrupts the loop.
@@ -616,7 +616,7 @@ async fn esc_while_working_closes_model_dialog_first_stop_on_second_esc() {
         "ESC keeps closing the model dialog"
     );
 
-    // Second Esc: no box open anymore — now the loop is interrupted.
+    // Second Esc: no box open anymore - now the loop is interrupted.
     app.process_key_event(mod_key(KeyCode::Esc, KeyModifiers::NONE))
         .unwrap();
     assert!(
@@ -626,7 +626,7 @@ async fn esc_while_working_closes_model_dialog_first_stop_on_second_esc() {
 }
 
 /// Regression (PRIORITY RULE): the queue-choice box (shown when a message
-/// is typed while the agent runs) also owns ESC — the first Esc dismisses
+/// is typed while the agent runs) also owns ESC - the first Esc dismisses
 /// it (message stays in the input, nothing queued) and the loop keeps
 /// running; the second Esc interrupts the loop.
 #[tokio::test]
@@ -652,7 +652,7 @@ async fn esc_while_working_closes_queue_choice_first_stop_on_second_esc() {
         "ESC keeps dismissing the queue-choice dialog"
     );
 
-    // Second Esc: no box open anymore — now the loop is interrupted.
+    // Second Esc: no box open anymore - now the loop is interrupted.
     app.process_key_event(mod_key(KeyCode::Esc, KeyModifiers::NONE))
         .unwrap();
     assert!(
@@ -662,7 +662,7 @@ async fn esc_while_working_closes_queue_choice_first_stop_on_second_esc() {
 }
 
 /// ESC on the permission dialog used to only DENY the pending
-/// permission — the loop kept running (the model would just try something
+/// permission - the loop kept running (the model would just try something
 /// else). ESC must now interrupt the loop as well.
 #[tokio::test]
 async fn esc_while_working_sets_stop_signal_on_permission_dialog() {
@@ -686,7 +686,7 @@ async fn esc_while_working_sets_stop_signal_on_permission_dialog() {
     );
 }
 
-/// ESC must NOT flag the stop signal when no agent loop is running —
+/// ESC must NOT flag the stop signal when no agent loop is running -
 /// closing overlays while idle must stay side-effect-free.
 #[tokio::test]
 async fn esc_while_idle_does_not_set_stop_signal() {
@@ -742,7 +742,7 @@ async fn esc_with_confirm_dialog_visible_does_not_set_stop_signal() {
 
 /// The function-key hints the header buttons advertise must actually WORK:
 /// F1 maximizes Subagent, F2 Bash, F3 TODO, and F4 brings the mixed view
-/// back — the same owner switch a click on the button performs, as a
+/// back - the same owner switch a click on the button performs, as a
 /// keyboard shortcut beside the mouse path.
 #[tokio::test]
 async fn function_keys_f1_to_f4_switch_the_panel_owner() {
@@ -796,7 +796,7 @@ async fn function_keys_f1_to_f4_switch_the_panel_owner() {
 }
 
 /// REGRESSION: with the agent IDLE, Esc over an expanded subagent block
-/// must FOLD it into the list — not fall through to the cancel path and
+/// must FOLD it into the list - not fall through to the cancel path and
 /// LEAVE the session. The fold used to run without consuming the key, so
 /// it only "worked" while the model was running (the Working branch
 /// swallowed the fall-through); idle, the same keypress reached the quit
@@ -818,7 +818,7 @@ async fn esc_over_expanded_subagent_folds_and_stays_in_session_when_idle() {
     // Expanded view (a click/F-key opened it): the list is NOT active, so
     // the next Esc has a fold to perform.
     panel.subagent_list_mode = Some(false);
-    // A Subagent section band the cursor sits inside — section layouts are
+    // A Subagent section band the cursor sits inside - section layouts are
     // normally recorded by the renderer; a synthetic band keeps this test
     // key-only.
     panel.section_layouts.push(SectionLayout {
@@ -833,7 +833,7 @@ async fn esc_over_expanded_subagent_folds_and_stays_in_session_when_idle() {
     app.last_mouse_y = 12;
 
     // First Esc: folds the expanded subagent into the list AND stays in
-    // the session (the agent is idle — this used to exit instead).
+    // the session (the agent is idle - this used to exit instead).
     app.process_key_event(mod_key(KeyCode::Esc, KeyModifiers::NONE))
         .unwrap();
     assert_eq!(
@@ -851,7 +851,7 @@ async fn esc_over_expanded_subagent_folds_and_stays_in_session_when_idle() {
     );
 
     // Second Esc: the list is now active (nothing to fold), so Esc keeps
-    // its normal meaning — its lowest-priority job is the quit confirm
+    // its normal meaning - its lowest-priority job is the quit confirm
     // (same Idle precondition).
     app.process_key_event(mod_key(KeyCode::Esc, KeyModifiers::NONE))
         .unwrap();
@@ -864,7 +864,7 @@ async fn esc_over_expanded_subagent_folds_and_stays_in_session_when_idle() {
 /// `Alt+0` is the MAIN-agent hotkey: it unfocuses every /agents pane, so
 /// the shared prompt targets the plain normal-mode loop (unchanged by the
 /// split). This pins the CSI-u delivery shape
-/// (`Char('0')` + CONTROL — what kitty-protocol terminals send once the
+/// (`Char('0')` + CONTROL - what kitty-protocol terminals send once the
 /// app negotiates `REPORT_ALL_KEYS_AS_ESCAPE_CODES`): the focus MUST
 /// clear even with a draft typed, and a pane hotkey must re-focus after.
 #[tokio::test]
@@ -885,7 +885,7 @@ async fn alt_zero_unfocuses_every_pane_to_the_main_agent() {
     assert_eq!(app.agents_split.as_ref().map(|s| s.focused), Some(Some(1)));
     app.prompt_view.handle_paste("do the thing");
 
-    // Alt+0 clears the focus — the draft is untouched (it now belongs to
+    // Alt+0 clears the focus - the draft is untouched (it now belongs to
     // the main agent's next turn).
     app.process_key_event(mod_key(KeyCode::Char('0'), KeyModifiers::ALT))
         .unwrap();
@@ -898,7 +898,7 @@ async fn alt_zero_unfocuses_every_pane_to_the_main_agent() {
     assert_eq!(app.agents_split.as_ref().map(|s| s.focused), Some(Some(0)));
 }
 
-/// Legacy terminals have no byte encoding for chorded digits — `Alt+0`
+/// Legacy terminals have no byte encoding for chorded digits - `Alt+0`
 /// plain `0`. The plain-digit fallback must still unfocus while the draft
 /// is empty (picker closed, no modal): that is the ONLY shape those
 /// terminals can deliver.
@@ -976,7 +976,7 @@ async fn alt_zero_unfocuses_through_the_open_picker() {
     );
 }
 
-/// ESC with NO pane focused PARKS the split — even while the main loop is
+/// ESC with NO pane focused PARKS the split - even while the main loop is
 /// Working (issue 3): leaving to watch/delegate in the normal view must
 /// never interrupt the main loop's turn, and the main loop is interrupted
 /// from the normal view exactly as before (its stop signal stays UNTOUCHED
@@ -1001,7 +1001,7 @@ async fn esc_with_main_focused_parks_and_never_stops_the_loop() {
 
     assert!(
         !app.stop_signal.load(std::sync::atomic::Ordering::Relaxed),
-        "the split's Esc must NEVER flag the main loop's stop — issue 3"
+        "the split's Esc must NEVER flag the main loop's stop - issue 3"
     );
     assert!(
         app.agents_split.is_none(),
@@ -1047,7 +1047,7 @@ async fn esc_with_main_focused_and_idle_parks_the_split() {
     );
 }
 
-/// `Alt+0..Alt+9` are the ONLY chorded pane hotkeys — the reliable form
+/// `Alt+0..Alt+9` are the ONLY chorded pane hotkeys - the reliable form
 /// because ESC+digit survives every terminal encoding (Ctrl+digits have
 /// no legacy byte encoding). `Alt+0` unfocuses (the MAIN agent),
 /// `Alt+1..` focus the numbered pane (1-based), never consulting the
@@ -1114,7 +1114,7 @@ async fn alt_digit_focuses_through_the_open_picker() {
 
 /// `Ctrl+Alt+digit` is the AltGr character signature on Windows consoles,
 /// never a hotkey: the Alt shape requires a BARE ALT (CONTROL excluded)
-/// — the focus stays put.
+/// - the focus stays put.
 #[tokio::test]
 async fn ctrl_alt_digit_is_not_a_pane_hotkey() {
     let _home = HOME_LOCK.lock();
@@ -1149,7 +1149,7 @@ async fn ctrl_alt_digit_is_not_a_pane_hotkey() {
 }
 
 /// The Alt alias is EXACT: `Alt+Shift+digit` (what shift-reporting
-/// terminals emit) must not jump panes — only a bare Alt+digit is a
+/// terminals emit) must not jump panes - only a bare Alt+digit is a
 /// hotkey, so the combination falls through to normal handling with the
 /// focus untouched.
 #[tokio::test]
@@ -1175,7 +1175,7 @@ async fn alt_shift_digit_is_not_a_pane_hotkey() {
     );
 }
 
-/// Issue 3 — Enter with a SPLIT PANE focused dispatches to that pane even
+/// Issue 3 - Enter with a SPLIT PANE focused dispatches to that pane even
 /// while the MAIN agent is Working: delegating to an idle pane mid-run
 /// must work, and the main loop keeps streaming untouched. The pane's
 /// dispatch path is exactly the normal one (the running flag flips, the
@@ -1219,7 +1219,7 @@ async fn enter_dispatches_to_a_focused_pane_while_the_main_loop_is_working() {
     );
 }
 
-/// Issue 3 — Enter with NO pane focused (the MAIN agent target) while
+/// Issue 3 - Enter with NO pane focused (the MAIN agent target) while
 /// Working keeps the EXISTING queue behavior: the queue-choice dialog
 /// opens, nothing is dispatched, no turn starts.
 #[tokio::test]
@@ -1258,7 +1258,7 @@ async fn enter_with_main_target_while_working_still_queues() {
 
 /// The reported bug: the main loop finished its own work and is only
 /// WAITING for `/agents` pane reports. The agent is idle from the user's
-/// point of view, so a submitted message must reach it — not open the
+/// point of view, so a submitted message must reach it - not open the
 /// queue-choice dialog. It enters the "next request" queue, which the
 /// ordinary pump hands to the shared `queued_input`, and the harness's
 /// wait wakes on it instead of sleeping out the reports.
@@ -1269,7 +1269,7 @@ async fn enter_while_only_awaiting_pane_reports_sends_instead_of_queuing() {
     let mut app = App::new("/tmp".to_string());
     app.state.add_empty_session("t".into(), "t".into(), 0);
     app.state.current_session_id = Some("t".into());
-    // Still `Working` — the loop exists — but parked waiting for reports.
+    // Still `Working` - the loop exists - but parked waiting for reports.
     app.state.status = crate::types::SessionStatus::Working;
     app.awaiting_pane_reports = true;
     app.prompt_view.input = "are you there?".into();
@@ -1333,7 +1333,7 @@ async fn the_awaiting_flag_restores_the_queue_choice_once_reports_land() {
     );
 }
 
-/// Issue 3 — the `/agents` command opens the split (or re-attaches the
+/// Issue 3 - the `/agents` command opens the split (or re-attaches the
 /// parked one) EVEN WHILE the main loop streams: the old Working refusal
 /// is gone. A parked set re-attaches verbatim; a fresh entry opens the
 /// picker pre-marked. The main loop's state is untouched either way.
@@ -1371,11 +1371,11 @@ async fn agents_command_reattaches_the_parked_split_while_working() {
     );
 }
 
-/// Issue 5 — Ctrl+X with a split pane focused force-closes THAT pane's
+/// Issue 5 - Ctrl+X with a split pane focused force-closes THAT pane's
 /// stuck turn: the pane goes idle (it accepts prompts again), the stop
 /// signal is stored (a live turn winds down through its normal Done path)
 /// and the timeline seals with the `[turn …]` cancellation marker. This is
-/// the only keyboard path out of a silently stalled pane — split Esc is
+/// the only keyboard path out of a silently stalled pane - split Esc is
 /// park-only (issue 3), so a `running` pane with no activity used to be
 /// unrecoverable.
 #[tokio::test]
@@ -1424,9 +1424,9 @@ async fn ctrl_x_force_closes_a_stuck_focused_pane_turn() {
     assert!(!app.stop_signal.load(std::sync::atomic::Ordering::Relaxed));
 }
 
-/// Issue 5 — Ctrl+X only interrupts when a pane turn is actually stuck:
+/// Issue 5 - Ctrl+X only interrupts when a pane turn is actually stuck:
 /// an idle focused pane is a no-op (nothing to close, no marker appended),
-/// and with NO pane focused (the MAIN agent) the key is inert — the main
+/// and with NO pane focused (the MAIN agent) the key is inert - the main
 /// loop is interrupted by plain Esc in the normal view, never by Ctrl+X.
 #[tokio::test]
 async fn ctrl_x_is_inert_without_a_running_focused_pane() {
@@ -1467,7 +1467,7 @@ async fn ctrl_x_is_inert_without_a_running_focused_pane() {
         .unwrap();
     assert!(
         !app.stop_signal.load(std::sync::atomic::Ordering::Relaxed),
-        "Ctrl+X never interrupts the MAIN agent — plain Esc does"
+        "Ctrl+X never interrupts the MAIN agent - plain Esc does"
     );
     assert!(
         app.agents_split.is_some(),
@@ -1478,7 +1478,7 @@ async fn ctrl_x_is_inert_without_a_running_focused_pane() {
 /// Regression (user-reported, pre-existing): a stopped turn's terminal Done
 /// used to close the turn that REPLACED it. Ctrl+X closes the pane
 /// synthetically and only ASKS the turn to stop, so its thread keeps winding
-/// down — and when a queued message (or a prompt sent right after the stop)
+/// down - and when a queued message (or a prompt sent right after the stop)
 /// began the pane's next turn before that Done arrived, the Done cleared the
 /// NEW turn's stop signal and running flag. From then on the agent kept
 /// working behind an idle-looking pane and every further Ctrl+X returned
@@ -1513,7 +1513,7 @@ async fn a_stopped_turns_late_done_never_closes_the_pane_s_new_turn() {
     assert!(!app.agents_split.as_ref().unwrap().panes[0].running);
 
     // The pane's next turn (a queued message) starts before turn 1's thread
-    // had a chance to report — dispatch bookkeeping, without spawning.
+    // had a chance to report - dispatch bookkeeping, without spawning.
     let signal = Arc::new(AtomicBool::new(false));
     {
         let split = app.agents_split.as_mut().unwrap();
@@ -1547,7 +1547,7 @@ async fn a_stopped_turns_late_done_never_closes_the_pane_s_new_turn() {
         "the live turn keeps the stop signal Ctrl+X/Esc needs"
     );
 
-    // And Ctrl+X can still stop it — the reported bug was that it could not.
+    // And Ctrl+X can still stop it - the reported bug was that it could not.
     app.process_key_event(mod_key(KeyCode::Char('x'), KeyModifiers::CONTROL))
         .unwrap();
     assert!(
@@ -1581,7 +1581,7 @@ async fn a_stopped_turns_late_done_never_closes_the_pane_s_new_turn() {
 }
 
 /// Backspace on a focused pane (prompt blurred, the click contract) HIDES
-/// it — the pane leaves the visible set but is NOT deleted; Ctrl+Z restores
+/// it - the pane leaves the visible set but is NOT deleted; Ctrl+Z restores
 /// the most recently hidden pane at its old slot and takes the focus. The
 /// prompt keeps its Backspace/Ctrl+Z whenever it holds the focus.
 #[tokio::test]
@@ -1666,7 +1666,7 @@ async fn backspace_and_ctrl_z_edit_the_prompt_when_it_is_focused() {
     app.prompt_view.handle_paste("a");
     assert_eq!(app.prompt_view.input, "a");
 
-    // Backspace edits the draft — no pane is hidden.
+    // Backspace edits the draft - no pane is hidden.
     app.process_key_event(mod_key(KeyCode::Backspace, KeyModifiers::NONE))
         .unwrap();
     assert!(app.prompt_view.input.is_empty());
@@ -1784,7 +1784,7 @@ async fn slash_menu_visible_delete_removes_the_char_at_the_cursor() {
     assert_eq!(app.prompt_view.cursor_pos, 10, "the cursor did not move");
 }
 
-/// Ctrl+Left is word movement — the `cursor_word_left` binding.
+/// Ctrl+Left is word movement - the `cursor_word_left` binding.
 #[tokio::test]
 async fn slash_menu_visible_ctrl_left_moves_to_the_previous_word() {
     let _home = HOME_LOCK.lock();
@@ -1841,7 +1841,7 @@ async fn slash_menu_visible_keeps_its_own_navigation_keys() {
 
 /// The general mechanism, not just today's keys: a Ctrl+<letter> the menu
 /// does not implement must behave EXACTLY as it does with the menu hidden.
-/// Ctrl+B has no binding, so the prompt's Char arm types the letter — the
+/// Ctrl+B has no binding, so the prompt's Char arm types the letter - the
 /// assertion that matters is the EQUIVALENCE: the menu no longer changes
 /// the outcome of a key it does not own. Before the inversion the menu
 /// swallowed it and the two runs diverged (nothing typed).
@@ -1873,7 +1873,7 @@ async fn slash_menu_declines_a_ctrl_letter_it_does_not_implement() {
     );
 
     // Guard the equivalence is not vacuous: the menu genuinely handled the
-    // key by declining it — it stayed open for the remaining arguments.
+    // key by declining it - it stayed open for the remaining arguments.
     assert!(shown.slash_menu.visible, "the menu was left open");
 }
 
@@ -1881,10 +1881,10 @@ async fn slash_menu_declines_a_ctrl_letter_it_does_not_implement() {
 /// state, not a running loop. The harness thread already exited when
 /// `HarnessEvent::Error` set `Retry` (see `deletion_stops_running_loop` in
 /// `routes/session/delete.rs`), so Esc must NOT raise the stop signal for a
-/// dead loop — and the Error path deliberately leaves the pending queues
+/// dead loop - and the Error path deliberately leaves the pending queues
 /// parked for the user to decide, so Esc must not wipe them either. What
 /// Esc DOES do with a terminal `Retry`: it opens the quit confirm (the only
-/// exit path — `Retry` never returns to `Idle` on its own).
+/// exit path - `Retry` never returns to `Idle` on its own).
 #[tokio::test]
 async fn esc_during_terminal_retry_never_stops_or_wipes_but_exits() {
     let _home = HOME_LOCK.lock();
@@ -1922,14 +1922,14 @@ async fn esc_during_terminal_retry_never_stops_or_wipes_but_exits() {
     );
     assert!(
         app.is_confirm_dialog_visible(),
-        "terminal-Retry Esc reaches the quit confirm — the only exit path"
+        "terminal-Retry Esc reaches the quit confirm - the only exit path"
     );
 }
 
 /// The quit confirm is the LOWEST-priority Esc job by structure: every
 /// claimant above it in the Cancel chain returns first, so it can only be
 /// reached when nothing else claims Esc. The one live state that must never
-/// reach it is `Working` — the loop-stop branch intercepts Esc there.
+/// reach it is `Working` - the loop-stop branch intercepts Esc there.
 #[tokio::test]
 async fn esc_while_working_never_offers_to_quit() {
     let _home = HOME_LOCK.lock();
@@ -1938,7 +1938,7 @@ async fn esc_while_working_never_offers_to_quit() {
     app.state.add_empty_session("t".into(), "t".into(), 0);
     app.state.current_session_id = Some("t".into());
 
-    // Working: the loop owns Esc — the stop branch returns before the
+    // Working: the loop owns Esc - the stop branch returns before the
     // quit offer can ever show.
     app.state.status = crate::types::SessionStatus::Working;
     app.process_key_event(mod_key(KeyCode::Esc, KeyModifiers::NONE))

@@ -29,7 +29,7 @@ fn pt_footer_removed() {
         assert_eq!(
             clean(&format!("{boleto}\n\n{footer}")),
             boleto,
-            "pt/footer removed: {label} — got {:?}",
+            "pt/footer removed: {label} - got {:?}",
             clean(&format!("{boleto}\n\n{footer}"))
         );
     }

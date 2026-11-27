@@ -1,4 +1,4 @@
-//! **Luminous Sweep Spinner** — animated text highlight with a glowing beam.
+//! **Luminous Sweep Spinner** - animated text highlight with a glowing beam.
 //!
 //! A "searchlight" glides across the text from left to right, smoothly
 //! illuminating each character with a gaussian glow that fades back to the
@@ -69,7 +69,7 @@ pub enum SpinnerPhase {
     Active,
     /// Beam is completing its current sweep, then will stop.
     Finishing,
-    /// Spinner is stopped — all characters render with base colour only.
+    /// Spinner is stopped - all characters render with base colour only.
     Idle,
 }
 
@@ -80,14 +80,14 @@ pub enum SpinnerPhase {
 ///
 /// # Visual layers
 ///
-/// 1. **Primary beam** — a tight gaussian (σ ≈ 0.08 of text width) that
+/// 1. **Primary beam** - a tight gaussian (σ ≈ 0.08 of text width) that
 ///    provides the intense bright core.
-/// 2. **Soft glow** — a wide gaussian (σ ≈ 0.22) rendered at 25 % opacity,
+/// 2. **Soft glow** - a wide gaussian (σ ≈ 0.22) rendered at 25 % opacity,
 ///    creating an atmospheric halo around the beam.
-/// 3. **Asymmetric falloff** — the trailing edge of the beam is 1.8× wider
+/// 3. **Asymmetric falloff** - the trailing edge of the beam is 1.8× wider
 ///    than the leading edge, giving the sweep a directional, "sweeping"
 ///    feel rather than a static blob sliding sideways.
-/// 4. **Shimmer** — the combined intensity gently oscillates (±6 %) every
+/// 4. **Shimmer** - the combined intensity gently oscillates (±6 %) every
 ///    few frames so the light looks organic.
 ///
 /// # Construction
@@ -145,9 +145,9 @@ pub struct HighlightSpinner {
 impl HighlightSpinner {
     /// Create a new `HighlightSpinner` with the given text and colours.
     ///
-    /// * `text` — the string to display (may contain any Unicode characters).
-    /// * `highlight_color` — the colour at the centre of the glow beam.
-    /// * `base_color` — the colour of characters far from the beam.
+    /// * `text` - the string to display (may contain any Unicode characters).
+    /// * `highlight_color` - the colour at the centre of the glow beam.
+    /// * `base_color` - the colour of characters far from the beam.
     pub fn new(text: &str, highlight_color: RGBA, base_color: RGBA) -> Self {
         // Filter control characters (e.g. `\n` in multiline tool commands):
         // writing them into buffer cells makes ratatui's buffer diff panic
@@ -184,7 +184,7 @@ impl HighlightSpinner {
 
     /// Customise the beam travel speed (fraction of text width per frame).
     ///
-    /// Default: `0.008` — one full sweep takes ≈ 200 frames.
+    /// Default: `0.008` - one full sweep takes ≈ 200 frames.
     pub fn with_speed(&mut self, speed: f32) -> &mut Self {
         self.speed = speed;
         self
@@ -225,7 +225,7 @@ impl HighlightSpinner {
     // Lifecycle control
 
     /// Signal the spinner to finish its current beam sweep and then
-    /// stop at the base colour. Idempotent — safe to call multiple times.
+    /// stop at the base colour. Idempotent - safe to call multiple times.
     pub fn finish(&mut self) {
         if self.phase == SpinnerPhase::Active {
             self.phase = SpinnerPhase::Finishing;
@@ -264,10 +264,10 @@ impl HighlightSpinner {
     /// speed stays consistent regardless of the actual frame rate.
     /// At the default 30 fps (`delta_secs ≈ 0.033`) the factor is ~1.0×.
     ///
-    /// * `Active` — beam moves and wraps around.
-    /// * `Finishing` — beam continues until it exits past `1.3`,
+    /// * `Active` - beam moves and wraps around.
+    /// * `Finishing` - beam continues until it exits past `1.3`,
     ///   then transitions to `Idle`.
-    /// * `Idle` — no-op (spinner is stopped).
+    /// * `Idle` - no-op (spinner is stopped).
     ///
     /// If multiple messages are configured, automatically advances to the
     /// next message when the current one's display duration expires.
@@ -323,16 +323,16 @@ impl HighlightSpinner {
     /// neighbouring panel (the caller wraps the text; the clamp is the last
     /// line of defense).
     ///
-    /// * `Active` / `Finishing` — draws each character with a colour
+    /// * `Active` / `Finishing` - draws each character with a colour
     ///   interpolated between `base_color` and `highlight_color` based
     ///   on the beam position.
-    /// * `Idle` — draws all characters with `base_color` only (no beam).
+    /// * `Idle` - draws all characters with `base_color` only (no beam).
     pub fn render(&self, buf: &mut Buffer, x: u16, y: u16, max_w: u16) {
         self.render_row(buf, x, y, max_w, 0);
     }
 
-    /// Render ONE visual row of the spinner's text — the slice of characters
-    /// starting at `start_char` — onto buffer row `y`. The beam position is
+    /// Render ONE visual row of the spinner's text - the slice of characters
+    /// starting at `start_char` - onto buffer row `y`. The beam position is
     /// normalised over the WHOLE text, so a label the caller wrapped onto
     /// several rows (a broken path like `src/tui/routes/…`) is swept as one
     /// continuous string: the beam leaves the first row and lights up the
@@ -340,7 +340,7 @@ impl HighlightSpinner {
     /// Callers render every visible row of the wrapped label with the
     /// cumulative character offset of that row (`start_char`). The `max_w`
     /// clamp is the last line of defense against painting beyond the caller's
-    /// box — but a caller passing a `max_w` WIDER than the row's own text
+    /// box - but a caller passing a `max_w` WIDER than the row's own text
     /// would paint the first characters of the NEXT row's slice over the
     /// short row's tail: `max_w` must match the row's text width (or the
     /// caller's drawing width when the row fills it).
@@ -432,7 +432,7 @@ mod tests {
     /// The beam must sweep the WHOLE string across wrapped rows: with the
     /// beam over the second row's characters, the second row is lit MORE
     /// than the first (the asymmetric trail still glows behind, so "row 0
-    /// fully base" would be wrong) — the sweep may not die at the end of
+    /// fully base" would be wrong) - the sweep may not die at the end of
     /// the first visual row.
     #[test]
     fn beam_crosses_row_boundaries() {
@@ -474,7 +474,7 @@ mod tests {
         let row1 = max_row_dist(&buf, 1, base_rgb);
         assert!(
             row1 > row0 + 30,
-            "row 1 must light up when the beam reaches it (row1={row1}, row0={row0}) — the sweep crosses the wrap"
+            "row 1 must light up when the beam reaches it (row1={row1}, row0={row0}) - the sweep crosses the wrap"
         );
         assert!(row1 > 60, "row 1 must actually be lit (row1={row1})");
     }

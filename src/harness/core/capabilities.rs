@@ -1,6 +1,6 @@
 //! Model capability gating: which tools the active model may be offered.
 //!
-//! The harness already has ONE omission mechanism — the `disabled_tools` set
+//! The harness already has ONE omission mechanism - the `disabled_tools` set
 //! consulted by the header writer, the native tool definitions and the
 //! dispatch gate (`is_tool_disabled`). Capability gating therefore does not
 //! invent a parallel filter: it ADDS names to that set ([`Harness::refresh_tool_omissions`]),
@@ -11,14 +11,14 @@
 //! are conservative by construction:
 //!
 //! 1. **The provider catalogs** (`Connector::is_vlm`, which resolves models.dev
-//!    and OpenRouter entries). Only `Some(false)` — a positive catalog
-//!    statement that the model is known and does not accept `image` — gates
+//!    and OpenRouter entries). Only `Some(false)` - a positive catalog
+//!    statement that the model is known and does not accept `image` - gates
 //!    anything. `Some(true)` and `None` (unknown/stale/empty cache) never do.
 //! 2. **The provider's own typed rejection** (`ConnectorError::ImageInputUnsupported`).
 //!    That variant is only produced by aiface's strict classifier, which
 //!    requires a 400/422 AND a body about images AND a marker stating the
 //!    MODALITY is unsupported ("supports text input only", "cannot process
-//!    images", …) — a malformed image, a broken tool argument or any other
+//!    images", …) - a malformed image, a broken tool argument or any other
 //!    unrelated 400 never reaches it. A hit is recorded for the PROCESS
 //!    lifetime, keyed by provider + model, because it is observed behavior of
 //!    that deployment rather than a guess.
@@ -46,13 +46,13 @@ const CATALOG_CACHE_DIR: Option<&str> = Some("morpheus/cache");
 /// result carries an inline PNG (`ScreenshotOutput::images`). `computer_apps`,
 /// `computer_snapshot`, `computer_windows` and `computer_wait` return the
 /// accessibility TREE (text), and `computer_act` / `computer_control` / `computer_pointer`
-/// send input from text arguments — all of them stay useful without vision.
+/// send input from text arguments - all of them stay useful without vision.
 pub(crate) const VISION_DEPENDENT_TOOLS: &[&str] = &["computer_screenshot"];
 
 /// Provider+model pairs whose inability to read images was observed on the
 /// wire, for the lifetime of the process.
 ///
-/// `Mutex<HashSet>` — not a `DashMap`/`RwLock`: writes are rare (at most one
+/// `Mutex<HashSet>` - not a `DashMap`/`RwLock`: writes are rare (at most one
 /// per model) and reads happen once per loop entry / fallback switch.
 fn wire_rejections() -> &'static Mutex<HashSet<String>> {
     static REJECTIONS: OnceLock<Mutex<HashSet<String>>> = OnceLock::new();
@@ -82,7 +82,7 @@ fn wire_rejected(connector: &Connector) -> bool {
 /// Record the provider's own statement that this model cannot read images.
 ///
 /// Returns `true` when the verdict is NEW (the caller can then skip redundant
-/// work). Poisoned-lock is treated as "unknown" — a capability gate must
+/// work). Poisoned-lock is treated as "unknown" - a capability gate must
 /// never turn a lock failure into a permanent restriction silently.
 pub(crate) fn record_image_unsupported(connector: &Connector) -> bool {
     let Some(key) = model_key(connector) else {
@@ -94,7 +94,7 @@ pub(crate) fn record_image_unsupported(connector: &Connector) -> bool {
     }
 }
 
-/// Whether the active model is known — not merely suspected — to be unable to
+/// Whether the active model is known - not merely suspected - to be unable to
 /// read images.
 ///
 /// The wire verdict wins over the catalog: a provider that rejected an image

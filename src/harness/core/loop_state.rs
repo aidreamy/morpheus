@@ -14,7 +14,7 @@ use super::{
 /// What the textual-output repetition detector decided for this iteration.
 ///
 /// Three outcomes, not two: besides "nothing to do" and "stop the loop", a
-/// turn that OWES A REPORT gets a RESUME — the detector noticed the model
+/// turn that OWES A REPORT gets a RESUME - the detector noticed the model
 /// stuck, but nobody asked the turn to stop (a pane cannot: `stop_agent_loop`
 /// is blocked for it), so handing its requester `incomplete` would discard
 /// work one attempt short of the report. A two-valued `bool` could not carry
@@ -31,7 +31,7 @@ pub(super) enum RepetitionVerdict {
     Stopped,
 }
 
-/// What the tool-interaction loop detector decided for this iteration — the
+/// What the tool-interaction loop detector decided for this iteration - the
 /// three-outcome shape of [`RepetitionVerdict`], for the detector the
 /// repetition one mirrors (see `check_loop_detection`): a report-owing
 /// turn's FIRST firing becomes a bounded recovery instead of a stop.
@@ -48,14 +48,14 @@ pub(super) enum LoopGuardVerdict {
 }
 
 impl Harness {
-    /// Hash one iteration's tool interactions (name, arguments, result — in
+    /// Hash one iteration's tool interactions (name, arguments, result - in
     /// dispatch order) into a stable signature for loop detection, mirroring
     /// crush's `getToolInteractionSignature`. Two iterations whose tool calls
     /// and results are byte-identical hash equal, so a model stuck repeating
     /// the exact same failing action is detected (see
     /// [`LOOP_DETECTION_WINDOW_SIZE`]/[`LOOP_DETECTION_MAX_REPEATS`]).
     ///
-    /// FNV-1a 64-bit — deterministic within a run, no external deps.
+    /// FNV-1a 64-bit - deterministic within a run, no external deps.
     fn tool_interaction_signature(interactions: &[String]) -> String {
         let mut hash: u64 = 0xcbf2_9ce4_8422_2325;
         for part in interactions {
@@ -78,18 +78,18 @@ impl Harness {
     /// loop is stuck. The decision is a LADDER, not a sentence (OpenClaw
     /// #118647's bounded recovery): a report-owing turn's FIRST firing whose
     /// recovery is unspent and which nobody asked to stop becomes a
-    /// [`LoopGuardVerdict::Recovery`] — one steering continuation naming the
-    /// evidence — while a chat turn, a user stop, a spent recovery, or a
+    /// [`LoopGuardVerdict::Recovery`] - one steering continuation naming the
+    /// evidence - while a chat turn, a user stop, a spent recovery, or a
     /// SECOND firing in the same window (the window is never reset) stops
     /// the loop: Toast + `Done`, return `Stopped`.
     ///
     /// Called BOTH mid-iteration (the guardrail/hook denial arms, whose
-    /// `continue` skips the end-of-iteration checks — without this a stuck
+    /// `continue` skips the end-of-iteration checks - without this a stuck
     /// model re-issuing an identical denied call burned the whole
     /// [`MAX_TOOL_RETRIES`] budget on one mistake, observed in the field)
     /// and once at the end of each iteration. A denied call pushes twice
     /// per iteration (deny arm + end-of-iteration), so repeated denials
-    /// fill the window in half the iterations — detection still lands
+    /// fill the window in half the iterations - detection still lands
     /// safely inside the retry budget.
     pub(super) fn check_loop_detection(
         &mut self,
@@ -111,7 +111,7 @@ impl Harness {
         if loop_window.len() == LOOP_DETECTION_WINDOW_SIZE && repeats > LOOP_DETECTION_MAX_REPEATS {
             // Bounded recovery FIRST: a report-owing turn (a pane whose
             // requester is blocked on its report) gets ONE steering
-            // continuation naming the evidence before the stop stands —
+            // continuation naming the evidence before the stop stands -
             // the model may recognize the pattern and change approach or
             // deliver the report it owes. Every refusal condition is exact:
             // a chat turn's stop is the user's to read, a user stop is
@@ -119,13 +119,13 @@ impl Harness {
             // persistence makes the NEXT firing a stop regardless.
             //
             // The recovery draws from the loop's SHARED improper-stop pool
-            // (`coworker_resumes_left`), not a private budget — two
+            // (`coworker_resumes_left`), not a private budget - two
             // accelerators can never stack beyond the pool the pane's
             // blocked requester agreed to wait through. The one-shot flag
             // still exists because the POOL refusing is different from the
             // detector refusing: a pool-exhausted pane (empty-stop resumes
             // spent earlier) must stop HERE rather than burn the shared
-            // budget on a loop the model has not yet been told about —
+            // budget on a loop the model has not yet been told about -
             // spend the detector's share on it once, then let the ladder
             // close.
             //
@@ -135,7 +135,7 @@ impl Harness {
             // the next request with orphaned tool_calls the pair-validating
             // providers reject. So a recovery is only granted when the loop
             // can cleanly continue. When the guard REFUSES the recovery
-            // mid-dispatch, the pre-existing stop path runs as-is — queued
+            // mid-dispatch, the pre-existing stop path runs as-is - queued
             // siblings keep their orphaned rows (unchanged from the old
             // `bool` detector); fixing that would mean deferring the stop,
             // a behavioral change beyond this ladder's scope.
@@ -149,7 +149,7 @@ impl Harness {
                 self.tool_loop_recovery_left = false;
                 self.coworker_resumes_left -= 1;
                 let _ = tx.send(super::events::HarnessEvent::Toast {
-                    message: "Loop guard: repeated identical tool calls detected — \
+                    message: "Loop guard: repeated identical tool calls detected - \
                               one recovery attempt granted before the loop stops."
                         .to_string(),
                     variant: super::events::ToastVariant::Info,
@@ -157,11 +157,11 @@ impl Harness {
                 log::warn!(
                     target: "laya",
                     "loop-detection: recovery granted (report-owing turn, nobody asked \
-                     it to stop) — steering instead of stopping"
+                     it to stop) - steering instead of stopping"
                 );
                 return LoopGuardVerdict::Recovery(
                     "[harness:loop-guard:tool-loop] You have repeated the SAME tool \
-                     calls with the SAME results several times in a row — the harness \
+                     calls with the SAME results several times in a row - the harness \
                      detected the loop and is giving you ONE more attempt instead of \
                      ending your turn. Do NOT repeat those calls: change the approach \
                      (different tool, different arguments, or ask/inspect what you are \
@@ -204,12 +204,12 @@ impl Harness {
     /// [`REPETITION_MIN_TEXT_LEN`] are skipped (too little signal, too cheap
     /// to guard). After [`REPETITION_MAX_IDENTICAL`] consecutive identical
     /// texts the loop stops (Toast + `Done`) with the same guard-stop audit
-    /// the tool detector performs — UNLESS the turn owes a report, in which
+    /// the tool detector performs - UNLESS the turn owes a report, in which
     /// case [`Self::resume_pane_turn`] may continue it instead (see
     /// [`RepetitionVerdict`]).
     ///
     /// The reset happens on ANY differing text and on tool-calling turns
-    /// (the caller clears the streak when `had_tools` is set) — a turn that
+    /// (the caller clears the streak when `had_tools` is set) - a turn that
     /// dispatched tools is progress, and a single different text proves the
     /// model is still moving, so only an unbroken streak of verbatim repeats
     /// counts.
@@ -236,11 +236,11 @@ impl Harness {
         }
         if *identical_text_streak > REPETITION_MAX_IDENTICAL {
             // A turn that OWES A REPORT is not allowed to end on a detector
-            // firing: nobody asked it to stop (a pane cannot — see
+            // firing: nobody asked it to stop (a pane cannot - see
             // `resume_pane_turn`), so the requester would be handed
             // `incomplete` for work that was still moving. `resume_pane_turn`
             // returns the steering message for another attempt under its own
-            // per-loop budget, and refuses when the USER stopped the turn —
+            // per-loop budget, and refuses when the USER stopped the turn -
             // in which case the detector's stop stands below, exactly as it
             // always did. The streak is reset so the resumed turn is judged on
             // its own output instead of tripping on the pre-resume history.
@@ -252,7 +252,7 @@ impl Harness {
                 // Clearing it here would let a permanently repeating pane run
                 // the threshold again from scratch on every resume (three
                 // identical texts times one resume each) instead of stopping
-                // as soon as the budget is gone — and it would diverge from
+                // as soon as the budget is gone - and it would diverge from
                 // the tool-interaction detector, whose window is never reset
                 // either. The verdict still lets this iteration proceed, so a
                 // model that produces DIFFERENT text on the resumed turn is
@@ -283,7 +283,7 @@ impl Harness {
         RepetitionVerdict::Clear
     }
 
-    /// FNV-1a 64-bit over one normalized text — the same deterministic hash
+    /// FNV-1a 64-bit over one normalized text - the same deterministic hash
     /// used for tool-interaction signatures above, so two byte-identical
     /// texts (post whitespace-collapsing) always compare equal.
     fn text_signature(text: &str) -> u64 {
@@ -296,7 +296,7 @@ impl Harness {
     }
 
     /// Add a tool call + its result to the context manager (structural
-    /// layer — structural). The native `tool_call → tool` chain is
+    /// layer - structural). The native `tool_call → tool` chain is
     /// preserved 1:1: the call item renders as an `assistant` message with
     /// `tool_calls`, the result as a `tool` message with the matching id.
     pub(super) fn push_tool_history(
@@ -315,11 +315,11 @@ impl Harness {
     /// with `tool_calls`, BEFORE the tool runs. The dispatch loop pre-records
     /// the intent so a dispatch that never returns (a hung tool await) leaves
     /// a visible call-without-result in the timeline instead of vanishing
-    /// without a trace — and every later outcome (result, denial, error,
+    /// without a trace - and every later outcome (result, denial, error,
     /// interruption) lands on this exact item via [`Self::record_tool_result`].
     ///
     /// Returns the id the call was recorded under: the provider id when one
-    /// arrived, a synthesized `call_<n>` otherwise (inline JSON calls) — the
+    /// arrived, a synthesized `call_<n>` otherwise (inline JSON calls) - the
     /// result site MUST reuse it, or the `tool_call → tool` chain breaks.
     pub(super) fn record_tool_call(
         &mut self,
@@ -337,13 +337,13 @@ impl Harness {
             id.to_string()
         };
         // `signature` is the Gemini 3.x thought signature (empty for every
-        // other path) — carried so the follow-up request can replay the
+        // other path) - carried so the follow-up request can replay the
         // native functionCall with its sibling thoughtSignature.
         // `thinking_blocks` are the Claude extended-thinking blocks that
-        // preceded this turn's tool call (empty for every other path) —
+        // preceded this turn's tool call (empty for every other path) -
         // replayed verbatim, signature included, on the follow-up request.
         // Harness tools are routed MID-STREAM, before the real tool calls of
-        // the same response are dispatched — they must never consume the
+        // the same response are dispatched - they must never consume the
         // stashed thinking blocks, which belong to the turn's real tool_use
         // (Anthropic validates them on the follow-up request).
         let thinking_blocks = if self.harness_tools.iter().any(|t| t.name == name) {
@@ -353,7 +353,7 @@ impl Harness {
         };
         // DeepSeek-style reasoning models require the reasoning that preceded
         // a tool call to be replayed as `reasoning_content` on the following
-        // request; capture it (without draining — the final text response may
+        // request; capture it (without draining - the final text response may
         // still need it) so the assistant tool-call message carries it.
         let reasoning = if self.attempt_reasoning.trim().is_empty() {
             None

@@ -39,7 +39,7 @@ pub fn compile_glob(glob: &str, recursive: bool) -> Result<GlobSet, String> {
         .map_err(|err| format!("Failed to build glob matcher: {err}"))
 }
 
-/// Like [`compile_glob`], but accepts an `Option<&str>` — returns `Ok(None)`
+/// Like [`compile_glob`], but accepts an `Option<&str>` - returns `Ok(None)`
 /// when the input is `None`, empty, or whitespace-only.
 ///
 /// # Errors

@@ -5,7 +5,7 @@
 //! (`new`/`advance`/`set_activity`/`set_mode_color`/`update_theme`/`width`
 //! /`render`/`reset`/`is_initialized`). This enum dispatches those calls to
 //! whichever animation the user picked (`morpheus::setup::SpinnerStyle`), so a
-//! style switch is a pure decoration change — the loop code never learns
+//! style switch is a pure decoration change - the loop code never learns
 //! which variant is live.
 
 use morpheus_tui::core::lib::rgba::RGBA;
@@ -196,7 +196,7 @@ mod tests {
 
         let runes = AnySpinner::new("Working", &theme, SpinnerStyle::Runes);
         let crush = AnySpinner::new("Working", &theme, SpinnerStyle::Crush);
-        // The crush port scrambles 15 columns; the runic scramble 8 —
+        // The crush port scrambles 15 columns; the runic scramble 8 -
         // plus the 3-cell ellipsis slot after the label. ("Working" labels:
         // runes 8+1+7+1 = 17, crush 15+1+7+3 = 26.)
         assert_eq!(runes.width(), 17);

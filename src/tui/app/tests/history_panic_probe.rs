@@ -5,8 +5,8 @@
 //! 1. Prompt history navigation (Ctrl+Up / Ctrl+Down) across a session
 //!    switch: `history_index` is only reset by typing/sending, never by a
 //!    session switch, so a positive index carried from a long session can
-//!    point past a shorter session's user messages. Every path — including
-//!    the worst case — must land on a clamped message or a clear, never
+//!    point past a shorter session's user messages. Every path - including
+//!    the worst case - must land on a clamped message or a clear, never
 //!    panic.
 use super::{App, HOME_LOCK, isolate_home};
 use crate::types::{Message, MessageRole, Part, TextPart};
@@ -80,7 +80,7 @@ async fn history_up_after_session_switch_never_panics() {
     app.state.current_session_id = Some("long".into());
     app.prompt_view.focus();
 
-    // Climb PART-way: 3 presses set history_index = 9, then 8, then 7 —
+    // Climb PART-way: 3 presses set history_index = 9, then 8, then 7 -
     // a high index that the short session's 1-message history cannot
     // satisfy. (Browsing to the top would leave the index at 0, which is
     // in-bounds everywhere and would mask the bug.)
@@ -99,7 +99,7 @@ async fn history_up_after_session_switch_never_panics() {
     );
 
     // The carried index (7) now points past the short session's single
-    // user message. Ctrl+Up must clamp or no-op — not panic.
+    // user message. Ctrl+Up must clamp or no-op - not panic.
     app.process_key_event(ctrl(KeyCode::Up)).unwrap();
     assert_eq!(
         app.prompt_view.input, "short user message 0",
@@ -123,7 +123,7 @@ async fn history_down_after_session_switch_never_panics() {
     app.switch_session_locked("b");
     app.prompt_view.focus();
 
-    // Walk down past the end of the short session's history repeatedly —
+    // Walk down past the end of the short session's history repeatedly -
     // each press must stay in bounds or no-op.
     for _ in 0..8 {
         app.process_key_event(ctrl(KeyCode::Down)).unwrap();

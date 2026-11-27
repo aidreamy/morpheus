@@ -3,23 +3,23 @@
 //! Each call to [`read`] carries one or more [`Target`] entries.  A target can
 //! request the whole file, a syntactic block at a given line, a definition
 //! block matching a name (symbol, struct, class, …), or one or more exact line
-//! ranges (a plain slice — no AST involved) via the advertised
+//! ranges (a plain slice - no AST involved) via the advertised
 //! `offset`/`limit` shape, or via the legacy `line_range` string.  When the
 //! name search targets a directory the entire tree is walked recursively.
 //!
 //! Output is hashline-numbered (`N| text`) so the model can anchor edits
 //! directly.  Token-saving behaviors:
 //!
-//! - **Exact range reads** — `offset: 50, limit: 51` (or the legacy
+//! - **Exact range reads** - `offset: 50, limit: 51` (or the legacy
 //!   `line_range: "50-100"` string, which also supports comma-separated
 //!   disjoint ranges like `"10-20,200-220"`) returns only the requested
 //!   lines, with a footer reporting how many lines remain and how to continue.
-//! - **Elided blocks** — blocks larger than [`ELIDE_MIN_BLOCK_LINES`] are
+//! - **Elided blocks** - blocks larger than [`ELIDE_MIN_BLOCK_LINES`] are
 //!   shown as their head/tail with a `…` marker and a footer telling the model
 //!   which `offset`/`limit` to re-read when it needs the elided body.
-//! - **Column truncation** — lines longer than [`MAX_COLUMN`] characters are
+//! - **Column truncation** - lines longer than [`MAX_COLUMN`] characters are
 //!   cut with a `...` suffix and a notice.
-//! - **Seen lines** — every surfaced line is recorded against the snapshot
+//! - **Seen lines** - every surfaced line is recorded against the snapshot
 //!   tag ([`rollback::record_seen_lines`]), so the recovery path warns when an
 //!   edit anchors lines the model never saw (including elided interiors).
 use super::types::{FsMetadata, FsRead, Target};
@@ -257,7 +257,7 @@ fn read_range_body(lines: &[String], ranges: &[(u32, u32)]) -> RangeBody {
 /// marker, and [`ELIDE_KEEP_TAIL`] tail lines. Returns the body lines, the
 /// elided line range (absolute, 1-based) when interior lines were dropped, and
 /// whether any line was column-truncated. Only the KEPT lines are recorded as
-/// seen — an edit anchoring an elided interior correctly warns on recovery.
+/// seen - an edit anchoring an elided interior correctly warns on recovery.
 fn elide_block(
     lines: &[String],
     start_line: u32,
@@ -299,7 +299,7 @@ fn record_seen(path: &str, file_hash: &str, seen: &[(u32, String)]) {
 }
 
 /// Append informational notice lines to `content` (they are read by the model
-/// as part of the output, not surfaced as warnings — warnings are reserved for
+/// as part of the output, not surfaced as warnings - warnings are reserved for
 /// delivery problems).
 fn append_content_notices(content: &mut String, notices: &[String]) {
     for notice in notices {
@@ -320,7 +320,7 @@ async fn read_target_impl(fs: DiskFilesystem, target: Target) -> Vec<ReadResult>
     // Explicit `offset`+`limit` wins over a legacy `line_range` string.
     let target = if target.limit.is_some() && target.offset.is_none() {
         let mut t = target;
-        t.limit = None; // `limit` without `offset` is meaningless — drop it.
+        t.limit = None; // `limit` without `offset` is meaningless - drop it.
         t
     } else if let Some(offset) = target.offset {
         let mut t = target;
@@ -337,13 +337,13 @@ async fn read_target_impl(fs: DiskFilesystem, target: Target) -> Vec<ReadResult>
                 }
                 let start = offset.max(1).min(u32::MAX as usize);
                 // Saturate at u32::MAX (the legacy range parser's domain):
-                // huge `limit` values must clamp, never overflow — the
+                // huge `limit` values must clamp, never overflow - the
                 // slice is clamped to EOF later anyway.
                 let end = start.saturating_add(limit - 1).min(u32::MAX as usize);
                 t.line_range = Some(format!("{start}-{end}"));
             }
             // `offset` without `limit` reads the syntactic block containing
-            // that line — the legacy `line` behavior.
+            // that line - the legacy `line` behavior.
             None => t.line = Some(offset),
         }
         t.offset = None;
@@ -388,7 +388,7 @@ async fn read_target_impl(fs: DiskFilesystem, target: Target) -> Vec<ReadResult>
     let hash = format::compute_file_hash(&text);
     let header = format::format_hashline_header(&target.path, &hash);
 
-    // Exact line ranges — a plain slice, no AST: the model reads only the
+    // Exact line ranges - a plain slice, no AST: the model reads only the
     // lines it asked for instead of a whole syntactic block.
     if let Some(range_raw) = target.line_range {
         let ranges = match parse_line_ranges(&range_raw) {

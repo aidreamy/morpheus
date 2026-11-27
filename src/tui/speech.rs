@@ -3,7 +3,7 @@
 //! The daemon synthesizes the WAV (`morpheus::daemon::tts`); this module
 //! tracks which answers can be spoken, the generation in flight and the
 //! player handle that pause/rewind act on. Each control cluster is painted on
-//! the row that holds the final word of its answer, right after it — never on
+//! the row that holds the final word of its answer, right after it - never on
 //! a row of its own, so nothing in the transcript moves when the controls
 //! appear, change width or disappear. Older answers keep their controls, so
 //! their audio stays replayable after a new turn lands.

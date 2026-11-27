@@ -1,22 +1,22 @@
-//! The shared SEARCHABLE LIST DIALOG component — the morpheus-standard picker
+//! The shared SEARCHABLE LIST DIALOG component - the morpheus-standard picker
 //! box (`/models`, the theme list) extracted from `ui::dialogs` so every
 //! list dialog renders, scrolls and filters ONE way.
 //!
 //! The component owns the three behaviors every morpheus list box shares:
 //!
-//! 1. **Filter** ([`FilterState`]) — the "Search" line: chars append,
+//! 1. **Filter** ([`FilterState`]) - the "Search" line: chars append,
 //!    Backspace pops, every change resets the selection to the first row
 //!    and lights the shared [`Cursor`]. Matching is the morpheus convention
-//!    (case-insensitive `contains`, checked per row by the OWNER — the
+//!    (case-insensitive `contains`, checked per row by the OWNER - the
 //!    component never sees the row source).
-//! 2. **Cursor-follow scroll** ([`ListBoxLayout::scroll_offset_for`]) —
+//! 2. **Cursor-follow scroll** ([`ListBoxLayout::scroll_offset_for`]) -
 //!    the selected row always stays inside the visible window; the window
 //!    moves only once the selection falls past the last visible row. The
 //!    SAME arithmetic backs the renderer, the keyboard nav and the mouse
 //!    hit-test, so the painted highlight, the wheel and a click always
-//!    agree (and the selection can never slide off-screen — the box leaks
+//!    agree (and the selection can never slide off-screen - the box leaks
 //!    past the terminal only if the terminal itself does).
-//! 3. **Mouse row mapping** ([`FilterState::mouse_hit`]) — click Y → the
+//! 3. **Mouse row mapping** ([`FilterState::mouse_hit`]) - click Y → the
 //!    visible row → the visual row index, through the window the
 //!    renderer painted.
 //!
@@ -41,7 +41,7 @@ use morpheus_tui::core::lib::rgba::RGBA;
 
 /// One painted row of the shared list box. The caller maps its own data
 /// model onto rows; `header` rows are scope titles (a model list grouped
-/// by provider): rendered muted+bold full width and NEVER selectable —
+/// by provider): rendered muted+bold full width and NEVER selectable -
 /// they occupy visual rows but no selection index.
 #[derive(Debug, Clone)]
 pub struct ListRow {
@@ -49,7 +49,7 @@ pub struct ListRow {
     pub header: bool,
     /// Primary label (model id, value name, theme name …).
     pub label: String,
-    /// Secondary text after the label (the value id for config boxes) —
+    /// Secondary text after the label (the value id for config boxes) -
     /// it shares the row's foreground. Empty draws nothing extra.
     pub detail: String,
     /// The row currently active at the harness (the ● indicator).
@@ -112,7 +112,7 @@ impl ListRow {
 }
 
 /// Painted geometry of one list box: ONE computation for the renderer, the
-/// mouse hit-test and the keyboard scroll bounds — the pattern the text
+/// mouse hit-test and the keyboard scroll bounds - the pattern the text
 /// input dialogs already follow (`text_input_dialog_box`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct ListBoxLayout {
@@ -128,11 +128,11 @@ pub struct ListBoxLayout {
     /// The box carries a subtitle line above the search line.
     pub subtitle: bool,
     /// The box carries the Search line (the ModelList/ThemeList shape).
-    /// Searchless boxes (the reasoning sub-box — a level list never long
+    /// Searchless boxes (the reasoning sub-box - a level list never long
     /// enough to filter) drop the line and its chrome row entirely.
     pub search: bool,
     /// The cursor-follow scroll window this geometry was computed with
-    /// (the offset the renderer MUST paint — and the mouse MUST hit-test —
+    /// (the offset the renderer MUST paint - and the mouse MUST hit-test -
     /// so the three can never drift).
     pub scroll_offset: usize,
 }
@@ -173,7 +173,7 @@ impl ListBoxLayout {
     /// selected row sits at `visual_selected`: scroll only once the
     /// selection falls past the last visible row, then clamp to the tail.
     /// The arithmetic the ModelList renderer and its mouse handler have
-    /// always run — extracted so every box shares it.
+    /// always run - extracted so every box shares it.
     #[must_use]
     pub fn scroll_offset_for(visual_selected: usize, rows: usize, max_visible: usize) -> usize {
         if rows == 0 || max_visible == 0 {
@@ -194,7 +194,7 @@ const HEADER_PAD: u16 = 4;
 
 /// Filter + selection state of one searchable list box. Lives in the
 /// dialog variant (the models/theme boxes keep their `filter` field shape)
-/// or beside the dialog instance — the component only requires this state,
+/// or beside the dialog instance - the component only requires this state,
 /// not a place for it.
 #[derive(Debug, Clone, Default)]
 pub struct FilterState {
@@ -213,7 +213,7 @@ impl FilterState {
         Self::default()
     }
 
-    /// Append one character and reset the selection to the first row —
+    /// Append one character and reset the selection to the first row -
     /// a fresh filter must keep the morpheus behavior.
     pub fn push_char(&mut self, ch: char) {
         self.filter.push(ch);
@@ -228,7 +228,7 @@ impl FilterState {
         self.cursor.note_activity();
     }
 
-    /// Case-insensitive `contains` match of `haystack` against the filter —
+    /// Case-insensitive `contains` match of `haystack` against the filter -
     /// the morpheus filter convention, shared by the model and theme pickers.
     #[must_use]
     pub fn matches(&self, haystack: &str) -> bool {
@@ -300,7 +300,7 @@ impl FilterState {
     /// Mouse hit-test against a painted layout: outside the box →
     /// [`MouseHit::Outside`], on the header's "esc" → [`MouseHit::Dismiss`],
     /// on a list row → [`MouseHit::Row`] with the VISUAL row index (scroll
-    /// offset applied — the caller maps it onto its own model, skipping
+    /// offset applied - the caller maps it onto its own model, skipping
     /// header rows). Everything else inside is [`MouseHit::Inside`].
     #[must_use]
     pub fn mouse_hit(&self, layout: &ListBoxLayout, x: u16, y: u16) -> MouseHit {
@@ -377,7 +377,7 @@ pub fn hit_test(layout: &ListBoxLayout, x: u16, y: u16) -> MouseHit {
 }
 
 /// Filter edit on the DialogInstance shape (a plain filter `String` plus
-/// the instance's shared cursor — the `ModelList`/`ThemeList` variants'
+/// the instance's shared cursor - the `ModelList`/`ThemeList` variants'
 /// field layout): append one char, reset the selection to the first row,
 /// blink the cursor. The ONE definition [`FilterState::push_char`] shares.
 pub fn push_filter(filter: &mut String, selected: &mut usize, cursor: &mut Cursor, ch: char) {
@@ -386,7 +386,7 @@ pub fn push_filter(filter: &mut String, selected: &mut usize, cursor: &mut Curso
     cursor.note_activity();
 }
 
-/// Backspace on the DialogInstance shape — the ONE definition
+/// Backspace on the DialogInstance shape - the ONE definition
 /// [`FilterState::pop_char`] shares.
 pub fn pop_filter(filter: &mut String, selected: &mut usize, cursor: &mut Cursor) {
     filter.pop();
@@ -423,7 +423,7 @@ pub enum MouseHit {
 /// Paint the SHARED box chrome: the borderless `background_element`
 /// surface, the bold title with the right-aligned "esc", the optional
 /// subtitle line, and the Search line (placeholder or filter text with the
-/// blinking cursor) — pixel-identical to what the ModelList renderer has
+/// blinking cursor) - pixel-identical to what the ModelList renderer has
 /// always drawn.
 pub fn render_chrome(
     buf: &mut Buffer,
@@ -540,7 +540,7 @@ pub fn render_chrome_raw(
 }
 
 /// One blinking cursor cell on the Search line, painted with the shared
-/// transparent cursor style (the glyph under the caret stays visible — the
+/// transparent cursor style (the glyph under the caret stays visible - the
 /// chat prompt's look, extracted with the chrome).
 fn draw_search_cursor(
     buf: &mut Buffer,
@@ -606,7 +606,7 @@ pub fn render_rows(
         }
 
         // ● indicator for the row active at the harness (accent unselected,
-        // luminance-adaptive under the selection) — the ModelList treatment.
+        // luminance-adaptive under the selection) - the ModelList treatment.
         let (indicator_fg, indicator_ch) = if row.current {
             if index == selected {
                 (selected_foreground(theme.primary), '\u{25cf}')
@@ -679,7 +679,7 @@ pub fn render_rows(
     }
 }
 
-/// Black-on-primary when the primary fill is bright, white otherwise — the
+/// Black-on-primary when the primary fill is bright, white otherwise - the
 /// selection contrast rule every morpheus highlight follows.
 #[must_use]
 pub fn selected_foreground(primary: RGBA) -> Color {
@@ -716,7 +716,7 @@ mod tests {
     fn layout_clamps_to_the_terminal_and_the_row_cap() {
         let state = FilterState::new();
         // A tiny terminal: the box shrinks (responsive, min 28 wide) and
-        // the window shrinks with the height — but never past the row
+        // the window shrinks with the height - but never past the row
         // count (3 rows → a 3-row window even in a tall-enough area).
         let area = Rect::new(0, 0, 30, 12);
         let layout = state.layout(0, 3, 10, 60, 28, area, false, true);
@@ -750,7 +750,7 @@ mod tests {
             state.mouse_hit(&layout, layout.x + 5, layout.y + 3),
             MouseHit::Row(6)
         );
-        // The last visible row is index 15 — the cursor's own row.
+        // The last visible row is index 15 - the cursor's own row.
         assert_eq!(
             state.mouse_hit(&layout, layout.x + 5, layout.y + 3 + 9),
             MouseHit::Row(15)

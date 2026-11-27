@@ -1,11 +1,11 @@
-//! RAG Knowledge Base view — core struct and lifecycle.
+//! RAG Knowledge Base view - core struct and lifecycle.
 //!
 //! The `RagView` struct holds all UI state for the RAG screen.
 //! Input handling lives in `handlers.rs`, rendering lives in `render.rs`.
 //!
-//! Layout — two boxed sections:
-//! 1. **Embed Content** — URL/path input with inline status + content preview overlay
-//! 2. **Available Databases** — toggleable DB list with inline "+ Create New Database"
+//! Layout - two boxed sections:
+//! 1. **Embed Content** - URL/path input with inline status + content preview overlay
+//! 2. **Available Databases** - toggleable DB list with inline "+ Create New Database"
 //!    form that appears inside the Embed Content box when Tab is pressed.
 
 use std::collections::HashSet;
@@ -289,7 +289,7 @@ impl RagView {
         self.content_preview.clear();
         self.preview_scroll = 0;
         self.url_input.clear();
-        // Keep the Create DB draft buffer intact — it is only wiped once a DB
+        // Keep the Create DB draft buffer intact - it is only wiped once a DB
         // is actually created (see clear_create_db_buffer).
         self.show_create_db = false;
         // Keep selected_db_for_embed (user may want to embed more content into same DB)
@@ -451,7 +451,7 @@ impl RagView {
     /// `pad_w`, counting the markdown wrapping done by the renderer.
     ///
     /// The labels are drawn outside the markdown content (so they don't
-    /// interfere with cmark's block parsing), so only the value wraps — the
+    /// interfere with cmark's block parsing), so only the value wraps - the
     /// value has `FIELD_LABEL_W` fewer columns available.
     pub(crate) fn create_db_field_lines(&self, pad_w: u16) -> (u16, u16) {
         let value_w = pad_w.saturating_sub(FIELD_LABEL_W).max(1);
@@ -575,8 +575,8 @@ pub(crate) fn max_visible_models(avail_h: u16) -> usize {
 ///
 /// Measures the same string that is actually passed to the markdown renderer
 /// (`markdown_render_text` keeps blank lines alive with an invisible spacer),
-/// so the box grows together with every line break — including blank lines
-/// that cmark would otherwise collapse — and never cuts a wrapped row. Raw
+/// so the box grows together with every line break - including blank lines
+/// that cmark would otherwise collapse - and never cuts a wrapped row. Raw
 /// newlines always count as rows too (a trailing newline is a real row).
 fn markdown_field_lines(text: &str, pad_w: u16) -> u16 {
     let (render, _) = markdown_render_text(text);

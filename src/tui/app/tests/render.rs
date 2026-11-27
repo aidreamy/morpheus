@@ -25,8 +25,8 @@ fn frame_pacer_uses_60_fps_when_cheap_and_30_fps_under_load() {
 
 /// Long queued messages must be visually TRUNCATED to a single row instead of
 /// word-wrapping: `pending_queue_layout` yields exactly ONE `Text` entry per
-/// queued message — a display-width-aware prefix of the message fitting the
-/// columns outside the mode-colored end cap — bracketed by the message's own
+/// queued message - a display-width-aware prefix of the message fitting the
+/// columns outside the mode-colored end cap - bracketed by the message's own
 /// `Pad` rows. Only the strip's preview is cut; the queued text itself is
 /// untouched.
 #[test]
@@ -56,7 +56,7 @@ fn pending_queue_layout_truncates_long_messages() {
         }
     }
     // A long message yields exactly ONE text row (no wrap): a prefix of the
-    // message — nothing invented, the remainder simply vanishes. The layout
+    // message - nothing invented, the remainder simply vanishes. The layout
     // is [pad, text, pad] per message: message 0's text at rows[1], message
     // 1's at rows[4].
     let text_rows = |qi: usize, mi: usize| {
@@ -99,7 +99,7 @@ fn pending_queue_layout_truncation_never_splits_wide_graphemes() {
     use crate::state::PendingQueues;
     use std::collections::VecDeque;
 
-    // 8 wide CJK chars = 16 display columns — exactly the text width at
+    // 8 wide CJK chars = 16 display columns - exactly the text width at
     // width 30; the 9th wide char does not fit and is dropped whole.
     let queues = PendingQueues {
         next_loop: VecDeque::new(),
@@ -138,7 +138,7 @@ fn pending_queue_layout_keep_empty_messages_visible() {
 }
 
 /// The session chat area must shrink by the right-panel width whenever the
-/// panel is visible — and the mouse dispatch shares this exact helper with
+/// panel is visible - and the mouse dispatch shares this exact helper with
 /// `render`. A wider mouse area re-wraps every message and shifts `prefix_y`,
 /// making tool-box expand/collapse clicks land on the wrong row (the bug was
 /// "boxes can't be expanded while the agent loop is active").
@@ -201,7 +201,7 @@ async fn session_main_area_ignores_hidden_right_panel() {
     assert_eq!(sa2.main.width, 140);
 }
 
-/// The `/agents` split owns the WHOLE main area at full width — the right
+/// The `/agents` split owns the WHOLE main area at full width - the right
 /// panel must NOT overlay it (the bound agents surface in the panel in the
 /// NORMAL mode, per spec). The split replaces the transcript, so a panel
 /// rendered beside it would double-show every bound agent and steal width
@@ -222,7 +222,7 @@ async fn agents_split_hides_the_right_panel() {
     app.state.right_panel = RightPanelState::new();
     // Content that WOULD show the panel in the normal mode.
     app.state.right_panel.start_pty("echo hi".into(), None);
-    // The hit-test path reads the app's OWN terminal size — pin it.
+    // The hit-test path reads the app's OWN terminal size - pin it.
     app.set_test_size(140, 30);
     let area = Rect::new(0, 0, 140, 30);
 
@@ -257,7 +257,7 @@ async fn agents_split_hides_the_right_panel() {
 
 /// The DEFINITIVE check for the Charm header bug: a real HarnessEvent::Usage
 /// carrying `remaining_credits` must (a) land in `hypercredit_balance` after
-/// `poll_events`, and (b) make the rendered header show the ◆ BALANCE — not
+/// `poll_events`, and (b) make the rendered header show the ◆ BALANCE - not
 /// the dollar total. Regression for "header stays in dollars while using
 /// Charm".
 #[tokio::test]
@@ -301,7 +301,7 @@ async fn charm_usage_event_switches_header_to_credits_balance() {
     // (a) The balance landed.
     assert_eq!(app.hypercredit_balance, Some(88.0));
 
-    // (b) The header renders the BALANCE in credits mode — scan the top row
+    // (b) The header renders the BALANCE in credits mode - scan the top row
     // of a real backend render for what was actually drawn.
     use ratatui::{Terminal, backend::TestBackend};
     let backend = TestBackend::new(140, 30);
@@ -411,7 +411,7 @@ async fn scroll_to_bottom_pill_jumps_back_and_rehides() {
         .expect("pill rect must be set after scrolling away from the bottom");
     assert!(screen_has_glyph(&terminal), "pill glyph must be painted");
     // The prompt starts at the session viewport's bottom row: the pill must
-    // sit exactly one row above it — the spinner's line — not on top of the
+    // sit exactly one row above it - the spinner's line - not on top of the
     // prompt input.
     assert_eq!(
         pill.y,
@@ -433,7 +433,7 @@ async fn scroll_to_bottom_pill_jumps_back_and_rehides() {
         "click must re-engage the sticky follow"
     );
 
-    // Next frames: the pill retracts — its rect clears on the first rendered
+    // Next frames: the pill retracts - its rect clears on the first rendered
     // frame (the renderer owns it), the glyph then fades out over a few more.
     // The user is following again.
     terminal.draw(|f| app.render(f, 0.016)).unwrap();
@@ -453,7 +453,7 @@ async fn scroll_to_bottom_pill_jumps_back_and_rehides() {
 
 /// The pill must stay put when the agent spinner appears: the spinner shrinks
 /// the transcript viewport by one row, which used to drag the bottom-anchored
-/// arrow upward. It must remain exactly where it was — on the spinner's line.
+/// arrow upward. It must remain exactly where it was - on the spinner's line.
 #[tokio::test]
 async fn scroll_to_bottom_pill_stays_put_when_the_spinner_appears() {
     use crossterm::event::{KeyModifiers, MouseEvent as CMouse, MouseEventKind as CKind};

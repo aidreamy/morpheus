@@ -115,7 +115,7 @@ fn note_is_interpolated_inside_the_description_flow() {
     let after = sub.description_call["description"].as_str().unwrap();
 
     // Interpolated as the tail of the FIRST paragraph: right after the
-    // opening sentence and BEFORE the `input` paragraph — not prepended
+    // opening sentence and BEFORE the `input` paragraph - not prepended
     // at the top.
     assert!(after.contains(
         "return its output. When the `agent` argument is omitted or \
@@ -227,7 +227,7 @@ async fn run_session_drives_a_full_acp_turn_end_to_end() {
             .on_receive_request(
                 async move |request: PromptRequest, responder: Responder<PromptResponse>, _cx| {
                     // Echo the prompt back as an agent message chunk, then
-                    // end the turn — mirroring what a real harness streams.
+                    // end the turn - mirroring what a real harness streams.
                     let echoed = request
                         .prompt
                         .iter()
@@ -296,7 +296,7 @@ async fn run_session_drives_a_full_acp_turn_end_to_end() {
             reasoning: None,
         }
     ));
-    // The MODE state follows the badge (this fixture advertises none — the
+    // The MODE state follows the badge (this fixture advertises none - the
     // empty event confirms the emission contract).
     assert!(matches!(
         modes.unwrap(),
@@ -509,7 +509,7 @@ async fn run_session_serves_fs_requests_and_auto_approves_permissions() {
             reasoning: None,
         }
     ));
-    // The MODE state follows the badge (this fixture advertises none — the
+    // The MODE state follows the badge (this fixture advertises none - the
     // empty event confirms the emission contract).
     assert!(matches!(
         modes.unwrap(),
@@ -526,7 +526,7 @@ async fn run_session_serves_fs_requests_and_auto_approves_permissions() {
 
 /// The fixture harness advertises a `model` config option whose default
 /// differs from the preferred model. `run_session` must issue
-/// `session/set_config_option` before the prompt — the kilo contract, where
+/// `session/set_config_option` before the prompt - the kilo contract, where
 /// the ACP default is a paid-tier model that fails the prompt with "You
 /// need to sign in".
 #[tokio::test(flavor = "current_thread")]
@@ -668,7 +668,7 @@ async fn run_session_selects_the_preferred_session_model() {
             reasoning: None
         } if model == PREFERRED && label == "Nemotron free"
     ));
-    // The MODE state follows the badge (this fixture advertises none — the
+    // The MODE state follows the badge (this fixture advertises none - the
     // empty event confirms the emission contract).
     assert!(matches!(
         modes.unwrap(),
@@ -684,7 +684,7 @@ async fn run_session_selects_the_preferred_session_model() {
 }
 
 /// The typed event stream (Phase 2): the fixture harness streams a thought,
-/// a tool call, its update, a plan, a usage snapshot, and a mode change —
+/// a tool call, its update, a plan, a usage snapshot, and a mode change -
 /// plus one update with no display mapping (`UserMessageChunk`). All mapped
 /// variants must arrive as typed events, only message text feeds the turn's
 /// closure, and the unmapped update must be ignored (logged, not emitted).
@@ -832,7 +832,7 @@ async fn run_session_maps_session_updates_into_typed_events() {
 
     let (stop_reason, _session_id) = turn.unwrap();
     assert_eq!(stop_reason, "end_turn");
-    // Only message text enters the accumulator — no thoughts, no tool
+    // Only message text enters the accumulator - no thoughts, no tool
     // titles, no plan entries.
     assert_eq!(accumulated.lock().unwrap().output(), "all done");
 
@@ -908,7 +908,7 @@ async fn run_session_maps_session_updates_into_typed_events() {
 }
 
 /// The typed events serialize to stable snake_case tagged JSON and
-/// deserialize back losslessly — the persistence/rehydration contract for
+/// deserialize back losslessly - the persistence/rehydration contract for
 /// Phase 6. Unknown protocol enum values round-trip through the `Unknown`
 /// fallbacks instead of failing.
 #[test]
@@ -984,7 +984,7 @@ fn subagent_events_round_trip_through_json() {
         usage
     );
 
-    // The remaining variants pin their serialized tag/field names too — the
+    // The remaining variants pin their serialized tag/field names too - the
     // Phase 6 persistence contract depends on all of them staying stable.
     let thought = SubagentEvent::Thought {
         text: "pondering".to_string(),
@@ -1140,7 +1140,7 @@ fn npx_launcher_routes_through_cmd_detour_on_windows() {
     // The claude/codex launch commands are npm shims (npx.cmd), which
     // `CreateProcessW` cannot spawn directly; agent_launcher must wrap them
     // in `cmd /d /s /c …` when npx resolves to a batch shim. When no shim is
-    // present (e.g. a real npx.exe on PATH) the direct command is kept —
+    // present (e.g. a real npx.exe on PATH) the direct command is kept -
     // either way the launcher must build and carry a valid command.
     for name in ["claude", "codex"] {
         let entry = ACP_AGENTS
@@ -1296,7 +1296,7 @@ fn ensure_path_within_resolves_an_existing_file_to_its_real_path() {
 
 // -------------------------------------------------------------------------
 // Phase 1 (fix rounds 2-3): kernel-pinned fs sandbox (`sandbox::read/write`)
-// — the path the production Unix handlers actually take.
+// - the path the production Unix handlers actually take.
 // -------------------------------------------------------------------------
 
 #[cfg(unix)]
@@ -1434,7 +1434,7 @@ fn pinned_sandbox_write_never_follows_a_final_symlink() {
     use super::sandbox;
     let root = tempfile::tempdir().unwrap();
     let pinned = pinned_root(root.path());
-    // A write THROUGH a final-entry symlink fails closed — it must not
+    // A write THROUGH a final-entry symlink fails closed - it must not
     // truncate an existing target nor materialize one through a dangling
     // link (classic no-follow semantics).
     std::fs::write(root.path().join("real.txt"), "precious").unwrap();
@@ -1545,7 +1545,7 @@ fn diff_summary_set_difference_counts_changed_lines() {
     let old = "keep\nchange-me\nremove\n";
     let new = "keep\nchanged\nadd\n";
     let s = diff_summary("f.rs", Some(old), new);
-    // added: changed, add (2) — removed: change-me, remove (2).
+    // added: changed, add (2) - removed: change-me, remove (2).
     assert_eq!(s.added, 2);
     assert_eq!(s.removed, 2);
 }
@@ -1583,7 +1583,7 @@ fn extract_content_text_joins_texts_and_keeps_the_last_diff() {
             "image/png",
         )))),
         ToolCallContent::Diff(AcpDiff::new("a.rs", "one\ntwo\n").old_text("one\n")),
-        // The LAST diff block wins — a follow-up edit supersedes the
+        // The LAST diff block wins - a follow-up edit supersedes the
         // previous summary (documented contract).
         ToolCallContent::Diff(AcpDiff::new("b.rs", "new file, all added\nlines\n")),
         ToolCallContent::Content(Content::new(ContentBlock::Text(TextContent::new("second")))),
@@ -1605,8 +1605,8 @@ fn extract_content_text_joins_texts_and_keeps_the_last_diff() {
 // ── Session-load replay (cold restore) ────────────────────────────────
 
 /// Spawn an ACP fixture harness that advertises the given capabilities,
-/// logs every session-lifecycle request it receives, and — when it accepts
-/// a `session/load` — REPLAYS the given conversation as `session/update`
+/// logs every session-lifecycle request it receives, and - when it accepts
+/// a `session/load` - REPLAYS the given conversation as `session/update`
 /// notifications before responding (the v1 `session/load` contract).
 /// Returns the CLIENT side plus the agent task handle.
 fn spawn_replay_fixture(
@@ -1718,11 +1718,11 @@ async fn replay_loads_the_session_and_streams_the_history_without_prompting() {
     };
 
     let replay = vec![
-        // The user's retained prompt — a `user_message_chunk`.
+        // The user's retained prompt - a `user_message_chunk`.
         SessionUpdate::UserMessageChunk(acp1::ContentChunk::new(ContentBlock::Text(
             TextContent::new("hello agent"),
         ))),
-        // An agent reply, then a tool call with its completing update —
+        // An agent reply, then a tool call with its completing update -
         // replay carries the SAME variants a live turn streams.
         SessionUpdate::AgentMessageChunk(acp1::ContentChunk::new(ContentBlock::Text(
             TextContent::new("working on it"),
@@ -1753,8 +1753,8 @@ async fn replay_loads_the_session_and_streams_the_history_without_prompting() {
     agent_task.abort();
 
     result.unwrap();
-    // The load targeted the STORED id, no `session/new` and — the core
-    // invariant — NO prompt was ever sent: a rehydrate pass must not
+    // The load targeted the STORED id, no `session/new` and - the core
+    // invariant - NO prompt was ever sent: a rehydrate pass must not
     // append to the agent's history.
     assert_eq!(
         log.lock().unwrap().as_slice(),
@@ -1812,8 +1812,8 @@ async fn replay_loads_the_session_and_streams_the_history_without_prompting() {
 /// (goose advertises `loadSession` WITHOUT `session/resume`) must not let
 /// the load's history replay reach the pane's timeline or the turn's
 /// closure. The v1 load contract streams the ENTIRE retained conversation
-/// as ordinary `session/update` notifications BEFORE the load response —
-/// measured live on `goose acp` — and unfiltered those old chunks used to
+/// as ordinary `session/update` notifications BEFORE the load response -
+/// measured live on `goose acp` - and unfiltered those old chunks used to
 /// mix previous turns into the new one (the reported prompt-pane symptom:
 /// "mistura entradas de momentos diferentes").
 #[tokio::test(flavor = "current_thread")]
@@ -1836,7 +1836,7 @@ async fn run_session_drops_the_load_replay_history_from_a_live_turn() {
                     responder.respond(
                         InitializeResponse::new(request.protocol_version)
                             // The goose shape: loadSession YES, no
-                            // `session/resume` — every live turn opens
+                            // `session/resume` - every live turn opens
                             // through `session/load` and eats the replay.
                             .agent_capabilities(AgentCapabilities::new().load_session(true)),
                     )
@@ -1849,7 +1849,7 @@ async fn run_session_drops_the_load_replay_history_from_a_live_turn() {
                             cx| {
                     // The load contract: replay ALL retained history as
                     // ordinary session/update notifications BEFORE the
-                    // response lands — old user prompt and old answer both.
+                    // response lands - old user prompt and old answer both.
                     let _ = cx.send_notification(SessionNotification::new(
                         request.session_id.clone(),
                         SessionUpdate::UserMessageChunk(ContentChunk::new(ContentBlock::Text(
@@ -1920,7 +1920,7 @@ async fn run_session_drops_the_load_replay_history_from_a_live_turn() {
         "NEW answer",
         "the load's history replay must not mix into the live turn's report"
     );
-    // The STREAM (the pane's timeline) carries no replayed content either —
+    // The STREAM (the pane's timeline) carries no replayed content either -
     // no old user prompt, no old answer. Chrome (badge, modes, usage) is
     // free to pass; only content is asserted absent.
     assert!(
@@ -1953,7 +1953,7 @@ async fn replay_fails_when_the_harness_does_not_advertise_load_session() {
 
     // A harness that accepts the connection but does NOT implement
     // `session/load` (no `loadSession` capability): the unknown method
-    // comes back as a JSON-RPC error, and the pass must fail on it — NOT
+    // comes back as a JSON-RPC error, and the pass must fail on it - NOT
     // silently fall back to `session/new`, which would discard the user's
     // history and rebind the pane to an empty context.
     let (client_side, agent_side) = agent_client_protocol::Channel::duplex();
@@ -2004,7 +2004,7 @@ async fn replay_of_a_stale_session_id_fails_instead_of_silently_resetting() {
     use agent_client_protocol::{Agent as AgentRole, Responder};
 
     // The harness advertises `loadSession` but ERRORS on the id (it
-    // restarted and lost its sessions): the pass must fail — the caller
+    // restarted and lost its sessions): the pass must fail - the caller
     // degrades to an empty live pane, never to a fresh session binding.
     let (client_side, agent_side) = agent_client_protocol::Channel::duplex();
     let agent_task = tokio::spawn(async move {
@@ -2047,7 +2047,7 @@ async fn replay_fails_when_initialize_fails() {
     use agent_client_protocol::{Agent as AgentRole, Responder};
 
     // A harness that cannot even be initialized (crashed binary wrapper,
-    // auth wall) fails the whole pass — no partial state.
+    // auth wall) fails the whole pass - no partial state.
     let (client_side, agent_side) = agent_client_protocol::Channel::duplex();
     let agent_task = tokio::spawn(async move {
         let _ = AgentRole
@@ -2379,7 +2379,7 @@ async fn failed_resume_falls_back_to_a_fresh_session() {
 
 /// 4.4 on a RESUMED session: the `session/resume` response may carry
 /// `config_options` whose `model` default differs from the preferred
-/// model — the same set-before-prompt contract as `session/new` must
+/// model - the same set-before-prompt contract as `session/new` must
 /// apply (the kilo paid-tier default would fail the prompt otherwise).
 #[tokio::test(flavor = "current_thread")]
 async fn resumed_session_selects_the_preferred_session_model() {
@@ -2522,7 +2522,7 @@ async fn resumed_session_selects_the_preferred_session_model() {
 
     let (stop_reason, session_id) = turn.unwrap();
     assert_eq!(stop_reason, "end_turn");
-    // The RESUMED id (the requested one) is preserved — not a fresh id.
+    // The RESUMED id (the requested one) is preserved - not a fresh id.
     assert_eq!(session_id, "stored-9");
     assert_eq!(
         log.lock().unwrap().as_slice(),
@@ -2544,7 +2544,7 @@ async fn resumed_session_selects_the_preferred_session_model() {
             reasoning: None
         } if model == PREFERRED && label == "Nemotron free"
     ));
-    // The MODE state follows the badge (this fixture advertises none — the
+    // The MODE state follows the badge (this fixture advertises none - the
     // empty event confirms the emission contract).
     assert!(matches!(
         modes.unwrap(),
@@ -2561,12 +2561,12 @@ async fn resumed_session_selects_the_preferred_session_model() {
 
 /// Phase 5.4: a user stop during a running sub-agent turn sends ACP
 /// `session/cancel` and the turn ends with the spec-mandated
-/// `StopReason::Cancelled` — with the output streamed so far preserved
+/// `StopReason::Cancelled` - with the output streamed so far preserved
 /// and the (still valid) session id propagated.
 ///
 /// The fixture's prompt handler spawns its answering task via `cx.spawn`
 /// (a handler that awaited inline would block the dispatch loop and the
-/// `CancelNotification` could never be processed — deadlock). The spawned
+/// `CancelNotification` could never be processed - deadlock). The spawned
 /// task streams one message chunk, waits for the cancel notification, and
 /// only then answers.
 #[tokio::test(flavor = "current_thread")]
@@ -3156,7 +3156,7 @@ fn session_model_info_hides_a_single_valued_thought_level() {
     ));
 }
 
-/// No options (or no model/thought among them) leaves every slot empty —
+/// No options (or no model/thought among them) leaves every slot empty -
 /// the badge shows only the agent name until a report arrives.
 #[test]
 fn session_model_info_empty_without_advertised_options() {
@@ -3181,7 +3181,7 @@ fn session_model_info_empty_without_advertised_options() {
 /// `session/set_mode` request, and the turn must bind the requested mode id
 /// before prompting. The pane-chrome `Modes` event carries the advertised
 /// list, and a turn with a STALE mode id (the harness no longer advertises
-/// it) issues no `session/set_mode` at all — the skip is client-side.
+/// it) issues no `session/set_mode` at all - the skip is client-side.
 #[tokio::test(flavor = "current_thread")]
 async fn run_session_binds_the_requested_mode_before_prompting() {
     use agent_client_protocol::schema::v1::{
@@ -3282,7 +3282,7 @@ async fn run_session_binds_the_requested_mode_before_prompting() {
         events
     };
 
-    // Turn 1: the mapped mode id arrives from the TUI's similarity match —
+    // Turn 1: the mapped mode id arrives from the TUI's similarity match -
     // it MUST be bound before the prompt (the per-connection contract).
     let (chunk_tx, chunk_rx) = tokio::sync::mpsc::unbounded_channel();
     let (turn1, _, events1) = tokio::join!(
@@ -3321,7 +3321,7 @@ async fn run_session_binds_the_requested_mode_before_prompting() {
                 && modes[1].id == "plan")
     ));
 
-    // Turn 2: a STALE mapping — the harness no longer advertises `gone`.
+    // Turn 2: a STALE mapping - the harness no longer advertises `gone`.
     // The skip is client-side: no `session/set_mode` reaches the wire (the
     // log stays at turn 1's single entry) and the turn still completes.
     let (client_side, agent_side) = Channel::duplex();
@@ -3396,7 +3396,7 @@ async fn run_session_binds_the_requested_mode_before_prompting() {
 // ── Permission routing (interactive box vs. headless auto-approve) ──
 /// The split's Yolo contract, made mode-aware: with a permission channel
 /// the `session/request_permission` request surfaces as a
-/// `PermissionRequest` event and AWAITS the user's pick — the selected
+/// `PermissionRequest` event and AWAITS the user's pick - the selected
 /// option id goes back verbatim, a channel close / dismiss answers
 /// `Cancelled` per the spec. Without a channel the request is
 /// auto-approved (AllowAlways preferred over AllowOnce over first-listed).
@@ -3443,7 +3443,7 @@ async fn run_session_routes_permissions_by_mode() {
                             _cx| {
                     // The client's own handler responds; the fixture only
                     // keeps the dispatch loop alive here (a no-op respond is
-                    // never reached — but the handler must exist so the
+                    // never reached - but the handler must exist so the
                     // request routes to the CLIENT, not the fixture).
                     responder.respond(RequestPermissionResponse::new(
                         RequestPermissionOutcome::Cancelled,
@@ -3454,7 +3454,7 @@ async fn run_session_routes_permissions_by_mode() {
             .on_receive_request(
                 async move |request: PromptRequest, responder: Responder<PromptResponse>, cx| {
                     // Announce the tool call, then ask for permission to
-                    // run it — the exact shape a real harness produces. The
+                    // run it - the exact shape a real harness produces. The
                     // request SPAWNS (`cx.spawn`): an inline send would
                     // block the dispatch loop (the same contract the cancel
                     // fixture documents), and the outcome is awaited before
@@ -3499,7 +3499,7 @@ async fn run_session_routes_permissions_by_mode() {
                             ))
                             .block_task()
                             .await;
-                        // Log the OUTCOME: what the client actually picked —
+                        // Log the OUTCOME: what the client actually picked -
                         // the wire-level proof of the routing.
                         decision_log_agent.lock().unwrap().push(match decision {
                             Ok(response) => match response.outcome {
@@ -3585,7 +3585,7 @@ async fn run_session_routes_permissions_by_mode() {
 /// The fixture advertises an agent auth method and rejects the FIRST
 /// `session/new` with `auth_required` (-32000); the turn must then send
 /// exactly one `authenticate`, retry `session/new`, and complete the
-/// prompt — mirroring `devin acp`, where a proactive `authenticate`
+/// prompt - mirroring `devin acp`, where a proactive `authenticate`
 /// forces a browser login on every session while a lazy one never does.
 #[tokio::test(flavor = "current_thread")]
 async fn run_session_authenticates_lazily_only_after_auth_required() {
@@ -3714,7 +3714,7 @@ async fn run_session_authenticates_lazily_only_after_auth_required() {
         auth_log.lock().unwrap().as_slice(),
         ["new-rejected", "authenticate:fixture-auth", "new", "PROMPT"],
     );
-    // The MODE state follows the badge (this fixture advertises none — the
+    // The MODE state follows the badge (this fixture advertises none - the
     // empty event confirms the emission contract).
     assert!(matches!(
         modes.unwrap(),
@@ -3794,12 +3794,8 @@ async fn persistent_session_reuses_one_session_across_turns() {
             .await
     });
 
-    let handle = super::acp::open_session_with_transport(
-        client_side,
-        "gemini",
-        None,
-        std::env::temp_dir(),
-    );
+    let handle =
+        super::acp::open_session_with_transport(client_side, "gemini", None, std::env::temp_dir());
 
     let mut outputs = Vec::new();
     for input in ["first", "second"] {
@@ -3830,7 +3826,6 @@ async fn persistent_session_reuses_one_session_across_turns() {
     handle.shutdown();
     let _ = agent_task.await;
 }
-
 
 /// Persistent session applies config picks and mode only when they change
 /// between turns (guarantee N19): the second identical turn must not issue
@@ -3904,8 +3899,8 @@ async fn persistent_session_applies_picks_and_mode_only_on_change() {
             .on_receive_request(
                 async move |request: SetSessionConfigOptionRequest,
                             responder: Responder<
-                                agent_client_protocol::schema::v1::SetSessionConfigOptionResponse,
-                            >,
+                    agent_client_protocol::schema::v1::SetSessionConfigOptionResponse,
+                >,
                             _cx| {
                     config_calls_a.fetch_add(1, Ordering::SeqCst);
                     // The set response is AUTHORITATIVE and carries the full
@@ -3941,13 +3936,12 @@ async fn persistent_session_applies_picks_and_mode_only_on_change() {
             .on_receive_request(
                 async move |request: SetSessionModeRequest,
                             responder: Responder<
-                                agent_client_protocol::schema::v1::SetSessionModeResponse,
-                            >,
+                    agent_client_protocol::schema::v1::SetSessionModeResponse,
+                >,
                             _cx| {
                     mode_calls_a.fetch_add(1, Ordering::SeqCst);
-                    responder.respond(
-                        agent_client_protocol::schema::v1::SetSessionModeResponse::new(),
-                    )
+                    responder
+                        .respond(agent_client_protocol::schema::v1::SetSessionModeResponse::new())
                 },
                 agent_client_protocol::on_receive_request!(),
             )
@@ -3967,12 +3961,8 @@ async fn persistent_session_applies_picks_and_mode_only_on_change() {
             .await
     });
 
-    let handle = super::acp::open_session_with_transport(
-        client_side,
-        "gemini",
-        None,
-        std::env::temp_dir(),
-    );
+    let handle =
+        super::acp::open_session_with_transport(client_side, "gemini", None, std::env::temp_dir());
 
     let picks = [("model".to_string(), "preferred-model".to_string())];
     for _ in 0..2 {
@@ -4027,7 +4017,6 @@ async fn persistent_session_applies_picks_and_mode_only_on_change() {
     handle.shutdown();
     let _ = agent_task.await;
 }
-
 
 /// A cancelled persistent turn yields a `cancelled` stop reason, streams the
 /// partial output, and leaves the handle alive + reusable (N7/N13).
@@ -4107,12 +4096,8 @@ async fn persistent_session_cancel_yields_cancelled_and_reuses_session() {
             .await;
     });
 
-    let handle = super::acp::open_session_with_transport(
-        client_side,
-        "gemini",
-        None,
-        std::env::temp_dir(),
-    );
+    let handle =
+        super::acp::open_session_with_transport(client_side, "gemini", None, std::env::temp_dir());
 
     // First turn: cancelled.
     let stop_signal = Arc::new(AtomicBool::new(false));
@@ -4136,13 +4121,15 @@ async fn persistent_session_cancel_yields_cancelled_and_reuses_session() {
     assert!(!outcome.failed, "{outcome:?}");
     assert_eq!(outcome.stop_reason, "cancelled");
     assert_eq!(outcome.output, PARTIAL);
-    assert_eq!(outcome.session_id.as_deref(), Some("cancel-persistent-session"));
+    assert_eq!(
+        outcome.session_id.as_deref(),
+        Some("cancel-persistent-session")
+    );
     assert!(handle.is_alive(), "handle must survive a cancelled turn");
 
     handle.shutdown();
     let _ = agent_task.await;
 }
-
 
 /// A protocol-level failure on a turn (prompt rejected) yields a failed
 /// `TurnOutcome` with `session_id: None`, breaks the supervisor loop, and
@@ -4181,9 +4168,7 @@ async fn persistent_session_protocol_failure_fails_and_drops_handle() {
                 agent_client_protocol::on_receive_request!(),
             )
             .on_receive_request(
-                async move |_request: PromptRequest,
-                            responder: Responder<PromptResponse>,
-                            _cx| {
+                async move |_request: PromptRequest, responder: Responder<PromptResponse>, _cx| {
                     responder.respond_with_internal_error("boom")
                 },
                 agent_client_protocol::on_receive_request!(),
@@ -4192,12 +4177,8 @@ async fn persistent_session_protocol_failure_fails_and_drops_handle() {
             .await;
     });
 
-    let handle = super::acp::open_session_with_transport(
-        client_side,
-        "gemini",
-        None,
-        std::env::temp_dir(),
-    );
+    let handle =
+        super::acp::open_session_with_transport(client_side, "gemini", None, std::env::temp_dir());
 
     let (chunk_tx, mut chunk_rx) = tokio::sync::mpsc::unbounded_channel();
     let outcome = handle
@@ -4223,7 +4204,10 @@ async fn persistent_session_protocol_failure_fails_and_drops_handle() {
         }
         tokio::time::sleep(std::time::Duration::from_millis(20)).await;
     }
-    assert!(!handle.is_alive(), "handle must be dead after a protocol failure");
+    assert!(
+        !handle.is_alive(),
+        "handle must be dead after a protocol failure"
+    );
 
     // A turn that arrives after the fatal failure reports the CAUSE that closed
     // the session, not the generic "closed before answering the turn"
@@ -4249,7 +4233,6 @@ async fn persistent_session_protocol_failure_fails_and_drops_handle() {
     let _ = agent_task.await;
 }
 
-
 /// Chrome published while no turn is running (session-open window) is cached
 /// and replayed on the next turn; ordinary content published outside a turn
 /// is dropped (guarantee N5).
@@ -4257,9 +4240,9 @@ async fn persistent_session_protocol_failure_fails_and_drops_handle() {
 async fn persistent_session_caches_chrome_and_drops_stray_content() {
     use agent_client_protocol::schema::v1::{
         AgentCapabilities, AvailableCommand, AvailableCommandsUpdate, ContentBlock, ContentChunk,
-        InitializeRequest, InitializeResponse, NewSessionRequest, NewSessionResponse, PromptRequest,
-        PromptResponse, SessionConfigOption, SessionId, SessionNotification, SessionUpdate,
-        StopReason, TextContent,
+        InitializeRequest, InitializeResponse, NewSessionRequest, NewSessionResponse,
+        PromptRequest, PromptResponse, SessionConfigOption, SessionId, SessionNotification,
+        SessionUpdate, StopReason, TextContent,
     };
     use agent_client_protocol::{Agent as AgentRole, Channel, Responder};
     use std::sync::atomic::{AtomicBool, Ordering};
@@ -4326,12 +4309,8 @@ async fn persistent_session_caches_chrome_and_drops_stray_content() {
             .await
     });
 
-    let handle = super::acp::open_session_with_transport(
-        client_side,
-        "gemini",
-        None,
-        std::env::temp_dir(),
-    );
+    let handle =
+        super::acp::open_session_with_transport(client_side, "gemini", None, std::env::temp_dir());
 
     // First turn: collects chrome replay + turn answer.
     let (chunk_tx, mut chunk_rx) = tokio::sync::mpsc::unbounded_channel();
@@ -4370,9 +4349,9 @@ async fn persistent_session_caches_chrome_and_drops_stray_content() {
     );
     // Turn answer present.
     assert!(
-        events
-            .iter()
-            .any(|e| matches!(e, super::events::SubagentEvent::Message { text } if text == "turn answer")),
+        events.iter().any(
+            |e| matches!(e, super::events::SubagentEvent::Message { text } if text == "turn answer")
+        ),
         "turn answer must arrive: {events:?}"
     );
 
@@ -4403,7 +4382,6 @@ async fn persistent_session_caches_chrome_and_drops_stray_content() {
     handle.shutdown();
     let _ = agent_task.await;
 }
-
 
 /// `shutdown()` closes the handle; subsequent turns report a closed session
 /// and `is_alive()` is false (G14/N15).
@@ -4444,12 +4422,8 @@ async fn persistent_session_shutdown_closes_handle() {
             .await;
     });
 
-    let handle = super::acp::open_session_with_transport(
-        client_side,
-        "gemini",
-        None,
-        std::env::temp_dir(),
-    );
+    let handle =
+        super::acp::open_session_with_transport(client_side, "gemini", None, std::env::temp_dir());
     assert!(handle.is_alive());
 
     handle.shutdown();
@@ -4534,7 +4508,7 @@ async fn session_handle_matches_cwd_distinguishes_workspaces() {
 }
 
 /// N6: a permission request that arrives AFTER the turn ended is answered
-/// `Cancelled` — never auto-approved. `interactive` is the PANE's mode, so it
+/// `Cancelled` - never auto-approved. `interactive` is the PANE's mode, so it
 /// survives the turn boundary; the auto-approve path (G18) belongs to
 /// Yolo/manager panes only, which never install a permission channel.
 #[tokio::test(flavor = "current_thread")]

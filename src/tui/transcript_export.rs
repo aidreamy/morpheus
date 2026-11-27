@@ -6,7 +6,7 @@
 //! projection mirrors `build_messages` (the `visible_from` boundary, the
 //! `hidden` set, checkpoint coverage and masked tool results all apply).
 //! Nothing else reaches the file: no JSONL envelope, no event ids, no
-//! display-only bookkeeping — each context item becomes one Markdown section
+//! display-only bookkeeping - each context item becomes one Markdown section
 //! separated by a blank line.
 //!
 //! The file is written to the user's current working directory as

@@ -35,7 +35,7 @@ impl App {
     ///
     /// Cloud providers qualify when an API key is available. Local providers
     /// qualify when configured in setup.json OR when they respond on their
-    /// default port — the model list probes every local provider and surfaces
+    /// default port - the model list probes every local provider and surfaces
     /// whatever answers, so a llama.cpp / ollama / vLLM server just needs to be
     /// running. Same-port servers (llamacpp/llamafile/localai all default to
     /// 8080, text-generation-webui/tabbyapi to 5000) are probed once: the
@@ -141,7 +141,7 @@ pub(super) fn save_provider_api_key(env_var: &str, api_key: &str) -> Result<(), 
 /// Whether the OS keyring currently holds a saved key for `env_var` under
 /// Morpheus's service. Unlike [`aiface::connector::has_api_key`] this ignores
 /// environment variables, so the forget/overwrite picker only appears for
-/// keys morpheus itself stored — an env-var-provided key cannot be forgotten
+/// keys morpheus itself stored - an env-var-provided key cannot be forgotten
 /// from here.
 pub(super) fn keyring_has_provider_key(env_var: &str) -> bool {
     keyring::Entry::new(morpheus::KEYRING_SERVICE, env_var)
@@ -152,7 +152,7 @@ pub(super) fn keyring_has_provider_key(env_var: &str) -> bool {
 /// Whether a persisted model selection pointing at `provider` may still be
 /// restored: local providers need no credential, cloud providers must still
 /// have one somewhere (env var or keyring). A selection whose key was
-/// forgotten must not come back as the live model — the prompt footer would
+/// forgotten must not come back as the live model - the prompt footer would
 /// advertise a provider that can no longer authenticate.
 pub(super) fn provider_has_credential(provider: &str) -> bool {
     use aiface::connector::{has_api_key, is_local_provider};
@@ -160,7 +160,7 @@ pub(super) fn provider_has_credential(provider: &str) -> bool {
 }
 
 /// Remove a provider API key from the OS credential store through the
-/// keyring's own deletion API (`Entry::delete_credential`) — the library's
+/// keyring's own deletion API (`Entry::delete_credential`) - the library's
 /// recommended, store-agnostic way to drop a credential cleanly; morpheus never
 /// touches the keyring's storage directly. The in-process key cache is
 /// invalidated too, so the removal takes effect immediately.

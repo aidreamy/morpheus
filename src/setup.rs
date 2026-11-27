@@ -43,8 +43,8 @@ pub struct Setup {
     #[serde(rename = "voice")]
     pub voice: VoiceConfig,
     /// Decision-model configuration (Settings screen; `setup.json` →
-    /// `model_decision`). The section names what it configures — the
-    /// resident decision model and its audited decisions — explicitly, for
+    /// `model_decision`). The section names what it configures - the
+    /// resident decision model and its audited decisions - explicitly, for
     /// the user reading the file; the ONNX runtime is gated by the build
     /// feature (`onnx`), while this schema stays backend-agnostic and grows
     /// with new audited decisions as siblings of `termination`. Legacy
@@ -70,7 +70,7 @@ pub struct Setup {
     #[serde(default)]
     pub native_transport: NativeTransport,
     /// User-registered LLM provider endpoints (Settings screen). Each entry
-    /// maps a public provider name to its base URL and API family — the
+    /// maps a public provider name to its base URL and API family - the
     /// same declarative shape Goose's custom providers use. Empty when the
     /// user never registered one, so legacy files without the section keep
     /// loading unchanged.
@@ -82,7 +82,7 @@ pub struct Setup {
     /// Telemetry consent (Settings screen toggle). DEFAULT ON (opt-out,
     /// like the industry standard): the user can disable it in Settings or
     /// via `MORPHEUS_TELEMETRY=off`; CI environments are hard-off regardless.
-    /// This flag is only the USER's choice — the effective consent still
+    /// This flag is only the USER's choice - the effective consent still
     /// goes through `Telemetry::resolve` (env override + CI hard-off).
     pub telemetry: bool,
     /// Whether the one-time first-run telemetry consent box has already been
@@ -95,7 +95,7 @@ pub struct Setup {
     #[serde(default)]
     pub effective_context: bool,
     /// Raw bytes of the file this struct was last loaded from (or last
-    /// wrote), kept as JSON text. NOT serialized — this is the merge
+    /// wrote), kept as JSON text. NOT serialized - this is the merge
     /// baseline for [`Setup::save`]: with several morpheus processes sharing one
     /// config file, a save must re-read the disk, carry forward sections
     /// this process never touched, and only overwrite what actually
@@ -177,7 +177,7 @@ pub struct VoiceConfig {
     /// Japanese voices then get their language automatically, while English
     /// and Chinese voices keep the model's own lexicon frontend. A non-empty
     /// value wins, except when it is the speaker's own language and the bundle
-    /// has a lexicon for it (`en-us`, `en-gb`, `zh`) — those voices were built
+    /// has a lexicon for it (`en-us`, `en-gb`, `zh`) - those voices were built
     /// around that lexicon, so it is not swapped for espeak-ng. The TUI picker
     /// writes this field together with `speaker` (empty for lexicon voices).
     pub language: String,
@@ -226,7 +226,7 @@ impl VoiceConfig {
 /// Purely decorative: every style exposes the same surface the loop drives
 /// (`new`/`advance`/`set_activity`/`set_mode_color`/`update_theme`/`width`
 /// /`render`/`reset`/`is_initialized`), so the choice never changes
-/// behavior — only what the user watches while the agent works.
+/// behavior - only what the user watches while the agent works.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum SpinnerStyle {
@@ -315,7 +315,7 @@ pub struct Appearance {
     /// color. Panels/elements keep their theme colors.
     pub transparent_background: bool,
     /// `/spinner` pick: which agent-loop spinner animation plays above the
-    /// prompt. Decorative only — see [`SpinnerStyle`].
+    /// prompt. Decorative only - see [`SpinnerStyle`].
     pub spinner: SpinnerStyle,
     /// `/wallpaper` choice persisted across sessions. Empty or `"default"`
     /// uses the embedded artwork; `"off"` removes the wallpaper; any other
@@ -344,7 +344,7 @@ pub struct Tools {
     /// `"native"` or `"inline"`.
     pub tool_call_mode: String,
     /// Tool names the user has disabled (hidden from the model). Applies to
-    /// the scope selected by [`Tools::scope`] — the global `setup.json` when
+    /// the scope selected by [`Tools::scope`] - the global `setup.json` when
     /// `"global"`, or the per-project `.morpheus-tools.json` in the cwd otherwise.
     pub disabled: Vec<String>,
     /// Which scope `disabled` is persisted to. Default `"project"`: every
@@ -376,7 +376,7 @@ impl Tools {
 /// The application's default provider→model fallback chain, applied when
 /// the user has not customized `setup.json` → `routing.fallbacks`. Lives
 /// here, next to the [`Routing`] section it defaults, because the chain is
-/// persisted app configuration — the TUI's Router Settings screen edits it,
+/// persisted app configuration - the TUI's Router Settings screen edits it,
 /// and the harness connectors consume it.
 pub const DEFAULT_FALLBACKS: &[(&str, &str)] = &[
     ("nvidia", "deepseek-ai/deepseek-v4-pro"),
@@ -443,7 +443,7 @@ pub enum PromptCorrectorFallback {
 #[serde(default)]
 pub struct Model {
     /// Provider name of the last selected model (empty when the selection is
-    /// `auto` — the fallback chain routes there).
+    /// `auto` - the fallback chain routes there).
     pub provider: String,
     /// Model id of the last selected model. Empty → no global selection yet.
     pub model: String,
@@ -452,7 +452,7 @@ pub struct Model {
 }
 
 /// The last agent mode the user selected (Build/Ask/Yolo/Command),
-/// restored for NEW sessions (global mode persistence) — the app starts in
+/// restored for NEW sessions (global mode persistence) - the app starts in
 /// the mode the user most likely wants to use again. Empty: fall back to
 /// the `Build` default.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -491,7 +491,7 @@ pub struct Cache {
 /// `""`, `"0"` and `"default"` mean the provider default (`None`).
 pub fn parse_cache_duration(input: &str) -> Result<Option<u32>, String> {
     const INVALID: &str =
-        "Invalid duration. Use minutes or hours, e.g. 30m, 1h, 1h30m — or \"default\".";
+        "Invalid duration. Use minutes or hours, e.g. 30m, 1h, 1h30m - or \"default\".";
     let s = input.trim().to_lowercase();
     if s.is_empty() || s == "default" {
         return Ok(None);
@@ -553,7 +553,7 @@ pub fn format_cache_duration(min: u32) -> String {
 /// backend-agnostic. What belongs to the **resident model** (checkpoint
 /// identity) lives at the section root; what belongs to an **audited
 /// decision** (enable, confidence floor) lives in a sub-key named after the
-/// decision domain — every future audited decision becomes a sibling of
+/// decision domain - every future audited decision becomes a sibling of
 /// `termination`, never a rename of existing config.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 #[serde(default)]
@@ -561,13 +561,13 @@ pub struct DecisionConfig {
     /// The resident decision model: one checkpoint identity shared by the
     /// whole app. Its `kind` strings are exactly the names
     /// `ModelKind::name()` publishes (`english` / `multilingual` /
-    /// `typed-decisions`) plus `custom` — no translation map.
+    /// `typed-decisions`) plus `custom` - no translation map.
     pub model: DecisionModel,
     /// The agent-loop termination audit (the current audited decision).
     pub termination: TerminationDecision,
     /// The hub mirror the weights installer downloads from. THE single
     /// application-level default for the mirror repo id: the `morpheus-onnx`
-    /// crate carries no repo default — every install resolves this value
+    /// crate carries no repo default - every install resolves this value
     /// (env override `MORPHEUS_ONNX_HUB_REPO` wins over the config).
     pub hub: DecisionHub,
 }
@@ -577,10 +577,10 @@ pub struct DecisionConfig {
 #[serde(default)]
 pub struct DecisionHub {
     /// The mirror repo id (`Zaluski/laya-onnx` by default). The ONLY place
-    /// in the app this value lives as a default — never in the library.
+    /// in the app this value lives as a default - never in the library.
     pub repo: String,
     /// The repo id the recorded pin belongs to. A pin is meaningful ONLY
-    /// against the repo it resolved from — a mirror-A SHA applied to a
+    /// against the repo it resolved from - a mirror-A SHA applied to a
     /// mirror-B request 404s and silently disables the audit. Empty means
     /// no pin (or a pre-repo-scoping pin, which [`Self::pin_for`] then
     /// ignores, forcing one fresh verified install under the current
@@ -588,7 +588,7 @@ pub struct DecisionHub {
     pub pinned_repo: String,
     /// The commit SHA the mirror resolved to on its first install. Empty
     /// (the default) resolves the mirror's current revision on the first
-    /// install and pins THAT; a non-empty value forces the pin — but only
+    /// install and pins THAT; a non-empty value forces the pin - but only
     /// when [`Self::pinned_repo`] matches the effective repo.
     pub pinned_revision: String,
 }
@@ -617,7 +617,7 @@ impl DecisionHub {
 
     /// The revision pin valid for `repo`: the recorded SHA only when it was
     /// resolved FROM that same repo. A pin from another mirror never
-    /// applies — and a legacy config (pin recorded before
+    /// applies - and a legacy config (pin recorded before
     /// `pinned_repo` existed) is treated as unpinned, so the next install
     /// re-resolves and re-records a properly scoped pin.
     pub fn pin_for(&self, repo: &str) -> Option<String> {
@@ -629,7 +629,7 @@ impl DecisionHub {
     }
 }
 
-/// The resident model's checkpoint identity — a kind-discriminated schema
+/// The resident model's checkpoint identity - a kind-discriminated schema
 /// mapping 1:1 to `morpheus_onnx::ModelKind` (named variants + `Custom`), so a
 /// new model family becomes a new `kind` without a config migration.
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -682,7 +682,7 @@ impl DecisionModel {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(default)]
 pub struct TerminationDecision {
-    /// Default-ON (opt-out): the audit runs unless explicitly disabled —
+    /// Default-ON (opt-out): the audit runs unless explicitly disabled -
     /// flipping `enabled` back to `false` (or deleting the section from
     /// setup.json) restores the unaudited loop.
     pub enabled: bool,
@@ -693,7 +693,7 @@ pub struct TerminationDecision {
     /// (`confidence_floor_sweep` in
     /// crates/morpheus-onnx/tests/eval/loop_termination.rs): it keeps the
     /// sweep's best score (23/24 correct) on the zero-false-continue
-    /// edge — no legitimate ending is vetoed, the single error is one
+    /// edge - no legitimate ending is vetoed, the single error is one
     /// missed stop. Lower floors trade that for false continues
     /// (0.70 → 1, 0.60 → 3); 0.80+ starts missing real stops in bulk
     /// (5 at 0.80, 7 at 0.85).
@@ -723,7 +723,7 @@ impl Default for TerminationDecision {
 pub struct SkillsConfig {
     /// Source directories, in priority order (first source wins on name
     /// collision). Tilde (`~`) prefixes are expanded at resolve time
-    /// (`resolved_dirs` / `to_skills`). Entries must not contain `:` —
+    /// (`resolved_dirs` / `to_skills`). Entries must not contain `:` -
     /// the Settings dialog joins/splits the list on it.
     pub dirs: Vec<String>,
     /// Scan each directory recursively (skills at any depth) instead of
@@ -766,7 +766,7 @@ pub struct WhatsAppConfig {
 /// `whatsapp.groups`).
 ///
 /// Persisted as `{ "id": …, "enabled": … }`, the same shape the MCP, ACP
-/// and provider lists use. A bare string — the pre-toggle form — still loads
+/// and provider lists use. A bare string - the pre-toggle form - still loads
 /// as an ENABLED entry, so an old setup file keeps granting exactly what it
 /// granted before.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -904,14 +904,14 @@ pub struct CustomProviderEntry {
 
 /// The API family of a user-registered provider endpoint. Only
 /// OpenAI-compatible endpoints are accepted today; the enum exists so the
-/// persisted schema and every match site are already family-aware — adding
+/// persisted schema and every match site are already family-aware - adding
 /// a family later is one variant plus its connector arm, not a
 /// restructure.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "kebab-case")]
 pub enum CustomProviderFamily {
     /// OpenAI Chat Completions wire format (`/chat/completions` under the
-    /// base URL) — the family most gateways, proxies and local servers
+    /// base URL) - the family most gateways, proxies and local servers
     /// speak (Groq, OpenRouter, vLLM, LiteLLM, …).
     #[default]
     OpenAiCompatible,
@@ -957,7 +957,7 @@ impl SkillsConfig {
         self.resolved_dirs_with(morpheus_tools::skills::home_dir().as_deref())
     }
 
-    /// [`Self::resolved_dirs`] with the home directory injected (pure —
+    /// [`Self::resolved_dirs`] with the home directory injected (pure -
     /// the testable core, no environment access).
     #[must_use]
     pub fn resolved_dirs_with(&self, home: Option<&str>) -> Vec<String> {
@@ -974,7 +974,7 @@ impl SkillsConfig {
     }
 
     /// Build the skills wrapper for the harness: directory sources from
-    /// [`Self::resolved_dirs`] (existing directories only — discovery is a
+    /// [`Self::resolved_dirs`] (existing directories only - discovery is a
     /// hard error for unreadable sources, so a missing path is skipped),
     /// plus the recursion and name filters.
     #[must_use]
@@ -1000,7 +1000,7 @@ impl SkillsConfig {
 
 /// Expand a leading `~` (alone or followed by `/`) to the given home
 /// directory. Returns `None` when the path starts with `~` but `home` is
-/// `None` — the caller drops such entries instead of passing a literal
+/// `None` - the caller drops such entries instead of passing a literal
 /// `~/...` path to the filesystem.
 fn expand_tilde_with(path: &str, home: Option<&str>) -> Option<String> {
     // An empty HOME is no home: expanding against it would produce
@@ -1102,7 +1102,7 @@ fn default_true() -> bool {
 
 /// Resolve the config directory path (`~/.config/morpheus/`).
 ///
-/// `MORPHEUS_CONFIG_DIR` overrides the location when set — the test harness
+/// `MORPHEUS_CONFIG_DIR` overrides the location when set - the test harness
 /// uses this because `directories::ProjectDirs` resolves through the
 /// platform's known-folders API (on Windows: `APPDATA`/`LOCALAPPDATA`),
 /// which IGNORES the `$HOME` redirect that `isolate_home()` performs. A
@@ -1121,7 +1121,7 @@ fn config_dir() -> PathBuf {
 
 /// Resolve the data directory path (`~/.local/share/morpheus/` on Unix).
 ///
-/// `MORPHEUS_DATA_DIR` overrides the location when set — same rationale as
+/// `MORPHEUS_DATA_DIR` overrides the location when set - same rationale as
 /// [`config_dir`]'s `MORPHEUS_CONFIG_DIR` override. Public: the TUI's session
 /// store and usage cache resolve their storage roots through it.
 pub fn data_dir_override() -> PathBuf {
@@ -1148,7 +1148,7 @@ fn setup_path() -> PathBuf {
 
 /// Try to acquire the exclusive cross-process lock guarding `setup.json`.
 ///
-/// Kernel-managed (`flock` via the standard library — the same mechanism the
+/// Kernel-managed (`flock` via the standard library - the same mechanism the
 /// session store uses): released on drop AND automatically when the holder
 /// dies, so a crashed process can never wedge the config. The lock file is
 /// a sibling (`setup.json.lock`) and is left on disk after release: removing
@@ -1196,7 +1196,7 @@ fn section_differs<T: Serialize>(current: &T, baseline: &T) -> bool {
 impl Setup {
     /// Load from disk. Returns defaults when the file is missing.
     ///
-    /// Resilient to corruption: an unparsable file is NOT reset silently —
+    /// Resilient to corruption: an unparsable file is NOT reset silently -
     /// it is quarantined to `setup.json.corrupt-<epoch-ms>` beside the
     /// original (nothing is ever lost, and the cause stays visible) and
     /// defaults are returned with a logged warning. The old behavior
@@ -1211,7 +1211,7 @@ impl Setup {
         let path = setup_path();
         let content = match std::fs::read_to_string(&path) {
             Ok(c) => c,
-            // Missing file: defaults and no baseline — a later save
+            // Missing file: defaults and no baseline - a later save
             // overwrites wholesale, which is correct (nothing to merge with).
             Err(_) => return Self::default(),
         };
@@ -1253,24 +1253,24 @@ impl Setup {
     ///   lock on `setup.json.lock` (same flock mechanism as the session
     ///   store), so two saves never interleave;
     /// - sections this process did NOT touch are carried over from the disk
-    ///   content — a concurrent process's change survives this save instead
+    ///   content - a concurrent process's change survives this save instead
     ///   of being clobbered by a stale in-memory copy;
     /// - the write lands in a sibling temp file and is atomically renamed
     ///   over the target, so a reader (or a crash mid-write) never sees a
-    ///   half-written JSON — the corruption that used to reset every
+    ///   half-written JSON - the corruption that used to reset every
     ///   setting on the next launch.
     ///
     /// When the lock cannot be taken within the wait window the write is
     /// skipped (`false` return): the change stays in memory and the next
     /// save persists it. Skipping beats blocking the UI thread behind a
-    /// stuck holder — the same trade-off the session store makes for its
+    /// stuck holder - the same trade-off the session store makes for its
     /// write jobs. The wait itself is kept short (250ms): saves are
     /// millisecond-scale, so any longer contention is a stuck holder, and
     /// this method runs on the UI thread.
     ///
     /// Returns `true` when the merged state was persisted; `false` when the
     /// write was skipped (lock unavailable) or the file could not be
-    /// written — the change stays in memory for the next save either way,
+    /// written - the change stays in memory for the next save either way,
     /// and the reason is always logged.
     pub fn save(&mut self) -> bool {
         let path = setup_path();
@@ -1325,7 +1325,7 @@ impl Setup {
         match written {
             Some(()) if std::fs::rename(&tmp, &path).is_ok() => {
                 // The baseline moves to exactly what this write produced, so
-                // the NEXT save compares against it — a value reverted back
+                // the NEXT save compares against it - a value reverted back
                 // to a pre-session state still registers as a change.
                 self.disk_snapshot = Some(json);
                 true
@@ -1345,7 +1345,7 @@ impl Setup {
     /// since its baseline keeps this process's value (the user's latest
     /// action wins); an untouched section adopts the disk's value, so a
     /// concurrent process's change survives. When both sides changed the
-    /// same section, ours wins — a true conflict is unavoidable, and the
+    /// same section, ours wins - a true conflict is unavoidable, and the
     /// local user's intent is the one they can see and react to.
     fn merged_over(&self, baseline: &Self, disk: Self) -> Self {
         let mut merged = disk;
@@ -1421,7 +1421,7 @@ impl Setup {
 
     /// The user-registered ACP agent harnesses (`setup.json` →
     /// `acp_agents`), as `(name, launch command)` pairs in registration
-    /// order — the exact shape [`morpheus_agents::acp
+    /// order - the exact shape [`morpheus_agents::acp
     /// ::register_custom_agents`] consumes.
     #[must_use]
     pub fn acp_agent_pairs(&self) -> Vec<(String, String)> {
@@ -1496,7 +1496,7 @@ impl Setup {
     /// Record the last model selected by the user and persist it globally.
     ///
     /// The selection is a single overwritten slot (provider + model +
-    /// reasoning) — the same shape the per-session header stores.
+    /// reasoning) - the same shape the per-session header stores.
     pub fn set_model_selection(&mut self, provider: &str, model: &str, reasoning: Option<&str>) {
         self.model.provider = provider.to_string();
         self.model.model = model.to_string();
@@ -1539,7 +1539,7 @@ impl Setup {
     }
 
     /// Whether the user chose an extended Anthropic prompt-cache TTL (any
-    /// wish above the 5-minute default maps onto the 1h TTL — the only
+    /// wish above the 5-minute default maps onto the 1h TTL - the only
     /// extended value the API supports).
     #[must_use]
     pub fn anthropic_cache_ttl_1h(&self) -> bool {
@@ -1548,7 +1548,7 @@ impl Setup {
 
     /// The extended OpenAI prompt-cache retention the user chose
     /// (`None` = the model-dependent default; any wish maps onto the 24h
-    /// retention — the only extended value the API supports).
+    /// retention - the only extended value the API supports).
     #[must_use]
     pub fn openai_cache_retention(&self) -> Option<&'static str> {
         (self.cache.openai_retention_min > 0).then_some("24h")
@@ -1570,7 +1570,7 @@ mod tests {
     /// Redirect `setup.json` to a scratch config dir for the test's
     /// lifetime. Every `save()` reached through a test MUST run under this:
     /// without it the test persists DEFAULTS over the developer's real
-    /// `~/.config/morpheus/setup.json` — a settings-vanishing bug caused by the
+    /// `~/.config/morpheus/setup.json` - a settings-vanishing bug caused by the
     /// test suite itself (found while investigating the multi-process
     /// lost-update regression; same symptom, third distinct cause).
     struct IsolatedConfig {
@@ -1668,7 +1668,7 @@ mod tests {
     /// `voice.auto_generate` replaced the ambiguous `voice.enabled`: the
     /// alias keeps pre-rename setups loading, and the saved value round-trips
     /// under the new key. The flag only controls automatic generation at the
-    /// end of a turn — on-demand synthesis is independent of it.
+    /// end of a turn - on-demand synthesis is independent of it.
     #[test]
     fn voice_auto_generate_roundtrips_and_accepts_legacy_enabled() {
         let mut setup = Setup::default();
@@ -1736,7 +1736,7 @@ mod tests {
     }
 
     /// Free-form duration parsing: bare minutes, unit suffixes, mixed
-    /// forms, defaults — and the invalid inputs that must be rejected.
+    /// forms, defaults - and the invalid inputs that must be rejected.
     #[test]
     fn cache_duration_parse_and_format_roundtrip() {
         assert_eq!(parse_cache_duration(""), Ok(None));
@@ -1787,7 +1787,7 @@ mod tests {
         setup.set_mode_selection(crate::harness::Mode::Ask);
         assert_eq!(setup.persisted_mode(), Some(crate::harness::Mode::Ask));
 
-        // A later selection OVERWRITES the slot — no history is kept.
+        // A later selection OVERWRITES the slot - no history is kept.
         setup.set_mode_selection(crate::harness::Mode::Command);
         assert_eq!(setup.persisted_mode(), Some(crate::harness::Mode::Command));
 
@@ -1919,7 +1919,7 @@ mod tests {
         assert!(loaded.skills.recursive);
         assert_eq!(loaded.skills.ignore, vec!["deprecated-*".to_string()]);
 
-        // Tilde expansion with a resolvable home (pure core — no env access).
+        // Tilde expansion with a resolvable home (pure core - no env access).
         let resolved = loaded.skills.resolved_dirs_with(Some("/home/tester"));
         assert_eq!(
             resolved,
@@ -2011,7 +2011,7 @@ mod tests {
         assert_eq!(setup.model.provider, "nvidia");
         assert_eq!(setup.model.reasoning.as_deref(), Some("high"));
 
-        // A later selection OVERWRITES the slot — no history is kept.
+        // A later selection OVERWRITES the slot - no history is kept.
         setup.set_model_selection("groq", "openai/gpt-oss-120b", None);
         assert_eq!(setup.persisted_model(), Some("openai/gpt-oss-120b"));
         assert_eq!(setup.model.provider, "groq");
@@ -2034,7 +2034,7 @@ mod tests {
     /// round-trips 1:1 against `ModelKind` shapes (named variants +
     /// `Custom` with repo/subfolder), the termination audit keeps its
     /// own enable flag and confidence floor, and both section names
-    /// deserialize — `model_decision` (current) and `checkup` (legacy).
+    /// deserialize - `model_decision` (current) and `checkup` (legacy).
     #[test]
     fn decision_section_defaults_and_kind_roundtrip() {
         // Legacy file without the section → audit on (default-ON), default floor.
@@ -2098,8 +2098,8 @@ mod tests {
     // ── Cross-process persistence (the settings-vanishing regression) ──────
 
     /// REGRESSION (settings vanishing across processes): two morpheus processes
-    /// share one setup.json. B changes the theme and saves; A — still
-    /// holding its own older in-memory copy — then changes the model and
+    /// share one setup.json. B changes the theme and saves; A - still
+    /// holding its own older in-memory copy - then changes the model and
     /// saves. The old save wrote A's WHOLE in-memory struct, erasing B's
     /// theme. The save must merge: sections A did not touch follow the disk.
     #[test]
@@ -2118,7 +2118,7 @@ mod tests {
         process_b.appearance.theme = "dracula".to_string();
         process_b.save();
 
-        // Process A changes ONLY the model — through the same accessor the
+        // Process A changes ONLY the model - through the same accessor the
         // model dialog uses (it persists inside the setter).
         process_a.set_model_selection("groq", "openai/gpt-oss-120b", None);
 
@@ -2136,7 +2136,7 @@ mod tests {
     }
 
     /// True conflict (both processes changed the SAME section): the local
-    /// user's latest action wins — they can see and react to it, unlike a
+    /// user's latest action wins - they can see and react to it, unlike a
     /// foreign change that happened behind their back.
     #[test]
     fn same_section_changed_by_both_processes_lets_the_local_change_win() {
@@ -2179,7 +2179,7 @@ mod tests {
             !path.with_extension("json.tmp").exists(),
             "the temp file must be consumed by the rename"
         );
-        // The on-disk file is complete, parseable JSON — never a fragment.
+        // The on-disk file is complete, parseable JSON - never a fragment.
         let parsed: Setup = serde_json::from_str(&std::fs::read_to_string(&path).unwrap()).unwrap();
         assert_eq!(parsed.appearance.theme, "dracula");
     }
@@ -2221,7 +2221,7 @@ mod tests {
     }
 
     /// When another process holds the config lock past the wait window, the
-    /// save is SKIPPED (the change stays in memory for the next save) — it
+    /// save is SKIPPED (the change stays in memory for the next save) - it
     /// must never block forever, and must never clobber the locked file.
     #[test]
     fn save_under_a_foreign_lock_is_skipped_not_clobbered() {
@@ -2234,7 +2234,7 @@ mod tests {
         let disk_before = std::fs::read_to_string(&path).unwrap();
 
         // A foreign process holds the lock for longer than we are willing
-        // to wait (tests shrink the window; production waits only 250ms —
+        // to wait (tests shrink the window; production waits only 250ms -
         // saves are millisecond-scale, so longer contention means a stuck
         // holder, and save runs on the UI thread).
         let holder = acquire_config_lock(&path, std::time::Duration::ZERO).unwrap();
@@ -2255,7 +2255,7 @@ mod tests {
         assert_eq!(Setup::load().appearance.theme, "dracula");
     }
 
-    /// A fresh in-memory `Setup` (never loaded — no disk baseline) still
+    /// A fresh in-memory `Setup` (never loaded - no disk baseline) still
     /// writes wholesale: there is nothing to merge with, so the explicit
     /// state is authoritative. This pins the "first save creates the file"
     /// path the isolation-dependent tests above never exercise.
@@ -2325,7 +2325,7 @@ mod tests {
     }
 
     /// SCHEMA TRIPWIRE for the save-time merge: every serialized top-level
-    /// field of `Setup` must be honored by `merged_over` — a field changed
+    /// field of `Setup` must be honored by `merged_over` - a field changed
     /// locally (against a default baseline, disk unchanged) must WIN the
     /// merge. Without this test, adding a new section to `Setup` and
     /// forgetting to add it to `merged_over` would compile fine and then
@@ -2351,7 +2351,7 @@ mod tests {
                 .expect("field just listed");
             if !bump_first_scalar(slot) {
                 // A field with no nudgeable scalar (e.g. an empty map in the
-                // default) cannot be tested through this construction — the
+                // default) cannot be tested through this construction - the
                 // per-section merge tests cover it concretely.
                 continue;
             }
@@ -2370,7 +2370,7 @@ mod tests {
             assert_eq!(
                 merged_json.get(field),
                 local_json.get(field),
-                "merged_over dropped the local change to `{field}` — \
+                "merged_over dropped the local change to `{field}` - \
                  add the field to the merge (a Setup field not handled by \
                  merged_over loses its local changes whenever a concurrent \
                  process saves)"

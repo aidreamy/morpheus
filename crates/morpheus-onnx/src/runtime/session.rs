@@ -5,8 +5,8 @@
 //! boxed session can sit inside an agent that a router shares across
 //! threads by reference (`&self` run: the agent's `&mut self` upstream comes
 //! from Python's single-threaded model). The forward pass itself is
-//! serialised on [`OrtSession`]'s inner mutex — `ort::Session::run` takes
-//! `&mut self` because the C API holds run-scoped state — so only that pass
+//! serialised on [`OrtSession`]'s inner mutex - `ort::Session::run` takes
+//! `&mut self` because the C API holds run-scoped state - so only that pass
 //! is exclusive; tokenization, hooks and decode stay parallel. The mutex is
 //! not removable.
 
@@ -26,10 +26,10 @@ pub struct SessionOutput {
 /// upstream `_StubSession` technique.
 /// `Send + Sync` are supertraits so a boxed session can sit inside an agent
 /// that the Router shares across threads by reference (upstream's
-/// thread-safety guarantees, #95 — `ort::Session::run` takes `&mut self`
+/// thread-safety guarantees, #95 - `ort::Session::run` takes `&mut self`
 /// because the C API holds run-scoped state, so [`OrtSession`] serialises
-/// the forward pass itself on an inner mutex; everything around it —
-/// tokenization, hooks, decode — stays parallel).
+/// the forward pass itself on an inner mutex; everything around it -
+/// tokenization, hooks, decode - stays parallel).
 pub trait SessionRunner: Send + Sync {
     fn run(&self, batch: &CollatedBatch) -> Result<Vec<SessionOutput>>;
 }

@@ -44,7 +44,7 @@ async fn evict_clears_cached_era() {
 }
 
 /// Live end-to-end connect against the official MCP test server over a
-/// real stdio child. Ignored by default — run explicitly with
+/// real stdio child. Ignored by default - run explicitly with
 /// `cargo test --lib -- --ignored live_connects`: needs `npx` on PATH
 /// and downloads the package on first run. Exercises the exact
 /// production path (`connect_all` → `spawn_stdio` → era probe), which
@@ -75,7 +75,7 @@ async fn live_connects_server_everything_over_stdio() {
     assert!(snaps[0].tool_count > 0, "{snaps:?}");
     // The npm-published server (pre-July TS SDK) does not implement
     // `server/discover`, so the probe is rejected and the fallback
-    // settles legacy — exactly the dual-era path this client exists
+    // settles legacy - exactly the dual-era path this client exists
     // for. Pin only that the connect itself is healthy.
     assert_eq!(
         manager.era_of("everything"),
@@ -239,7 +239,7 @@ fn http_headers_reject_garbage() {
 }
 /// Live end-to-end connect against the hosted mem0 MCP server (a legacy
 /// server that answers the modern probe with an uncorrelated JSON-RPC
-/// error — the regression that added the flip arm in
+/// error - the regression that added the flip arm in
 /// `map_initialize_error`). Ignored by default: needs network access and
 /// the `mcp:mem0` credential in the OS keyring. Run explicitly with
 /// `cargo test --lib -- --ignored live_mem0`.

@@ -5,7 +5,7 @@
 //! window ("Main Window", bounds 100,50 800x600, active + focused) and
 //! MODELS window verbs in place: `minimize` flips the state bits,
 //! `move_to`/`resize_to` write the bounds, `close` removes the whole
-//! subtree — so the post-observation re-list assertions verify the real
+//! subtree - so the post-observation re-list assertions verify the real
 //! read-back path, not a fixed fixture.
 #[cfg(test)]
 mod windows_tests {
@@ -190,7 +190,7 @@ mod windows_tests {
     }
 
     /// The manage arm serializes flat TOO (same untagged contract as the
-    /// list arm) — a wrapped `{"Manage": …}` envelope would double-package
+    /// list arm) - a wrapped `{"Manage": …}` envelope would double-package
     /// the JSON the model sees.
     #[test]
     fn serialize_roundtrip_untagged_manage() {

@@ -56,7 +56,7 @@ async fn rag_field_drag_selection_through_app_mouse_events() {
     assert_eq!(app.rag_view.selected_field_text(), "hello world");
 
     // The render paints the selection: each selected cell gets the field
-    // text color as background (light bar) — visible over the markdown.
+    // text color as background (light bar) - visible over the markdown.
     let theme = app.theme.clone();
     let text_color = {
         let (r, g, b, _) = theme.text.to_ints();

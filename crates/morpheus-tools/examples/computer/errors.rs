@@ -1,15 +1,15 @@
-//! Demonstrate the shared error renderer (`computer::errors::render`) —
+//! Demonstrate the shared error renderer (`computer::errors::render`) -
 //! every xa11y error variant mapped to next-step guidance, so a failure
 //! TEACHES the model what to do instead of just failing.
 //!
 //! Why this exists: before the renderer, a broken platform condition
-//! surfaced as an opaque `Platform error (-1)` — the model could not tell
+//! surfaced as an opaque `Platform error (-1)` - the model could not tell
 //! a missing permission from a stale selector from a stuck app. The
 //! renderer maps every variant (with a non_exhaustive wildcard so future
 //! xa11y errors degrade gracefully) and preserves the Diagnosis verbatim:
 //! what was waited for, the selector, what was LAST observed.
 //!
-//! Runs fully offline — building the errors is the point.
+//! Runs fully offline - building the errors is the point.
 //!
 //! Run with:
 //!
@@ -23,11 +23,11 @@ use xa11y::{Diagnosis, Error};
 fn main() {
     const TOOL: &str = "computer_control";
 
-    // ── A selector that matched nothing — the most common failure ──
+    // ── A selector that matched nothing - the most common failure ──
     //
     // The error carries a Diagnosis: the condition, the selector, what was
     // last observed. The rendered message preserves it VERBATIM after the
-    // guidance — the model reads "matched button \"Export\"
+    // guidance - the model reads "matched button \"Export\"
     // (visible=false)" and knows the element EXISTS but is hidden.
     let stale_selector = Error::SelectorNotMatched {
         selector: "button[name='Export']".into(),
@@ -43,7 +43,7 @@ fn main() {
         render(TOOL, "press", &stale_selector)
     );
 
-    // ── Permission denied — the platform's own consent instructions ──
+    // ── Permission denied - the platform's own consent instructions ──
     //
     // The renderer passes the platform's instructions through: the fix is
     // a Settings toggle, not a code change.
@@ -55,7 +55,7 @@ fn main() {
         render(TOOL, "click", &denied)
     );
 
-    // ── The bridge is off — Chromium/Electron without a11y rendering ──
+    // ── The bridge is off - Chromium/Electron without a11y rendering ──
     let bridge_off = Error::AccessibilityNotEnabled {
         app: "Code".into(),
         instructions: "launch with --force-renderer-accessibility".into(),
@@ -105,7 +105,7 @@ fn main() {
     }
 
     // The pattern for tool authors: route every error site through
-    // `render(tool, ctx, &e)` — the tool prefix keeps a shared failure
+    // `render(tool, ctx, &e)` - the tool prefix keeps a shared failure
     // reading as coming from the tool the model actually called, and the
     // ctx names the operation ("press", "type text", "resolve app").
 }

@@ -1,4 +1,4 @@
-//! Demonstrate `mouse` — the pointer engine behind `computer_control`'s
+//! Demonstrate `mouse` - the pointer engine behind `computer_control`'s
 //! pointer steps: click/double-click/right-click, move, press-and-hold
 //! pairs for custom drags, wheel scroll, and NATIVE drags (press →
 //! interpolated movement at ~60 Hz → release, paced by `duration_ms`).
@@ -6,11 +6,11 @@
 //! Targeting has two forms, per step:
 //!
 //! - **Element** (`app`/`pid` or `surface` + `selector`): the point
-//!   resolves from the element's CURRENT bounds — tree-grounded, never
+//!   resolves from the element's CURRENT bounds - tree-grounded, never
 //!   stale, safe in Build mode.
 //! - **Coordinate** (`x`/`y`): raw desktop pixels, usually mapped from a
-//!   screenshot. Position-dependent — the pointer may be somewhere else by
-//!   the time the click lands — so guardrails confine it to Yolo/Command.
+//!   screenshot. Position-dependent - the pointer may be somewhere else by
+//!   the time the click lands - so guardrails confine it to Yolo/Command.
 //!
 //! What runs offline here: step construction and pointer validation (the
 //! same `mouse::validate` the tool runs first). Dispatch needs a desktop.
@@ -27,7 +27,7 @@ use morpheus_tools::computer::types::{ComputerControl, PointerAction, PointerAnc
 fn main() {
     const TOOL: &str = "computer_control";
 
-    // ── Element click — the default, and the focus mover ──
+    // ── Element click - the default, and the focus mover ──
     //
     // A click on an element moves OS keyboard focus to it; that is how the
     // NEXT step's typing finds the right field (see computer-control).
@@ -51,7 +51,7 @@ fn main() {
     };
     assert!(validate(&click_overflow, TOOL).is_ok());
 
-    // ── Drag between elements — the native form ──
+    // ── Drag between elements - the native form ──
     //
     // press at the start, interpolate the pointer path (~60 Hz) across
     // duration_ms, release at the end. The element form keeps BOTH ends
@@ -108,9 +108,9 @@ fn main() {
         }
     }
 
-    // ── Press-and-hold pairs — custom drag choreography ──
+    // ── Press-and-hold pairs - custom drag choreography ──
     //
-    // `down` at one point, moves, `up` elsewhere — for drags the native
+    // `down` at one point, moves, `up` elsewhere - for drags the native
     // form cannot express (drop onto a moving target, freehand paths).
     // `up` needs no target at all.
     let _press = ComputerControl {

@@ -122,7 +122,7 @@ insert tail:
     println!("== 5. stale tag -> 3-way-merge recovery ==");
     // Read the file, then someone edits it externally before we apply.
     let fs = InMemoryFilesystem::new([("src/lib.rs".to_string(), LIB_RS.to_string())]);
-    // Drift: an external tool appends a helper at the tail of the file — far
+    // Drift: an external tool appends a helper at the tail of the file - far
     // outside the hunk's context window, so the 3-way merge applies cleanly.
     let drifted = format!("{LIB_RS}fn helper() -> i32 {{ 7 }}\n");
     fs.set("src/lib.rs", drifted.clone());
@@ -152,7 +152,7 @@ insert tail:
     println!("== 6. unknown tag -> MismatchError ==");
     let fs2 = InMemoryFilesystem::new([("src/lib.rs".to_string(), LIB_RS.to_string())]);
     let mut patcher2 = Patcher::new(fs2, InMemorySnapshotStore::new(&Default::default()), None);
-    // Tag was never recorded in this store — like a hash from a prior session.
+    // Tag was never recorded in this store - like a hash from a prior session.
     let bad_patch = Patch::parse(
         "¶src/lib.rs#BEEF\nreplace 3..4:\n+    let n = double(4); // updated",
         &SplitOptions::default(),

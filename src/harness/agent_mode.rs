@@ -2,7 +2,7 @@
 //!
 //! The ACP contract fixes no mode spellings: Claude publishes `code`/`plan`,
 //! OpenCode `build`/`plan`, and others publish nothing at all. Matching is
-//! therefore a documented similarity rule — the first advertised mode whose
+//! therefore a documented similarity rule - the first advertised mode whose
 //! normalized name (falling back to its description) carries one of the
 //! mode's stems. An unmapped mode binds nothing and the agent keeps its own
 //! current mode.
@@ -21,12 +21,12 @@ struct ModeMatch {
 }
 
 const MODE_MATCHES: &[ModeMatch] = &[
-    // Build: the working mode — write/edit tools at full effect.
+    // Build: the working mode - write/edit tools at full effect.
     ModeMatch {
         mode: Mode::Build,
         stems: &["build", "code", "write", "edit", "agent", "work"],
     },
-    // Ask: read-and-reason, no modifications — most harnesses call this
+    // Ask: read-and-reason, no modifications - most harnesses call this
     // "plan" (plan mode is read-only analysis before the work).
     ModeMatch {
         mode: Mode::Ask,

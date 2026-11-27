@@ -1,7 +1,7 @@
 //! Who may use the agent over WhatsApp.
 //!
 //! `WhatsApp::is_prompt` (in the `morpheus-whatsapp` crate) decides what is a
-//! conversation at all — it drops echoes, broadcasts, channels and protocol
+//! conversation at all - it drops echoes, broadcasts, channels and protocol
 //! chatter. This module decides the separate question: whether the account
 //! owner authorized that conversation to reach the agent. The policy is
 //! read from `setup.json` → `whatsapp` and fails closed: until a contact or
@@ -28,15 +28,15 @@ impl Access {
     ///
     /// `from_me` messages are the account's own; `is_prompt` only lets the
     /// self-chat through, so the toggle alone applies to them. Every other
-    /// message must match its chat's allowlist by kind — direct chats
-    /// against `contacts`, groups against `groups` — and the matching entry
+    /// message must match its chat's allowlist by kind - direct chats
+    /// against `contacts`, groups against `groups` - and the matching entry
     /// must be ENABLED (a disabled entry stays saved but denies access).
     /// Chat kinds the policy does not model are never allowed.
     ///
     /// A direct chat is matched on both of its address forms: WhatsApp now
     /// routes some of them by LID, so a contact the owner wrote as a phone
     /// number arrives as `…@lid` and only [`IncomingMessage::sender_alt`]
-    /// carries the number. Groups match on the group id alone — their
+    /// carries the number. Groups match on the group id alone - their
     /// `sender_alt` names a participant, not the group.
     #[must_use]
     pub fn allows(&self, message: &IncomingMessage) -> bool {
@@ -116,14 +116,8 @@ mod tests {
     #[test]
     fn the_default_policy_is_the_self_chat_only() {
         let access = Access::default();
-        assert!(access.allows(&message(
-            &format!("{OWNER}@s.whatsapp.net"),
-            true
-        )));
-        assert!(!access.allows(&message(
-            "5511912345678@s.whatsapp.net",
-            false
-        )));
+        assert!(access.allows(&message(&format!("{OWNER}@s.whatsapp.net"), true)));
+        assert!(!access.allows(&message("5511912345678@s.whatsapp.net", false)));
         assert!(!access.allows(&message("120363012345678901@g.us", false)));
     }
 
@@ -206,10 +200,7 @@ mod tests {
     fn the_self_chat_toggle_and_blank_entries() {
         let mut off = policy(&["5511912345678"], &[]);
         off.policy.self_chat = false;
-        assert!(!off.allows(&message(
-            &format!("{OWNER}@s.whatsapp.net"),
-            true
-        )));
+        assert!(!off.allows(&message(&format!("{OWNER}@s.whatsapp.net"), true)));
         // A blank entry never matches a chat with no identity left.
         let blank = policy(&["", "   "], &[]);
         assert!(!blank.allows(&message("5511912345678@s.whatsapp.net", false)));

@@ -1,4 +1,4 @@
-//! Demonstrate `subagent`: the `SubAgent` wrapper — the tool schema, the
+//! Demonstrate `subagent`: the `SubAgent` wrapper - the tool schema, the
 //! input-reuse lifecycle (`resolve_input`), the description-note
 //! interpolation (`set_note`), PATH-based ACP harness detection, and
 //! agent-name validation against the ACP registry.
@@ -96,7 +96,7 @@ fn main() {
     let err = validate_agent("nope").unwrap_err();
     println!("  nope -> error: {err}\n");
 
-    // ── 6. The ACP registry (display only — nothing is executed) -----------
+    // ── 6. The ACP registry (display only - nothing is executed) -----------
     println!("== 6. sample ACP_AGENTS invocations ==");
     for name in ["gemini", "goose", "claude"] {
         if let Some(entry) = ACP_AGENTS.iter().find(|a| a.name == name) {

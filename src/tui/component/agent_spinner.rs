@@ -1,4 +1,4 @@
-//! Animated agent spinner — a Rust port of the Go `anim` package.
+//! Animated agent spinner - a Rust port of the Go `anim` package.
 //!
 //! Renders a row of scrambled characters with a theme-aware gradient,
 //! followed by a label and an animated glyph reflecting the agent's current
@@ -25,7 +25,7 @@ const BIRTH_DELAY_MAX: u32 = 20;
 const STATUS_ANIM_SPEED: u32 = 8;
 
 /// Cycle divider: cycling characters change every N frames.
-/// At 30 fps, 4 = ~7.5 changes/sec — a calm readable scramble instead of
+/// At 30 fps, 4 = ~7.5 changes/sec - a calm readable scramble instead of
 /// a frantic flicker.
 const CYCLE_STEP_DIVIDER: u32 = 4;
 
@@ -197,7 +197,7 @@ impl AgentSpinner {
             frames_elapsed: 0,
             status_step: 0,
             // Spun up on the default (working) sequence; `set_activity`
-            // switches — and restarts — the sequence as the loop's activity
+            // switches - and restarts - the sequence as the loop's activity
             // changes.
             frames: activity_frames(AgentActivity::Working),
             initialized: false,
@@ -233,7 +233,7 @@ impl AgentSpinner {
     }
 
     /// Reset the spinner to its initial state, restarting the birth animation.
-    /// The label and glyph sequence are preserved — they describe the loop's
+    /// The label and glyph sequence are preserved - they describe the loop's
     /// activity, which survives a reset; construct a fresh spinner for a new
     /// activity (as `start_agent_loop` does).
     pub const fn reset(&mut self) {
@@ -333,13 +333,13 @@ impl AgentSpinner {
             let style = Style::default().fg(rgba_color(color));
 
             if !self.initialized && col < self.birth_steps.len() && frames < self.birth_steps[col] {
-                // Birth phase — show the initial character
+                // Birth phase - show the initial character
                 if let Some(cell) = buf.cell_mut((cell_x, y)) {
                     cell.set_char(BIRTH_CHAR);
                     cell.set_style(style);
                 }
             } else if step < self.cycling_chars.len() && col < self.cycling_chars[step].len() {
-                // Normal phase — show the cycling scrambled char
+                // Normal phase - show the cycling scrambled char
                 if let Some(cell) = buf.cell_mut((cell_x, y)) {
                     cell.set_char(self.cycling_chars[step][col]);
                     cell.set_style(style);

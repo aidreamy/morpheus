@@ -41,13 +41,13 @@ impl App {
         self.animation_tick_remainder -= f64::from(animation_ticks) / 30.0;
         // TODO completion strike-through: advance the per-item frame counters
         // (holds 2 frames, sweeps left-to-right over 12). Trailing frames are
-        // consumed too — while a sweep runs the panel redraws every tick; when
+        // consumed too - while a sweep runs the panel redraws every tick; when
         // the last counter passes its total the counter is dropped and the
         // strike becomes permanent. Not needed to drive the visuals when the
         // tick count is 0 (nothing changed), but kept unconditional so the
         // counters can never get behind the loop's own clock.
         self.state.right_panel.advance_todo_strikes(animation_ticks);
-        // Sync live_requested — keeps the render loop running smoothly.
+        // Sync live_requested - keeps the render loop running smoothly.
         // Session: during streaming, sticky scroll needs continuous re-rendering.
         // RAG: when the spinner is active (fetching/embedding), enable live mode
         //      so event::poll uses 8ms instead of 50ms, keeping animation smooth.
@@ -98,7 +98,7 @@ impl App {
         // 200 ms idle gap made it visibly chunky).
         live = live || self.free_gateway_dialog.visible;
         // TODO completion strikes: while any strike animation is running the
-        // panel must redraw every frame, even in an idle session — otherwise
+        // panel must redraw every frame, even in an idle session - otherwise
         // the sweep would freeze mid-label until the next unrelated event.
         live = live || self.state.right_panel.todo_strike_animating();
         // A running compaction stopwatch must tick every frame.
@@ -127,7 +127,7 @@ impl App {
             // Background fill via a flat style patch: `Terminal::swap_buffers`
             // resets the draw buffer to `Cell::EMPTY` (symbol " ") before every
             // frame, so the symbol loop below the old implementation was
-            // redundant work — only the style channels need writing. One
+            // redundant work - only the style channels need writing. One
             // `Style` merge over the backing `Vec<Cell>` per row is an order
             // of magnitude cheaper than two virtual calls per cell and keeps
             // the frame pacer comfortably in its 60 fps tier.
@@ -208,7 +208,7 @@ impl App {
                 wallpaper.render(buf, art_area, ink);
             }
 
-            // Context info bar — only after the user has sent at least one
+            // Context info bar - only after the user has sent at least one
             // message. Shows the agent's current context against the model
             // window to the left of the budget bar, with thousands separators
             // so large token counts are readable at a glance.
@@ -239,11 +239,11 @@ impl App {
                 // cluster paints nothing (the pane headers hide their
                 // budget the same way).
                 //
-                // Session cost — for USD-billed providers the session's
+                // Session cost - for USD-billed providers the session's
                 // dollar total (green). For Charm Hyper the header shows the
                 // REMAINING Hypercredit balance instead: credits are not
                 // money, and the balance is the figure the user can verify
-                // against their account — it DECREASES as they spend (same
+                // against their account - it DECREASES as they spend (same
                 // number Crush shows). Only the ◆ glyph is pink (#FF60FF);
                 // the figure stays in the normal text color. Hidden while
                 // nothing is known yet (no guessed $0 / ◆0).
@@ -300,7 +300,7 @@ impl App {
                         + pct_str.chars().count())) as u16;
                 let right_x = main_area.right().saturating_sub(display_w + 1);
 
-                // Session cost — the leftmost element of the header line.
+                // Session cost - the leftmost element of the header line.
                 if let Some(cost) = &cost_str {
                     if credits_mode {
                         // ◆ gets its OWN cell in Charm pink; the number is
@@ -330,7 +330,7 @@ impl App {
                     }
                 }
 
-                // Token counter — to the right of the cost (or left of the
+                // Token counter - to the right of the cost (or left of the
                 // budget bar when no price is known yet).
                 let token_x = right_x + cost_w + cost_gap;
                 for (i, ch) in token_str.chars().enumerate() {
@@ -359,7 +359,7 @@ impl App {
                 }
             }
 
-            // Session header sparkle — Astra-style starfield flourish, ported
+            // Session header sparkle - Astra-style starfield flourish, ported
             // from the Codex TUI (`chat_composer/sparkle.rs`). Session router
             // ONLY: the component arms per session id and paints exclusively
             // on blank cells of the header strip, so the "← esc" hint (and
@@ -486,7 +486,7 @@ impl App {
                     || self.queue_choice_dialog.visible
                     || self.free_gateway_dialog.visible);
 
-            // Detect empty session — no messages yet (like OpenCode initial state).
+            // Detect empty session - no messages yet (like OpenCode initial state).
             // The /agents split suppresses the landing treatment: the logo
             // band above the prompt would paint straight over the panes.
             let is_empty_session = is_session
@@ -554,7 +554,7 @@ impl App {
                 0
             };
             // Free-gateway recommendation dialog (same position, Session
-            // only — every trigger lives in a session).
+            // only - every trigger lives in a session).
             let recommendation_h =
                 if self.gateway_dialog_route() && self.free_gateway_dialog.visible {
                     self.free_gateway_dialog
@@ -574,7 +574,7 @@ impl App {
             // indicator yields to the agent loop rather than replacing it.
             // The /agents split keeps the spinner alive while ANY pane
             // streams (its turns live outside the shared session loop, so
-            // `status` alone cannot see them) — a PARKED split too (the
+            // `status` alone cannot see them) - a PARKED split too (the
             // stream follows the panes, not the screen). This predicate
             // MUST match `agent_spinner_active` in the mouse layout
             // (`mod.rs`): a one-row drift here skews every hit-test below
@@ -586,7 +586,7 @@ impl App {
                     && self.parked_agents_split.as_ref().is_some_and(
                         crate::routes::session::agents_split::AgentsSplitState::any_running,
                     ));
-            // A rehydrating pane streams its replayed history too — same
+            // A rehydrating pane streams its replayed history too - same
             // spinner-row contract, live or parked.
             let agents_panes_rehydrating = self.agents_split.as_ref().is_some_and(
                 crate::routes::session::agents_split::AgentsSplitState::any_rehydrating,
@@ -855,7 +855,7 @@ impl App {
                     // Voice controls ride each answer's final line: their
                     // anchors come from the transcript layout this frame, so
                     // no row is reserved and nothing below ever moves. The
-                    // answer still streaming is skipped — only its finalized
+                    // answer still streaming is skipped - only its finalized
                     // siblings keep their speak/pause controls while the
                     // agent works.
                     let streaming_slot = self.streaming_answer_slot();
@@ -899,7 +899,7 @@ impl App {
                     {
                         // The mode color was already resolved above with the
                         // same `agent_colors`/`unique_agents` the session view
-                        // uses — no per-frame duplicate scan.
+                        // uses - no per-frame duplicate scan.
                         crate::routes::session::pending_queue::render_rows(
                             buf,
                             pending_area,
@@ -914,8 +914,8 @@ impl App {
                     // never buried; the slash menu, modal dialogs and toasts
                     // render later and legitimately cover it. Hidden while an
                     // inline dialog replaces the prompt. The anchor is the
-                    // row directly above the pending strip / prompt — the
-                    // exact line the agent spinner occupies when active — so
+                    // row directly above the pending strip / prompt - the
+                    // exact line the agent spinner occupies when active - so
                     // the arrow stays aligned with the spinner instead of
                     // being pushed around when it appears/disappears (the
                     // spinner shrinks the session viewport by a row, which
@@ -954,28 +954,28 @@ impl App {
                         // pane's brand name + serving triple instead of the
                         // gateway triple. The manager pane IS the main agent
                         // itself, but its bridge never emits a `SessionModel`
-                        // report — its triple resolves from the pane's own
+                        // report - its triple resolves from the pane's own
                         // selection source (`effective_pane_prompt_info`):
                         // a committed per-pane pick shows the moment it is
                         // picked, not only on the pane's next turn, and a
                         // manager pane with no pick of its own keeps the
                         // row exactly the mode + gateway triple it always
                         // was (no badge). An ACP pane keeps its reported
-                        // triple (provider only when advertised) — empty
+                        // triple (provider only when advertised) - empty
                         // until the first report, replaced on change.
                         // Unfocused (`None`) is the main agent: unchanged.
                         let focused_index =
                             self.agents_split.as_ref().and_then(|split| split.focused);
                         let mut name_styles = Vec::new();
                         // The badge's inputs, resolved BEFORE the prompt's
-                        // mutable borrow: the ACP harness's own report, or —
+                        // mutable borrow: the ACP harness's own report, or -
                         // for the manager (morpheus) pane, whose bridge never
-                        // reports one — the pane's own selection source (the
+                        // reports one - the pane's own selection source (the
                         // per-pane pick, the session markers). A manager pane
                         // with no pick of its own drops the badge entirely:
                         // the row keeps the mode + gateway triple it always
                         // painted (the pre-feature behavior). The info copy
-                        // is OWNED so the `&self` read ends here — the
+                        // is OWNED so the `&self` read ends here - the
                         // `prompt_view.render` below borrows the prompt
                         // mutably.
                         let mut badge_name: Option<&str> = None;
@@ -1027,7 +1027,7 @@ impl App {
 
             let footer_area = Rect::new(main_area.x, footer_y, main_area.width, 1);
             // Hover state for the footer's update button, resolved against
-            // the hitbox the PREVIOUS frame stored — read BEFORE the clear
+            // the hitbox the PREVIOUS frame stored - read BEFORE the clear
             // below (the same one-frame-muted→text swap the header's
             // `bug report` / `← esc` links use, which also read their area
             // before overwriting it later in the frame).
@@ -1039,7 +1039,7 @@ impl App {
             });
             // Stale-hitbox guard: the footer's update-button hitbox is only
             // (re)assigned by the Session arm below, so clear it every frame
-            // first — a leftover rect from a previous session frame must
+            // first - a leftover rect from a previous session frame must
             // never stay clickable after leaving that route (the same
             // re-assignment contract `bug_link_area`/`back_link_area` follow).
             self.footer_update_area = None;
@@ -1084,7 +1084,7 @@ impl App {
                 }
             }
             // The slash menu renders first so modal dialogs (e.g. the Ctrl+C
-            // "Quit morpheus?" confirm) always paint on top of it — the menu is
+            // "Quit morpheus?" confirm) always paint on top of it - the menu is
             // inline chrome, the dialog is a modal overlay that owns the
             // whole input surface while visible (sovereign keys + mouse).
             // Its borders and selection follow the current harness mode's
@@ -1100,7 +1100,7 @@ impl App {
             self.slash_menu
                 .render(buf, prompt_area, &self.theme, mode_color);
             // Hover state for the API-key dialog's Login button, resolved
-            // against the tracked pointer — the button's rect is pure
+            // against the tracked pointer - the button's rect is pure
             // geometry (`api_key_login_button_area`), so this reads the SAME
             // source the render and the mouse hit-test use (no stored hitbox
             // to go stale). Written back into the instance the render below
@@ -1138,7 +1138,7 @@ impl App {
             self.agents_picker.cursor.terminal_focused = self.terminal_focused;
             self.agents_picker.render(buf, area, &self.theme, now);
             // Toasts render last so transient feedback (copied, not saved,
-            // unavailable clipboard) is never buried under a modal panel —
+            // unavailable clipboard) is never buried under a modal panel -
             // the centered registration forms cover the top-right toast
             // corner on compact terminals. The tracked mouse position drives
             // the ⧉ copy button's hover highlight (None when untracked).
@@ -1151,7 +1151,7 @@ impl App {
         }
     }
 
-    /// Visual rows of the pending queues, one layout entry per drawn row —
+    /// Visual rows of the pending queues, one layout entry per drawn row -
     /// the shared strip's layout ([`crate::routes::session::pending_queue`]),
     /// re-exported here because the chat's geometry helpers and mouse
     /// hit-testing read it through `App`.

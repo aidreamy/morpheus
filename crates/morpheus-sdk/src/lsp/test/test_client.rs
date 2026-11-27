@@ -167,7 +167,7 @@ async fn workspace_configuration_is_answered_from_settings() {
 }
 
 /// `registerCapability` is acknowledged with null (an error here makes gopls
-/// abort — Helix's lesson).
+/// abort - Helix's lesson).
 #[tokio::test]
 async fn register_capability_acknowledged_and_tracked() {
     let (client, mut server, mut events) = running_client("{}", serde_json::Value::Null).await;

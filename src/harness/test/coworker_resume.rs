@@ -1,4 +1,4 @@
-//! An IMPROPER stop — a loop that stopped with NOBODY asking it to — must not
+//! An IMPROPER stop - a loop that stopped with NOBODY asking it to - must not
 //! end a turn that owes a REPORT.
 //!
 //! The field defect this pins: a `/agents` morpheus pane ended its turn right
@@ -6,7 +6,7 @@
 //! and the turn closed `incomplete` while the model was one attempt away from
 //! delivering it. For such a loop the only legitimate early end is the USER's
 //! stop (`stop_agent_loop` is blocked for panes, so the loop cannot stop
-//! itself), which is exactly observable — so continuing is not a judgement
+//! itself), which is exactly observable - so continuing is not a judgement
 //! call, and the re-send is the same history-plus-steering mechanism every
 //! other continuation in the loop already uses.
 
@@ -39,7 +39,7 @@ async fn drive(mut h: Harness) -> (Harness, Vec<HarnessEvent>) {
     (h, events)
 }
 
-/// A morpheus pane: a loop bound to its own registry id — the shape whose stop
+/// A morpheus pane: a loop bound to its own registry id - the shape whose stop
 /// hands a blocked `agents_call` requester an `incomplete` report.
 fn pane() -> Harness {
     Harness::new_test().with_own_coworker_id(Some("morpheus".into()))
@@ -59,7 +59,7 @@ fn has_toast(events: &[HarnessEvent], needle: &str) -> bool {
 async fn a_pane_resumes_an_exhausted_empty_stop_instead_of_closing_incomplete() {
     let mut h = pane().with_mock_streams(vec![Ok(vec![]), Ok(vec!["the ", "report"])]);
     // The budget already spent: the FIRST empty stream reaches the exhausted
-    // branch — the exact shape that used to end the turn.
+    // branch - the exact shape that used to end the turn.
     h.set_stop_nudges_left_for_test(0);
 
     let (h, events) = drive(h).await;
@@ -143,7 +143,7 @@ async fn a_pane_stops_once_its_resume_budget_is_spent() {
     );
 }
 
-/// `resume_pane_turn` refuses when the USER stopped the turn — the one
+/// `resume_pane_turn` refuses when the USER stopped the turn - the one
 /// legitimate early end, and therefore the one that must never be overridden.
 #[tokio::test]
 async fn the_user_stop_is_never_resumed() {
@@ -198,7 +198,7 @@ async fn a_loop_that_owes_no_report_never_resumes() {
 }
 
 /// The repetition detector's stop is an improper stop for a pane too: the
-/// model looks stuck, but nobody asked the turn to end — so it resumes, with
+/// model looks stuck, but nobody asked the turn to end - so it resumes, with
 /// the streak reset so the resumed turn is judged on its own output.
 #[tokio::test]
 async fn repetition_detection_resumes_a_pane_instead_of_stopping() {
@@ -243,7 +243,7 @@ async fn repetition_detection_resumes_a_pane_instead_of_stopping() {
 /// short of done.
 #[tokio::test]
 async fn tool_loop_detection_recovers_a_pane_once_before_stopping() {
-    // 20 identical tool-calling iterations — the detector must fire at 10
+    // 20 identical tool-calling iterations - the detector must fire at 10
     // (window full), RECOVER (one steering attempt), and the model must
     // deliver the report on the next turn instead of repeating the call.
     let call = r#"{"name": "test_tool", "arguments": {"x": "same"}}"#;
@@ -281,7 +281,7 @@ async fn tool_loop_detection_recovers_a_pane_once_before_stopping() {
 
 /// THE LADDER, both steps: the FIRST detector firing recovers (one steering
 /// attempt), and the SECOND firing in the same window stops the pane for
-/// real — the window is never reset and the detector's share is one-shot,
+/// real - the window is never reset and the detector's share is one-shot,
 /// so recovery cannot become another unbounded loop.
 #[tokio::test]
 async fn tool_loop_detection_recovers_once_then_stops_on_the_second_firing() {
@@ -362,7 +362,7 @@ async fn tool_loop_detection_stops_a_chat_turn_without_recovery() {
 }
 
 /// The pending-todos throttle: a pane reaching a natural completion while
-/// ITS OWN todo list still shows open work resumes instead of ending — the
+/// ITS OWN todo list still shows open work resumes instead of ending - the
 /// pending state is the model's own observable bookkeeping, and the
 /// requester is blocked on the report.
 #[tokio::test]
@@ -373,7 +373,7 @@ async fn pending_todos_resume_a_pane_instead_of_ending_the_turn() {
             Ok(vec!["Looks", " done"]),
             Ok(vec!["the report"]),
             // A STALE todo cannot resume forever: the improper-stop budget
-            // bounds it, and the turn then closes on its own completion —
+            // bounds it, and the turn then closes on its own completion -
             // the bounded-resume contract every accelerator shares.
             Ok(vec!["the final", " report"]),
         ])

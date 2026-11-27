@@ -1,9 +1,9 @@
-//! `computer_screenshot` — capture the screen (or a region / element) and deliver
+//! `computer_screenshot` - capture the screen (or a region / element) and deliver
 //! the PNG inline as base64 through the connector's multimodal channel.
 //!
 //! Every xa11y capture is blocking (pixel copy from the compositor), so it
 //! runs on tokio's blocking pool. Encoding to PNG happens on the same
-//! blocking task — a full-screen RGBA buffer is large and the encode is
+//! blocking task - a full-screen RGBA buffer is large and the encode is
 //! CPU-bound.
 use std::fmt::Write as _;
 use std::time::Duration;
@@ -32,7 +32,7 @@ const DEFAULT_MAX_WIDTH: u32 = 1568;
 ///
 /// Three mutually exclusive modes: full display (no arguments), an explicit
 /// display `region` (`[x, y, width, height]` in desktop pixels), or an
-/// element capture (`app`/`pid` + `selector` — the pixels under the
+/// element capture (`app`/`pid` + `selector` - the pixels under the
 /// matched element's current bounds; no auto-raise, so an occluded element
 /// yields whatever pixels sit at those coordinates). Oversized captures
 /// are downscaled to `max_width` (default 1568), preserving aspect ratio;
@@ -75,29 +75,29 @@ pub async fn screenshot(input: &ComputerScreenshot) -> Result<ScreenshotOutput, 
     }
     // Annotated capture: each annotation group must be scoped to one root
     // (app or shell surface), so it requires a target, and the legend
-    // covers every match — `nth` (which would pick one) has no meaning
+    // covers every match - `nth` (which would pick one) has no meaning
     // there.
     if input.annotate {
         if input.app.is_none() && input.pid.is_none() && input.surface.is_none() {
             return Err(
-                "computer_screenshot: `annotate` requires `app`, `pid` or `surface` — annotation \
+                "computer_screenshot: `annotate` requires `app`, `pid` or `surface` - annotation \
                  groups must be scoped to one root"
                     .into(),
             );
         }
         if input.nth.is_some() {
             return Err(
-                "computer_screenshot: `nth` does not apply to annotated captures — the \
+                "computer_screenshot: `nth` does not apply to annotated captures - the \
                  legend covers every match; narrow `selector` instead"
                     .into(),
             );
         }
     }
-    // Element capture REQUIRES a selector — `app`/`pid`/`surface` alone
+    // Element capture REQUIRES a selector - `app`/`pid`/`surface` alone
     // must not silently fall back to a full-display capture (scope leak:
     // the model asked for one root and would receive pixels of everything
     // on screen). Annotated captures are exempt: they default `selector`
-    // to `"*"` — box every element of the root — which is their whole
+    // to `"*"` - box every element of the root - which is their whole
     // point.
     if !input.annotate
         && input.selector.is_none()
@@ -113,7 +113,7 @@ pub async fn screenshot(input: &ComputerScreenshot) -> Result<ScreenshotOutput, 
     // `:nth(n)` to an alternation would bind to its last clause alone, so
     // the legend's selectors would name a different element than the box
     // they label (xa11y refuses them too, but only after the app resolves).
-    // One selector per intent — each gets its own tag colour anyway.
+    // One selector per intent - each gets its own tag colour anyway.
     // Commas inside quotes are attribute values, not clause separators, so
     // quoted spans are blanked out before looking for a separator.
     if input
@@ -124,7 +124,7 @@ pub async fn screenshot(input: &ComputerScreenshot) -> Result<ScreenshotOutput, 
     {
         return Err(
             "computer_screenshot: comma alternation selectors (`\"button, link\"`) are \
-             not supported — pass one selector per intent"
+             not supported - pass one selector per intent"
                 .into(),
         );
     }
@@ -150,7 +150,7 @@ pub async fn screenshot(input: &ComputerScreenshot) -> Result<ScreenshotOutput, 
         .is_some_and(str::is_empty)
     {
         return Err(
-            "computer_screenshot: `save_path` cannot be blank — give the file path \
+            "computer_screenshot: `save_path` cannot be blank - give the file path \
              where the PNG bytes are written (relative paths resolve against \
              morpheus's working directory)"
                 .into(),
@@ -173,7 +173,7 @@ fn screenshot_blocking(input: &ComputerScreenshot) -> Result<ScreenshotOutput, S
 
 /// Persist PNG bytes to `save_path`, creating parent directories as
 /// needed. The CALLER-ISSUED path is echoed back verbatim (surrounding
-/// whitespace is stripped for the I/O only — the `saved_to` field reports
+/// whitespace is stripped for the I/O only - the `saved_to` field reports
 /// the path exactly as the model named it); canonicalizing it would report
 /// a path the model did not issue (difference without a purpose). The
 /// image ALSO stays inline: the harness replays it in the conversation, so
@@ -201,7 +201,7 @@ pub(crate) fn save_png(path: &str, png: &[u8]) -> Result<String, String> {
 ///
 /// `screenshot_annotated` captures the full display (the plan's shape: the
 /// model sees the whole UI, acts only through selectors); the selector
-/// defaults to `"*"` — box every element of the app. Selectors resolve
+/// defaults to `"*"` - box every element of the app. Selectors resolve
 /// before the capture, so a bad selector costs no pixels.
 fn annotated_blocking(input: &ComputerScreenshot) -> Result<ScreenshotOutput, String> {
     let selector = input
@@ -273,8 +273,8 @@ fn annotated_blocking(input: &ComputerScreenshot) -> Result<ScreenshotOutput, St
     })
 }
 
-/// Resolve the capture root — an application or a shell surface, exactly
-/// one (validated) — and build the locator for `selector` under it.
+/// Resolve the capture root - an application or a shell surface, exactly
+/// one (validated) - and build the locator for `selector` under it.
 /// Shared by the annotated and plain element paths.
 fn target_locator(
     input: &ComputerScreenshot,
@@ -374,7 +374,7 @@ fn plain_blocking(input: &ComputerScreenshot) -> Result<ScreenshotOutput, String
 /// capture's own mapping when available (xa11y preserves it through resize),
 /// falling back to the capture's scale factor. Pixel-center mapping: the
 /// span between the centers of the first and last image pixel covers
-/// (dim-1) pixels, so divide by dim-1 — dividing by dim would
+/// (dim-1) pixels, so divide by dim-1 - dividing by dim would
 /// systematically underestimate the scale.
 fn delivered_mapping(capture: &Screenshot) -> ((i32, i32), (f64, f64)) {
     if !capture.mapping_available() {
@@ -405,8 +405,8 @@ fn delivered_mapping(capture: &Screenshot) -> ((i32, i32), (f64, f64)) {
 }
 /// Build the connector message for a screenshot tool result: short text
 /// plus the inline PNG (the harness replays this in the conversation so a
-/// multimodal model sees the image). Annotated captures append the legend —
-/// one `TAG  selector  role 'name'` line per box — so the model can act on
+/// multimodal model sees the image). Annotated captures append the legend -
+/// one `TAG  selector  role 'name'` line per box - so the model can act on
 /// a tag it read off the image without any other tool call; omissions and
 /// truncation are reported so picture and legend cannot silently disagree.
 #[must_use]
@@ -429,7 +429,7 @@ pub fn screenshot_tool_result(tool_call_id: &str, output: &ScreenshotOutput) -> 
     }
     if !output.legend.is_empty() {
         text.push_str(
-            "\n\nAnnotated elements — act on a box by passing its \
+            "\n\nAnnotated elements - act on a box by passing its \
 selector to computer_act:\n",
         );
         for entry in &output.legend {
@@ -449,7 +449,7 @@ selector to computer_act:\n",
     }
     // Omission and truncation reporting sits OUTSIDE the legend block: a
     // capture whose every match was omitted (or capped) has an empty legend
-    // but must still say why — the picture and the legend cannot silently
+    // but must still say why - the picture and the legend cannot silently
     // disagree.
     for omission in &output.omitted {
         let _ = writeln!(
@@ -461,7 +461,7 @@ selector to computer_act:\n",
     if output.truncated > 0 {
         let _ = writeln!(
             text,
-            "legend truncated: {} more matched elements are not described — \
+            "legend truncated: {} more matched elements are not described - \
 narrow the selector",
             output.truncated
         );

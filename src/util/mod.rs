@@ -9,7 +9,7 @@ use tiktoken_rs::tokenizer::{Tokenizer, get_tokenizer};
 /// The app talks to many providers with many different tokenizers; the best we
 /// can do without per-provider vocabularies is route to the closest OpenAI
 /// encoding by **model name** (the model string is what actually determines the
-/// tokenizer, not the provider family — `gpt-4o` and `llama-3.3` are both
+/// tokenizer, not the provider family - `gpt-4o` and `llama-3.3` are both
 /// "OpenAI-compatible" providers) and fall back to `cl100k_base`, the classic
 /// GPT-3.5/4 tokenizer and the de-facto standard for cross-model estimation.
 ///
@@ -31,7 +31,7 @@ impl TokenEncoding {
     /// Pick the encoding that best matches the active model name.
     ///
     /// Known OpenAI models are resolved through tiktoken-rs's own registry
-    /// ([`get_tokenizer`], kept in sync with OpenAI's tiktoken — covers
+    /// ([`get_tokenizer`], kept in sync with OpenAI's tiktoken - covers
     /// `gpt-4.1`, the `o1`/`o3`/`o4` reasoning series, `gpt-oss`, `ft:`
     /// fine-tunes, exact aliases and prefixes). A small substring fallback
     /// covers bare aliases the registry does not list (e.g. `"gpt-4.5"`
@@ -54,7 +54,7 @@ impl TokenEncoding {
             Some(Tokenizer::Cl100kBase | Tokenizer::R50kBase | Tokenizer::Gpt2) => {
                 TokenEncoding::Cl100k
             }
-            // Unknown to the registry — bare modern-OpenAI aliases (a rare
+            // Unknown to the registry - bare modern-OpenAI aliases (a rare
             // substring false positive on a non-OpenAI name is a harmless
             // estimation approximation; everything unknown still lands on
             // Cl100k).
@@ -88,7 +88,7 @@ impl TokenEncoding {
 }
 
 /// Estimate the number of tokens in a text using the default [`TokenEncoding::Cl100k`]
-/// encoding (GPT-3.5/4 tokenizer) — the de-facto standard for a rough,
+/// encoding (GPT-3.5/4 tokenizer) - the de-facto standard for a rough,
 /// provider-agnostic estimate.
 #[must_use]
 pub fn estimate_tokens(text: &str) -> usize {
@@ -155,7 +155,7 @@ mod tests {
             TokenEncoding::for_model(Some("gpt-3.5-turbo")),
             TokenEncoding::Cl100k
         );
-        // Non-OpenAI providers have no tiktoken vocabulary — generic estimate.
+        // Non-OpenAI providers have no tiktoken vocabulary - generic estimate.
         for model in [
             "claude-sonnet-4-6",
             "gemini-2.0-flash",

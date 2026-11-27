@@ -1,20 +1,20 @@
-//! Edit application with boundary repair — a direct port of upstream
+//! Edit application with boundary repair - a direct port of upstream
 //! oh-my-pi's hashline applier (`packages/hashline/src/apply.ts`, now
 //! `crates/pi-edit/src/modes/hashline/apply.rs`).
 //!
 //! Architecture (identical to upstream):
 //!
-//! 1. [`validate_bounds`] — anchors must exist in the file.
-//! 2. [`repair_indentation`] — a replacement body that uniformly omitted the
+//! 1. [`validate_bounds`] - anchors must exist in the file.
+//! 2. [`repair_indentation`] - a replacement body that uniformly omitted the
 //!    base indent of unchanged structural rows is re-indented.
-//! 3. [`repair_landings`] — an `insert after` body indented shallower than
+//! 3. [`repair_landings`] - an `insert after` body indented shallower than
 //!    its anchor slides past trailing closer lines (or escapes an opener).
-//! 4. [`normalize_echoes`] — exact duplicated boundary rows already present
+//! 4. [`normalize_echoes`] - exact duplicated boundary rows already present
 //!    just outside the range are dropped; under-determined echoes are
 //!    reported as ambiguities.
 //! 5. The authored result is materialized. When it parses cleanly it is
 //!    applied as-is (ambiguities reject). Otherwise [`repair_boundaries`]
-//!    searches keep/drop boundary variants — every candidate must parse —
+//!    searches keep/drop boundary variants - every candidate must parse -
 //!    and ambiguity between distinct valid candidates rejects. When nothing
 //!    restores a parse, the authored edit is honored and a machine-confirmed
 //!    `edit_broke_parse_warning` is surfaced instead: the engine never
@@ -1105,7 +1105,7 @@ fn materialize(original: &[String], edits: &[Edit]) -> (String, Option<u32>) {
     (lines.join("\n"), first)
 }
 
-/// Apply a parsed list of edits to a text body. Pure function — no I/O.
+/// Apply a parsed list of edits to a text body. Pure function - no I/O.
 ///
 /// `path` is the file's display path used to infer the syntax language for
 /// the boundary probes; `None` disables every syntax-aware stage (the edits

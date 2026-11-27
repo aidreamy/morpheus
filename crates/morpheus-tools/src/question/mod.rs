@@ -8,19 +8,19 @@
 //! # Design principles
 //!
 //! - **Market-standard wire format**: the schema mirrors Claude Code's
-//!   `AskUserQuestion` (and its ports — Qwen Code, OpenCode, Crush): a
+//!   `AskUserQuestion` (and its ports - Qwen Code, OpenCode, Crush): a
 //!   `questions` array of `{ question, header, options: [{label,
 //!   description}], multiSelect }` items. Models trained on any of those
 //!   harnesses emit a valid call on the first attempt.
 //! - **Lenient decoding of model emission variants**: plain-string options,
 //!   string-encoded arrays, the `multiple` alias, and header-only items all
-//!   parse — see [`types::QuestionItem`]'s custom deserializer. These are
+//!   parse - see [`types::QuestionItem`]'s custom deserializer. These are
 //!   model behaviors, not alternate schemas.
 //! - **Batch questions**: ask multiple questions in a single call.
 //! - **Purpose field**: each question may explain *why* the information is
 //!   needed.
 //! - **Recommendations by convention**: the recommended option is the FIRST
-//!   option carrying a `" (Recommended)"` label suffix — the convention
+//!   option carrying a `" (Recommended)"` label suffix - the convention
 //!   models already know. The suffix is stripped wherever it appears and
 //!   turned into the internal `recommended` badge.
 //!
@@ -56,7 +56,7 @@ use crate::ToolDescription;
 /// Tool for asking structured questions to the user.
 ///
 /// Use the [`ask`](Self::ask) method to present questions and collect
-/// answers. The tool is stateless — the TUI layer is responsible for
+/// answers. The tool is stateless - the TUI layer is responsible for
 /// showing the dialog and capturing user input.
 pub struct Question {
     /// MCP Tool description for `ask_questions`.
@@ -103,7 +103,7 @@ impl Question {
                 "name": "ask_questions",
                 "description": concat!(
                     "Ask the user one or more questions and collect their answers. ",
-                    "Ask ALL questions you need in a single call — batch your ",
+                    "Ask ALL questions you need in a single call - batch your ",
                     "questions to minimize back-and-forth and avoid frustrating ",
                     "the user with repeated interruptions. Use the 'purpose' field ",
                     "to explain WHY you need each piece of information so the user ",
@@ -115,15 +115,15 @@ impl Question {
                     "chars). Examples: \"Auth method\", \"Library\", \"Approach\".\n",
                     "- **options**: 2-4 distinct choices, each {\"label\": display ",
                     "text (1-5 words), \"description\": what the option means or its ",
-                    "trade-off}. Omit 'options' entirely for a free-text question — ",
+                    "trade-off}. Omit 'options' entirely for a free-text question - ",
                     "the user can always type a custom answer instead of picking.\n",
                     "- **multiSelect**: set to true to allow the user to select ",
-                    "multiple options (default false — mutually exclusive choices).\n\n",
-                    "Do NOT add your own 'Other'/custom option — free text is offered ",
+                    "multiple options (default false - mutually exclusive choices).\n\n",
+                    "Do NOT add your own 'Other'/custom option - free text is offered ",
                     "automatically. If you recommend an option, make it the FIRST ",
                     "option and append \" (Recommended)\" to its label.\n\n",
                     "Rule of thumb: if you can reasonably infer the answer from ",
-                    "context, do NOT ask — use your existing knowledge or search ",
+                    "context, do NOT ask - use your existing knowledge or search ",
                     "tools instead. Only ask when you genuinely need user input."
                 ),
                 "inputSchema": {
@@ -147,7 +147,7 @@ impl Question {
                                     },
                                     "options": {
                                         "type": "array",
-                                        "description": "The available choices for this question (2-4 options). Each option: {\"label\": concise display text (1-5 words), \"description\": what this option means or its trade-off}. Omit for a free-text question. Do NOT add an 'Other' option — that is provided automatically.",
+                                        "description": "The available choices for this question (2-4 options). Each option: {\"label\": concise display text (1-5 words), \"description\": what this option means or its trade-off}. Omit for a free-text question. Do NOT add an 'Other' option - that is provided automatically.",
                                         "items": {
                                             "type": "object",
                                             "properties": {
@@ -249,7 +249,7 @@ impl Question {
             if q.question_type.is_choice() {
                 let opts = q.options.as_ref().ok_or_else(|| {
                     format!(
-                        "Question '{}' is a choice question but has no 'options' — \
+                        "Question '{}' is a choice question but has no 'options' - \
                          provide 2-4 options or omit 'options' for free text",
                         q.question
                     )
@@ -268,7 +268,7 @@ impl Question {
                     return Err(format!(
                         "Question '{}' has option '{}' which collides with the \
                          reserved custom-answer label. Do not add your own custom/other \
-                         entry — the UI always offers free text itself.",
+                         entry - the UI always offers free text itself.",
                         q.question, clash.label
                     ));
                 }

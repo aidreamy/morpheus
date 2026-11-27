@@ -1,4 +1,4 @@
-//! Skill discovery — scans directories or embedded sources for SKILL.md files
+//! Skill discovery - scans directories or embedded sources for SKILL.md files
 //! and caches results so repeated calls don't re-scan the filesystem.
 
 use std::collections::{HashMap, HashSet};
@@ -76,7 +76,7 @@ pub fn discover_skills(schema: &SkillSchema) -> Result<Vec<RawSkill>, SkillError
             if let Some(&idx) = seen_names.get(&raw.name) {
                 log::warn!(
                     "duplicate skill name '{name}' from source '{key}' \
-                     — keeping first occurrence from '{first_key}'",
+                     - keeping first occurrence from '{first_key}'",
                     name = raw.name,
                     first_key = all[idx].source_key,
                 );

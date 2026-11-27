@@ -43,12 +43,12 @@ static GLOBAL_LSP: Mutex<Option<(PathBuf, Arc<Lsp>)>> = Mutex::new(None);
 ///
 /// Startup is always lazy: creating the engine spawns NO server process.
 /// Servers start on the first file touch (`ensure_for_file`), never via
-/// root-marker discovery here — eagerly spawning every matching server
+/// root-marker discovery here - eagerly spawning every matching server
 /// (rust-analyzer AND taplo for a Rust repo) before the agent read anything
 /// is what made a Rust workspace eat GBs of RAM at session start.
 ///
 /// The event-ingestion task (manager events → diagnostics engine) runs on the
-/// *current* runtime's tasks — callers must invoke this from within a
+/// *current* runtime's tasks - callers must invoke this from within a
 /// long-lived runtime (the TUI's shared agent runtime), not a per-turn one,
 /// or the task dies with it.
 ///
@@ -90,7 +90,7 @@ pub fn global_lsp(cwd: &str) -> Option<Arc<Lsp>> {
 /// side effect of a render loop, so they use this instead of [`global_lsp`].
 pub fn peek_global_lsp(cwd: &str) -> Option<Arc<Lsp>> {
     // A poisoned lock means some other thread panicked while constructing
-    // an engine — the data it protects (an `Option` and `Arc`s) is still
+    // an engine - the data it protects (an `Option` and `Arc`s) is still
     // structurally valid, and this peek runs on the render loop (up to 30×
     // per second), where propagating the panic would take the whole TUI
     // down. Degrade to "no engine" instead.
@@ -143,12 +143,12 @@ mod tests {
 
     /// Startup is lazy, unconditionally: creating the engine inside a Rust
     /// workspace with a discoverable `rust-analyzer` on `PATH` still spawns
-    /// NOTHING — no server process may start before the first file touch.
+    /// NOTHING - no server process may start before the first file touch.
     ///
     /// The "server" is a sentinel shell script: if any startup path ever
     /// executes it, the sentinel file appears and this test fails. (A plain
     /// `running_clients().is_empty()` assertion would NOT catch a
-    /// regression — eager spawn failures are soft-skipped, so a broken lazy
+    /// regression - eager spawn failures are soft-skipped, so a broken lazy
     /// path could still show zero clients.)
     #[cfg(unix)]
     #[test]

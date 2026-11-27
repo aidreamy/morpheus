@@ -187,7 +187,7 @@ mod keyboard_tests {
         }
     }
 
-    /// A single character parses literally — and an uppercase one is
+    /// A single character parses literally - and an uppercase one is
     /// REJECTED with the shift advice, never silently lowercased (a
     /// silently-lowercased `A` would send the wrong key and report success).
     #[test]
@@ -246,7 +246,7 @@ mod keyboard_tests {
     /// Step classification matches the validators' contract exactly: a
     /// whitespace-only `key` is NOT a keyboard step (the validators trim
     /// `key`); `text` is taken AS-IS (non-empty = a keyboard step, even a
-    /// single space — a literal space is a real keystroke); any `wait` is a
+    /// single space - a literal space is a real keystroke); any `wait` is a
     /// wait step.
     #[test]
     fn step_classification_agrees_with_the_validators() {
@@ -263,7 +263,7 @@ mod keyboard_tests {
         assert!(!is_wait_step(None));
     }
 
-    /// `key_name` renders the human-facing names the `sent` report uses —
+    /// `key_name` renders the human-facing names the `sent` report uses -
     /// modifiers spell out, chars pass through, and every other key renders
     /// via Debug with a distinct, non-empty name.
     #[test]
@@ -273,7 +273,7 @@ mod keyboard_tests {
         assert_eq!(key_name(&Key::Alt), "alt");
         assert_eq!(key_name(&Key::Meta), "meta");
         assert_eq!(key_name(&Key::Char('a')), "a");
-        // Non-modifier named keys render via Debug — the exact text is
+        // Non-modifier named keys render via Debug - the exact text is
         // xa11y's choice; the contract is "non-empty and pairwise distinct"
         // across the common named keys (a collision would make the `sent`
         // report indistinguishable between different taps).
@@ -300,7 +300,7 @@ mod keyboard_tests {
     }
 
     /// `hold`/`release` name parsing (`parse_hold_keys`): MODIFIER aliases
-    /// first, ordinary key names after — a hold may latch any key an app
+    /// first, ordinary key names after - a hold may latch any key an app
     /// listens to while it is down, not only modifiers.
     #[test]
     fn hold_names_parse_modifiers_and_plain_keys() {
@@ -309,7 +309,7 @@ mod keyboard_tests {
             .expect("modifier + plain key parse");
         assert_eq!(parsed, vec![Key::Meta, Key::Shift, Key::Space]);
 
-        // An unknown name is a key error, not a modifier error — the set
+        // An unknown name is a key error, not a modifier error - the set
         // is broader than `held`'s.
         let err = crate::computer::keyboard::parse_hold_keys(&["hyper".into()], TOOL)
             .expect_err("unknown key name");
@@ -423,7 +423,7 @@ mod hold_release_validation_tests {
     #[test]
     fn act_hold_and_release_report_one_message() {
         // hold + release in ONE step fails through the standalone arm
-        // naming `release` — the same message shape computer_control
+        // naming `release` - the same message shape computer_control
         // reports, never a tool-specific "not both" wording.
         let both = ComputerAct {
             hold: Some(vec!["shift".into()]),
@@ -449,7 +449,7 @@ mod hold_release_validation_tests {
 }
 
 /// `hold`/`release` are string arrays; a model may also deliver one
-/// string-encoded (`"hold": "[\"shift\"]"`) — both must reach the tool
+/// string-encoded (`"hold": "[\"shift\"]"`) - both must reach the tool
 /// deserializer as `Vec<String>`.
 #[cfg(test)]
 mod hold_release_extraction_tests {
@@ -541,7 +541,12 @@ mod held_key_tracking_tests {
         fn pointer_up(&self, _button: MouseButton) -> xa11y::Result<()> {
             Ok(())
         }
-        fn pointer_click(&self, _at: Point, _button: MouseButton, _count: u32) -> xa11y::Result<()> {
+        fn pointer_click(
+            &self,
+            _at: Point,
+            _button: MouseButton,
+            _count: u32,
+        ) -> xa11y::Result<()> {
             Ok(())
         }
         fn pointer_scroll(&self, _at: Point, _delta: ScrollDelta) -> xa11y::Result<()> {
@@ -606,7 +611,7 @@ mod held_key_tracking_tests {
         );
     }
 
-    /// A held key is reported until it is released — the point of the state.
+    /// A held key is reported until it is released - the point of the state.
     #[test]
     fn held_keys_are_reported_with_a_parseable_name() {
         let _serial = serial();
@@ -615,32 +620,35 @@ mod held_key_tracking_tests {
         run_hold_step(&sim, &names(&["shift", "f1"]), TOOL).expect("hold shift + f1");
         let report = held_report();
         assert!(report.contains("still held"), "{report}");
-        assert!(report.contains("shift") && report.contains("f1"), "{report}");
+        assert!(
+            report.contains("shift") && report.contains("f1"),
+            "{report}"
+        );
 
         run_release_step(&sim, &names(&[RELEASE_ALL]), TOOL).expect("release all");
         assert_eq!(held_report(), "");
     }
 
-    /// Every name the held-key advice hands back is accepted by `release` —
+    /// Every name the held-key advice hands back is accepted by `release` -
     /// the round-trip the report promises.
     #[test]
     fn held_report_names_round_trip_through_release() {
         let _serial = serial();
         let (sim, _recorder) = RecordingInput::sim();
 
-        run_hold_step(&sim, &names(&["arrowup", "pagedown", "escape", "f12"]), TOOL)
-            .expect("hold named keys");
+        run_hold_step(
+            &sim,
+            &names(&["arrowup", "pagedown", "escape", "f12"]),
+            TOOL,
+        )
+        .expect("hold named keys");
         let report = held_report();
         // The advice must use the canonical, release-parseable spellings.
         for key in ["up", "pagedown", "escape", "f12"] {
             assert!(report.contains(key), "`{key}` missing from: {report}");
         }
-        run_release_step(
-            &sim,
-            &names(&["up", "pagedown", "escape", "f12"]),
-            TOOL,
-        )
-        .expect("the reported names must parse back as release keys");
+        run_release_step(&sim, &names(&["up", "pagedown", "escape", "f12"]), TOOL)
+            .expect("the reported names must parse back as release keys");
         assert_eq!(held_report(), "");
     }
 }

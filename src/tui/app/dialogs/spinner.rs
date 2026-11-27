@@ -5,7 +5,7 @@ use crate::ui::dialogs::DialogType;
 
 impl App {
     /// Open the `/spinner` picker: which agent-loop spinner animation the
-    /// prompt row plays. Purely decorative — the pick only swaps what the
+    /// prompt row plays. Purely decorative - the pick only swaps what the
     /// user watches while the loop works.
     pub(in crate::app) fn open_spinner_dialog(&mut self) {
         let current = self.setup.appearance.spinner.id().to_string();

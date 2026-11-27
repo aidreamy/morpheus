@@ -1,5 +1,5 @@
 //! Demonstrate `find::grep`: searching file contents, the file-window
-//! pagination bound (`skip`), single-file scopes, and — the payoff — editing a
+//! pagination bound (`skip`), single-file scopes, and - the payoff - editing a
 //! matched file directly via the hashline anchor carried in the result.
 //!
 //! Run with:

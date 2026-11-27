@@ -201,7 +201,7 @@ fn plain_ascii_romance_routes_multilingual() {
         );
     }
     // A word several lists claim (`la`, `e`, `o`) says "not English" without
-    // saying *which* language, so it may not name one on its own — the same
+    // saying *which* language, so it may not name one on its own - the same
     // rule as the 0-0 tie above.
     assert_eq!(
         analyse(&json!("Cât e ora acum la Tokyo")).language,
@@ -236,7 +236,7 @@ fn plain_ascii_romance_routes_multilingual() {
 // ------------------------------------------------ Brazilian support text
 // Short Brazilian messages lean on `você`/`vc`, the unaccented `nao`/`voce`
 // and `gostaria`, none of which the unaccented `pt` list held, so each
-// matched one word and went to the English checkpoint — which on `pt`
+// matched one word and went to the English checkpoint - which on `pt`
 // reports 0.97 mean confidence at 0.47 accuracy (ECE 0.51).
 #[test]
 fn brazilian_support_text_routes_multilingual() {

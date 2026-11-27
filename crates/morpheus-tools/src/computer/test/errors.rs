@@ -18,7 +18,7 @@ mod render_tests {
             .candidates(vec!["button \"Export All\"".to_string()])
     }
 
-    /// Each actionable variant renders its FIX, not just the failure —
+    /// Each actionable variant renders its FIX, not just the failure -
     /// the model must learn what to do next from the error alone.
     #[test]
     fn permission_denied_tells_the_grant_flow() {
@@ -55,7 +55,7 @@ mod render_tests {
         let out = render(TOOL, CTX, &err);
         assert!(out.contains("re-capture"), "{out}");
         assert!(out.contains(":nth index goes stale"), "{out}");
-        // The diagnosis must survive verbatim — flattening it away is the
+        // The diagnosis must survive verbatim - flattening it away is the
         // exact failure this phase exists to fix.
         assert!(out.contains("visible=false, enabled=true"), "{out}");
         assert!(out.contains("Export All"), "{out}");
@@ -139,7 +139,7 @@ mod render_tests {
         assert!(out.contains("stop and report it to the user"), "{out}");
     }
 
-    /// Totality guard: every variant renders SOMETHING useful — a missed
+    /// Totality guard: every variant renders SOMETHING useful - a missed
     /// arm would fall to a silent default and strand the model.
     #[test]
     fn every_variant_renders_tool_prefix() {

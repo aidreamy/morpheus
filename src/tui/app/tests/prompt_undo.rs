@@ -1,5 +1,5 @@
-//! Integration tests for the prompt edit history — the Ctrl+Z / Ctrl+Y
-//! feature — driven through the REAL key pipeline (`process_key_event`), so
+//! Integration tests for the prompt edit history - the Ctrl+Z / Ctrl+Y
+//! feature - driven through the REAL key pipeline (`process_key_event`), so
 //! the tests cover the handler gates, the recording paths and the restore
 //! application end to end.
 
@@ -65,7 +65,7 @@ async fn undo_after_backspaces_restores_the_deleted_text_too() {
 
     // The typing + backspace flow is ONE coalesced step (it began on the
     // empty draft, so the pre-session state is ""): a single Ctrl+Z undoes
-    // the whole flow — the deleted characters go with the typed text.
+    // the whole flow - the deleted characters go with the typed text.
     app.process_key_event(ctrl(KeyCode::Char('z'))).unwrap();
     assert_eq!(app.prompt_view.input, "");
     // And there is nothing before the pre-session state.
@@ -84,7 +84,7 @@ async fn ctrl_z_after_a_correction_restores_the_original_prompt() {
 
     type_text(&mut app, "texto originnal com erros");
     // The event handler applies a successful correction through
-    // `replace_with_correction` — the same path the production code uses.
+    // `replace_with_correction` - the same path the production code uses.
     app.prompt_view
         .replace_with_correction("Texto original, com erros corrigidos.".into());
     assert_eq!(
@@ -159,7 +159,7 @@ async fn ctrl_z_on_an_empty_prompt_is_a_noop() {
 }
 
 /// M1 regression: with the slash menu open (draft starts with `/`), the
-/// menu's Char handler runs BEFORE the Session-mode one — Ctrl+Z must undo
+/// menu's Char handler runs BEFORE the Session-mode one - Ctrl+Z must undo
 /// there too, never type a literal `z` into the filtered command.
 #[tokio::test]
 async fn ctrl_z_works_while_the_slash_menu_is_open() {
@@ -265,7 +265,7 @@ async fn ctrl_c_with_the_prompt_blurred_still_shows_the_quit_confirm() {
 /// Ctrl+C with the prompt focused but the draft EMPTY has nothing to kill:
 /// the key falls through to the quit-confirm instead. Whitespace-only
 /// drafts count as empty (trim), and a double Ctrl+C leaves the app
-/// naturally — the first press wipes the draft, the second quits.
+/// naturally - the first press wipes the draft, the second quits.
 #[tokio::test]
 async fn ctrl_c_on_an_empty_or_whitespace_prompt_shows_the_quit_confirm() {
     let _home = HOME_LOCK.lock();
@@ -319,7 +319,7 @@ async fn double_ctrl_c_wipes_the_draft_then_asks_to_quit() {
 
 /// Ctrl+C with the slash menu open and the prompt focused still clears the
 /// draft (the prompt owns the keyboard while filtering) and the menu
-/// re-syncs shut on the empty input — same as a Ctrl+Z to empty.
+/// re-syncs shut on the empty input - same as a Ctrl+Z to empty.
 #[tokio::test]
 async fn ctrl_c_clears_the_draft_even_with_the_slash_menu_open() {
     let _home = HOME_LOCK.lock();

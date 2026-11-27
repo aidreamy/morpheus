@@ -1,4 +1,4 @@
-//! Demonstrate `keyboard` — the typing engine shared by `computer_control`
+//! Demonstrate `keyboard` - the typing engine shared by `computer_control`
 //! and `computer_act`: key NAMES parse case-insensitively (with aliases),
 //! single characters are taken literally, UPPERCASE characters are
 //! REJECTED (hold `shift` explicitly), and modifiers come from a small
@@ -6,14 +6,14 @@
 //! `super`/`win`).
 //!
 //! Key design rule: an uppercase letter never silently lowercases. A
-//! silently-lowercased `A` would send the wrong key AND report success —
+//! silently-lowercased `A` would send the wrong key AND report success -
 //! the tool refuses it and points at `held: ["shift"]` instead. `text`
 //! handles case itself (it types literally), which is why it rejects
 //! `held`.
 //!
-//! Everything here runs fully offline — the parsers are pure functions.
+//! Everything here runs fully offline - the parsers are pure functions.
 //! The simulated keystrokes need a desktop session (and land in whatever
-//! element holds keyboard focus NOW — aiming them is a click's job, see
+//! element holds keyboard focus NOW - aiming them is a click's job, see
 //! computer-control).
 //!
 //! Run with:
@@ -62,7 +62,7 @@ fn main() {
     // ── Step classification: what makes a step a KEYBOARD step? ──
     //
     // `key` counts after TRIM (a whitespace-only key is not a step);
-    // `text` counts AS-IS (a literal space is real text — a spacebar
+    // `text` counts AS-IS (a literal space is real text - a spacebar
     // keystroke). The validators and the dispatcher share this exact
     // helper, so they can never disagree about a step's kind.
     assert!(is_keyboard_step(Some("  enter  ".trim()), None));
@@ -77,13 +77,13 @@ fn main() {
     let select_all: ComputerControl = serde_json::from_str(chord_wire).expect("valid wire shape");
     println!("chord wire: {chord_wire} → {select_all:?}");
 
-    // Uppercase INTENT is spelled with an explicit shift hold — the only
+    // Uppercase INTENT is spelled with an explicit shift hold - the only
     // way to type a capital `A` as a keystroke (or use `text` instead):
     let capital_wire = r#"{"key": "a", "held": ["shift"]}"#;
     let capital: ComputerControl = serde_json::from_str(capital_wire).expect("valid wire shape");
     println!("shift+`a` wire: {capital_wire} → {capital:?}");
 
     // Dispatch (needs a desktop session; typing lands in the FOCUSED
-    // element — click it first, see computer-control):
+    // element - click it first, see computer-control):
     // computer::control(&select_all).await
 }

@@ -1,7 +1,7 @@
 //! Shared-state wrapper for bash execution.
 //!
-//! [`Bash`] holds execution configuration — environment variables,
-//! PTY mode, and working directory — so callers don't have to
+//! [`Bash`] holds execution configuration - environment variables,
+//! PTY mode, and working directory - so callers don't have to
 //! reconstruct options on every invocation.
 //!
 //! # Example
@@ -52,7 +52,7 @@ pub fn strip_ansi(bytes: &[u8]) -> String {
 
 /// Default hard runtime cap in milliseconds: 30 minutes (1_800_000 ms).
 ///
-/// The cap is the last line of defense, not the primary hang guard — the
+/// The cap is the last line of defense, not the primary hang guard - the
 /// liveness watchdog (see `bash/liveness.rs`) kills a command much earlier
 /// when it shows no output, no CPU time and no I/O progress for the
 /// quiescence window (120s), so legitimate long-running commands are never
@@ -61,7 +61,7 @@ pub fn strip_ansi(bytes: &[u8]) -> String {
 ///
 /// The value is interpolated into the `bash_run` tool description so the
 /// model knows the baseline. It is wrapper configuration, not a call
-/// argument — the model cannot change it per call.
+/// argument - the model cannot change it per call.
 pub const DEFAULT_MAX_RUNTIME_MS: u64 = 1_800_000;
 
 /// Shared-state wrapper for bash execution.
@@ -105,8 +105,8 @@ impl Bash {
     /// Build the model-facing `bash_run` tool description for a configured
     /// hard runtime cap.
     ///
-    /// The cap value is interpolated here, from the **instance field** —
-    /// not from [`DEFAULT_MAX_RUNTIME_MS`] directly — so the text always
+    /// The cap value is interpolated here, from the **instance field** -
+    /// not from [`DEFAULT_MAX_RUNTIME_MS`] directly - so the text always
     /// states the cap that `run` actually enforces, even when a caller
     /// overrides the default via [`Bash::timeout`]. This struct owns the
     /// property: the harness never restates the value.
@@ -151,7 +151,7 @@ impl Bash {
     /// Set the hard runtime cap in milliseconds.
     ///
     /// The cap is the last line of defense against commands that keep
-    /// making progress forever (e.g. a CPU-burning busy loop) — the primary
+    /// making progress forever (e.g. a CPU-burning busy loop) - the primary
     /// hang guard is the liveness watchdog, which kills a command that
     /// shows no output, CPU or I/O progress for the quiescence window long
     /// before this cap. When the cap elapses, the child process is killed
@@ -195,7 +195,7 @@ impl Bash {
 
     /// Execute a bash command and return its output as an async stream.
     ///
-    /// The returned stream borrows from `self` — it must not outlive the
+    /// The returned stream borrows from `self` - it must not outlive the
     /// [`Bash`] instance.
     ///
     /// # Errors
@@ -215,7 +215,7 @@ mod timeout_default_tests {
     use super::Bash;
     use super::DEFAULT_MAX_RUNTIME_MS;
 
-    /// `Bash::new()` ships the 30-minute hard cap — the harness relies on
+    /// `Bash::new()` ships the 30-minute hard cap - the harness relies on
     /// it (it no longer calls `.timeout(...)` itself).
     #[test]
     fn new_uses_default_timeout() {
@@ -252,7 +252,7 @@ mod timeout_default_tests {
     }
 
     /// A dev-level builder override regenerates the description with the new
-    /// configured cap: the text always states the cap `run` enforces —
+    /// configured cap: the text always states the cap `run` enforces -
     /// never just the constant's default.
     #[test]
     fn builder_timeout_regenerates_description() {

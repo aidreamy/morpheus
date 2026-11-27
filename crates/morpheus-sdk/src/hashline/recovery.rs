@@ -96,7 +96,7 @@ fn get_edit_anchors(edit: &Edit) -> Vec<Anchor> {
 /// requires this: if the prior in-session edit rewrote the line the model is
 /// now re-targeting with a stale hash, replaying onto current would silently
 /// overwrite the new content with whatever the model authored against the
-/// old content — a corruption window, not a recovery.
+/// old content - a corruption window, not a recovery.
 fn verify_anchor_content(previous_text: &str, current_text: &str, edits: &[Edit]) -> bool {
     let lines = collect_anchor_lines(edits);
     if lines.is_empty() {
@@ -123,7 +123,7 @@ fn replay_session_chain_on_current(
     path: &str,
 ) -> Option<RecoveryResult> {
     // Two guards narrow the corruption window. Neither alone is sufficient,
-    // and even together they don't fully prove correctness — replay is the
+    // and even together they don't fully prove correctness - replay is the
     // less-certain recovery mode and emits RECOVERY_SESSION_REPLAY_WARNING
     // so the caller can verify the diff.
     //   - Equal line counts: every line number in `edits` still resolves to
@@ -190,7 +190,7 @@ fn is_head_snapshot(head: Option<&Snapshot>, snapshot: &Snapshot) -> bool {
 ///    the resulting patch onto the live content (handles external writes).
 /// 2. (Session chain) If that version was not the head, replay the edits onto
 ///    the live content directly when line counts match AND every edit's anchor
-///    line content is unchanged between version and current — a prior in-session
+///    line content is unchanged between version and current - a prior in-session
 ///    edit advanced the tag and the model's anchors still name the same logical
 ///    rows. Emits a dedicated [`RECOVERY_SESSION_REPLAY_WARNING`] because
 ///    even with both guards a coincidental insert+delete pair on duplicate rows
@@ -204,7 +204,7 @@ impl<S: SnapshotStore> Recovery<S> {
         Self { store }
     }
 
-    /// Attempt recovery. Returns `None` when no path forward is found — the
+    /// Attempt recovery. Returns `None` when no path forward is found - the
     /// caller should then surface a [`MismatchError`].
     pub fn try_recover(&mut self, args: &RecoveryArgs) -> Option<RecoveryResult> {
         let snapshot = self.store.by_hash(&args.path, &args.file_hash)?;
@@ -228,7 +228,7 @@ impl<S: SnapshotStore> Recovery<S> {
         if recovered.is_none() && !is_head {
             // Session-chain fallback: the 3-way merge on the version refused.
             // Replay onto current is gated by line-count equality AND
-            // anchor-content alignment — see `replay_session_chain_on_current`
+            // anchor-content alignment - see `replay_session_chain_on_current`
             // for why both guards together still don't fully prove correctness.
             recovered = replay_session_chain_on_current(
                 &snapshot.text,
@@ -245,12 +245,12 @@ impl<S: SnapshotStore> Recovery<S> {
 
     /// Warning text when the edit anchors target lines the model never saw
     /// surfaced by the tool output that minted `file_hash`, or `None` when
-    /// every anchor was surfaced (or no seen lines were recorded — e.g. the
+    /// every anchor was surfaced (or no seen lines were recorded - e.g. the
     /// file was read via a tool that does not track them).
     ///
     /// Public so the patcher can run the same gate on the NORMAL apply path
     /// (tag still matches live content): drift recovery is not the only way a
-    /// model ends up anchoring elided content — a read with a truncated
+    /// model ends up anchoring elided content - a read with a truncated
     /// window mints a perfectly current tag for lines it never showed.
     pub fn unseen_anchor_warning(
         &mut self,
@@ -284,7 +284,7 @@ impl<S: SnapshotStore> Recovery<S> {
     /// surfaced by the tool output that minted the stale tag. The snapshot
     /// itself may be older than what the model saw (the tag fingerprints the
     /// full file, but grep only surfaced a window of lines), so an edit aimed
-    /// outside that window is the model working against unseen content — worth
+    /// outside that window is the model working against unseen content - worth
     /// a "verify the diff" hedge. Silent when no seen lines were recorded for
     /// the tag (e.g. the file was read via a tool that does not track them).
     fn append_unseen_anchor_warning(&mut self, result: &mut RecoveryResult, args: &RecoveryArgs) {

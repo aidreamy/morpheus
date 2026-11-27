@@ -25,7 +25,7 @@ impl SessionView {
 impl SessionView {
     /// Approximate live bytes of one cached entry (rendered cells + region
     /// strings). Only the byte-heavy `Vec<Cell>` and the region text are
-    /// counted — the fixed per-message overhead is negligible. An associated
+    /// counted - the fixed per-message overhead is negligible. An associated
     /// function (no `&self`) so the store sites can compute it from disjoint
     /// field borrows while the reusable `scratch` buffer is still borrowed.
     pub(super) fn cache_entry_bytes_of(
@@ -51,7 +51,7 @@ impl SessionView {
     /// until the cache is back under [`RENDER_CACHE_LOW_WATER`]. Messages
     /// inside a generous row guard around the viewport are never evicted, so
     /// ordinary scrolling stays re-render-free; only old content far from the
-    /// current position sheds its cached cells. The transcript is untouched —
+    /// current position sheds its cached cells. The transcript is untouched -
     /// an evicted message simply re-renders if the user scrolls back to it.
     ///
     /// The guard window is located with two binary searches over `prefix_y`
@@ -61,7 +61,7 @@ impl SessionView {
     /// entirely below it. The candidate scan is then limited to the two
     /// evictable ranges with a single cached-cell check per message (no
     /// position arithmetic), but it still scales with the number of messages
-    /// OUTSIDE the guard — so when the viewport sits at the bottom of a long
+    /// OUTSIDE the guard - so when the viewport sits at the bottom of a long
     /// timeline the front range covers most of it. The win is the O(log n)
     /// boundaries, the O(1) per-item work, and skipping the guard interior.
     /// The eviction then sizes and orders only the entries it will evict: a
@@ -84,7 +84,7 @@ impl SessionView {
         }
         // Content-space guard: the visible content window is
         // [scroll_y, scroll_y + viewport_height], and the message walk below
-        // is in content rows. `vp_top`/`vp_bottom` are SCREEN rows — only
+        // is in content rows. `vp_top`/`vp_bottom` are SCREEN rows - only
         // their difference (the viewport height) is coordinate-independent.
         let visible_h = vp_bottom - vp_top;
         let guard_top = self.scroll_y - RENDER_CACHE_GUARD_ROWS;
@@ -112,7 +112,7 @@ impl SessionView {
         let below_guard_start = lo;
 
         // Only the two evictable ranges are scanned, with the guard test
-        // already baked into the boundaries — per-message work is a single
+        // already baked into the boundaries - per-message work is a single
         // cached-cell check (no position arithmetic).
         let mut candidates: Vec<usize> =
             Vec::with_capacity(above_guard_end + (n - below_guard_start));
@@ -144,7 +144,7 @@ impl SessionView {
         // With distinct stamps the result matches a stable full sort
         // exactly; equal stamps (messages rendered in the same frame share
         // the render-frame stamp) are broken arbitrarily by the partition,
-        // which is fine for an LRU — the guard, the outside-guard-only
+        // which is fine for an LRU - the guard, the outside-guard-only
         // eviction and the crossing semantics are preserved either way.
         // The window degrades to the full list only when nearly every
         // candidate is evicted (covered == k).
@@ -237,7 +237,7 @@ impl SessionView {
         // Per-part change stamps: the incremental path only patches the Text
         // part, so any in-place change of another part (a Reasoning block the
         // deltas keep folding into, a tool box completing mid-stream) must
-        // force a fresh full rebuild — the part COUNT cannot see those.
+        // force a fresh full rebuild - the part COUNT cannot see those.
         let part_stamps: Vec<u64> = msg.parts.iter().map(part_content_stamp).collect();
         // Track which message the streaming cache is rendering: while deltas
         // keep arriving to it AFTER a queued message was injected below it
@@ -255,7 +255,7 @@ impl SessionView {
                 // Only the NON-text parts gate the identity: the streaming
                 // Text part grows on every delta by design (its own
                 // incremental cache patches it), so its stamp must not
-                // invalidate the cache — comparing it would force a fresh
+                // invalidate the cache - comparing it would force a fresh
                 // full rebuild per frame and destroy the O(delta) path.
                 && sc.part_stamps[..text_pi] == part_stamps[..text_pi]
                 && sc.text.as_ref().is_some_and(|t| t.part_index == text_pi)

@@ -1,8 +1,8 @@
 //! The model contract: what it means to be a decision model in this crate.
 //!
 //! A decision model answers a batch of questions against a state. The trait
-//! is the seam every backend plugs into — the ONNX agent now, future
-//! backends later — and the only type the generic consumers (shortlist,
+//! is the seam every backend plugs into - the ONNX agent now, future
+//! backends later - and the only type the generic consumers (shortlist,
 //! schema decisions) depend on.
 
 use std::collections::HashMap;
@@ -25,21 +25,21 @@ pub trait PredictRunner {
 }
 
 /// A resident agent handle: the duck-typed [`AgentLike`] shared by every
-/// prediction. An `Arc` clone shares one agent with no outer lock — a
+/// prediction. An `Arc` clone shares one agent with no outer lock - a
 /// prediction only reads immutable model state, and the mutable seams
 /// (session, tokenizer, hook lock) are interior to the agent (upstream: one
 /// `Agent` object shared by all callers, inference serialised on the
 /// interpreter).
 ///
-/// Lives here because [`DecisionModel`] hands out exactly this handle — the
+/// Lives here because [`DecisionModel`] hands out exactly this handle - the
 /// Router and the facade share one shape of residency.
 pub type SharedAgent = Arc<dyn AgentLike>;
 
 /// The agent-like surface the Router drives (`agent.system_one`,
 /// `agent.predict_batch`, `agent.revision`, `agent.lang_temperatures`).
 ///
-/// Upstream accepts any object with those attributes — the torch `Agent`, an
-/// `ONNXAgent`, or a test stub — so `Router.load`/`Router.attach` hold a
+/// Upstream accepts any object with those attributes - the torch `Agent`, an
+/// `ONNXAgent`, or a test stub - so `Router.load`/`Router.attach` hold a
 /// trait object here instead of a concrete type. The ONNX agent implements
 /// this trait; tests implement it over their own stubs, which is the
 /// equivalent of `unittest.mock.patch("laya.agent.Agent")`.
@@ -52,7 +52,7 @@ pub type SharedAgent = Arc<dyn AgentLike>;
 ///
 /// `Send + Sync` supertraits: a resident is shared by reference
 /// ([`SharedAgent`]) and predicts concurrently. Upstream's `&mut self` comes
-/// from Python's single-threaded interpreter, not from the model — a
+/// from Python's single-threaded interpreter, not from the model - a
 /// prediction reads immutable state (temperatures, config) and drives
 /// interior-mutable seams (session, tokenizer, hook lock).
 pub trait AgentLike: Send + Sync {
@@ -70,7 +70,7 @@ pub trait AgentLike: Send + Sync {
 
     /// `agent.predict_batch(states, questions, batch_size=..., lang=...)`:
     /// one shared question schema and token budget over many states. The
-    /// default runs one [`AgentLike::system_one`] per state — the ONNX
+    /// default runs one [`AgentLike::system_one`] per state - the ONNX
     /// backend's shape; a batching backend overrides this. `lang` is the
     /// group's forwarded language, set only when the agent carries
     /// per-language temperatures (upstream adds the kwarg only when not
@@ -110,7 +110,7 @@ pub trait AgentLike: Send + Sync {
 /// The named variants are the three published laya checkpoints, addressed by
 /// the same names the Router routes by (`english`, `multilingual`,
 /// `typed-decisions`). The repo ids and their subfolders are the laya
-/// backend's data — this enum stays backend-agnostic so a future backend can
+/// backend's data - this enum stays backend-agnostic so a future backend can
 /// resolve the same names to its own artifacts. A caller holding a raw hub
 /// repo id, a bundled `(repo, subfolder)` pair or a local checkpoint
 /// directory passes [`ModelKind::Custom`].
@@ -186,7 +186,7 @@ pub struct LoadOptions {
     pub hooks_timeout: Option<f64>,
     /// Rust-only addition (no upstream counterpart): cap the ONNX Runtime
     /// intra-op thread pool of the session. `None` keeps ORT's default (one
-    /// pool sized to the machine per session — a Router holding several
+    /// pool sized to the machine per session - a Router holding several
     /// residents then stacks that many pools). A small value deduplicates
     /// the CPU budget across residents. Opt-in because the parallel
     /// reduction order inside ORT can differ from the default pool's, and
@@ -211,7 +211,7 @@ pub trait DecisionModel: Send + Sync {
     fn revision(&self) -> Option<String>;
 
     /// Run one decision: a state and a question schema in, the full result
-    /// object (`answers`, `usage`) out — upstream `agent.predict` /
+    /// object (`answers`, `usage`) out - upstream `agent.predict` /
     /// `agent.system_one`.
     ///
     /// `lang` selects a per-language temperature override; `max_len` /
@@ -227,7 +227,7 @@ pub trait DecisionModel: Send + Sync {
 
     /// Many states against one shared question schema (`predict_batch`
     /// upstream): `states[i]` answers into `results[i]`, input order kept.
-    /// `batch_size` is advisory — the default runs one
+    /// `batch_size` is advisory - the default runs one
     /// [`DecisionModel::decide`] per state; a backend with a real batched
     /// forward pass honours it.
     fn predict_batch(
@@ -246,13 +246,13 @@ pub trait DecisionModel: Send + Sync {
     }
 }
 
-/// A typed view over one prediction result — the JSON object
+/// A typed view over one prediction result - the JSON object
 /// [`DecisionModel::decide`] returns.
 ///
 /// Read-only accessors over the answer contract. On every question type,
 /// `confidence` is 1 minus the normalised entropy of the distribution (how
 /// concentrated it is) while `answer_confidence` is the probability of the
-/// reported answer — the one number to gate on across types.
+/// reported answer - the one number to gate on across types.
 #[derive(Debug, Clone)]
 pub struct Prediction(Value);
 

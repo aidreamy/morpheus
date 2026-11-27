@@ -58,7 +58,7 @@ pub trait SnapshotStore {
     /// Lines of `path` surfaced to the model at version `hash`: `(1-indexed
     /// line number, content)` in output order. Producers (grep / read / search)
     /// record these so recovery can flag edits that anchor lines the model
-    /// never saw. Defaults to no seen lines — recording is opt-in.
+    /// never saw. Defaults to no seen lines - recording is opt-in.
     fn seen_lines(&mut self, path: &str, hash: &str) -> Vec<(u32, String)> {
         let _ = (path, hash);
         Vec::new()
@@ -196,7 +196,7 @@ impl SnapshotStore for InMemorySnapshotStore {
 
 // Shared ownership via Arc<Mutex<S>> so both Patcher and Recovery
 // can reference the same SnapshotStore without duplicating state.
-// A std::sync::Mutex is appropriate here — critical sections are
+// A std::sync::Mutex is appropriate here - critical sections are
 // short (HashMap/LRU ops) and never held across .await points.
 use std::sync::{Arc, Mutex};
 

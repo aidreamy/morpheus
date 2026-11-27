@@ -295,7 +295,7 @@ fn glob_precancelled_timeout_is_error() {
     write_file(&tmp.path().join("f.txt"), "x");
 
     // A timeout that already elapsed before the scan starts has nothing to
-    // salvage — it surfaces as an error, not as empty partials.
+    // salvage - it surfaces as an error, not as empty partials.
     let err = glob(
         &Glob {
             timeout_ms: Some(0),
@@ -551,7 +551,7 @@ fn to_path_list_semicolon_syntax_removed() {
 // -------------------------------------------------------------------------
 // find_glob `max_results` semantics (mirrors the oh-my-pi reference): a
 // default cap of 200; the model can only LOWER the cap, never raise it above
-// the ceiling — a larger value is clamped, not honored.
+// the ceiling - a larger value is clamped, not honored.
 // -------------------------------------------------------------------------
 
 use super::super::Find;

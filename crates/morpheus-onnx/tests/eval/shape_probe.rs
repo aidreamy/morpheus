@@ -18,11 +18,11 @@
 //! it when a request-aware checkpoint ships (its result may flip).
 //!
 //! SECOND NEGATIVE RESULT (paired-eval follow-up): candidates I/J (the
-//! surface-form criteria — "explicit closure or past-tense account") won the
+//! surface-form criteria - "explicit closure or past-tense account") won the
 //! probe matrix (I: 7/8 vs baseline 5/8) but LOST on the full
 //! `loop_termination` corpus: I dropped all/loop 0.8333→0.7500
 //! (label/terminated 0.7143→0.5714), J reached 0.7917
-//! (label/terminated 0.6429) — both below the 0.80 production gate. A tiny
+//! (label/terminated 0.6429) - both below the 0.80 production gate. A tiny
 //! probe matrix is too small to rank wordings: it promoted exactly the
 //! wording the corpus rejects. The paired change (eval + checkup consumer)
 //! was reverted; the criteria stay frozen at the benchmark-locked wording
@@ -36,7 +36,7 @@ use serde_json::{Value, json};
 use morpheus_onnx::{LoadOptions, ModelKind, load};
 
 /// One labelled pair: what the user asked, and the agent's final text.
-/// Kept minimal (one terminated, one running) — the shape comparison, not
+/// Kept minimal (one terminated, one running) - the shape comparison, not
 /// the accuracy measurement, is the goal; `loop_termination` scores the
 /// winner on the full corpus.
 struct Pair {
@@ -72,7 +72,7 @@ const PAIRS: &[Pair] = &[
     },
     // PRODUCTION FALSE-POSITIVE CLASS: a closing summary that also lists
     // what REMAINS (non-blocking leftovers). The laya.log vetoes hit exactly
-    // this shape — the summary is complete, but the words "remaining" and
+    // this shape - the summary is complete, but the words "remaining" and
     // "later" read as unfinished work.
     Pair {
         request: "Revise o commit 973446 e corrija os problemas encontrados.",
@@ -80,14 +80,14 @@ const PAIRS: &[Pair] = &[
         terminated: true,
     },
     // ADVERSARIAL for the past-tense wording: past-tense narration that is
-    // NOT a stop — the tense alone must never mean "terminated".
+    // NOT a stop - the tense alone must never mean "terminated".
     Pair {
         request: "Configure o ambiente de build do projeto.",
         response: "Instalei as dependências e gerei o lockfile. Agora vou compilar o binário para validar a configuração.",
         terminated: false,
     },
     // Past-tense with an explicit remaining step: the strongest trap for any
-    // wording that keys on "what was done" — the done-part is real but the
+    // wording that keys on "what was done" - the done-part is real but the
     // loop keeps going.
     Pair {
         request: "Rode a suíte de testes completa.",
@@ -127,14 +127,14 @@ const INSTR_MESSAGE_TASK: &str = "`message` is an agent's final response to the 
 
 /// The consumer's current two-field criteria.
 const CRITERIA_CURRENT: (&str, &str) = (
-    "the task is complete and the loop ended: the response fully answers the user's request — a direct self-contained answer, or a summary of what was done with nothing left to do",
+    "the task is complete and the loop ended: the response fully answers the user's request - a direct self-contained answer, or a summary of what was done with nothing left to do",
     "the loop is still going: the agent will read or write files, run commands, or start the next step",
 );
 
 /// Direct-answer-aware criteria for the BARE-MESSAGE state: the request is
 /// not visible, so the criterion describes endings without referencing it.
 const CRITERIA_DIRECT: (&str, &str) = (
-    "the task is complete and the loop ended: the response is a complete ending — a direct self-contained answer, or a summary of what was done with nothing left to do",
+    "the task is complete and the loop ended: the response is a complete ending - a direct self-contained answer, or a summary of what was done with nothing left to do",
     "the loop is still going: the agent will read or write files, run commands, or start the next step",
 );
 
@@ -142,24 +142,24 @@ const CRITERIA_DIRECT: (&str, &str) = (
 /// the exchange is closed rather than around a work summary.
 const CRITERIA_QA: (&str, &str) = (
     "the exchange is closed: the response fully settles what was asked or reports the work as done, nothing left to do",
-    "the exchange is open: the response announces or implies further work — reading or writing files, running commands, starting the next step",
+    "the exchange is open: the response announces or implies further work - reading or writing files, running commands, starting the next step",
 );
 
 /// SURFACE-FORM criteria (candidate I): terminated keys on what legitimate
-/// stops TEXTUALLY look like — an explicit closure marker, or a past-tense
+/// stops TEXTUALLY look like - an explicit closure marker, or a past-tense
 /// account of what was done, where, and why. Running keeps its original
 /// forward-looking anchor so only the missed side is reworded.
 const CRITERIA_SURFACE: (&str, &str) = (
-    "the loop ended with this text: it explicitly closes the work, or it reports in the past tense what was done, where it was done, and why — with no next step named",
+    "the loop ended with this text: it explicitly closes the work, or it reports in the past tense what was done, where it was done, and why - with no next step named",
     "the loop is still going: the agent will read or write files, run commands, or start the next step",
 );
 
 /// SURFACE-FORM criteria, BOTH sides (candidate J): running is also rewritten
-/// to key on the surface forms of continuations — future/progressive
-/// announcements, named next steps, or anything stated as still pending —
+/// to key on the surface forms of continuations - future/progressive
+/// announcements, named next steps, or anything stated as still pending -
 /// so the decision contrasts closed accounts against open ones.
 const CRITERIA_SURFACE_BOTH: (&str, &str) = (
-    "the loop ended with this text: it explicitly closes the work, or it reports in the past tense what was done, where it was done, and why — with no next step named",
+    "the loop ended with this text: it explicitly closes the work, or it reports in the past tense what was done, where it was done, and why - with no next step named",
     "the loop is still going: the text announces future work (\"will\", \"going to\", \"now I will\"), names a next step, or states anything as still pending or remaining to do",
 );
 
@@ -185,7 +185,7 @@ fn shapes() -> Vec<Shape> {
             criteria: CRITERIA_CURRENT,
         },
         // Concatenated into ONE message: the request quoted, then the
-        // response — a single string the bare-message tokenizer path reads.
+        // response - a single string the bare-message tokenizer path reads.
         Shape {
             name: "C. message-concat (task: … / response)",
             build: |p| json!({ "message": format!("Task: {}\n\nResponse: {}", p.request, p.response) }),
@@ -240,8 +240,8 @@ fn shapes() -> Vec<Shape> {
         },
         // CANDIDATE (the "mini prompt" idea): state untouched, the terminated
         // criterion rewritten to describe EXACTLY what legitimate stops look
-        // like — explicit closure wording or a past-tense account of what was
-        // done, where, and why — while running keeps its forward-looking
+        // like - explicit closure wording or a past-tense account of what was
+        // done, where, and why - while running keeps its forward-looking
         // anchor. The hypothesis: a tiny model keys on surface form
         // (tense/closure markers), not on "task completeness", so naming the
         // surface form in the criterion should raise the recall of real
@@ -337,7 +337,7 @@ fn shape_probe() {
             hits += usize::from(correct);
             total += 1;
             detail.push(format!(
-                "    [{}{:2}] said={said:<10} conf={conf:.3} — “{}”",
+                "    [{}{:2}] said={said:<10} conf={conf:.3} - “{}”",
                 if correct { " " } else { "!" },
                 if pair.terminated { "T" } else { "R" },
                 &pair.response[..pair.response.len().min(50)],

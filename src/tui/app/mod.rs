@@ -91,7 +91,7 @@ pub(crate) fn message_prompt_text(msg: &crate::types::Message) -> String {
 /// One-line, control-character-free preview of a text for the Message
 /// Actions / Queue Actions boxes. The box renders the preview with
 /// `draw_text_line`, which writes characters into the ratatui buffer
-/// directly — a raw `\n` (multiline prompt) or any other control char in
+/// directly - a raw `\n` (multiline prompt) or any other control char in
 /// the source text panics ratatui's `cell_width`, so they never reach it.
 pub(crate) fn dialog_preview_text(text: &str) -> String {
     text.lines()
@@ -187,7 +187,7 @@ struct SessionArea {
 }
 
 /// Where an edited queued message came from, so it can return to its exact
-/// slot ([`App::enqueue_pending_message`]). Bound to the owning session —
+/// slot ([`App::enqueue_pending_message`]). Bound to the owning session -
 /// the hint is meaningless (and dropped) anywhere else.
 #[derive(Debug)]
 pub(super) struct EditRequeueHint {
@@ -282,7 +282,7 @@ pub struct App {
     pub slash_menu: crate::ui::slash_menu::SlashMenu,
     /// Context of an open [`DialogType::AgentConfigList`]: the split
     /// generation (`agents_pane_epoch`), pane index, agent name and ACP
-    /// config option id the box was opened FOR — all captured at OPEN time.
+    /// config option id the box was opened FOR - all captured at OPEN time.
     /// Confirm re-validates epoch + agent against the live split, so a
     /// teardown-and-rebuild under an open box can never dispatch a stale
     /// config id into a rebuilt pane that merely shares the index.
@@ -299,7 +299,7 @@ pub struct App {
     /// supersede or teardown of a split (parked slot included). Dispatch
     /// snapshots it into every pane event, so a turn cancelled by a slot
     /// swap delivers its terminal `AgentsPaneDone` against a stale epoch and
-    /// the handler drops it — a stopped pane can never bind its OLD agent
+    /// the handler drops it - a stopped pane can never bind its OLD agent
     /// session into a NEW pane (or a NEW session's metadata) that merely
     /// shares the pane index. Park/attach do NOT bump: they keep the SAME
     /// pane objects alive, so a running turn's events (and its Done) stay
@@ -307,7 +307,7 @@ pub struct App {
     agents_pane_epoch: u64,
     /// A split PARKED by an Esc leave (the `/agents` mode closed, the agent
     /// set kept): running turns continue streaming into it and a later
-    /// `/agents` re-attaches it as-is — same panes, same timelines, same
+    /// `/agents` re-attaches it as-is - same panes, same timelines, same
     /// bound sessions. Parking is session-scoped by construction: it is dropped
     /// when the session changes (the pane set lives on in the session
     /// metadata for a later rebuild).
@@ -318,20 +318,20 @@ pub struct App {
     main_mirror_bridge: main_mirror::MirrorBridge,
     /// The parked `agents_worktree` op awaiting the user's permission
     /// (the pane's binding was `AssignedBy::User` and the ask would change
-    /// or clear it — the user's supremacy holds even in Yolo mode). Only
-    /// the OP is kept — its `pane` field IS the registry id, and the pane
+    /// or clear it - the user's supremacy holds even in Yolo mode). Only
+    /// the OP is kept - its `pane` field IS the registry id, and the pane
     /// INDEX is re-resolved from it when the user answers (a split that
     /// changed while the dialog was open must never redirect the binding
     /// to a different pane). `None` when no ask is pending. The ask renders
     /// in the SESSION permission box (`routes::session::permission`), whose
     /// Up/Down/Enter/Esc and click resolution routes here instead of the
-    /// harness `perm_tx` while this is `Some` — the ask is resolved
+    /// harness `perm_tx` while this is `Some` - the ask is resolved
     /// App-side, never by the running loop.
     pending_worktree_confirmation: Option<morpheus::harness::agent_coworkers::WorktreeOp>,
     /// Session-wide grant recorded when the user answers an
     /// `agents_worktree` permission box with "Allow": later agent asks may
     /// rebind User-assigned panes for the rest of this app run without
-    /// reopening the box. In-memory only — a restart asks again.
+    /// reopening the box. In-memory only - a restart asks again.
     worktree_agent_grant: bool,
     /// A harness `PermissionRequest` that arrived while an `agents_worktree`
     /// ask held the session permission box: parked here and re-shown the
@@ -364,7 +364,7 @@ pub struct App {
     /// a pending queued message, so "send now" is honoured within one poll.
     pub(crate) awaiting_pane_reports: bool,
     /// The open-items listing the LAST pending-todos auto-wake was fired with.
-    /// The wake fires again only when the open list has CHANGED since — a
+    /// The wake fires again only when the open list has CHANGED since - a
     /// turn that stopped without reconciling anything must not be re-woken
     /// forever (the same bounded-recovery contract every loop-guard shares).
     todo_wake_last_items: Option<String>,
@@ -373,20 +373,20 @@ pub struct App {
     /// open items every turn (a status toggle or a reworded description
     /// reads as "changed"): the budget caps the synthetic turns, and any
     /// non-wake loop start (a user prompt, a queued message, a wake
-    /// promise) resets it — fresh steering outranks the stale list.
+    /// promise) resets it - fresh steering outranks the stale list.
     todo_wakes_left: u32,
     /// Set by the pending-todos wake immediately before its
     /// `start_agent_loop` call, so the reset inside `start_agent_loop` can
     /// tell the wake's own start (keep the state) from any other start
     /// (reset it) without string-sniffing the input.
     todo_wake_in_flight: bool,
-    /// Session id that owns the currently running agent loop — guards the
+    /// Session id that owns the currently running agent loop - guards the
     /// queue auto-start against mid-run session switches. `pub(crate)`: read
     /// by `routes::session::delete` to decide whether a deleted session
     /// owns the running loop.
     pub(crate) active_loop_session_id: Option<String>,
     /// Pending-queue row (render order: next-loop rows first, then
-    /// next-request rows) currently under the mouse cursor — drives the
+    /// next-request rows) currently under the mouse cursor - drives the
     /// opencode-style hover highlight above the prompt. Identifies the
     /// MESSAGE that owns the row as `(queue_index, message_index)`: the
     /// message's own padding rows resolve to it too, so hovering any row of
@@ -397,11 +397,11 @@ pub struct App {
     /// opened; while a Queue Actions box is open the hold applies regardless
     /// (queued indexes must stay stable until the action runs).
     pub(super) queue_actions_grace_until: Option<Instant>,
-    /// The queue whose head the user is currently EDITING — the loop chain
+    /// The queue whose head the user is currently EDITING - the loop chain
     /// must wait for the edit to be submitted before consuming that head:
-    /// * `Some(NextRequest)` — the head would be delivered to the running
+    /// * `Some(NextRequest)` - the head would be delivered to the running
     ///   loop next: the pump may not forward anything until the edit lands.
-    /// * `Some(NextLoop)` — the head would start the next loop: the
+    /// * `Some(NextLoop)` - the head would start the next loop: the
     ///   auto-start (including the deferred one at loop closure) waits,
     ///   while "next request" deliveries continue untouched.
     ///
@@ -425,7 +425,7 @@ pub struct App {
     /// that (tracked) position; choosing the other queue appends at the end
     /// and drops the hint. Invalid outside the owning session.
     pub(super) edit_requeue_hint: Option<EditRequeueHint>,
-    /// Session that owned the queue when the Queue Actions box was opened —
+    /// Session that owned the queue when the Queue Actions box was opened -
     /// actions from a box left open across a session switch are rejected.
     active_queue_actions_session: Option<String>,
     llm_config: LlmConfig,
@@ -434,7 +434,7 @@ pub struct App {
     /// deleted (same mechanism as the ESC stop).
     pub(crate) stop_signal: Arc<AtomicBool>,
     /// Re-entry guard for the user-triggered `/compact`: true while the
-    /// one-off compaction task runs (there is no loop status to read —
+    /// one-off compaction task runs (there is no loop status to read -
     /// between loops the app is Idle). Cleared by the CompactOnDemand event.
     manual_compaction_active: bool,
     /// Windows paste-burst coalescer state (see `paste_burst` module docs):
@@ -468,7 +468,7 @@ pub struct App {
     /// label). Set at loop start, narrowed by the event intake as harness
     /// events arrive, and re-derived at the NEXT loop start (loop end only
     /// drops the spinner; the state is invisible while status ≠ Working).
-    /// Last event wins — parallel tool calls are not refcounted; a label
+    /// Last event wins - parallel tool calls are not refcounted; a label
     /// that overshot self-corrects within one further event.
     pub(crate) agent_activity: crate::types::AgentActivity,
     /// Latest context manager info for the budget bar (None if no data yet).
@@ -487,7 +487,7 @@ pub struct App {
     /// never persisted).
     usage_next_id: u64,
     /// Account's REMAINING prepaid balance (Charm Hypercredits) as of the
-    /// last completed request — the user-facing ◆ figure in the session
+    /// last completed request - the user-facing ◆ figure in the session
     /// header. Decreases as the user spends. `None` until the provider
     /// reports one (never for USD-billed providers).
     hypercredit_balance: Option<f64>,
@@ -513,11 +513,11 @@ pub struct App {
     /// Telemetry facade: consent-resolved state (setup.json flag + env
     /// override + CI hard-off) plus the local event queue.
     telemetry: morpheus::telemetry::Telemetry,
-    /// Per-session aggregate accumulator — one `session_summary` at exit.
+    /// Per-session aggregate accumulator - one `session_summary` at exit.
     session_telemetry: morpheus::telemetry::session::SessionTelemetry,
     /// Last rendered route; repeated frames must not inflate feature counts.
     telemetry_last_feature: Option<morpheus::telemetry::schema::Feature>,
-    /// Persistent random install id (`None`: entropy/fs failed — events are
+    /// Persistent random install id (`None`: entropy/fs failed - events are
     /// dropped, fail closed, audit F04).
     telemetry_install_id: Option<morpheus::telemetry::events::UuidId>,
     /// Session persistence store (JSONL files on disk). `pub(crate)`: the
@@ -550,12 +550,12 @@ pub struct App {
     gateway_declined: bool,
     /// The model picker currently on screen was opened BY the gateway
     /// `Authorized` event with a parked message waiting: when the picker
-    /// resolves (commit or cancel) the message replays — never under the
+    /// resolves (commit or cancel) the message replays - never under the
     /// dialog (the original code sent it the same instant the picker
     /// opened, so the reply streamed with the default model).
     gateway_model_pick: bool,
     /// (tx, rx) for device sign-in outcomes (gateway offer OR ADD Provider
-    /// Login button — the event's `origin` tells them apart) into the UI
+    /// Login button - the event's `origin` tells them apart) into the UI
     /// thread. The rx half is drained by [`App::pump_gateway_events`] once
     /// per frame.
     gateway_event_tx: tokio::sync::mpsc::UnboundedSender<gateway_recommendation::DeviceSignInEvent>,
@@ -566,8 +566,8 @@ pub struct App {
     /// the async title generation task is spawned.
     title_generated: bool,
     /// The turn being finished was a Command-mode execution (the TUI as a
-    /// plain terminal). The Done handler uses it to skip ALL LLM work —
-    /// notably the async title generation — without latching
+    /// plain terminal). The Done handler uses it to skip ALL LLM work -
+    /// notably the async title generation - without latching
     /// [`Self::title_generated`], so a session that later receives real
     /// agent turns still gets its semantic title.
     command_mode_turn: bool,
@@ -612,10 +612,10 @@ pub struct App {
     last_prompt_copy: Option<String>,
     /// A left press that began on the scroll-to-bottom pill: the matching
     /// release is swallowed so the chat content under the pill's row never
-    /// sees the click (the pill is gone by then — the jump re-attached the
+    /// sees the click (the pill is gone by then - the jump re-attached the
     /// bottom and the next frame cleared its hit rect).
     scroll_pill_pressed: bool,
-    /// Visual highlight: anchor (sx,sy) and focus (x,y) — stored without normalisation
+    /// Visual highlight: anchor (sx,sy) and focus (x,y) - stored without normalisation
     /// so the renderer can apply flow-based selection highlighting (top line from `start_x`
     /// to end, bottom line from start to `end_x`, middle lines fully highlighted).
     drag_selection: Option<(u16, u16, u16, u16)>,
@@ -629,7 +629,7 @@ pub struct App {
     animation_tick_remainder: f64,
     /// Rate-limited resolver for the git branch shown in the session footer.
     branch_tracker: morpheus::git::branch::BranchTracker,
-    /// Per-frame counter — rate-limits the PERF debug logs in the render hot
+    /// Per-frame counter - rate-limits the PERF debug logs in the render hot
     /// path (bg_fill etc.) to one sample per ~60 frames (~1/sec) instead of
     /// one write per frame.
     perf_frame: u64,
@@ -654,11 +654,11 @@ pub struct App {
     /// Clickable area of the header's back/escape button (None when not drawn).
     back_link_area: Option<Rect>,
     /// Version of the announced release (e.g. `0.1.2`), without the `v`
-    /// prefix. `None` = up to date / no check result — the session footer
+    /// prefix. `None` = up to date / no check result - the session footer
     /// then shows only the running version.
     update_latest_version: Option<String>,
     /// Raw git tag of the announced release (e.g. `v0.1.2`), exactly as
-    /// published on GitHub — the value `spawn_update_pipeline` pins the
+    /// published on GitHub - the value `spawn_update_pipeline` pins the
     /// installer script and `MORPHEUS_VERSION` to (kept verbatim: a tag
     /// published without the `v` prefix must survive reconstruction-free
     /// into the pipeline, reconstruction-free).
@@ -674,7 +674,7 @@ pub struct App {
     /// release check and the completion of the update pipeline.
     update_event_rx: tokio::sync::mpsc::UnboundedReceiver<crate::update::UpdateEvent>,
     /// Sender half of [`Self::update_event_rx`], kept (and cloned) so the
-    /// spawned update tasks can always send — dropped only with the app.
+    /// spawned update tasks can always send - dropped only with the app.
     update_event_tx: tokio::sync::mpsc::UnboundedSender<crate::update::UpdateEvent>,
     /// Changelog URL of the announced release (from the GitHub API response).
     /// Kept outside the banner so the view stays pure display state.
@@ -682,7 +682,7 @@ pub struct App {
     /// Whether the terminal bell rings when an agent loop finishes.
     bell_enabled: bool,
     /// Test-only fixed terminal size. `Some(rect)` makes `terminal_size()`
-    /// return it instead of querying the real console — mouse hit-testing
+    /// return it instead of querying the real console - mouse hit-testing
     /// tests must not depend on the ambient terminal's actual geometry
     /// (a `cargo test` run inside a 100x30 Windows Terminal would otherwise
     /// misplace dialogs whose click coordinates assume 80x24).
@@ -714,20 +714,18 @@ impl App {
         // Publish the user-registered ACP harnesses into the sub-agent
         // registry BEFORE any harness (or its tool description) is built:
         // the enum the model sees must match what `subagent_call` can
-        // actually spawn. Bad entries never block startup — each invalid
+        // actually spawn. Bad entries never block startup - each invalid
         // stored registration is skipped with its own warning and the
         // working ones are still published (an all-or-nothing failure here
         // would disable every harness because one entry rotted).
-        for error in
-            morpheus_agents::acp::register_custom_agents_lossy(&setup.acp_agent_pairs())
-        {
+        for error in morpheus_agents::acp::register_custom_agents_lossy(&setup.acp_agent_pairs()) {
             log::warn!("user-registered ACP agent skipped: {error}");
         }
 
         // Publish the user-registered custom providers into the connector
         // registry before any connector (or model listing) is built: the
         // model picker and every `Connector::new` resolve through the same
-        // merged table. Bad entries never block startup — the registrar is
+        // merged table. Bad entries never block startup - the registrar is
         // all-or-nothing by contract, so a single rotted entry surfaces as
         // one warning and the built-in registry keeps working.
         if let Err(error) = aiface::connector::register_custom_providers(
@@ -779,7 +777,7 @@ impl App {
         }
 
         // Restore the globally persisted model selection (the last one the
-        // user picked) so new sessions start with it — a stored selection
+        // user picked) so new sessions start with it - a stored selection
         // wins over the env-var defaults. `auto` is a REAL selection the
         // picker persists deliberately with an empty provider: it restores
         // as-is (empty provider = fallback chain routes at send time). A
@@ -1069,8 +1067,8 @@ impl App {
 
     /// Install a new active theme (honoring the background preference) and
     /// bump the render-cache generation so cached cells repaint. Every
-    /// `self.theme` mutation must go through here — including previews and
-    /// cancels in the theme dialog — or the toggle would silently drop.
+    /// `self.theme` mutation must go through here - including previews and
+    /// cancels in the theme dialog - or the toggle would silently drop.
     pub(in crate::app) fn set_theme(&mut self, t: &Theme) {
         self.theme = self.themed(t);
         self.config.theme_gen += 1;
@@ -1086,7 +1084,7 @@ impl App {
     /// Apply the loop's current activity to the spinner label. The harness-
     /// event intake calls this as events arrive; a repeated activity is a
     /// no-op so streaming tokens don't churn the label. With no live spinner
-    /// (loop just ended / session switched) only the tracked state changes —
+    /// (loop just ended / session switched) only the tracked state changes -
     /// the next `start_agent_loop` labels a fresh spinner from it.
     pub(crate) fn set_agent_activity(&mut self, activity: crate::types::AgentActivity) {
         if self.agent_activity == activity {
@@ -1183,7 +1181,7 @@ impl App {
             }
 
             // The /agents queue service: queued `agents_call` requests whose
-            // pane freed (or idled all along) dispatch here — the frame tick
+            // pane freed (or idled all along) dispatch here - the frame tick
             // is the only guaranteed heartbeat, so a request can never wait
             // on a pane event that never comes while every pane idles.
             if self.agents_split.is_some() || self.parked_agents_split.is_some() {
@@ -1195,7 +1193,7 @@ impl App {
                 self.serve_agents_pane_queues();
             }
             // The gate-free session-binding facts drain here too (unconditionally:
-            // a fact may belong to a HIDDEN pane — no split owns it, the frame
+            // a fact may belong to a HIDDEN pane - no split owns it, the frame
             // tick is still the only guaranteed heartbeat). A no-op pass is
             // one empty-map lock; facts only exist while a pane turn is landing.
             self.absorb_pane_session_bindings();
@@ -1219,12 +1217,12 @@ impl App {
             // Synchronized Output (DEC 2026): the frame diff is emitted while
             // the terminal suppresses visual updates, so Windows Terminal (and
             // other conforming terminals) paints the WHOLE frame atomically
-            // instead of applying escape sequences line-by-line — the visible
+            // instead of applying escape sequences line-by-line - the visible
             // "gradual painting" during streaming on Windows. Unsupported
             // terminals ignore the marker, so this is safe everywhere.
             let _ = terminal.backend_mut().write_all(b"\x1b[?2026h");
             // `.map(|_| ())`: `draw` returns a `CompletedFrame` that borrows
-            // the terminal — dropping it before the `EndSynchronizedUpdate`
+            // the terminal - dropping it before the `EndSynchronizedUpdate`
             // write keeps the borrow checker (and the frame alive) happy.
             let draw_result = terminal
                 .draw(|frame| {
@@ -1277,7 +1275,7 @@ impl App {
     /// The session view's content area: full terminal minus the open left panel
     /// and (in Session mode) the visible right panel. Shared by `render` and
     /// the mouse dispatch so click hit-testing uses the EXACT width the view
-    /// rendered at — a wider mouse area would re-wrap every message, shifting
+    /// rendered at - a wider mouse area would re-wrap every message, shifting
     /// `prefix_y` and making tool-box clicks land on the wrong row.
     fn session_main_area(&self, area: Rect) -> SessionArea {
         let sidebar_w = if self.sidebar.open && area.width >= MIN_WIDTH_FOR_LEFT_PANEL {
@@ -1305,7 +1303,7 @@ impl App {
 
     /// The main content area for mouse/keyboard hit-testing on every
     /// non-session route (home, RAG, settings, …): full terminal minus the
-    /// open left panel — the right panel only overlays Session mode.
+    /// open left panel - the right panel only overlays Session mode.
     /// Mirrors the `main` rect of [`Self::session_main_area`] without the
     /// right-panel subtraction.
     fn main_content_area(&self, area: Rect) -> Rect {
@@ -1353,7 +1351,7 @@ impl App {
             .unwrap_or_default()
             .as_millis() as u64;
 
-        // Iterate by reference — cloning the session's records every frame
+        // Iterate by reference - cloning the session's records every frame
         // (this panel repaints each frame while open) showed up as a
         // per-frame allocation proportional to the session's request count.
         let session_iter = || {
@@ -1389,7 +1387,7 @@ impl App {
     /// Total real cost (USD) of the current session's recorded API usage.
     ///
     /// `None` when no record resolved a price yet (no provider-reported cost
-    /// and no catalog estimate) — a guessed `$0` is never reported.
+    /// and no catalog estimate) - a guessed `$0` is never reported.
     fn session_cost(&self) -> Option<f64> {
         let sid = self.state.current_session_id.as_deref()?;
         // Runs on the render hot path (header, every frame): iterate by
@@ -1418,7 +1416,7 @@ impl App {
     ///
     /// The provider-reported REAL cost (`usage.cost`) is the ONLY source:
     /// it is recorded verbatim, never re-priced locally. When the provider
-    /// does not report a cost the record stays `None` (unpriced) — the TUI
+    /// does not report a cost the record stays `None` (unpriced) - the TUI
     /// no longer estimates spend from price tables: providers without cost
     /// reporting simply show no price (see
     /// `aiface::connector::supports_cost_reporting`).
@@ -1429,10 +1427,10 @@ impl App {
     /// Persist one real API request's usage for the current session.
     ///
     /// Cost policy: the REAL cost the provider reported in its usage object
-    /// (`usage.cost` — OpenRouter, Charm Hyper, OpenCode Zen/Go) is recorded
+    /// (`usage.cost` - OpenRouter, Charm Hyper, OpenCode Zen/Go) is recorded
     /// verbatim and is the ONLY price the dashboard ever shows. Providers
     /// that do not report a cost stay unpriced and are EXCLUDED from dollar
-    /// totals — no models.dev estimate is applied anymore (estimates
+    /// totals - no models.dev estimate is applied anymore (estimates
     /// misrepresent gateway discounts/subscription rates; the provider is
     /// the only source of truth for its own billing).
     fn record_usage(
@@ -1453,7 +1451,7 @@ impl App {
         // other asynchronous event handler (ContextItemRecorded, Done, …):
         // a Usage event arrives while the user may have switched sessions,
         // and attributing it to the merely-VIEWED session puts
-        // that loop's spend on the wrong session's dashboard — and `""` (the
+        // that loop's spend on the wrong session's dashboard - and `""` (the
         // old `unwrap_or_default`) made it vanish from every session block.
         let session_id = self
             .active_loop_session_id
@@ -1481,7 +1479,7 @@ impl App {
     }
 
     // Telemetry capture points (plan §4). Every helper is a NO-OP while
-    // consent is off; only allowlisted/aggregated data is retained — never
+    // consent is off; only allowlisted/aggregated data is retained - never
     // raw tool output, error text, paths or prompts (audit F01).
 
     /// Feature aggregate: a top-level screen was opened.
@@ -1586,7 +1584,7 @@ impl App {
         else {
             return;
         };
-        // finish() consumes the accumulator — swap in a fresh one.
+        // finish() consumes the accumulator - swap in a fresh one.
         let accumulator = std::mem::replace(
             &mut self.session_telemetry,
             morpheus::telemetry::session::SessionTelemetry::new(),
@@ -1612,7 +1610,7 @@ impl App {
         }
     }
     /// Ctrl+U: always open the left panel showing the usage dashboard. Not a
-    /// toggle — pressing it again keeps showing the dashboard, so the user
+    /// toggle - pressing it again keeps showing the dashboard, so the user
     /// never has to know a matching "other" shortcut.
     fn show_dashboard(&mut self) {
         self.left_panel = Mode::Dashboard;
@@ -1620,7 +1618,7 @@ impl App {
     }
 
     /// Ctrl+S: always open the left panel showing the session history. Also
-    /// not a toggle — it just points the panel at the session list.
+    /// not a toggle - it just points the panel at the session list.
     fn show_session_history(&mut self) {
         self.left_panel = Mode::History;
         self.sidebar.open = true;
@@ -1628,7 +1626,7 @@ impl App {
 
     /// Ctrl+F: always open the left panel showing the file explorer rooted
     /// at where the MAIN AGENT works (its `/worktree` checkout when pinned,
-    /// the startup cwd otherwise). Not a toggle — same one-key-shows-it
+    /// the startup cwd otherwise). Not a toggle - same one-key-shows-it
     /// contract as Ctrl+U/Ctrl+S.
     fn show_file_explorer(&mut self) {
         self.left_panel = Mode::Explorer;
@@ -1664,7 +1662,7 @@ impl App {
     /// capture and the alternate screen are torn down before spawning and
     /// re-established afterwards, so Morpheus resumes in exactly the state it
     /// had. When no editor can be launched (or the handover fails) this
-    /// silently does nothing — the explorer remains useful for navigation.
+    /// silently does nothing - the explorer remains useful for navigation.
     fn open_file_in_editor(&mut self, path: &std::path::Path) {
         let Some(command) = crate::util::editor::resolve_editor_command(&self.setup.editor) else {
             return;
@@ -1678,7 +1676,7 @@ impl App {
         let args: Vec<String> = tokens.map(str::to_string).collect();
 
         // Hand the terminal over. A failed teardown means the editor could
-        // not get a usable screen — skip the spawn, but re-establish the
+        // not get a usable screen - skip the spawn, but re-establish the
         // TUI's own state so rendering continues from a known-good base.
         if restore_terminal().is_ok() {
             // "--" keeps the editor from parsing a file named like a flag.
@@ -1688,7 +1686,7 @@ impl App {
                 .arg(path)
                 .status();
             // A failed spawn (binary vanished since the check) stays silent
-            // by design: no toast, no error — the explorer keeps working.
+            // by design: no toast, no error - the explorer keeps working.
             let _ = launched;
         }
 
@@ -1705,7 +1703,7 @@ impl App {
     }
 
     /// Tab/Shift+Tab on the dashboard: advance (or go back) through the
-    /// period selector — day → week → month → year → total.
+    /// period selector - day → week → month → year → total.
     fn cycle_usage_period(&mut self, forward: bool) {
         self.usage_period = if forward {
             self.usage_period.next()
@@ -1786,9 +1784,9 @@ impl App {
         self.toast_state.show(crate::ui::toast::ToastOptions {
             title: Some("Voice".into()),
             message: if auto_generate {
-                "Automatic generation enabled — every final answer gets audio.".into()
+                "Automatic generation enabled - every final answer gets audio.".into()
             } else {
-                "Automatic generation disabled — use the Speak button.".into()
+                "Automatic generation disabled - use the Speak button.".into()
             },
             variant: crate::ui::toast::ToastVariant::Info,
             duration_ms: 4000,
@@ -1856,7 +1854,7 @@ impl App {
         // /agents split keeps the spinner alive while ANY pane streams, and
         // the mouse geometry must match what was drawn (a 1-row drift here
         // skews every hit-test below the panes). A rehydrating pane counts
-        // too — its replay streams through the same layout contract.
+        // too - its replay streams through the same layout contract.
         let agent_spinner_active = (matches!(self.state.status, SessionStatus::Working)
             || self
                 .agents_split
@@ -1893,7 +1891,7 @@ impl App {
     /// Whether the right panel occupies the screen right now.
     ///
     /// - NORMAL mode (no `/agents` split): the shared content/width/
-    ///   user-hidden predicate — unchanged behavior.
+    ///   user-hidden predicate - unchanged behavior.
     /// - `/agents` mode: the panel shows ONLY when the main-agent mirror
     ///   was explicitly opened (Ctrl+P). There is NO auto-open trigger in
     ///   agent mode, and while the mirror is open it is the panel's SOLE
@@ -1911,7 +1909,7 @@ impl App {
     /// can never disagree about the panel's presence.
     pub(crate) fn right_panel_visible(&self, terminal_width: u16) -> bool {
         if self.agents_split.is_some() {
-            // Agent mode: explicit open only, and the mirror must exist —
+            // Agent mode: explicit open only, and the mirror must exist -
             // the pane mirrors alone (bound windows in the shared list)
             // never summon the panel over the split screen.
             return self.main_mirror_open()
@@ -1920,7 +1918,7 @@ impl App {
         should_show_right_panel(terminal_width, &self.state.right_panel)
     }
 
-    /// Check if a mouse x-coordinate is within the right panel area — and
+    /// Check if a mouse x-coordinate is within the right panel area - and
     /// the panel is actually VISIBLE (content + width + not user-hidden via
     /// Ctrl+P + no `/agents` split owning the main area). When hidden, its
     /// band belongs to the chat, so scroll/click events there must fall
@@ -1964,7 +1962,7 @@ impl App {
         // When an inline dialog is visible the prompt is hidden (like
         // OpenCode). Without the free-gateway/queue-choice gates the
         // layout helper still returns the PHANTOM prompt rect it would
-        // have had — bottom-anchored over the dialog's code/URL rows —
+        // have had - bottom-anchored over the dialog's code/URL rows -
         // and the mouse prompt-click branch steals presses meant for the
         // dialog's copyable regions.
         if self.question_dialog.visible
@@ -1998,7 +1996,7 @@ impl App {
 
         // Same predicate the renderer uses: the /agents split suppresses the
         // landing treatment (full-width prompt, no centered logo), so the
-        // mouse geometry must see the split too — a click on the rendered
+        // mouse geometry must see the split too - a click on the rendered
         // full-width prompt would otherwise land outside the phantom
         // narrow rect and never focus the prompt.
         let is_empty_session = self.agents_split.is_none()
@@ -2065,7 +2063,7 @@ impl App {
             main: main_area, ..
         } = self.session_main_area(area);
         // Rows are word-wrapped, so a single queued message may occupy
-        // several visual lines — count the same rows the renderer draws.
+        // several visual lines - count the same rows the renderer draws.
         // The layout already carries each message's own internal padding
         // (one pad row above and below its text), so the strip height is
         // simply the number of layout rows. Empty queues still reserve

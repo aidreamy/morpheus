@@ -17,7 +17,7 @@ use tokio_stream::StreamExt;
 #[allow(dead_code)]
 const BUFFER_SIZE: usize = 4096;
 
-/// Count of payload bytes (`a`) after stripping ANSI escape sequences —
+/// Count of payload bytes (`a`) after stripping ANSI escape sequences -
 /// used by PTY tests on Windows, where ConPTY interleaves escape sequences
 /// and viewport re-render artifacts with the payload.
 #[allow(dead_code)]
@@ -117,7 +117,7 @@ async fn test_spawn_bash_nonexistent_cwd() {
 }
 
 /// Regression: `Bash::new()` (default cwd "") used to produce a SILENTLY
-/// EMPTY stream — the spawn failed on `current_dir("")` and the error was
+/// EMPTY stream - the spawn failed on `current_dir("")` and the error was
 /// dropped. The empty cwd must mean "inherit the parent's working
 /// directory" and the command must run.
 #[tokio::test]
@@ -138,7 +138,7 @@ async fn test_spawn_bash_empty_cwd_inherits_parent() {
 }
 
 /// Regression: stream/spawn errors (invalid env var, read failures) used to
-/// be swallowed by the outer `run` wrapper — the stream just ended with zero
+/// be swallowed by the outer `run` wrapper - the stream just ended with zero
 /// items. The inner PTY stream yields the `Err` and the public `run` wrapper
 /// converts it into a stderr-bearing item so callers always see why nothing
 /// was produced. (A bad cwd is NOT an error in the PTY path: portable_pty
@@ -417,7 +417,7 @@ async fn test_spawn_bash_pty_large_output() {
         raw.extend_from_slice(&output.stdout);
     }
     // ConPTY (Windows) interleaves escape sequences and, when a line wraps
-    // past the viewport width, re-renders the wrapped segment — so the
+    // past the viewport width, re-renders the wrapped segment - so the
     // payload count can slightly exceed `n` but never falls short. Unix
     // PTYs pass the payload through untouched; the count is exact.
     #[cfg(windows)]
@@ -622,7 +622,7 @@ async fn test_spawn_bash_pty_timeout_large_output_before_timeout() {
     }
 
     // ConPTY (Windows) interleaves escape sequences and, when a line wraps
-    // past the viewport width, re-renders the wrapped segment — so the
+    // past the viewport width, re-renders the wrapped segment - so the
     // payload count can slightly exceed `n` but never falls short. Unix
     // PTYs pass the payload through untouched; the count is exact.
     #[cfg(windows)]
@@ -641,7 +641,7 @@ async fn test_spawn_bash_pty_timeout_large_output_before_timeout() {
 // ---------------------------------------------------------------------------
 //
 // A command like `git log` can hang forever when it launches an interactive
-// pager (`less`) — most commonly on the PTY path, where stdout is a real
+// pager (`less`) - most commonly on the PTY path, where stdout is a real
 // terminal. These tests pin the default env injection in both spawn paths:
 // defaults must be present, and caller-provided env must win over them.
 
@@ -688,7 +688,7 @@ async fn test_spawn_bash_injects_pager_defaults() {
 #[cfg(any(unix, windows))]
 #[tokio::test]
 async fn test_spawn_bash_pty_injects_pager_defaults() {
-    // Same guarantee on the PTY path — this is the path where `git log`
+    // Same guarantee on the PTY path - this is the path where `git log`
     // actually launched `less` and blocked until the 10-minute timeout.
     let mut stream = spawn_bash_pty(
         None,
@@ -758,7 +758,7 @@ async fn test_spawn_bash_pty_editor_defaults_no_hang() {
 // A live child holding the terminal in raw (non-canonical) mode is waiting
 // for keystrokes the harness can never send (interactive pager/editor/TUI;
 // bash's `read -n` has the same signature). Environment variables cannot
-// fix that — the pager reads /dev/tty directly — so the watchdog kills the
+// fix that - the pager reads /dev/tty directly - so the watchdog kills the
 // child after a sustained raw-mode grace window and emits a diagnostic.
 
 /// Collect stdout/stderr and record total stream duration.
@@ -780,7 +780,7 @@ async fn collect_watchdog_run(command: &str) -> (String, String, Duration) {
 #[tokio::test]
 async fn test_watchdog_kills_interactive_pager_hang() {
     // bash `read -n 1` flips the PTY to raw mode and blocks forever waiting
-    // for a keystroke — the same terminal-mode signature as `less`. With
+    // for a keystroke - the same terminal-mode signature as `less`. With
     // the watchdog this run must end shortly after the 2s grace window
     // (well before the 10-minute default timeout) and carry the diagnostic.
     let (_out, err, elapsed) = collect_watchdog_run("read -n 1 x").await;
@@ -830,8 +830,8 @@ async fn test_watchdog_kills_explicit_less_hang() {
 #[tokio::test]
 async fn test_watchdog_does_not_kill_canonical_sleep() {
     // A legitimate long-running command stays in canonical mode while
-    // alive; the watchdog must NOT kill it. Run `sleep 4` — past the 2s
-    // grace window — and require it to survive until natural completion.
+    // alive; the watchdog must NOT kill it. Run `sleep 4` - past the 2s
+    // grace window - and require it to survive until natural completion.
     let (out, err, elapsed) = collect_watchdog_run("sleep 4 && echo survived").await;
 
     assert!(
@@ -878,7 +878,7 @@ fn test_auto_fix_table() {
         ("seq 1 1000 | less -X", "seq 1 1000 | cat", true),
         // --- must NOT be rewritten (fallback: watchdog) ---
         // Regression (review R1): the pipeline rule must never cross a
-        // newline — a second command or a heredoc body would be deleted.
+        // newline - a second command or a heredoc body would be deleted.
         (
             "echo hi | less\necho done",
             "echo hi | less\necho done",
@@ -892,7 +892,7 @@ fn test_auto_fix_table() {
         // Regression (review Y1): a trailing redirect must never be
         // swallowed by the `| cat` replacement.
         ("echo a | less > f", "echo a | less > f", false),
-        // Regression (review Y2): an explicit git pager opt-in must win —
+        // Regression (review Y2): an explicit git pager opt-in must win -
         // git's --paginate/--no-pager are last-wins, so inserting
         // --no-pager before it would NOT fix anything while the note
         // claimed it did.
@@ -935,7 +935,7 @@ fn test_auto_fix_table() {
 #[cfg(any(unix, windows))]
 #[test]
 fn test_auto_fix_composite_git_piped_pager_single_rule() {
-    // `git log | less`: git is piped, so only the pipeline rule applies —
+    // `git log | less`: git is piped, so only the pipeline rule applies -
     // one rewrite, no `--no-pager` noise.
     let (cmd, note) = auto_fix_command("git log | less");
     assert_eq!(cmd, "git log | cat");
@@ -952,7 +952,7 @@ fn test_auto_fix_composite_git_piped_pager_single_rule() {
 fn test_auto_fix_adversarial_matrix() {
     // Adversarial battery, permanently persisted (originally run as a
     // one-off review probe): every "false" entry MUST pass through
-    // unchanged — these are the inputs a naive regex-based rewriter gets
+    // unchanged - these are the inputs a naive regex-based rewriter gets
     // wrong. Each line documents WHY it must not be rewritten.
     let must_not_rewrite: &[(&str, &str)] = &[
         // `less`/`most` as a substring of a longer word (word boundary).
@@ -967,7 +967,7 @@ fn test_auto_fix_adversarial_matrix() {
             "word boundary: `less-X` is a single token, not pager+flag",
         ),
         // Pager with a positional argument: less would IGNORE stdin, so
-        // `| cat` is NOT semantically equivalent — must not rewrite.
+        // `| cat` is NOT semantically equivalent - must not rewrite.
         (
             "x | less -S extra-arg",
             "positional arg: less would ignore stdin",
@@ -977,7 +977,7 @@ fn test_auto_fix_adversarial_matrix() {
         // Flag-looking token glued to the pager without whitespace.
         ("x | less-X -y", "`less-X` is one token"),
         // Compound tail: rewriting one segment of a compound command is
-        // not a full fix — the other segment could still block.
+        // not a full fix - the other segment could still block.
         ("x | less -X;", "compound tail `;`"),
         ("x | less -X &", "compound tail `&`"),
         ("x | less -X | wc", "not the FINAL segment (inner `|`)"),
@@ -1123,8 +1123,8 @@ async fn test_run_pty_ambiguous_command_falls_back_to_watchdog() {
 // Liveness watchdog (all spawn paths)
 // ---------------------------------------------------------------------------
 //
-// A process tree that shows NO progress signal — no output, no CPU-time
-// growth, no I/O growth — for the quiescence window is presumed hung and
+// A process tree that shows NO progress signal - no output, no CPU-time
+// growth, no I/O growth - for the quiescence window is presumed hung and
 // killed. Any single progress signal resets the counter, so long-running
 // but active commands (builds, downloads) are never cut.
 
@@ -1172,7 +1172,7 @@ async fn test_liveness_kills_quiescent_piped() {
 }
 
 /// IGNORED (leaks CPU-burning processes): this test deliberately runs
-/// `yes >/dev/null` — a grandchild that never touches the output pipes, so
+/// `yes >/dev/null` - a grandchild that never touches the output pipes, so
 /// killing bash alone leaks it forever at 100% CPU (the machine filled with
 /// zombie `yes` processes). The root fix is a process-group kill
 /// (`kill_process_tree`) in every kill path; until that is trusted on all
@@ -1185,7 +1185,7 @@ async fn test_liveness_spares_active_piped() {
 
     // `yes` burns CPU continuously: the CPU-progress signal must keep
     // resetting the quiescence counter. The hard cap (not the watchdog)
-    // is what ends this run — asserted via the runtime-cap diagnostic.
+    // is what ends this run - asserted via the runtime-cap diagnostic.
     let cfg = LivenessConfig::test_fast();
     let mut stream = spawn_bash_cfg(None, ".", "yes >/dev/null", Some(3_000), cfg);
     let (items, _elapsed) = collect_spawn_timed(&mut stream).await;
@@ -1231,7 +1231,7 @@ async fn test_liveness_kills_quiescent_pty() {
 }
 
 /// Escape hatch: the main child exits but an orphaned descendant keeps the
-/// piped output open. The stream must not hang — it drains, explains, and
+/// piped output open. The stream must not hang - it drains, explains, and
 /// returns the command's own exit status.
 #[tokio::test]
 async fn test_orphan_escape_piped() {
@@ -1277,7 +1277,7 @@ async fn test_orphan_escape_piped() {
 }
 
 /// Same escape hatch on the Unix PTY path: the orphan holds the PTY slave,
-/// which suppresses POLLHUP on the master — without the escape the stream
+/// which suppresses POLLHUP on the master - without the escape the stream
 /// would hang forever even after the command exited.
 #[cfg(unix)]
 #[tokio::test]
@@ -1327,7 +1327,7 @@ async fn test_orphan_escape_pty() {
 }
 
 /// A command that exits NORMALLY (nothing holding the channel) must not
-/// produce the orphan-escape diagnostic — guards against false positives
+/// produce the orphan-escape diagnostic - guards against false positives
 /// from the escape racing a normal exit.
 #[tokio::test]
 async fn test_normal_exit_has_no_orphan_diagnostic() {

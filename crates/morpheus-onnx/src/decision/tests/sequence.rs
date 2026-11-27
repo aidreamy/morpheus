@@ -9,7 +9,7 @@ use crate::runtime::tokenizer::Tokenizer;
 
 // --------------------------------------------------------------- build_sequence left truncation
 // From tests/test_criteria.py: with no room left for the state, `st[-0:]`
-// kept all of it — the closing [SEP] was replaced by the *first* state token,
+// kept all of it - the closing [SEP] was replaced by the *first* state token,
 // i.e. the wrong end of the state and an unterminated sequence.
 
 /// The `_SeqTok` tokenizer from the upstream test: ids are assigned per new

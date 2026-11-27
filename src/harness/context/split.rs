@@ -17,7 +17,7 @@ use serde::{Deserialize, Serialize};
 pub(super) const VERIFIED_SPLIT_VERSION: u8 = 1;
 
 /// The final anchor buffer must stay at or below this fraction of the model's
-/// window (the "ceiling" — the max capacity of the concatenation buffer).
+/// window (the "ceiling" - the max capacity of the concatenation buffer).
 const SPLIT_BUFFER_MAX_PCT: f64 = 0.40;
 
 /// Fraction of the buffer ceiling at which the limit message starts being
@@ -46,7 +46,7 @@ const SPLIT_CALL_OVERHEAD: usize = 8000;
 /// serialized from the items and their summaries accumulate here. Only when
 /// every item has been consumed does [`ContextManager::commit_split`] append
 /// the concatenated buffer as one anchor and hide the pre-split timeline
-/// behind the visibility boundary — atomically. Because the
+/// behind the visibility boundary - atomically. Because the
 /// timeline is untouched, this state can be persisted with the snapshot and
 /// the split resumes exactly where it stopped.
 #[derive(Clone, Debug, Serialize, Deserialize)]
@@ -67,8 +67,8 @@ pub struct SplitState {
     pub window: usize,
     /// Estimated tokens currently held by the buffer (persisted so the
     /// projection does not depend on re-estimation after a restart). An
-    /// ADDITIVE estimate — per-part token counts, not the concatenated
-    /// text's — so it may run a few tokens above the exact value; the
+    /// ADDITIVE estimate - per-part token counts, not the concatenated
+    /// text's - so it may run a few tokens above the exact value; the
     /// direction is conservative (warns slightly earlier) and the commit
     /// re-estimates the whole buffer, so it never depends on this estimate.
     pub buffer_tokens: usize,
@@ -117,7 +117,7 @@ impl ContextManager {
 
     /// Start (or re-size) the split-and-concatenate contingency for `window`.
     /// Starting again while a split is already staged only updates the window
-    /// — the buffer and the cursor are preserved (resume semantics).
+    /// - the buffer and the cursor are preserved (resume semantics).
     pub fn begin_split(&mut self, window: usize) {
         match self.split.as_mut() {
             Some(split) => split.window = window,
@@ -151,7 +151,7 @@ impl ContextManager {
 
     /// Raw timeline indexes of the model-VISIBLE items, in order. The split
     /// (like `build_messages`) only ever consumes visible items: hidden
-    /// ones (pre-compaction, swept, abandoned) are "not there" — they were
+    /// ones (pre-compaction, swept, abandoned) are "not there" - they were
     /// either already folded into a summary or never reached the model.
     fn visible_indices(&self) -> Vec<usize> {
         self.items
@@ -162,7 +162,7 @@ impl ContextManager {
             .collect()
     }
 
-    /// True when every item has been consumed by the split — the harness then
+    /// True when every item has been consumed by the split - the harness then
     /// commits the buffer. Also true when no split is staged (nothing to
     /// commit).
     #[must_use]
@@ -178,7 +178,7 @@ impl ContextManager {
 
     /// Assemble the NEXT chunk of the split: whole items in historical order,
     /// sized to fit `window - SPLIT_CALL_OVERHEAD`, joined in the same
-    /// transcript format as the LLM compaction. Never cuts an item — a single
+    /// transcript format as the LLM compaction. Never cuts an item - a single
     /// item larger than the budget is still included whole.
     ///
     /// Returns `None` when every item has been consumed (the harness should
@@ -262,7 +262,7 @@ impl ContextManager {
 
     /// Append a successfully summarized chunk to the buffer, extract the
     /// continuity tail, and advance the cursor past `chunk_end`. The timeline
-    /// itself stays untouched — this only stages the summary.
+    /// itself stays untouched - this only stages the summary.
     pub fn advance_split(&mut self, summary: &str, chunk_end: Option<u64>) {
         let Some(split) = self.split.as_mut() else {
             return;
@@ -274,7 +274,7 @@ impl ContextManager {
             return;
         }
         // Incremental accounting: only the NEW summary is tokenized (the
-        // joiner counted too) — re-encoding the whole buffer per chunk would
+        // joiner counted too) - re-encoding the whole buffer per chunk would
         // be O(total)² across a long split.
         let summary_tokens = self.encoding.estimate(summary);
         if split.buffer.is_empty() {
@@ -302,17 +302,17 @@ impl ContextManager {
     }
 
     /// Commit the split atomically: append the buffer as a single
-    /// [`ContextItem::Compaction`] holding the concatenated buffer — the same
+    /// [`ContextItem::Compaction`] holding the concatenated buffer - the same
     /// end state as a normal LLM compaction. The timeline is only touched
     /// here, and only when every item has been summarized AND the buffer fits
-    /// the known window (the split's hard limit — the ceiling is only the
+    /// the known window (the split's hard limit - the ceiling is only the
     /// planning target). Returns `false` (leaving everything as it was) when
     /// no split is staged, the buffer is empty, or a pathological overshoot
     /// made the anchor bigger than the window.
     ///
     /// The success criterion is the WINDOW, not the 80% trigger that
     /// [`Self::apply_llm_summary`] reports: the split is driven by a
-    /// model-window overflow, so its anchor only needs to fit that window — an
+    /// model-window overflow, so its anchor only needs to fit that window - an
     /// anchor well under 80% of the budget is still a valid commit. On failure
     /// (the anchor is still too big) the timeline is left untouched and the
     /// caller records the provider as stuck and notifies.
@@ -338,7 +338,7 @@ impl ContextManager {
     }
 
     /// Abort the split: drop the staging (buffer + cursor). The timeline is
-    /// untouched — a failed split leaves the conversation exactly as it was.
+    /// untouched - a failed split leaves the conversation exactly as it was.
     pub fn abort_split(&mut self) {
         self.split = None;
     }

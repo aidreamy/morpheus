@@ -64,7 +64,7 @@ pub struct ToastState {
     /// Whether the current/last toast is a REAL (event-driven)
     /// toast, so per-frame hover tooltips must not take it over. Cleared in
     /// `tick()` at the exact moment the toast is dismissed, so suppression
-    /// and visibility always end together — no wall-clock/frame-tick drift.
+    /// and visibility always end together - no wall-clock/frame-tick drift.
     real_toast_showing: bool,
 }
 
@@ -98,7 +98,7 @@ impl ToastState {
 
     /// Show a real toast carrying a copy payload: the ⧉ button in its top
     /// row copies `copy_text` to the system clipboard when clicked (for
-    /// long strings — install commands, URLs — that are impractical to
+    /// long strings - install commands, URLs - that are impractical to
     /// retype). Everything else behaves exactly like [`Self::show`].
     pub fn show_copyable(&mut self, options: ToastOptions, copy_text: String) {
         self.show(options);
@@ -117,7 +117,7 @@ impl ToastState {
     ///
     /// The tooltip re-fires every frame while the pointer rests on an item,
     /// so without arbitration it instantly overwrites any real (event-driven)
-    /// toast shown by an action under that same pointer — e.g. clicking a
+    /// toast shown by an action under that same pointer - e.g. clicking a
     /// session locked by another process. While a real toast is showing, the
     /// tooltip is dropped; once the slot is free the tooltip shows as usual.
     pub fn show_tooltip(&mut self, options: ToastOptions) {
@@ -166,7 +166,7 @@ impl ToastState {
 
         // Width hugs the widest content line (plus horizontal padding). The
         // old fixed 60-column cap is gone: the clamp now follows the SCREEN,
-        // so a long copyable payload — the manual install command — stays
+        // so a long copyable payload - the manual install command - stays
         // INLINE on one row whenever the terminal is wide enough to hold it,
         // and the box simply grows wider as needed. Wrapping is only the
         // fallback for terminals too narrow to hold the line.
@@ -202,7 +202,7 @@ impl ToastState {
 
         // One row per wrapped message line, plus the title row (or the
         // blank centering row when there is no title), plus the BOTTOM
-        // PADDING row — part of the original toast design (the old fixed
+        // PADDING row - part of the original toast design (the old fixed
         // `inner_h = 3` was title + message + 1 blank row), never dropped
         // when the box grows. The box never grows past the screen bottom:
         // extra lines are dropped instead.
@@ -248,7 +248,7 @@ impl ToastState {
             // No title: skip one line so the message appears centered.
             y += 1;
         }
-        // ⧉ copy button — top row, right-aligned inside the padding. Drawn
+        // ⧉ copy button - top row, right-aligned inside the padding. Drawn
         // only for copyable toasts; hovered it lights up (muted → text),
         // the same affordance the header/footer links use.
         if copy_text.is_some() {
@@ -276,7 +276,7 @@ impl ToastState {
             self.copy_button_area = Some(Rect::new(button_x, toast_y, 1, 1));
         }
 
-        // Message — each pre-wrapped line gets its own 1-row renderable, so
+        // Message - each pre-wrapped line gets its own 1-row renderable, so
         // the TextRenderable's internal wrap can never clip content: every
         // character the wrap produced is drawn on its own dedicated row.
         for line in &shown_lines {
@@ -401,7 +401,7 @@ mod tests {
             );
         }
 
-        // 667 ms elapsed so far — crossing the threshold dismisses it.
+        // 667 ms elapsed so far - crossing the threshold dismisses it.
         state.tick(4_333);
         assert!(state.current.is_none(), "toast must dismiss at duration");
         assert_eq!(state.elapsed, 0, "elapsed resets on dismissal");
@@ -442,8 +442,8 @@ mod tests {
         }
     }
 
-    /// A real (event-driven) toast — e.g. "session open in another morpheus
-    /// process" after a refused click — must survive the per-frame tooltip
+    /// A real (event-driven) toast - e.g. "session open in another morpheus
+    /// process" after a refused click - must survive the per-frame tooltip
     /// re-fire while the pointer rests on the same row.
     #[test]
     fn tooltip_cannot_overwrite_a_showing_real_toast() {
@@ -543,7 +543,7 @@ mod tests {
     }
 
     /// On a terminal wide enough to hold the whole manual install command,
-    /// the message must stay INLINE on a single row — no wrapping. The box
+    /// the message must stay INLINE on a single row - no wrapping. The box
     /// simply grows wider (the clamp follows the screen, there is no fixed
     /// 60-column cap anymore).
     #[test]
@@ -633,7 +633,7 @@ mod tests {
     }
 
     /// A plain (non-copyable) toast never draws ⧉ and never registers a
-    /// hitbox — and a NEW plain toast after a copyable one must not inherit
+    /// hitbox - and a NEW plain toast after a copyable one must not inherit
     /// the button (the copy affordance belongs to the toast that asked).
     #[test]
     fn plain_toasts_have_no_copy_button() {
@@ -666,7 +666,7 @@ mod tests {
     }
 
     /// When the toast is dismissed (tick past duration), the ⧉ hitbox is
-    /// cleared — a toast that is gone can never accept a click.
+    /// cleared - a toast that is gone can never accept a click.
     #[test]
     fn dismissal_clears_the_copy_hitbox() {
         let theme = crate::theme::ThemeRegistry::new().default_theme().clone();
@@ -686,7 +686,7 @@ mod tests {
 
     /// Regression: a message wider than the terminal (e.g. the manual
     /// install command, ~110 columns, on an 80-col screen) must NEVER lose
-    /// characters to clipping — it wraps onto multiple rows instead. The
+    /// characters to clipping - it wraps onto multiple rows instead. The
     /// box's interior must therefore contain exactly the message's
     /// characters (spaces aside), and the wrap must actually occupy
     /// multiple rows.
@@ -720,7 +720,7 @@ mod tests {
         );
 
         // Interior text of the MESSAGE rows only: the title row (the toast's
-        // top row, area.y + 2) holds the toast TITLE — its characters must
+        // top row, area.y + 2) holds the toast TITLE - its characters must
         // not pollute the conservation check against the message.
         let msg_start_y = area.y + 3;
         let mut rendered = String::new();
@@ -731,7 +731,7 @@ mod tests {
         }
         // Character conservation (the old bug dropped everything past the
         // first clipped row): the box must hold exactly the message's
-        // non-space characters — no more, no less.
+        // non-space characters - no more, no less.
         let mut got: Vec<char> = rendered.chars().filter(|c| !c.is_whitespace()).collect();
         let mut want: Vec<char> = message.chars().filter(|c| !c.is_whitespace()).collect();
         got.sort_unstable();
@@ -739,7 +739,7 @@ mod tests {
         assert_eq!(got, want, "wrap must conserve every message character");
 
         // And the wrap must actually span multiple rows (title row + >= 2
-        // message rows) — the command cannot fit one 80-col row.
+        // message rows) - the command cannot fit one 80-col row.
         let rows_with_content = (0..area.height)
             .filter(|&yy| {
                 (0..area.width).any(|xx| {

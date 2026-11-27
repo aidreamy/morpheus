@@ -33,7 +33,7 @@ default-features = false
 features = ["system"]
 
 # Desktop UI tools: OS accessibility tree, screenshots and input synthesis
-# (always use the newest published version — the crate is under active
+# (always use the newest published version - the crate is under active
 # development and adds capabilities frequently).
 [dependencies.xa11y]
 version = "0.15"

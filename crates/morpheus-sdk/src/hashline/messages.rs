@@ -17,20 +17,20 @@ pub const END_PATCH_MARKER: &str = "*** End Patch";
 /// Recovery sentinel emitted by an agent loop when a contaminated tool-call
 ///
 /// stream is truncated mid-call. Behaves like [`END_PATCH_MARKER`] for
-/// parsing — terminates the line loop — and does not surface a warning.
+/// parsing - terminates the line loop - and does not surface a warning.
 pub const ABORT_MARKER: &str = "*** Abort";
 
 /// Warning text appended when two consecutive hunks target the exact same
 /// concrete range.
 pub const REPLACE_PAIR_COALESCED_WARNING: &str = "Detected two identical-range hashline hunks; kept only the second hunk. \
-     Issue ONE `replace N..M:` hunk per range — payload is the final desired \
+     Issue ONE `replace N..M:` hunk per range - payload is the final desired \
      content, never both old and new.";
 
 /// Warning text appended when an empty bodyless hunk is followed by an
 /// overlapping concrete hunk.
 pub const REPLACE_PAIR_COALESCED_OVERLAP_WARNING: &str = "Detected an overlapping bare hashline hunk immediately followed by a \
      concrete hunk; dropped the earlier bare hunk. Issue ONE `replace N..M:` \
-     hunk per range — payload is the final desired content, never both old and new.";
+     hunk per range - payload is the final desired content, never both old and new.";
 
 /// Warning text appended when bare body rows are auto-converted to literal rows.
 pub const BARE_BODY_AUTO_PIPED_WARNING: &str = "Auto-prefixed bare body row(s) with `+`. Body rows must be `+TEXT` literal \
@@ -106,20 +106,20 @@ pub const RECOVERY_SESSION_CHAIN_WARNING: &str = "Recovered from a stale file ha
 /// insert+delete pair earlier in the chain could still leave an anchor's
 /// line number pointing at a duplicated row. Surface the hedge so the
 /// model verifies before continuing.
-pub const RECOVERY_SESSION_REPLAY_WARNING: &str = "Recovered by replaying your edits onto the current file content — your \
+pub const RECOVERY_SESSION_REPLAY_WARNING: &str = "Recovered by replaying your edits onto the current file content - your \
      previous edit in this session changed line(s) you re-targeted with a stale \
      hash. Verify the diff matches your intent before continuing.";
 
 /// Warning emitted when an `insert head:` / `insert tail:` edit is applied to an
 ///
 /// existing file whose snapshot tag is stale (the file drifted since the read).
-/// Head/tail insert position is content-independent — "start"/"end" cannot move
-/// with drift — so this is non-fatal: the edit applies onto the live content and
+/// Head/tail insert position is content-independent - "start"/"end" cannot move
+/// with drift - so this is non-fatal: the edit applies onto the live content and
 /// we surface the drift instead of hard-failing (unlike an anchored mismatch).
 pub const HEADTAIL_DRIFT_WARNING: &str = "Applied an `insert head:`/`insert tail:` edit onto the current file \
      content even though the snapshot tag was stale (the file changed since \
      your read). Head/tail position is content-independent, so the insert \
-     was not rejected — but re-read if the drift was unexpected.";
+     was not rejected - but re-read if the drift was unexpected.";
 
 /// Error text emitted when a hashline section omits the mandatory snapshot tag.
 ///
@@ -181,7 +181,7 @@ pub fn boundary_variant_repair_warning(start_line: u32, kept: u32, dropped: u32)
     let action = actions.join(" and ");
     format!(
         "Auto-repaired replacement boundaries at line {start_line}: {action}. The result was \
-         verified by the syntax probe — re-issue with the range covering exactly the changed \
+         verified by the syntax probe - re-issue with the range covering exactly the changed \
          lines and the body as their complete final content."
     )
 }
@@ -234,8 +234,8 @@ pub fn ambiguous_boundary_placement_message(start_line: u32, end_line: u32) -> S
 
 /// The applied result no longer parses while the pre-edit content did.
 ///
-/// The patch introduced a syntax error. Advisory, never a rejection — the
-/// applier honors the authored edit — but the breakage is machine-confirmed
+/// The patch introduced a syntax error. Advisory, never a rejection - the
+/// applier honors the authored edit - but the breakage is machine-confirmed
 /// by tree-sitter and surfaced in the same response instead of waiting for a
 /// compiler pass.
 #[must_use]
@@ -247,12 +247,12 @@ pub fn edit_broke_parse_warning(first_changed_line: Option<u32>) -> String {
     format!(
         "This edit introduced a syntax error{at}: the file parsed before the patch and no \
          longer does. It was applied exactly as written, so a line number or range endpoint \
-         is likely wrong — re-read the touched region and re-issue a correcting edit."
+         is likely wrong - re-read the touched region and re-issue a correcting edit."
     )
 }
 
 /// `insert after N:` body indented shallower than the anchor: the landing
-/// moved forward past trailing closer lines — the common "anchored on the
+/// moved forward past trailing closer lines - the common "anchored on the
 /// last line I read instead of after the block" mistake.
 #[must_use]
 pub fn after_insert_landing_shift_warning(
@@ -269,7 +269,7 @@ pub fn after_insert_landing_shift_warning(
 }
 
 /// Plain `insert after N:` anchored on a block-opener line with a shallower
-/// body. The landing was moved past the whole block — anchoring on an opener
+/// body. The landing was moved past the whole block - anchoring on an opener
 /// places the body between the opener and its first statement, a position a
 /// body at the opener's depth or above never intends.
 #[must_use]

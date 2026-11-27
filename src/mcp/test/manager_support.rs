@@ -158,7 +158,7 @@ where
     });
     // A duplex transport is consumed by a connection attempt, so the
     // factory dials a fresh pair (and a fresh server instance) each time
-    // — exactly what an era retry needs.
+    // - exactly what an era retry needs.
     let factory = move || {
         let (server_io, client_io) = tokio::io::duplex(4096);
         let handler = handler.clone();
@@ -320,7 +320,7 @@ impl ServerHandler for CatalogServer {
 }
 
 /// Legacy-era server: `initialize` works, but `server/discover` is
-/// rejected with an implementation-defined method error — a correlated
+/// rejected with an implementation-defined method error - a correlated
 /// JSON-RPC rejection, per the era tests' probe expectations.
 #[derive(Clone)]
 pub(crate) struct LegacyOnlyServer {

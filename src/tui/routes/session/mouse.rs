@@ -62,7 +62,7 @@ impl SessionView {
         }
         let max_w = inner_area.width.saturating_sub(6).max(2);
         // PaintedOnly: hover maps the cursor against the layout the last
-        // render painted — never mutates the shared caches between frames.
+        // render painted - never mutates the shared caches between frames.
         self.ensure_height_caches_fresh(
             session,
             max_w,
@@ -99,7 +99,7 @@ impl SessionView {
 }
 
 impl SessionView {
-    /// Recolor the hovered user message's cells with the element background —
+    /// Recolor the hovered user message's cells with the element background -
     /// the same visual swap opencode applies via
     /// `backgroundColor={hover() ? theme.backgroundElement : ...}`.
     pub(super) fn render_hover_highlight(
@@ -130,7 +130,7 @@ impl SessionView {
         for cy in msg_top..msg_bottom {
             // Light the BAND only, not the rail columns: the rails stand on
             // the transcript background and the band is one column inside
-            // each rail — lighting the rails too made the box read a
+            // each rail - lighting the rails too made the box read a
             // couple of columns wider under the cursor.
             for cx in inner_area.x + 1..inner_area.x + inner_area.width - 1 {
                 if let Some(cell) = buf.cell_mut((cx, u16::try_from(cy).unwrap_or(0))) {
@@ -178,7 +178,7 @@ impl SessionView {
         }
 
         // PaintedOnly: the click maps against the layout the last render
-        // painted — never mutates the shared caches between frames.
+        // painted - never mutates the shared caches between frames.
         self.ensure_height_caches_fresh(
             session,
             max_w,
@@ -190,7 +190,7 @@ impl SessionView {
         // Binary search for the message that contains the click position,
         // using the prefix-y array directly (no O(n) per-click allocation of
         // a position vector). Message `i` starts at
-        // `vp_top - scroll_y + prefix_y[i]` in screen space — the same layout
+        // `vp_top - scroll_y + prefix_y[i]` in screen space - the same layout
         // the render walk produces.
         let mut low = 0;
         let mut high = session.messages.len();
@@ -248,7 +248,7 @@ impl SessionView {
 
                     if click_y >= part_y && click_y < part_y + part_h {
                         // Passive LSP findings: the last rows of the part
-                        // belong to the `+`/`- LSP` block — any click there
+                        // belong to the `+`/`- LSP` block - any click there
                         // toggles it, ahead of the tool block's own toggle.
                         // Mirrors the renderer's visibility gates so hidden
                         // parts never claim clicks for absent rows.
@@ -324,7 +324,7 @@ impl SessionView {
                         {
                             // Toggle the "Summarizing" box on any click
                             // inside it (the part's row range matches the
-                            // rendered box — height caches are rebuilt with
+                            // rendered box - height caches are rebuilt with
                             // the expansion state).
                             let id = summarizing_id(c);
                             self.tool_state.toggle_expanded(&id);

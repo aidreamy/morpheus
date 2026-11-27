@@ -1,4 +1,4 @@
-//! `morpheus paths` — print the directories the app reads and writes.
+//! `morpheus paths` - print the directories the app reads and writes.
 //!
 //! Support and composition both need this: "where are my sessions?" is
 //! answered by the store's own resolution (including the `MORPHEUS_DATA_DIR`

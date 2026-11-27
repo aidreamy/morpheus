@@ -33,7 +33,7 @@ fn normalize_path_resolves_dotdot() {
 fn normalize_path_escape_above_root_preserves_parentdir() {
     let root = Path::new("/home/user/project");
     let result = normalize_path(Path::new("/home/user/project/../../../etc/passwd"), root);
-    // Goes up above root — ParentDir preserved, so result won't match root
+    // Goes up above root - ParentDir preserved, so result won't match root
     assert_eq!(result, Path::new("/etc/passwd"));
 }
 
@@ -80,7 +80,7 @@ fn validate_path_denies_relative_traversal_via_dotdot() {
 #[test]
 fn validate_path_allows_harness_scratch_dir_outside_root() {
     // The harness scratch dir (<temp>/morpheus, where truncated tool-output logs
-    // live) is ephemeral — it must be readable without an explicit allowlist.
+    // live) is ephemeral - it must be readable without an explicit allowlist.
     let root = Path::new("/home/user/project");
     let scratch = std::env::temp_dir().join(super::HARNESS_SCRATCH_DIR);
     let log = scratch.join("0123456789abcdef.log");
@@ -351,7 +351,7 @@ fn path_guard_allows_allowlisted_path_outside_root() {
         "expected Ok for allowlisted outside path, got {result:?}"
     );
 
-    // Manual cleanup — TempDir only removes its own path.
+    // Manual cleanup - TempDir only removes its own path.
     let _ = std::fs::remove_file(&outside_file);
 }
 
@@ -416,7 +416,7 @@ fn path_guard_add_allowlist_path() {
 
 #[test]
 fn assert_editable_allows_nonexistent_file() {
-    // Creating a new file is always allowed — nothing existing is overwritten.
+    // Creating a new file is always allowed - nothing existing is overwritten.
     let dir = TempDir::new();
     let missing = dir.path().join("missing.txt");
     assert!(assert_editable_file(&missing).is_ok());
@@ -499,7 +499,7 @@ fn validate_asset_path_dotdot_after_symlink_rejected() {
         std::os::unix::fs::symlink("sub", &link).unwrap();
     }
     // Try to escape via the symlinked dir using `..`
-    // link/../../../etc/passwd — but validate_asset_path rejects `..` outright.
+    // link/../../../etc/passwd - but validate_asset_path rejects `..` outright.
     let result = validate_asset_path(dir.path(), "link/../../../etc/passwd");
     assert!(
         result.is_err(),

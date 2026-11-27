@@ -93,7 +93,7 @@ pub fn graphemes_with_width(text: &str) -> impl Iterator<Item = (&str, u16)> + '
 
 /// State of one line under construction while word-wrapping: the text
 /// accumulated so far, the byte offset of its first grapheme in the source,
-/// and its display width — plus the word being accumulated with the same
+/// and its display width - plus the word being accumulated with the same
 /// fields.
 struct WrapState {
     current: String,
@@ -118,7 +118,7 @@ pub fn word_wrap(text: &str, max_width: u16) -> Vec<String> {
 /// [`word_wrap`] with source positions: each wrapped line is returned
 /// alongside the byte offset of its first grapheme in `text`, so callers can
 /// map a chunk back into the source (e.g. syntax highlighting that must not
-/// restart at every wrap — a token folded across two rows keeps one color).
+/// restart at every wrap - a token folded across two rows keeps one color).
 #[must_use]
 pub fn word_wrap_spans(text: &str, max_width: u16) -> Vec<(String, usize)> {
     let mut st = WrapState {

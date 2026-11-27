@@ -10,7 +10,7 @@
 //!   in [`SessionTelemetry::finish`];
 //! - errors are grouped by the FULL dimension set (category, provider,
 //!   source, fingerprint), never by fingerprint alone;
-//! - every counter is saturating — telemetry never panics or wraps;
+//! - every counter is saturating - telemetry never panics or wraps;
 //! - error `source` must validate as an internal module path; anything else
 //!   is dropped (fail closed).
 
@@ -119,11 +119,11 @@ impl SessionTelemetry {
         bump_capped(&mut self.tools, normalize_tool(tool));
     }
 
-    /// An error occurred. The raw message is fingerprinted and discarded here —
+    /// An error occurred. The raw message is fingerprinted and discarded here -
     /// only the representation (category + fingerprint + source) is retained.
     ///
     /// Fail-closed: an invalid `source` (not an internal module path) drops
-    /// the record entirely — raw text must never enter the payload.
+    /// the record entirely - raw text must never enter the payload.
     pub fn record_error(
         &mut self,
         category: ErrorCategory,
@@ -287,7 +287,7 @@ mod tests {
 
     #[test]
     fn cost_is_rounded_once_not_per_request() {
-        // 100 × USD 0.004 = USD 0.40 — per-request rounding lost it.
+        // 100 × USD 0.004 = USD 0.40 - per-request rounding lost it.
         let mut s = SessionTelemetry::new();
         for _ in 0..100 {
             s.record_usage(1, 1, Some(0.004));
@@ -299,7 +299,7 @@ mod tests {
     fn invalid_error_source_is_dropped() {
         let mut s = SessionTelemetry::new();
         // private-looking but syntactically valid identifiers
-        // must be REJECTED — the source field is a closed allowlist.
+        // must be REJECTED - the source field is a closed allowlist.
         s.record_error(
             ErrorCategory::FsIo,
             "acme::confidential_merger",

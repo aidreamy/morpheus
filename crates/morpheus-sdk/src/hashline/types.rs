@@ -1,6 +1,6 @@
 //! Pure data types shared across the hashline parser, applier, and patcher.
 //! Nothing in this file references a filesystem, agent runtime, or schema
-//! library — keep it that way.
+//! library - keep it that way.
 use std::fmt;
 
 /// A line-number anchor (1-indexed).
@@ -40,7 +40,7 @@ pub enum Edit {
         old_assertion: Option<String>,
     },
     /// Deferred block edit (`replace block N:` / `delete block N`). The exact
-    /// line span is unknown at parse time — it is computed by
+    /// line span is unknown at parse time - it is computed by
     /// [`resolve_block_edits`] once file text + path (→ language) are
     /// available, then expanded into concrete edits: a non-empty `payloads`
     /// (from `replace block`) becomes the same `replacement` inserts + deletes

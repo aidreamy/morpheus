@@ -1,6 +1,6 @@
 //! Per-language label + logo color for the LSP status tags shown in the TUI
 //! prompt footer. Kept in its own module so adding or tuning a language's
-//! color is a one-line change — no SDK or theme coupling.
+//! color is a one-line change - no SDK or theme coupling.
 //!
 //! The mapping is keyed by the LSP *server catalog name* (e.g.
 //! `rust-analyzer`), not by language, so it stays a pure lookup over the
@@ -86,7 +86,7 @@ pub fn lsp_tag(server: &str) -> Option<(&'static str, RGBA)> {
 mod tests {
     use super::*;
 
-    /// Every server the SDK catalog can spawn must resolve to a tag —
+    /// Every server the SDK catalog can spawn must resolve to a tag -
     /// otherwise it renders in the generic primary color.
     #[test]
     fn every_catalog_server_has_a_tag() {

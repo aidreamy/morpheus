@@ -123,7 +123,7 @@ use crate::theme::contrast_color;
 
 /// Draw the inline LSP status segment on the prompt footer: with servers
 /// connected, a bold `◈` marker followed by one tag per server, each in its
-/// language's logo color (theme's primary color fallback) and italic —
+/// language's logo color (theme's primary color fallback) and italic -
 /// foreground paint only, never a background fill. The `LSP` word appears
 /// solely for the bare (on, nothing running) and `disabled` states.
 /// Servers without a dedicated language color fall back to the theme's
@@ -140,12 +140,12 @@ fn draw_lsp_segment(
 ) -> u16 {
     let muted_style = Style::default().fg(rgba_color(theme.text_muted));
     let label_style = muted_style.add_modifier(Modifier::BOLD);
-    // When servers are connected the `LSP` word drops out entirely — only
+    // When servers are connected the `LSP` word drops out entirely - only
     // the `◈` marker leads the tags: `◈ Rust`. The full `LSP` label appears
     // solely for the bare (nothing running) and `disabled` states.
     let label = if servers.is_empty() { "LSP " } else { "◈ " };
 
-    // "disabled" means LSP itself is off — not "no server running". When LSP
+    // "disabled" means LSP itself is off - not "no server running". When LSP
     // is on but nothing is running, just show the bare `LSP` label, no tags.
     if !available {
         let text = format!("{label}disabled");
@@ -176,7 +176,7 @@ fn draw_lsp_segment(
         let tag_style = Style::default()
             .fg(rgba_color(color))
             .add_modifier(Modifier::ITALIC);
-        // No leading space: the label already ends with one — `◈ Rust`,
+        // No leading space: the label already ends with one - `◈ Rust`,
         // not `◈  Rust`. The trailing space separates sibling tags.
         let tag = format!("{label} ");
         for (i, ch) in tag.chars().enumerate() {
@@ -194,7 +194,7 @@ fn draw_lsp_segment(
     x
 }
 
-/// Display name for a model: drop any lab/org prefix — e.g.
+/// Display name for a model: drop any lab/org prefix - e.g.
 /// `deepseek.ai/deepseek-v4-pro` becomes `deepseek-v4-pro`. Display-only:
 /// the configured model id keeps its full form for the model picker and API
 /// calls. Note the lab prefix is unrelated to the gateway provider actually
@@ -219,7 +219,7 @@ fn truncate_with_ellipsis(text: &str, max: usize) -> String {
 
 /// Badge of the focused `/agents` pane for the agent-label row: the
 /// agent's display name in its brand sweep, drawn as the FIRST right-side
-/// segment — ahead of the row's own `provider model level` triple, which
+/// segment - ahead of the row's own `provider model level` triple, which
 /// then carries the pane's serving triple instead of the gateway's. ACP
 /// panes carry no provider unless the harness advertises one (the empty
 /// segment drops out of the fit below); the model id is shortened and
@@ -333,7 +333,7 @@ impl PromptView {
     /// `history_index` is only reset by typing/sending, so it can survive a
     /// session switch and arrive here pointing past the NEW session's
     /// history (browse high in a long session, switch to a short one, press
-    /// Ctrl+Up). Clamp the carried index into range before indexing — the
+    /// Ctrl+Up). Clamp the carried index into range before indexing - the
     /// single guard that covers every switch path (keyboard, mouse, fork
     /// and revert dialogs), each of which leaves the draft untouched.
     pub fn history_up(&mut self, user_msgs: &[String]) {
@@ -437,7 +437,7 @@ impl PromptView {
     /// byte range: LLM-assisted typing and IMEs routinely leave a stray
     /// trailing (or leading) space in the input, and an exact `0..len()`
     /// match invalidates the correction for something a `.trim()` would
-    /// have solved — the user dragged over every visible character, the
+    /// have solved - the user dragged over every visible character, the
     /// whitespace is not content.
     pub fn has_complete_correction_selection(&self) -> bool {
         if !self.correction_selection || self.input.is_empty() {
@@ -499,7 +499,7 @@ impl PromptView {
         self.note_activity();
     }
 
-    /// Insert a character at the cursor — the normal typing path — and
+    /// Insert a character at the cursor - the normal typing path - and
     /// record it into the edit history as a typing-flow operation
     /// (consecutive typing coalesces by TIME into one undo step; see
     /// `EditHistory::record`).
@@ -523,7 +523,7 @@ impl PromptView {
 
     /// Replace the whole draft programmatically (queue re-edit, message
     /// actions, slash command, gateway restore) and record it as one
-    /// atomic Replace step — a single Ctrl+Z reverts the whole load.
+    /// atomic Replace step - a single Ctrl+Z reverts the whole load.
     pub fn set_draft(&mut self, text: String) {
         self.input = text;
         self.cursor_pos = self.input.len();
@@ -535,8 +535,8 @@ impl PromptView {
         self.record_edit(EditKind::Replace);
     }
 
-    /// Ctrl+C while the prompt is focused: wipe the WHOLE draft — text,
-    /// cursor, paste placeholders — as ONE atomic Replace step, so a
+    /// Ctrl+C while the prompt is focused: wipe the WHOLE draft - text,
+    /// cursor, paste placeholders - as ONE atomic Replace step, so a
     /// single Ctrl+Z restores everything. Unlike `clear_draft` (the
     /// slash-menu dismiss path) the edit history is KEPT: the clear is a
     /// normal, reversible edit.
@@ -589,7 +589,7 @@ impl PromptView {
     }
 
     /// Dismiss-path clear (slash-menu Esc): the draft context ended, so the
-    /// edit history is dropped with it — nothing to undo back to.
+    /// edit history is dropped with it - nothing to undo back to.
     pub fn clear_draft(&mut self) {
         self.input.clear();
         self.cursor_pos = 0;
@@ -892,7 +892,7 @@ impl PromptView {
         None
     }
 
-    /// Whether the cursor sits at the prompt's head — the edge from which
+    /// Whether the cursor sits at the prompt's head - the edge from which
     /// plain ArrowUp hands over to history navigation (`None`-able visual
     /// position aside: an empty prompt is always at the head, and a cursor
     /// on byte 0 is at the head regardless of wrapping).
@@ -904,7 +904,7 @@ impl PromptView {
                 .is_some_and(|(line, _)| line == 0)
     }
 
-    /// Whether the cursor sits at the prompt's tail — the edge from which
+    /// Whether the cursor sits at the prompt's tail - the edge from which
     /// plain ArrowDown hands over to history navigation (end-of-input byte
     /// offsets short-circuit this, mirroring [`Self::cursor_at_head`]).
     pub fn cursor_at_tail(&self, text_w: usize) -> bool {
@@ -1036,7 +1036,7 @@ impl PromptView {
 
     /// Compute the prompt's height. `max_height` is the vertical budget the
     /// layout can afford (the available screen space above the footer), so the
-    /// box never overflows a small terminal: the limit is **responsive** — a
+    /// box never overflows a small terminal: the limit is **responsive** - a
     /// short screen caps the box low right away, while a tall screen lets it
     /// stretch up to the generous [`MAX_PROMPT_LINES`] hard cap.
     pub fn required_height(&self, area_width: u16, max_height: u16) -> u16 {
@@ -1096,7 +1096,7 @@ impl PromptView {
                     result.push(&remaining[..end]);
                     remaining = &remaining[end..];
                 } else {
-                    // No space found within max_w chars — fall back to char break
+                    // No space found within max_w chars - fall back to char break
                     // (handles very long words without spaces)
                     let split = remaining
                         .char_indices()
@@ -1175,7 +1175,7 @@ impl PromptView {
 
     /// Drag variant of [`Self::char_pos_at_mouse`]: rows OUTSIDE the visible
     /// text window clamp to the nearest text edge (standard editor drag
-    /// semantics) instead of missing — a drag anchored at the prompt's tail
+    /// semantics) instead of missing - a drag anchored at the prompt's tail
     /// keeps extending to the very end of the draft when the pointer drops
     /// below the window (the only direction that grows a tail selection).
     /// Plain presses never route through here: a click on the border, label
@@ -1205,7 +1205,7 @@ impl PromptView {
         self.char_pos_at_mouse(x, y, area)
     }
 
-    /// Render the prompt and draw the cursor — blinking when focused, dimmed when blurred.
+    /// Render the prompt and draw the cursor - blinking when focused, dimmed when blurred.
     #[allow(clippy::too_many_arguments, clippy::too_many_lines)]
     pub fn render(
         &mut self,
@@ -1272,7 +1272,7 @@ impl PromptView {
         // a tall screen allows up to `MAX_PROMPT_LINES`. When the content
         // overflows, only the window's lines ending at the cursor are drawn
         // (the older top lines visually leave the box upward as new lines
-        // arrive — an LRU-like scroll-up, like the chat's summarizing box).
+        // arrive - an LRU-like scroll-up, like the chat's summarizing box).
         let total_lines = n as usize;
         let eff_cap = area
             .height
@@ -1303,12 +1303,12 @@ impl PromptView {
         let x_off = input_area.x + 3;
         let text_start = input_area.y + 1;
         // Text width: left chrome (border + 2 padding = 3) and right chrome
-        // (2 padding + border = 3) — symmetric now that the box has a right
+        // (2 padding + border = 3) - symmetric now that the box has a right
         // `│` like the slash menu.
         let max_line_w = input_area.width.saturating_sub(6) as u16;
 
         // Pre-compute every byte range the paste placeholders occupy in the
-        // draft — ALL occurrences of each virtual text (duplicated
+        // draft - ALL occurrences of each virtual text (duplicated
         // placeholders are independent ranges). The placeholder color paints
         // per GLYPH below: the ordinary text around a placeholder keeps the
         // base style even when they share a wrapped line. The old per-line
@@ -1424,7 +1424,7 @@ impl PromptView {
 
         // Paint the label row (`Build … provider model high`) with the box
         // fill before drawing its text: the row sits inside the input box, so
-        // its cells must carry the exact `background_element` color — stale
+        // its cells must carry the exact `background_element` color - stale
         // glyphs left by input lines that previously occupied this row would
         // otherwise stay visible through the fg-only styles below.
         // Mirrors the cap-band rule: on transparent themes (`background_element`
@@ -1473,7 +1473,7 @@ impl PromptView {
         // transparent themes (`orng`; anywhere `background_element` has
         // alpha 0) `rgba_color` maps the fill to `Color::Reset`, and a `▀`
         // painted with a Reset foreground renders its upper half in the
-        // terminal's *default* fg (usually white) — a bright band the input
+        // terminal's *default* fg (usually white) - a bright band the input
         // box never shows (`BoxRenderable` skips alpha-0 fills entirely).
         // Mirror that "alpha 0 = no fill" rule here: skip the glyph so the
         // cap row stays as transparent as the box fill itself.
@@ -1491,7 +1491,7 @@ impl PromptView {
 
         let muted_style = Style::default().fg(rgba_color(theme.text_muted));
         // The LSP status only appears after the first user message lowers the
-        // box from its initial position — while the session is empty (input
+        // box from its initial position - while the session is empty (input
         // still raised) the footer shows only the mode hint.
         let has_conversation = state
             .current_session()
@@ -1540,7 +1540,7 @@ impl PromptView {
             );
         }
 
-        // Provider + model + reasoning level on the agent-label row — the
+        // Provider + model + reasoning level on the agent-label row - the
         // same line as Build/Ask/Yolo, inside the input box, right-aligned.
         // Layout is `provider model level`, e.g.
         // ` openrouter deepseek-v4-flash high`. The provider is the
@@ -1554,7 +1554,7 @@ impl PromptView {
         // overlaps the agent label on the left.
         //
         // A focused `/agents` pane feeds the same segments with its own
-        // serving triple — provider when advertised, else the pane's
+        // serving triple - provider when advertised, else the pane's
         // model (human label when the harness names the value, else the
         // shortened id) and its reasoning level. An empty provider drops
         // out of the fit below. Before the pane's first report the model
@@ -1572,7 +1572,7 @@ impl PromptView {
             Some(p) => (badge_provider, p.reasoning),
             None => (provider, reasoning),
         };
-        // The focused pane's brand name leads the right-side segments —
+        // The focused pane's brand name leads the right-side segments -
         // painted glyph by glyph with the header's own sweep (plus the
         // row's fill underneath, which the pre-fill above already
         // painted), one spacer column after it; its width is reserved
@@ -1626,13 +1626,13 @@ impl PromptView {
 
             // Interior width mirrors `max_line_w`: 3 columns of chrome on
             // each side (border + 2 padding). Reserve room for the agent
-            // label plus one spacer column — and the brand name segment.
+            // label plus one spacer column - and the brand name segment.
             let interior_w = input_area.width.saturating_sub(6) as usize;
             let label_w = agent_label.chars().count() + 1;
             let avail = interior_w.saturating_sub(label_w).saturating_sub(agent_w);
 
             // Fit order: drop the provider first, then shrink the model name
-            // (ellipsis) — the reasoning level always stays fully visible.
+            // (ellipsis) - the reasoning level always stays fully visible.
             // When even the level alone would not fit, show only the level.
             let reason_text = reason.unwrap_or_default().to_string();
             let (prov_out, model_out, reason_out) = if prov_w + model_w + sep_w + reason_w <= avail
@@ -1657,7 +1657,7 @@ impl PromptView {
             };
 
             let mut segments: Vec<(String, Style)> = Vec::new();
-            // The brand name goes glyph by glyph (one style per column —
+            // The brand name goes glyph by glyph (one style per column -
             // the header's gradient sweep), then one spacer column in the
             // last glyph's style.
             let mut glyphs = agent_glyphs.into_iter().peekable();
@@ -1791,10 +1791,10 @@ impl PromptView {
 }
 
 /// Index of the first visible wrapped line when the prompt content exceeds the
-/// visible window (`window` is the responsive line cap — capped low on small
+/// visible window (`window` is the responsive line cap - capped low on small
 /// screens, up to [`MAX_PROMPT_LINES`] on tall ones). The window keeps the
 /// cursor line visible: normally it sits at the bottom of the window (so new
-/// lines push old ones off the top — the scroll-up effect), and it follows the
+/// lines push old ones off the top - the scroll-up effect), and it follows the
 /// cursor if the user moves it up.
 fn prompt_scroll_top(cursor_line: usize, total_lines: usize, window: usize) -> usize {
     if total_lines <= window {
@@ -2038,7 +2038,7 @@ mod tests {
     #[test]
     fn correction_selection_tolerates_surrounding_whitespace() {
         // A stray trailing/leading space in the input must NOT invalidate a
-        // drag that covers the whole visible prompt — the whitespace is not
+        // drag that covers the whole visible prompt - the whitespace is not
         // content (IMEs and pasted text leave one behind routinely).
         let mut view = PromptView::new();
         view.input = "  corrija esse texto ".into();
@@ -2052,7 +2052,7 @@ mod tests {
         assert!(view.has_complete_correction_selection());
 
         // Full 0..len drag over a trailing space: complete (the old exact
-        // byte match accepted this too — keep it).
+        // byte match accepted this too - keep it).
         view.begin_selection(0, true);
         view.sel_end = Some(len);
         assert!(view.has_complete_correction_selection());
@@ -2161,7 +2161,7 @@ mod tests {
         );
 
         // Click at the tail of EVERY wrapped line: each resolved offset must
-        // be a char boundary and monotonic — the anchors a drag needs.
+        // be a char boundary and monotonic - the anchors a drag needs.
         let mut prev = 0usize;
         for (i, line) in lines.iter().enumerate() {
             let col = line.chars().count();
@@ -2202,7 +2202,7 @@ mod tests {
     #[test]
     fn selection_over_a_multibyte_wrapped_prompt_slices_char_safe_and_expands_placeholders() {
         // Regression: with multi-byte content, `selected_text` used to slice
-        // at raw byte offsets produced by the mouse mapping — the tail
+        // at raw byte offsets produced by the mouse mapping - the tail
         // selection (the copy that matters most) either panicked on a
         // non-boundary slice or silently clipped the text.
         let mut view = PromptView::new();
@@ -2301,7 +2301,7 @@ mod tests {
     #[test]
     fn paste_placeholder_color_stays_inside_the_placeholder() {
         // Regression: the `[Pasted ~N lines]` placeholder's secondary color
-        // leaked into the surrounding text — the paint decision was made per
+        // leaked into the surrounding text - the paint decision was made per
         // WRAPPED LINE, so any line that merely overlapped the placeholder
         // (including a line sharing it with ordinary text typed after it)
         // was painted entirely in the placeholder color.
@@ -2364,7 +2364,7 @@ mod tests {
 
     #[test]
     fn paste_placeholder_color_does_not_leak_to_wrapped_neighbors() {
-        // Regression (second half): the leak also crossed WRAPPED lines —
+        // Regression (second half): the leak also crossed WRAPPED lines -
         // when the line holding the placeholder wrapped, the continuation
         // line inherited the paste color because the decision was a per-line
         // overlap test.
@@ -2499,7 +2499,7 @@ mod tests {
         );
         assert_eq!(cell.bg, Color::Reset, "tag must not fill the background");
 
-        // An unknown server keeps its raw name in the primary color — also
+        // An unknown server keeps its raw name in the primary color - also
         // italic, also font-only.
         let cell = &buf[(7, 0)];
         assert_eq!(cell.symbol(), "s");
@@ -2550,7 +2550,7 @@ mod tests {
 
         let registry = ThemeRegistry::new();
         // Transparent theme (`orng`): background_element has alpha 0, so the
-        // cap `▀` band must NOT be painted — mirroring BoxRenderable's
+        // cap `▀` band must NOT be painted - mirroring BoxRenderable's
         // "alpha 0 = no fill" rule. Painting it would render the glyph's
         // upper half in `Color::Reset` (terminal default, typically white).
         let orng = registry.get("orng").expect("orng theme registered");

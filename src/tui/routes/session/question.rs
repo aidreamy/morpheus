@@ -45,7 +45,7 @@ struct LineEdit {
     /// Cursor position in chars (always on a char boundary).
     cursor: usize,
     /// Edit history (Ctrl+Z / Ctrl+Y / Ctrl+C clear) shared with the chat
-    /// prompt — the same `util::edit_history` kernel, fed through
+    /// prompt - the same `util::edit_history` kernel, fed through
     /// `record_text` (this field has no compressed-paste mappings).
     history: EditHistory,
 }
@@ -73,7 +73,7 @@ impl LineEdit {
     /// BYTE-offset cursors: the kernel only uses it for the caret delta
     /// (a per-keystroke ±1 signature), so the unit mismatch never changes
     /// which side of the coalescing gate an edit lands on. Keep every
-    /// `EditKind::Delete` recorded here at most one char wide — a wider
+    /// `EditKind::Delete` recorded here at most one char wide - a wider
     /// delete must go through `delete_char_range`/`clear_all` paths.
     fn record(&mut self, kind: EditKind) {
         self.history
@@ -154,7 +154,7 @@ impl LineEdit {
         }
     }
 
-    /// Insert pre-filtered (single-line) text at the cursor — bracketed
+    /// Insert pre-filtered (single-line) text at the cursor - bracketed
     /// paste. Recorded as one atomic Paste step: a single Ctrl+Z removes
     /// the whole paste, matching the chat prompt.
     fn insert_str(&mut self, text: &str) {
@@ -310,7 +310,7 @@ pub struct QuestionDialog {
     /// grows upward to fit the content first (`required_height`); this offset
     /// only kicks in as a last resort when the options alone exceed the
     /// available height. It auto-follows `selected_row` every frame, so the
-    /// focused row — including the trailing custom row — is never stranded
+    /// focused row - including the trailing custom row - is never stranded
     /// off-screen.
     opt_scroll: usize,
     /// Blinking cursor for the Text-answer input field. Its `terminal_focused`
@@ -326,7 +326,7 @@ pub struct QuestionDialog {
 
 /// Which selectable-text region a drag selection lives in, together with the
 /// tab it was anchored on. Only the question text and the editable answer
-/// fields participate — the option list and the footer never anchor one, so
+/// fields participate - the option list and the footer never anchor one, so
 /// a drag started there falls through to the ordinary click handling.
 ///
 /// Offsets are CHAR indices into the region's own coordinate space: for the
@@ -404,7 +404,7 @@ impl QuestionDialog {
     // copy selection); rendering maps them through the same wrap the text is
     // drawn with.
 
-    /// Whether a non-empty selection exists — and still belongs to the tab
+    /// Whether a non-empty selection exists - and still belongs to the tab
     /// currently on screen (a selection anchored on another tab is inert
     /// until the user returns to it, and never leaks into Ctrl+C).
     pub fn has_selection(&self) -> bool {
@@ -424,7 +424,7 @@ impl QuestionDialog {
     }
 
     /// Extend the active selection's drag end to `pos` (mouse drag). Only
-    /// extends while the drag stays inside the anchored region — crossing
+    /// extends while the drag stays inside the anchored region - crossing
     /// into the options list or another region keeps the anchor intact
     /// without corrupting it.
     pub fn extend_selection(&mut self, region: SelectionRegion, pos: usize) {
@@ -440,7 +440,7 @@ impl QuestionDialog {
         self.selection = None;
     }
 
-    /// Whether a mouse press anchored a selection on this dialog — active or
+    /// Whether a mouse press anchored a selection on this dialog - active or
     /// still empty (press without movement). The App's drag arm extends only
     /// then, so a drag that started elsewhere never touches this range.
     pub fn has_selection_anchor(&self) -> bool {
@@ -448,8 +448,8 @@ impl QuestionDialog {
     }
 
     /// The selected text. The question region copies the rows exactly as
-    /// they are drawn — soft wraps re-join with a single space and the
-    /// `(purpose)` hint keeps its own line — while the answer regions copy
+    /// they are drawn - soft wraps re-join with a single space and the
+    /// `(purpose)` hint keeps its own line - while the answer regions copy
     /// the draft verbatim. Empty when nothing is selected.
     pub fn selected_text(&self) -> String {
         let Some(sel) = self.selection else {
@@ -503,7 +503,7 @@ impl QuestionDialog {
     }
 
     /// The display rows of the question-text region at `width` (the wrapped
-    /// question followed by the `(purpose)` hint rows) — the single source
+    /// question followed by the `(purpose)` hint rows) - the single source
     /// the renderer, the selection hit-test, the highlight painter and the
     /// copy path all read from, so their offset spaces cannot drift apart.
     fn question_display_rows(&self, tab: usize, width: u16) -> Vec<String> {
@@ -580,7 +580,7 @@ impl QuestionDialog {
 
     /// Whether the custom-answer input field should be drawn for `tab`.
     /// Always true for `SingleChoice`: the box starts pre-expanded with the
-    /// field visible so users see the personalization affordance upfront —
+    /// field visible so users see the personalization affordance upfront -
     /// nobody must navigate first to discover it, and focusing the custom
     /// row never shifts the layout afterwards.
     fn should_show_custom_input(&self, tab: usize) -> bool {
@@ -594,7 +594,7 @@ impl QuestionDialog {
     /// Option labels as plain strings for rendering/hit-testing.
     ///
     /// (The badge contract lives in [`Self::display_option`] below: it is
-    /// robust to payloads that were not normalized — old sessions / tests —
+    /// robust to payloads that were not normalized - old sessions / tests -
     /// because the badge is matched by value, not by position.)
     fn option_labels(q: &QuestionItem) -> Vec<&str> {
         q.options
@@ -796,7 +796,7 @@ impl QuestionDialog {
 
     /// Ctrl+C on the Text answer: wipe the whole field (readline-style
     /// kill). Recorded as ONE atomic Replace step, so a single Ctrl+Z
-    /// brings the draft back exactly — same contract as the chat prompt.
+    /// brings the draft back exactly - same contract as the chat prompt.
     fn text_clear_field(&mut self) {
         self.clear_selection();
         if let Some(s) = self.state.get_mut(self.current_tab) {
@@ -933,7 +933,7 @@ impl QuestionDialog {
     }
 
     /// Ctrl+C on the custom draft: wipe the whole field (readline-style
-    /// kill). One atomic Replace step — a single Ctrl+Z restores it.
+    /// kill). One atomic Replace step - a single Ctrl+Z restores it.
     fn custom_clear_field(&mut self) {
         self.clear_selection();
         if let Some(s) = self.state.get_mut(self.current_tab) {
@@ -961,7 +961,7 @@ impl QuestionDialog {
     }
 
     /// Ctrl+C from the App gate: wipe the focused answer field (Text input
-    /// or custom draft). Returns whether anything was cleared — the gate
+    /// or custom draft). Returns whether anything was cleared - the gate
     /// consumes the key either way while the dialog owns the keyboard (Esc
     /// is the dialog's dismissal; the quit-confirm stays out of reach).
     pub fn clear_focused_field(&mut self) -> bool {
@@ -1097,7 +1097,7 @@ impl QuestionDialog {
                     return true;
                 }
                 // Ctrl+C wipes the field (readline kill), Ctrl+Z / Ctrl+Y
-                // step the shared edit-history kernel back/forward — the
+                // step the shared edit-history kernel back/forward - the
                 // same triple the chat prompt answers.
                 KeyCode::Char('c') if ctrl => {
                     self.text_clear_field();
@@ -1612,7 +1612,7 @@ impl QuestionDialog {
                                 QuestionType::SingleChoice => {
                                     let is_custom = custom_idx == Some(row);
                                     if is_custom {
-                                        // Focus the custom input; don't advance —
+                                        // Focus the custom input; don't advance -
                                         // the user still has to type + Enter.
                                         self.cursor.note_activity();
                                         return true;
@@ -1667,7 +1667,7 @@ impl QuestionDialog {
     }
 
     /// Hit-test for a selection anchor/extend point: maps a mouse position
-    /// onto `(region, char_offset)` for the COPYABLE regions only — the
+    /// onto `(region, char_offset)` for the COPYABLE regions only - the
     /// question text, the Text answer field and the SingleChoice custom
     /// draft. Option labels, gap rows, the tab bar and the footer return
     /// `None`, so a drag started there never anchors a selection and falls
@@ -1782,7 +1782,7 @@ impl QuestionDialog {
     /// Public so that the App can allocate space before rendering.
     ///
     /// Growth policy: the box grows to fit its content for as long as the
-    /// screen allows — the only limit is the App-level responsive clamp
+    /// screen allows - the only limit is the App-level responsive clamp
     /// (`max_dialog_h`, i.e. the free space above the footer). Scrolling
     /// (question text first, then the options viewport with focus-follow) only
     /// engages past that budget, as a last resort. Deliberately there is NO
@@ -1852,7 +1852,7 @@ impl QuestionDialog {
     }
 
     /// Move keyboard focus by `delta` selectable rows, clamped at the ends.
-    /// Unlike Up/Down (which wrap), the wheel never wraps — it just stops at
+    /// Unlike Up/Down (which wrap), the wheel never wraps - it just stops at
     /// the first/last option. Focus-only: nothing is committed and the tab
     /// never changes; the viewport auto-follows on the next render.
     fn move_focus(&mut self, delta: i32) {
@@ -2033,7 +2033,7 @@ impl QuestionDialog {
 
     /// Wrap a hint flush with the surrounding text: `prefix` (e.g. `"("`)
     /// leads line 0 and `suffix` closes the last line, but continuation lines
-    /// start at column 0 — no indentation relative to the text above, so the
+    /// start at column 0 - no indentation relative to the text above, so the
     /// hint reads at the same column as the question it annotates.
     fn wrap_flush(text: &str, prefix: &str, suffix: &str, width: u16) -> Vec<String> {
         let prefix_w = prefix.chars().count() as u16;
@@ -2085,7 +2085,7 @@ impl QuestionDialog {
                     out.push(Self::wrap_text(&Self::display_option(q, opt), opt_w));
                 }
                 // The custom row keeps its virtual selectable index
-                // (`options.len()`) but draws no label line — the input (with
+                // (`options.len()`) but draws no label line - the input (with
                 // its placeholder) IS the row.
                 out.push(Vec::new());
                 out
@@ -2104,7 +2104,7 @@ impl QuestionDialog {
     /// Flat display rows of the options viewport for `tab`, in order: every
     /// wrapped option line, the custom input lines below the custom row (the
     /// typed draft hard-wraps across as many rows as it needs), and a
-    /// blank gap row after each option block — between blocks so the eye can
+    /// blank gap row after each option block - between blocks so the eye can
     /// tell where one option ends and the next begins, plus one trailing the
     /// custom input so it never glues to the footer. Each entry is exactly
     /// one terminal row.
@@ -2365,7 +2365,7 @@ impl QuestionDialog {
                         0
                     };
                     // The placeholder stays visible whenever the answer is
-                    // empty — even after clicking the field or moving the
+                    // empty - even after clicking the field or moving the
                     // cursor back to the start.
                     let show_placeholder = input.is_empty();
                     let input_fg = if show_placeholder {
@@ -2419,7 +2419,7 @@ impl QuestionDialog {
                         }
 
                         // Blinking cursor at the cursor position. Always visible
-                        // while this tab is active — no click required.
+                        // while this tab is active - no click required.
                         let cursor_cell = cursor_pos.saturating_sub(h_scroll);
                         let cx = text_x + cursor_cell as u16;
                         if cx <= text_x + field_w as u16
@@ -2494,7 +2494,7 @@ impl QuestionDialog {
         hint!(Self::ENTER_KEY, enter_label, 1);
         hint!(Self::ESC_LABEL, "dismiss", 0);
         // Last-resort overflow affordance: when option rows fold above or
-        // below the viewport, say how many — folded items must read as
+        // below the viewport, say how many - folded items must read as
         // scrollable, never as missing.
         if !is_confirm {
             let (above, below) = opt_overflow;
@@ -2529,7 +2529,7 @@ impl QuestionDialog {
     }
 
     /// Hidden CONTENT rows above/below a viewport of `capacity` flat rows.
-    /// Blank gap rows never count — the footer must flag folded items, not
+    /// Blank gap rows never count - the footer must flag folded items, not
     /// breathing space. `(0, 0)` in the common case: everything fits.
     fn options_overflow(&self, tab: usize, inner_w: u16, capacity: usize) -> (usize, usize) {
         let flat = self.flat_option_rows(tab, inner_w);
@@ -2624,11 +2624,11 @@ impl QuestionDialog {
 
     /// Render SingleChoice / MultiChoice options inside a viewport of
     /// `bottom - start_y` rows. The focused row uses the standard `🞴`
-    /// marker (same pattern as the permission box) — no background wash —
+    /// marker (same pattern as the permission box) - no background wash -
     /// and a committed-but-unfocused row keeps its `🞴` in the accent color,
     /// so focus and previous answer stay distinguishable. The custom row uses
     /// the same markers (no pencil) to keep the list uniform. When the flat
-    /// rows exceed the viewport (last-resort overflow only — the box grows
+    /// rows exceed the viewport (last-resort overflow only - the box grows
     /// first), the window auto-follows `selected_row`.
     #[allow(clippy::too_many_arguments)]
     fn render_options(
@@ -3083,7 +3083,7 @@ mod tests {
         let width = 60u16;
         let height = d.required_height(width);
         // Layout math replicated from `render`: area.y = 0, single question
-        // (no tab bar, hence no separator — just the top pad), footer at
+        // (no tab bar, hence no separator - just the top pad), footer at
         // height-2.
         let footer_y = height.saturating_sub(2);
         let y_pos = 1u16;
@@ -3336,7 +3336,7 @@ mod tests {
         assert_eq!(wrapped[0], vec!["Deltas".to_string()]);
         assert_eq!(wrapped[1], vec!["Snapshots (Recommended)".to_string()]);
         // Badge matches by value even when the payload was not normalized
-        // (recommended not first) — the tool normally sorts it to the top.
+        // (recommended not first) - the tool normally sorts it to the top.
         assert_eq!(
             QuestionDialog::display_option(&d.questions[0], "Snapshots"),
             "Snapshots (Recommended)"
@@ -3451,8 +3451,8 @@ mod tests {
         use ratatui::layout::Rect;
         // Last-resort overflow (small terminal): when the multi-line draft's
         // custom block is focused, the viewport must scroll far enough to
-        // show ALL its wrapped input lines — including the one holding the
-        // cursor — not just the first.
+        // show ALL its wrapped input lines - including the one holding the
+        // cursor - not just the first.
         let opts: Vec<String> = (1..=10)
             .map(|i| format!("Option {i} with quite a lot of explanatory text padded to wrap"))
             .collect();
@@ -3543,7 +3543,7 @@ mod tests {
         d.show_questions(vec![single_choice("s1", vec!["A", "B"], Some("A"))]);
         // The virtual custom row is index 2 → key '3'.
         d.handle_key(KeyCode::Char('3'));
-        // Focused only, like a click on the row — no commit, no tab advance.
+        // Focused only, like a click on the row - no commit, no tab advance.
         assert_eq!(d.selected_row, 2);
         assert!(d.is_custom_focused());
         assert_eq!(d.current_tab, 0);
@@ -3593,7 +3593,7 @@ mod tests {
         let mut d = QuestionDialog::new();
         d.show_questions(vec![single_choice("s1", vec!["A"], Some("A"))]);
         // The box starts pre-expanded: 1 option + gap + the custom input (its
-        // own row, no label) + trailing gap below the input, upfront —
+        // own row, no label) + trailing gap below the input, upfront -
         // focusing the custom row shifts nothing.
         assert_eq!(d.option_row_count(0, 40), 4);
         d.handle_key(KeyCode::Down);
@@ -3678,7 +3678,7 @@ mod tests {
         // No last-resort scrolling: everything fits, offset stays 0.
         assert_eq!(d.opt_scroll, 0);
         let screen = screen_text(&buf);
-        // Recommended badge on top area, custom row at the bottom — no
+        // Recommended badge on top area, custom row at the bottom - no
         // scrolling needed to discover either. The box starts pre-expanded:
         // the custom input (placeholder) is already on screen, nothing only
         // appears after navigating first.
@@ -3725,7 +3725,7 @@ mod tests {
         let theme = test_theme();
         let area = Rect::new(0, 0, 40, 14);
 
-        // Focused top: no scroll yet, custom row below the fold — and the
+        // Focused top: no scroll yet, custom row below the fold - and the
         // footer says so (folded items read as scrollable, never missing).
         let mut buf = Buffer::empty(area);
         d.render(&mut buf, area, &theme, std::time::SystemTime::now());
@@ -3800,7 +3800,7 @@ mod tests {
         );
         assert!(rows[5].contains('B'), "second option after its gap");
         // Trailing breathing gap below the custom input: it must never glue
-        // to the footer hints. The custom row draws no label — the input
+        // to the footer hints. The custom row draws no label - the input
         // (placeholder) IS the row.
         assert!(rows[7].contains("Type your custom answer..."));
         assert!(border_only(rows[8]), "bottom gap below the input");
@@ -3810,7 +3810,7 @@ mod tests {
     #[test]
     fn required_height_grows_to_fit_without_absolute_cap() {
         // Growth contract: the box fits its content exactly for as long as
-        // the screen allows — no absolute cap may fold items away while free
+        // the screen allows - no absolute cap may fold items away while free
         // space remains (only the App-level responsive clamp may scroll).
         let mut d = QuestionDialog::new();
         d.show_questions(vec![single_choice("s1", vec!["A"], Some("A"))]);
@@ -3843,8 +3843,8 @@ mod tests {
         use ratatui::buffer::Buffer;
         use ratatui::layout::Rect;
         // Commit row 1, then navigate back: focus (row 0) and previous
-        // answer (row 1) both carry 🞴 — focus in secondary, answer in
-        // accent — with no background wash and no pencil.
+        // answer (row 1) both carry 🞴 - focus in secondary, answer in
+        // accent - with no background wash and no pencil.
         let mut d = QuestionDialog::new();
         d.show_questions(vec![
             single_choice("s1", vec!["A", "B"], Some("A")),
@@ -3891,7 +3891,7 @@ mod tests {
         let inner_w = area.width.saturating_sub(5);
         let footer_y = area.y + h.saturating_sub(2);
         // Single-question dialogs in these tests draw no tab bar and no
-        // separator — just the single top pad row (mirrors `render`).
+        // separator - just the single top pad row (mirrors `render`).
         let start_y = area.y + 1;
         let opt_rows = d.option_row_count(0, inner_w);
         let text_h = footer_y
@@ -3975,7 +3975,7 @@ mod tests {
         let footer_y = area.y + height.saturating_sub(2);
         // Single-question dialogs in these tests draw no tab bar.
         // Single-question dialogs in these tests draw no tab bar and no
-        // separator — just the single top pad row (mirrors `render`).
+        // separator - just the single top pad row (mirrors `render`).
         let start_y = area.y + 1;
         let opt_rows = d.option_row_count(0, inner_w);
         let text_h = footer_y
@@ -4251,7 +4251,7 @@ mod tests {
         crossterm::event::KeyEvent::new(code, crossterm::event::KeyModifiers::CONTROL)
     }
 
-    /// Ctrl+C wipes the field, Ctrl+Z undoes one step, Ctrl+Y redoes — the
+    /// Ctrl+C wipes the field, Ctrl+Z undoes one step, Ctrl+Y redoes - the
     /// same triple the chat prompt answers, on the Text answer field. The
     /// wipe is one atomic step: a single Ctrl+Z restores the whole draft.
     #[test]
@@ -4282,7 +4282,7 @@ mod tests {
 
     /// Continuous typing coalesces: the burst `abc`, the typo-fix
     /// backspace and the retyped `d` all happen within the coalescing
-    /// window, so they are ONE undo step back to the pre-session state —
+    /// window, so they are ONE undo step back to the pre-session state -
     /// matching the chat prompt.
     #[test]
     fn text_answer_typing_flow_coalesces_into_one_step() {
@@ -4297,7 +4297,7 @@ mod tests {
         assert_eq!(d.state[0].text.value(), "abd");
 
         // One Ctrl+Z undoes the whole typing flow (kind switches do NOT
-        // break the session — users fix typos mid-flow)...
+        // break the session - users fix typos mid-flow)...
         d.handle_key_event(ctrl(KeyCode::Char('z')));
         assert_eq!(d.state[0].text.value(), "");
         // ...and there is nothing before the draft.

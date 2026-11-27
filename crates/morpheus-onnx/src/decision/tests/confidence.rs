@@ -170,7 +170,7 @@ fn entropy_formula() {
 
 /// Minimal `numpy.random.default_rng(seed).random()` (PCG64) replacement: the
 /// calibration test needs a deterministic stream, and any fixed stream
-/// satisfies its inequalities — the assertion is about the shape of the
+/// satisfies its inequalities - the assertion is about the shape of the
 /// calibration curve, not the stream. The upstream test's own tolerance
 /// margins (0.03 vs 0.20) leave a wide band.
 struct NumpyRng {

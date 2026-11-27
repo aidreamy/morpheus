@@ -113,7 +113,7 @@ impl Fs {
                 "description": concat!(
                     "Read one file, named symbols, or a range of lines from ",
                     "the project. The call can specify: a path with an optional ",
-                    "`offset` (1-based line number to start reading from — reads ",
+                    "`offset` (1-based line number to start reading from - reads ",
                     "the syntactic block containing that line when used without ",
                     "`limit`), an optional `limit` (number of lines to read; only ",
                     "provide together with `offset`, if the file is too large to ",
@@ -122,12 +122,12 @@ impl Fs {
                     "`offset`/`limit`. Every result carries a \u{00b6}path#TAG ",
                     "header; lines are numbered `N| text` so edits can anchor ",
                     "directly. After an fs_edit the response also carries the ",
-                    "updated header — you only need to re-read when you want ",
+                    "updated header - you only need to re-read when you want ",
                     "to SEE new content, not to edit again. Blocks larger ",
                     "than 24 lines are elided to their head/tail with a footer ",
                     "columns are truncated with `...` and flagged. After a range ",
                     "read a footer reports how many lines remain and how to ",
-                    "continue — read only what you need instead of whole files."
+                    "continue - read only what you need instead of whole files."
                 ),
                 "inputSchema": {
                     "type": "object",
@@ -240,7 +240,7 @@ impl Fs {
         self
     }
 
-    /// Suppress passive LSP feedback for the chained call only — the `Fs`
+    /// Suppress passive LSP feedback for the chained call only - the `Fs`
     /// keeps its default behavior for later calls.
     #[must_use]
     pub fn without_lsp(&self) -> FsCall<'_> {
@@ -252,7 +252,7 @@ impl Fs {
     }
 
     /// Include warnings (not just errors) in the chained call's passive LSP
-    /// feedback only — the `Fs` keeps its default behavior for later calls.
+    /// feedback only - the `Fs` keeps its default behavior for later calls.
     #[must_use]
     pub fn warnings(&self) -> FsCall<'_> {
         FsCall {
@@ -498,7 +498,7 @@ impl Fs {
     /// MCP `fs_edit_lines` description (the hashline replace engine).
     ///
     /// Dedicated tool for line/block edits: the model never has to pick an
-    /// engine by argument shape — the tool name selects it.
+    /// engine by argument shape - the tool name selects it.
     fn description_edit_lines() -> ToolDescription {
         serde_json::json!({
             "name": "fs_edit_lines",
@@ -507,7 +507,7 @@ impl Fs {
                 "anchored by the file's content hash for safety. ",
                 "Supports replace, delete, insert (before/after/head/tail), and ",
                 "syntactic block operations. A successful edit returns the ",
-                "updated \u{00B6}path#TAG header — use it directly for follow-up ",
+                "updated \u{00B6}path#TAG header - use it directly for follow-up ",
                 "edits on the same file without re-reading. ",
                 "Example: {\"path\": \"src/main.rs\", \"file_hash\": \"3C4D\", ",
                 "\"ops\": \"replace 5..7:\\n+fn hello() {\\n+    println!(\\\"hi\\\");\\n+}\"}"
@@ -576,12 +576,12 @@ impl Fs {
                 "metavariables $NAME (matches exactly one node) and $$$NAME (matches zero or ",
                 "more nodes, e.g. an argument list), and the same metavariable must capture ",
                 "identical text in every occurrence to match. A string literal pattern must ",
-                "include its quotes, and a metavariable captures a whole node — it does not ",
+                "include its quotes, and a metavariable captures a whole node - it does not ",
                 "match a substring inside a literal. So to change the text of a string, match ",
                 "the whole literal. ",
                 "Example: {\"path\": \"src/app.js\", \"ops\": [{\"pat\": ",
                 "\"console.log(\\\"$M\\\")\", \"out\": \"console.log([\\\"$M\\'])\"}]}",
-                " A successful edit returns the updated \u{00B6}path#TAG header — ",
+                " A successful edit returns the updated \u{00B6}path#TAG header - ",
                 "use it directly for follow-up edits on the same file without ",
                 "re-reading."
             ),
@@ -639,7 +639,7 @@ impl Fs {
                 "itself identifies the location, with the smallest unique ",
                 "snippet. Copy `old_string` verbatim including whitespace ",
                 "and newlines. A successful edit returns the updated ",
-                "\u{00B6}path#TAG header — use it directly for follow-up edits ",
+                "\u{00B6}path#TAG header - use it directly for follow-up edits ",
                 "on the same file without re-reading. ",
                 "Example: {\"path\": \"src/main.rs\", \"file_hash\": \"3C4D\", ",
                 "\"old_string\": \"old_computation(x)\", \"new_string\": ",
@@ -714,7 +714,7 @@ impl Fs {
             serde_json::Value::Array(vec![args.clone()])
         } else {
             return Err(
-                "the replace engine requires {path, file_hash, ops} — one file per call"
+                "the replace engine requires {path, file_hash, ops} - one file per call"
                     .to_string(),
             );
         };
@@ -747,7 +747,7 @@ impl Fs {
             flat
         } else {
             return Err(
-                "the AST engine requires {path, ops: [{pat, out}]} — one file per call".to_string(),
+                "the AST engine requires {path, ops: [{pat, out}]} - one file per call".to_string(),
             );
         };
         let fs_ast: FsAstEdit = serde_json::from_value(ast_value)
@@ -770,7 +770,7 @@ impl Fs {
         } else {
             return Err(
                 "the content replace engine requires {path, file_hash?, old_string, \
-                 new_string, replace_all?} — one file per call"
+                 new_string, replace_all?} - one file per call"
                     .to_string(),
             );
         };
@@ -830,7 +830,7 @@ impl Fs {
 
     /// Collect structured diagnostics for `rel` after a mutation: ensure the
     /// file's servers are up, wait for the diagnostics to settle, then split
-    /// the snapshot by severity. Passive best-effort — any failure degrades
+    /// the snapshot by severity. Passive best-effort - any failure degrades
     /// to `None` so the tool result is never rejected because of LSP.
     async fn passive_notes(
         lsp: &Lsp,
@@ -866,8 +866,8 @@ impl Fs {
         let engine = lsp.diagnostics_engine();
 
         // Pull the diagnostics instead of waiting for a push. Servers that
-        // see the client advertising the `diagnostic` capability — this one
-        // does — may never push (rust-analyzer answers with
+        // see the client advertising the `diagnostic` capability - this one
+        // does - may never push (rust-analyzer answers with
         // `workspace/diagnostic/refresh` nudges and goes silent), so the
         // only reliable observation after a mutation is an explicit pull.
         //
@@ -887,7 +887,7 @@ impl Fs {
                     Ok(Some(params)) => {
                         // Ingest under a pull-scoped source: the same server
                         // also pushes flycheck diagnostics (cargo check
-                        // errors), and the store replaces per source — a
+                        // errors), and the store replaces per source - a
                         // bare-source ingest would let analysis hints wipe
                         // freshly published compile errors.
                         let pull_source = format!("{}/pull", handle.name());

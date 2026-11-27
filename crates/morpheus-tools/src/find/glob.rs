@@ -10,7 +10,7 @@
 //!   returned with `timed_out: true` and an explanatory `note`. An empty
 //!   `timed_out` result is an INCOMPLETE scan, never "no files found".
 //! - Zero matches (no timeout) are marked `useless: true` with a no-match
-//!   `note` — the result carries no new information.
+//!   `note` - the result carries no new information.
 //! - When `max_results` caps the output, `limit_reached: true` tells the
 //!   caller more entries may exist.
 //! - Multi-target calls skip missing targets and report them in
@@ -23,13 +23,13 @@
 // derive the search root, the effective glob, and whether the scan should
 // recurse. Mirrors the semantics of the `@oh-my-pi` reference tool:
 //
-// - `*.rs` — bare glob: search the tree rooted at the target recursively
+// - `*.rs` - bare glob: search the tree rooted at the target recursively
 //   (`**/*.rs`).
-// - `src/*.rs` — glob with an explicit base directory: scoped to `src`,
+// - `src/*.rs` - glob with an explicit base directory: scoped to `src`,
 //   single level (`src/*.rs`, NOT `src/sub/*.rs`).
-// - `src/**/*.rs` — already-recursive glob: unchanged.
-// - `src` — directory literal: list everything under it recursively.
-// - `foo.rs` — file literal (no glob chars and a file exists): the path
+// - `src/**/*.rs` - already-recursive glob: unchanged.
+// - `src` - directory literal: list everything under it recursively.
+// - `foo.rs` - file literal (no glob chars and a file exists): the path
 //   itself is returned as the single match.
 
 use std::collections::BTreeMap;
@@ -96,7 +96,7 @@ pub fn parse_find_pattern(input: &str) -> ParsedFindPattern {
                 PathBuf::from(base)
             };
             // A bare glob (no base dir) recurses unless it already starts with
-            // `**`. A glob with an explicit base dir stays shallow — UNLESS the
+            // `**`. A glob with an explicit base dir stays shallow - UNLESS the
             // glob itself is already recursive (`src/**/*.rs`).
             let recursive = base.is_empty() || glob_part.starts_with("**");
             let glob_pattern = if recursive && !glob_part.starts_with("**") {
@@ -584,7 +584,7 @@ pub fn glob_targets_with(
         (
             None,
             Some(
-                "Glob timed out before finding any matches — the scan is incomplete, NOT proof of absence. The walk is bounded by directory size, not pattern width; scope the search to a deeper directory (e.g. `sub/dir/*.ext` instead of `*.ext` at a huge root)."
+                "Glob timed out before finding any matches - the scan is incomplete, NOT proof of absence. The walk is bounded by directory size, not pattern width; scope the search to a deeper directory (e.g. `sub/dir/*.ext` instead of `*.ext` at a huge root)."
                     .to_string(),
             ),
         )
@@ -592,7 +592,7 @@ pub fn glob_targets_with(
         (
             None,
             Some(
-                "Glob timed out; results are partial and incomplete — scope to a deeper directory instead of retrying blindly"
+                "Glob timed out; results are partial and incomplete - scope to a deeper directory instead of retrying blindly"
                     .to_string(),
             ),
         )
@@ -600,7 +600,7 @@ pub fn glob_targets_with(
         (
             None,
             Some(
-                "Limit reached — more entries may exist; narrow the pattern or add file_type to reduce results"
+                "Limit reached - more entries may exist; narrow the pattern or add file_type to reduce results"
                     .to_string(),
             ),
         )

@@ -404,7 +404,7 @@ async fn write_refuses_to_overwrite_auto_generated_file() {
 
 #[tokio::test]
 async fn write_allows_creating_file_with_generated_marker() {
-    // Creating a brand-new file is always allowed — the guard protects
+    // Creating a brand-new file is always allowed - the guard protects
     // overwriting existing generated files, not generating new ones.
     let root = TempRoot::new("gennew");
     let path = root.file("morpheus_test_create_generated.txt");

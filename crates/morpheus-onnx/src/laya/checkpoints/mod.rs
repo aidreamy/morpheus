@@ -1,6 +1,6 @@
 //! The published laya checkpoints: the opt-in reviewed commit SHAs.
 //!
-//! Domain data of the laya model — nothing here is generic. They are not
+//! Domain data of the laya model - nothing here is generic. They are not
 //! applied implicitly, so existing Hub/offline caches keep working; pass one
 //! explicitly to pin a load.
 

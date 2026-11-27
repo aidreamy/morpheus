@@ -20,7 +20,7 @@ fn source_lines(n: usize) -> String {
 
 fn bench_miss(c: &mut Criterion, name: &str, lines: usize) {
     let content = source_lines(lines);
-    // A plausible near-miss: right shape, wrong identifier — forces the full
+    // A plausible near-miss: right shape, wrong identifier - forces the full
     // window scan with per-window Levenshtein (the diagnostic worst case).
     let target =
         "    let payload = request.decode_data();\n    metrics.record(\"line_x\", payload.len());";

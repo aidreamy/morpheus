@@ -17,7 +17,7 @@
 //!   sem limites).
 //!
 //! Cada teste quantifica sem precisar de `rust-analyzer` real (fakes em
-//! memória — nenhum binário é gerado). O primeiro documenta o custo do modo
+//! memória - nenhum binário é gerado). O primeiro documenta o custo do modo
 //! ansioso antigo; os demais travam o perfil enxuto pós-fix.
 
 use std::sync::{
@@ -56,7 +56,7 @@ async fn rust_workspace_root_matches_multiple_servers_eager() {
     assert!(
         matched.len() >= 2,
         "diagnóstico: startup ansioso sobe {} servidores ({names:?}) onde o \
-         opencode (lazy) subiria 0 — cada um é um processo pesado (rust-analyzer \
+         opencode (lazy) subiria 0 - cada um é um processo pesado (rust-analyzer \
          indexa o workspace inteiro)",
         matched.len()
     );
@@ -75,7 +75,7 @@ async fn rust_workspace_root_matches_multiple_servers_eager() {
 /// (`initializationOptions` + `settings`, pois cada servidor lê só um deles)
 /// para o rust-analyzer não dividir `target/` com `cargo build`/`check`
 /// (lock contention + árvore de artefatos duplicada em RAM, opencode#17377).
-/// Outros servidores seguem com config nula — sem payload inventado.
+/// Outros servidores seguem com config nula - sem payload inventado.
 #[tokio::test]
 async fn spawn_config_carries_memory_mitigations_for_rust_analyzer() {
     let dir = tempfile::tempdir().unwrap();
@@ -270,7 +270,7 @@ async fn open_docs_lru_pins_64_documents() {
         open.len(),
         64,
         "diagnóstico: LRU fixa 64 documentos abertos (textos integrais no \
-         servidor) — working set que o rust-analyzer real multiplica em análise"
+         servidor) - working set que o rust-analyzer real multiplica em análise"
     );
     assert_eq!(counter.load(Ordering::SeqCst), 1, "um único servidor");
 }

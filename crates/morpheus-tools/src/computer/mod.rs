@@ -4,12 +4,12 @@
 //!
 //! The layout separates COMPONENTS from PIPELINES:
 //!
-//! - Components own one input KIND — validation and dispatch of a single
+//! - Components own one input KIND - validation and dispatch of a single
 //!   step, reusable by any tool without carrying pipelines along:
 //!   [`mouse`] (click/scroll/drag at coordinates or elements),
 //!   [`keyboard`] (keys/text/wait + the shared input simulator) and
 //!   [`touch`] (semantic accessibility actions on elements).
-//! - Pipelines own one TOOL — chain walking (`then` with `&&` semantics),
+//! - Pipelines own one TOOL - chain walking (`then` with `&&` semantics),
 //!   step classification and the wire schema, composing the components:
 //!   [`control`] (pointer + keyboard at raw coordinates or elements),
 //!   [`act`] (semantic + keyboard on accessibility-tree elements) and
@@ -70,7 +70,7 @@ use crate::ToolDescription;
 ///
 /// An exact name keeps priority. On a miss the lookup retries with a
 /// normalized comparison (trim + case-insensitive, then a unique substring)
-/// so the everyday near-miss — `chrome` for `Google Chrome` — costs no extra
+/// so the everyday near-miss - `chrome` for `Google Chrome` - costs no extra
 /// tool call. Only a UNIQUE candidate is substituted: acting on the wrong
 /// application is worse than reporting the miss, which already carries the
 /// candidate list.
@@ -106,7 +106,7 @@ fn fuzzy_app(name: &str, timeout: std::time::Duration) -> Option<xa11y::App> {
 /// case-insensitively (equal, or one containing the other).
 ///
 /// Blank names never match: `"chrome".contains("")` is true, so an unnamed
-/// application would otherwise become the unique match for EVERY miss — the
+/// application would otherwise become the unique match for EVERY miss - the
 /// wrong-application outcome this helper exists to prevent.
 fn unique_fuzzy_name<'a>(
     needle: &str,
@@ -137,7 +137,7 @@ pub(crate) fn ambiguity_note(locator: &xa11y::Locator, nth: Option<usize>) -> St
     }
     match locator.count() {
         Ok(count) if count > 1 => format!(
-            " (selector matched {count} elements; acted on the first — set `nth` to target another)"
+            " (selector matched {count} elements; acted on the first - set `nth` to target another)"
         ),
         _ => String::new(),
     }
@@ -201,7 +201,7 @@ impl Computer {
                     "and computer_act.",
                     "\n\nWith target \"focused\" (default \"all\") it instead reports the ",
                     "FOREGROUND application and the element inside it that currently ",
-                    "holds keyboard focus (role, name, current value, role path) — the ",
+                    "holds keyboard focus (role, name, current value, role path) - the ",
                     "cheap 'where will my keystrokes go?' check before computer_keyboard, ",
                     "which types into the focused element."
                 ),
@@ -230,9 +230,9 @@ impl Computer {
                     "element). Prefer ",
                     "this over a screenshot when you need structure: names and roles ",
                     "are exact and can be used directly as selectors for computer_act. ",
-                    "Each line carries the element's current state as plain tokens — ",
+                    "Each line carries the element's current state as plain tokens - ",
                     "disabled, hidden, focused, checked/unchecked/mixed, selected, ",
-                    "expanded/collapsed, editable, busy, modal, required, active — so a ",
+                    "expanded/collapsed, editable, busy, modal, required, active - so a ",
                     "disabled or hidden control, an open modal dialog (clicks outside it ",
                     "are ignored) or a required-but-empty field is visible BEFORE you ",
                     "try to act on it. Lines also carry `description=` (tooltip/help, ",
@@ -254,12 +254,12 @@ impl Computer {
                         "name": {
                             "type": "string",
                             "minLength": 1,
-                            "description": "Application name (exact match, e.g. 'Safari'). Provide `name` or `pid` — exactly one."
+                            "description": "Application name (exact match, e.g. 'Safari'). Provide `name` or `pid` - exactly one."
                         },
                         "pid": {
                             "type": "integer",
                             "minimum": 1,
-                            "description": "Application process ID. Provide `name` or `pid` — exactly one."
+                            "description": "Application process ID. Provide `name` or `pid` - exactly one."
                         },
                         "selector": {
                             "type": "string",
@@ -274,7 +274,7 @@ impl Computer {
                             "type": "integer",
                             "minimum": 1,
                             "maximum": 40,
-                            "description": "Maximum snapshot depth (default 12, max 40). A branch cut here is marked `children not read` — it is unknown, not empty."
+                            "description": "Maximum snapshot depth (default 12, max 40). A branch cut here is marked `children not read` - it is unknown, not empty."
                         },
                         "format": {
                             "type": "string",
@@ -289,7 +289,7 @@ impl Computer {
                         "surface": {
                             "type": "string",
                             "enum": ["menu_bar", "status_items", "taskbar", "panel", "dock", "desktop", "flyout", "unknown"],
-                            "description": "Target an OS SHELL SURFACE instead of an application — exactly one of `name`/`pid`/`surface`: menu_bar (macOS: File, Apple menu), status_items (tray/menu-bar extras), taskbar (Windows), panel (Linux), dock (macOS), desktop, flyout (Notification Center / Quick Settings / shell menus open RIGHT NOW — they exist only while open). Read-only: enumeration never opens, closes or focuses anything."
+                            "description": "Target an OS SHELL SURFACE instead of an application - exactly one of `name`/`pid`/`surface`: menu_bar (macOS: File, Apple menu), status_items (tray/menu-bar extras), taskbar (Windows), panel (Linux), dock (macOS), desktop, flyout (Notification Center / Quick Settings / shell menus open RIGHT NOW - they exist only while open). Read-only: enumeration never opens, closes or focuses anything."
                         }
                     },
                     "anyOf": [
@@ -317,21 +317,21 @@ impl Computer {
                 "name": "computer_wait",
                 "description": concat!(
                     "Block until an element of a desktop application reaches a state, ",
-                    "until its VALUE matches, or until the app RAISES AN EVENT — or ",
+                    "until its VALUE matches, or until the app RAISES AN EVENT - or ",
                     "time out with a diagnosis of the LAST OBSERVED state. Replaces ",
                     "poll-loops (computer_snapshot → check → computer_snapshot …, each a ",
                     "full round trip): 'wait for the export to finish, then snapshot' is ",
                     "ONE call before the snapshot instead of N.",
                     "\n\ncomputer_act already auto-waits an element to be visible+enabled ",
-                    "before acting — use computer_wait for the OTHER directions: waiting ",
-                    "for things to DISAPPEAR (state \"detached\" — a dialog closed, a ",
+                    "before acting - use computer_wait for the OTHER directions: waiting ",
+                    "for things to DISAPPEAR (state \"detached\" - a dialog closed, a ",
                     "spinner went away; tolerates the element never having existed), to ",
                     "ENABLE later (\"enabled\"), to CLOSE (\"hidden\"), or to gain/lose ",
                     "keyboard focus (\"focused\"/\"unfocused\").",
                     "\n\nThree element conditions need no state flag: `value`/`value_contains` ",
-                    "block until the element's value equals or contains a string — ",
+                    "block until the element's value equals or contains a string - ",
                     "value='100%' for a progress bar, value_contains='Done' for a status ",
-                    "label that may word differently across runs — and ",
+                    "label that may word differently across runs - and ",
                     "`numeric_value_gte` blocks until a slider/spinner/progress bar ",
                     "reaches a number (numeric_value_gte=100 for a 0..100 bar). The ",
                     "target may also be a SHELL SURFACE (`surface`) instead of an ",
@@ -343,13 +343,13 @@ impl Computer {
                     "focus_changed, value_changed, text_changed, name_changed, ",
                     "state_changed (any flag), structure_changed, selection_changed, ",
                     "menu_opened, menu_closed, announcement (a live-region alert; no ",
-                    "text payload — re-query the nearby alert element). The output names the kind and ",
+                    "text payload - re-query the nearby alert element). The output names the kind and ",
                     "reports the event's target element (role, name, value) so you can ",
-                    "act on it immediately. Platform support varies — e.g. window ",
+                    "act on it immediately. Platform support varies - e.g. window ",
                     "activate/deactivate events are NOT emitted on Windows.",
                     "\n\nRead-only: no input is sent and nothing moves, so this tool is ",
                     "allowed in every mode. On timeout the error names the condition and ",
-                    "the last observed state — decide the next move from that instead of ",
+                    "the last observed state - decide the next move from that instead of ",
                     "probing again."
                 ),
                 "inputSchema": {
@@ -358,12 +358,12 @@ impl Computer {
                         "name": {
                             "type": "string",
                             "minLength": 1,
-                            "description": "Application name (exact match, e.g. 'Safari'). Provide `name` or `pid` — exactly one."
+                            "description": "Application name (exact match, e.g. 'Safari'). Provide `name` or `pid` - exactly one."
                         },
                         "pid": {
                             "type": "integer",
                             "minimum": 1,
-                            "description": "Application process ID. Provide `name` or `pid` — exactly one."
+                            "description": "Application process ID. Provide `name` or `pid` - exactly one."
                         },
                         "selector": {
                             "type": "string",
@@ -405,7 +405,7 @@ impl Computer {
                             "type": "integer",
                             "minimum": 1,
                             "maximum": 60000,
-                            "description": "How long to wait for the condition, in milliseconds (default 10000, max 60000). A timeout is an ERROR carrying the last observed state — not a quiet false."
+                            "description": "How long to wait for the condition, in milliseconds (default 10000, max 60000). A timeout is an ERROR carrying the last observed state - not a quiet false."
                         }
                     },
                     "anyOf": [
@@ -460,27 +460,27 @@ impl Computer {
                     "argument); `region` = [x, y, width, height] in desktop pixels; ",
                     "element capture = a ROOT together with a CSS-like `selector` ",
                     "(pixels under the element's current bounds; occluded elements ",
-                    "are NOT raised first) — the root is `app`, `pid` or `surface` ",
+                    "are NOT raised first) - the root is `app`, `pid` or `surface` ",
                     "(an OS shell surface: menu_bar, status_items, taskbar, panel, ",
                     "dock, desktop, or a flyout open right now). Oversized captures ",
                     "are downscaled ",
                     "to `max_width` (default 1568); the output reports the DELIVERED ",
                     "image's dimensions, its desktop-space origin, and the desktop scale ",
-                    "— map an image coordinate back to the screen as ",
+                    "- map an image coordinate back to the screen as ",
                     "desktop = desktop_origin + image_coord * desktop_scale.",
                     "\n\nWith `annotate: true` the capture becomes SELECTOR-GROUNDED: every ",
                     "element of the app matching `selector` (default \"*\" = all) gets a ",
                     "labeled box drawn on the image, and the result carries a legend ",
                     "mapping each tag (`B7`) back to a round-trippable selector ",
-                    "(`*:nth(7)`) you pass straight to computer_act — visual grounding ",
+                    "(`*:nth(7)`) you pass straight to computer_act - visual grounding ",
                     "without pixel coordinates. Requires `app` or `pid` (annotation groups ",
                     "must be application-scoped) and captures the full display; omissions ",
-                    "and truncation (>100 matches) are reported — narrow the selector when ",
+                    "and truncation (>100 matches) are reported - narrow the selector when ",
                     "truncated. Selectors must be single clauses: comma alternations ",
-                    "(`\"button, link\"`) are rejected — pass one selector per intent.",
+                    "(`\"button, link\"`) are rejected - pass one selector per intent.",
                     "\n\nWith `save_path` (absolute path) the PNG bytes are ALSO written ",
-                    "to disk — parent directories are created as needed and the output ",
-                    "echoes `saved_to` — while the image still travels inline as usual."
+                    "to disk - parent directories are created as needed and the output ",
+                    "echoes `saved_to` - while the image still travels inline as usual."
                 ),
                 "inputSchema": {
                     "type": "object",
@@ -507,12 +507,12 @@ impl Computer {
                         },
                         "selector": {
                             "type": "string",
-                            "description": "CSS-like selector, e.g. \"window[name='Main'] > group\". Element capture: which element to shoot. Annotated capture: which elements get boxes (default \"*\" = every element of the app). Single clause only — comma alternations are rejected."
+                            "description": "CSS-like selector, e.g. \"window[name='Main'] > group\". Element capture: which element to shoot. Annotated capture: which elements get boxes (default \"*\" = every element of the app). Single clause only - comma alternations are rejected."
                         },
                         "nth": {
                             "type": "integer",
                             "minimum": 1,
-                            "description": "1-based match index when `selector` matches multiple elements (default 1). Element capture only — annotated captures cover every match."
+                            "description": "1-based match index when `selector` matches multiple elements (default 1). Element capture only - annotated captures cover every match."
                         },
                         "max_width": {
                             "type": "integer",
@@ -585,16 +585,16 @@ impl Computer {
                 "name": "computer_act",
                 "description": concat!(
                     "Act on a desktop element AND type as ONE pipeline. A call is a ",
-                    "STEP — either a SEMANTIC action on the element matched by ",
+                    "STEP - either a SEMANTIC action on the element matched by ",
                     "`selector` (press/toggle/select/set_value/..., auto-waiting for ",
                     "the element to become visible and enabled), a keyboard action ",
-                    "(`key` or `text`), or a `wait` pause — and a step may chain the ",
+                    "(`key` or `text`), or a `wait` pause - and a step may chain the ",
                     "NEXT step via `then`: all steps run sequentially in this ONE call ",
                     "with shell `&&` semantics, each only if the previous succeeded, ",
                     "and the first failure aborts reporting the exact failing step ",
                     "plus everything that completed (max 8 steps).",
                     "\n\nThe pipeline skeleton (`then` → `then` → `wait`) is IDENTICAL ",
-                    "to computer_control's — the model learns the shape once; only the ",
+                    "to computer_control's - the model learns the shape once; only the ",
                     "step kinds differ (semantic actions here, pointer actions there). ",
                     "Typical flow: computer_apps → computer_snapshot (find role+name) → ",
                     "computer_act. Value actions need payloads: `set_value`/",
@@ -603,22 +603,22 @@ impl Computer {
                     "(0-based). A `wait` step (standalone, millisecond cap 10 s) lets ",
                     "the app settle between steps. A `hold` step presses keys down and ",
                     "LEAVES them down (persistent key state across steps and calls), ",
-                    "and a `release` step puts them back up — for apps that behave ",
+                    "and a `release` step puts them back up - for apps that behave ",
                     "differently while a modifier or key is held. A semantic `press` ",
                     "focuses the ",
-                    "target on many toolkits but NOT reliably on every one — the one ",
+                    "target on many toolkits but NOT reliably on every one - the one ",
                     "mechanism that always moves OS keyboard focus is a real click, ",
                     "which is computer_control's job: if chained typing keeps missing ",
                     "the field, click the field element there instead. `type_text` ",
                     "inserts at the caret of the target (it focuses the target first) ",
-                    "while `set_value` REPLACES the whole value — use `set_value` to ",
+                    "while `set_value` REPLACES the whole value - use `set_value` to ",
                     "overwrite a field, `type_text` to append. In Build mode ",
                     "chains containing an element step ask for approval; keyboard ",
                     "steps with no element step in the chain are denied (the approval ",
                     "dialog hands focus to the TUI).",
                     "\n\nEvery step report ends with an `after:` line describing the UI ",
-                    "you just changed — the target's fresh state (or `is gone`), the ",
-                    "foreground app and the element that now holds keyboard focus — so ",
+                    "you just changed - the target's fresh state (or `is gone`), the ",
+                    "foreground app and the element that now holds keyboard focus - so ",
                     "a step that did nothing is visible without another snapshot. When ",
                     "a selector matched several elements and you did not pass `nth`, ",
                     "the report says how many matched and which one was used."
@@ -632,12 +632,12 @@ impl Computer {
                                 "name": {
                                     "type": "string",
                                     "minLength": 1,
-                                    "description": "Application name (exact match, e.g. 'Safari'). Provide `name` or `pid` — exactly one. Semantic-action steps only."
+                                    "description": "Application name (exact match, e.g. 'Safari'). Provide `name` or `pid` - exactly one. Semantic-action steps only."
                                 },
                                 "pid": {
                                     "type": "integer",
                                     "minimum": 1,
-                                    "description": "Application process ID. Provide `name` or `pid` — exactly one. Semantic-action steps only."
+                                    "description": "Application process ID. Provide `name` or `pid` - exactly one. Semantic-action steps only."
                                 },
                                 "selector": {
                                     "type": "string",
@@ -672,7 +672,7 @@ impl Computer {
                                     "items": { "type": "integer", "minimum": 0 },
                                     "minItems": 2,
                                     "maxItems": 2,
-                                    "description": "[start, end] (0-based; `end` EXCLUSIVE — [0, 3] selects three characters) for `select_text`."
+                                    "description": "[start, end] (0-based; `end` EXCLUSIVE - [0, 3] selects three characters) for `select_text`."
                                 },
                                 "timeout_ms": {
                                     "type": "integer",
@@ -707,7 +707,7 @@ impl Computer {
                                     "type": "array",
                                     "items": { "type": "string" },
                                     "minItems": 1,
-                                    "description": "Keys to press DOWN and KEEP DOWN as a STANDALONE step (no other fields) — transient apps keyed on a modifier or a plain key (e.g. an overlay summoned while `space` is held). The keys stay down across steps AND calls until a later `release` step with the same names. Ordered: first listed is pressed first. Names: modifiers `shift`/`ctrl`/`alt`/`meta` or any key accepted by `key`."
+                                    "description": "Keys to press DOWN and KEEP DOWN as a STANDALONE step (no other fields) - transient apps keyed on a modifier or a plain key (e.g. an overlay summoned while `space` is held). The keys stay down across steps AND calls until a later `release` step with the same names. Ordered: first listed is pressed first. Names: modifiers `shift`/`ctrl`/`alt`/`meta` or any key accepted by `key`."
                                 },
                                 "release": {
                                     "type": "array",
@@ -803,39 +803,39 @@ impl Computer {
                 "name": "computer_control",
                 "description": concat!(
                     "Control the desktop: pointer AND keyboard as ONE pipeline. A call ",
-                    "is a STEP — either a pointer action (`action`, default `click`, with ",
-                    "a target) or a keyboard action (`key` or `text`) — and a step may ",
+                    "is a STEP - either a pointer action (`action`, default `click`, with ",
+                    "a target) or a keyboard action (`key` or `text`) - and a step may ",
                     "chain the NEXT step via `then`: all steps run sequentially in this ",
                     "ONE call with shell `&&` semantics, each only if the previous ",
                     "succeeded, and the first failure aborts reporting the exact failing ",
                     "step plus everything that completed (max 8 steps).",
                     "\n\nTargeting is PER STEP (every step may carry `app`/`pid`/`surface` + ",
-                    "`selector`). Two pointer target forms: ELEMENT form (preferred) — ",
+                    "`selector`). Two pointer target forms: ELEMENT form (preferred) - ",
                     "the point resolves from the element's CURRENT bounds at dispatch ",
-                    "time, never stale; COORDINATE form — x/y from a computer_screenshot ",
+                    "time, never stale; COORDINATE form - x/y from a computer_screenshot ",
                     "mapped as desktop = desktop_origin + image_coord * desktop_scale, ",
                     "ONLY when the target has no accessibility node. A real click on an ",
-                    "element MOVES OS KEYBOARD FOCUS to it — the one mechanism that ",
-                    "works on every toolkit — so the canonical pattern for typing into a ",
+                    "element MOVES OS KEYBOARD FOCUS to it - the one mechanism that ",
+                    "works on every toolkit - so the canonical pattern for typing into a ",
                     "field is: click the field element, `then` `text`, `then` `key` ",
                     "enter. Keyboard steps (`key`/`text`) always type into whatever ",
                     "holds focus NOW and reject pointer fields.",
                     "\n\nClick actions accept `count` (2 = double-click) and `held` ",
                     "modifiers (ctrl+click = held [\"ctrl\"] + click); key + held = ",
-                    "chord (key `a` + held [\"ctrl\"] = select all; keys are lowercase — ",
+                    "chord (key `a` + held [\"ctrl\"] = select all; keys are lowercase - ",
                     "for uppercase hold `shift`); `text` types any literal string and ",
-                    "rejects `held`. A `wait` step (millisecond cap 10 s, standalone — no ",
+                    "rejects `held`. A `wait` step (millisecond cap 10 s, standalone - no ",
                     "other fields) gives the app time to catch up: click the menu item ",
                     "that opens a rename box, then {\"wait\": 600}, then type into the ",
                     "field it created. `action: drag` moves the pressed button from the ",
-                    "start to the end point over `duration_ms` (default 150, min 50) — ",
+                    "start to the end point over `duration_ms` (default 150, min 50) - ",
                     "endpoints must share the form: x/y + x2/y2, or selector + ",
                     "to_selector. `action: up` needs no target. A `hold` step presses ",
                     "keys down and LEAVES them down across steps (clicks land as ",
                     "ctrl+click, typed text lands shifted); a `release` step puts them ",
-                    "back up — both standalone, like `wait`; `release: [\"all\"]` puts ",
+                    "back up - both standalone, like `wait`; `release: [\"all\"]` puts ",
                     "back every key a `hold` left down. If the target appears ",
-                    "in computer_snapshot, prefer computer_act — it is semantic and ",
+                    "in computer_snapshot, prefer computer_act - it is semantic and ",
                     "auto-waits. Each step report ends with an `after:` line (target's ",
                     "fresh state, foreground app, focused element), and a selector ",
                     "that matched several elements without `nth` says so. In Build ",
@@ -860,7 +860,7 @@ impl Computer {
                                 "action": {
                                     "type": "string",
                                     "enum": ["click", "double_click", "right_click", "move", "down", "up", "scroll", "drag"],
-                                    "description": "Pointer action (default `click`). `down`/`up` allow custom drags; `drag` is the native interpolated drag. Ignored — and rejected with any other pointer field — on a keyboard step (`key`/`text`)."
+                                    "description": "Pointer action (default `click`). `down`/`up` allow custom drags; `drag` is the native interpolated drag. Ignored - and rejected with any other pointer field - on a keyboard step (`key`/`text`)."
                                 },
                                 "button": {
                                     "type": "string",
@@ -890,7 +890,7 @@ impl Computer {
                                 },
                                 "selector": {
                                     "type": "string",
-                                    "description": "CSS-like selector for the element form, e.g. \"button[name='OK']\". A click on it moves OS keyboard focus to the element — how the next step's typing finds the field. For `drag`, the START element (end is `to_selector`)."
+                                    "description": "CSS-like selector for the element form, e.g. \"button[name='OK']\". A click on it moves OS keyboard focus to the element - how the next step's typing finds the field. For `drag`, the START element (end is `to_selector`)."
                                 },
                                 "nth": {
                                     "type": "integer",
@@ -922,7 +922,7 @@ impl Computer {
                                 },
                                 "to_selector": {
                                     "type": "string",
-                                    "description": "End element selector for `drag` (element form; same root as the start — app or surface)."
+                                    "description": "End element selector for `drag` (element form; same root as the start - app or surface)."
                                 },
                                 "duration_ms": {
                                     "type": "integer",
@@ -941,7 +941,7 @@ impl Computer {
                                     "type": "integer",
                                     "minimum": 1,
                                     "maximum": 10000,
-                                    "description": "Milliseconds to WAIT as a STANDALONE step (no other fields): gives the app time to open a dialog or create an ephemeral field before the next step acts — e.g. click the menu item, then {\"wait\": 600}, then type into the rename box."
+                                    "description": "Milliseconds to WAIT as a STANDALONE step (no other fields): gives the app time to open a dialog or create an ephemeral field before the next step acts - e.g. click the menu item, then {\"wait\": 600}, then type into the rename box."
                                 },
                                 "hold": {
                                     "type": "array",
@@ -1064,22 +1064,22 @@ impl Computer {
             description_windows: serde_json::json!({
                 "name": "computer_windows",
                 "description": concat!(
-                    "List the WINDOWS of one desktop application — role, title, bounds ",
-                    "(x, y, width, height), active/minimized/maximized/fullscreen — or ",
+                    "List the WINDOWS of one desktop application - role, title, bounds ",
+                    "(x, y, width, height), active/minimized/maximized/fullscreen - or ",
                     "MANAGE one of them. computer_apps tells you WHICH apps exist; this ",
                     "tells you which of their windows are open and where they sit. With ",
                     "no `action` the output lists every window of the app (useful when ",
                     "a dialog hides behind the main window, or before `close`, which ",
                     "needs a specific target).",
                     "\n\nWith `action` the target window changes state: minimize, ",
-                    "maximize, enter_fullscreen, restore, close, move (needs `x`+`y` — ",
+                    "maximize, enter_fullscreen, restore, close, move (needs `x`+`y` - ",
                     "the new top-left corner in desktop pixels) or resize (needs ",
                     "`width`+`height`). The target is the window matched by ",
                     "`selector` (e.g. \"window[name='Settings']\"); without `selector` ",
-                    "the FIRST listed window is acted on — pass `selector` when the ",
+                    "the FIRST listed window is acted on - pass `selector` when the ",
                     "app has more than one window. The output shows the window's ",
                     "geometry AFTER the move/resize.",
-                    "\n\nWindow management support varies by platform — e.g. Linux ",
+                    "\n\nWindow management support varies by platform - e.g. Linux ",
                     "AT-SPI cannot move or resize windows; the action then errors and ",
                     "the fallback is driving the app's own window controls (maximize ",
                     "button via computer_act, close via its close button or the ",
@@ -1091,12 +1091,12 @@ impl Computer {
                         "name": {
                             "type": "string",
                             "minLength": 1,
-                            "description": "Application name (exact match, e.g. 'Safari'). Provide `name` or `pid` — exactly one."
+                            "description": "Application name (exact match, e.g. 'Safari'). Provide `name` or `pid` - exactly one."
                         },
                         "pid": {
                             "type": "integer",
                             "minimum": 1,
-                            "description": "Application process ID. Provide `name` or `pid` — exactly one."
+                            "description": "Application process ID. Provide `name` or `pid` - exactly one."
                         },
                         "selector": {
                             "type": "string",
@@ -1185,8 +1185,8 @@ impl Computer {
     ///
     /// # Errors
     ///
-    /// Returns `Err` when the platform accessibility API is unreachable, or —
-    /// for `target: "focused"` — when no application holds the foreground
+    /// Returns `Err` when the platform accessibility API is unreachable, or -
+    /// for `target: "focused"` - when no application holds the foreground
     /// within the timeout.
     pub async fn apps(&self, input: &ComputerApps) -> Result<apps::AppsResult, String> {
         apps::apps(input).await

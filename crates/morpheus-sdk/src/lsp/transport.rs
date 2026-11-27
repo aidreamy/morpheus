@@ -16,7 +16,7 @@
 //!   entry and emits `$/cancelRequest`; a late response is discarded instead
 //!   of surfacing stale data.
 //! * **Cancel-on-drop**: dropping an unresolved [`RequestFuture`] does the
-//!   same cleanup — even if it was never polled (futures are lazy, so the
+//!   same cleanup - even if it was never polled (futures are lazy, so the
 //!   cancellation guard cannot live inside the future body). Any *delivered*
 //!   response, success or server-reported error, closes the transaction and
 //!   disarms the cancellation.
@@ -131,7 +131,7 @@ impl Transport {
     ///
     /// The tasks live exactly as long as the returned handle: dropping it
     /// terminates them (see [`Drop for Transport`]). Killing the server
-    /// *process* stays the caller's responsibility — the transport only owns
+    /// *process* stays the caller's responsibility - the transport only owns
     /// the byte streams.
     pub fn start<I, O, E>(name: &str, input: I, output: O, stderr: Option<E>) -> Self
     where
@@ -188,7 +188,7 @@ impl Transport {
 
     /// Hand the incoming queue to an exclusive owner.
     ///
-    /// The client layer's dispatcher task owns the receiver outright — that
+    /// The client layer's dispatcher task owns the receiver outright - that
     /// lets it await messages without pinning the client's `Arc` alive
     /// (holding it across `recv` would make owner-drop wait on the task,
     /// which waits on owner-drop: a deadlock).
@@ -248,7 +248,7 @@ impl Transport {
     ///
     /// Lifecycle guarantees:
     /// * **Timeout**: resolves to [`LspError::Timeout`], forgets the pending
-    ///   entry and emits `$/cancelRequest` immediately — a late response is
+    ///   entry and emits `$/cancelRequest` immediately - a late response is
     ///   discarded instead of surfacing stale data.
     /// * **Cancel-on-drop**: dropping this future before a successful
     ///   response does the same cleanup, even if it was never polled
@@ -297,7 +297,7 @@ impl Transport {
         // Built eagerly, OUTSIDE the (lazy) future: a future dropped before its
         // first poll must still clean up its pending entry and cancel the
         // request. The `let .. = guard` re-bind inside the block forces the
-        // whole struct to move in — field-precise capture would leave the
+        // whole struct to move in - field-precise capture would leave the
         // guard outside where its Drop fires immediately.
         //
         // The deadline also starts at creation (not first poll) so buffering
@@ -316,8 +316,8 @@ impl Transport {
 
                 let outcome = tokio::select! {
                     response = rx => {
-                        // Any delivered response — success OR server-reported
-                        // error — closes the transaction. Only an unanswered
+                        // Any delivered response - success OR server-reported
+                        // error - closes the transaction. Only an unanswered
                         // (timed-out / dropped / dead-session) request cancels.
                         cancel_guard.armed = false;
                         response.unwrap_or(Err(LspError::StreamClosed))
@@ -394,7 +394,7 @@ impl Transport {
 /// immediately (even mid-read), while the writer flushes whatever is queued
 /// and stops. In-flight requests are failed with [`LspError::StreamClosed`].
 ///
-/// Killing the server *process* remains the owner's job — the transport owns
+/// Killing the server *process* remains the owner's job - the transport owns
 /// only the byte streams.
 impl Drop for Transport {
     fn drop(&mut self) {
@@ -503,7 +503,7 @@ async fn read_loop<I>(
                         // Blocks when the consumer falls behind: the OS pipe
                         // then applies backpressure to the server.
                         if incoming_tx.send(message).await.is_err() {
-                            // Consumer gone (transport dropped) — nothing left
+                            // Consumer gone (transport dropped) - nothing left
                             // to serve.
                             break;
                         }

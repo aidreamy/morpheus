@@ -21,7 +21,7 @@ fn manager_mode_denies_the_file_write_tools() {
 
 #[test]
 fn manager_mode_allows_fs_rollback_and_reads() {
-    // fs_rollback only restores a previously recorded version — it is a
+    // fs_rollback only restores a previously recorded version - it is a
     // management instrument, not a write tool.
     let args = serde_json::json!({ "path": "src/main.rs", "hash": "abcd" });
     let result = check_tool_permission("fs_rollback", &args, Mode::Manager, None);
@@ -254,7 +254,7 @@ fn ask_mode_web_tools_are_allowed() {
     assert!(matches!(result, PermissionCheck::Allowed));
 }
 
-// Mode::Build — tools that always need approval
+// Mode::Build - tools that always need approval
 
 #[test]
 fn build_bash_needs_approval() {
@@ -270,7 +270,7 @@ fn build_bash_needs_approval() {
 #[test]
 fn build_denies_coordinates_anywhere_in_the_chain_but_asks_for_element_chains() {
     // Coordinates depend on the pointer staying where it was when they
-    // were measured — Build's approval dialog hands focus to the TUI and
+    // were measured - Build's approval dialog hands focus to the TUI and
     // the user may move the pointer while answering. Denied outright
     // (asking would re-create the pointer-drift problem), with guidance
     // toward the tree-grounded element form.
@@ -286,7 +286,7 @@ fn build_denies_coordinates_anywhere_in_the_chain_but_asks_for_element_chains() 
     );
 
     // A coordinate drag is the same staleness problem (its start resolves
-    // to pixels) — denied like any coordinate step.
+    // to pixels) - denied like any coordinate step.
     let drag = serde_json::json!({ "x": 10, "y": 10, "x2": 90, "y2": 90, "action": "drag" });
     let result = check_tool_permission("computer_control", &drag, Mode::Build, None);
     assert!(
@@ -295,7 +295,7 @@ fn build_denies_coordinates_anywhere_in_the_chain_but_asks_for_element_chains() 
     );
 
     // A coordinate step hidden DEEPER in a `then` chain is the same
-    // position dependence — the guardrail walks the whole chain.
+    // position dependence - the guardrail walks the whole chain.
     let deeper = serde_json::json!({
         "app": "Firefox",
         "selector": "button[name='OK']",
@@ -313,7 +313,7 @@ fn build_denies_coordinates_anywhere_in_the_chain_but_asks_for_element_chains() 
     }
 
     // The element form resolves the point from the a11y tree at dispatch
-    // time — no coordinate can go stale — so it ASKS like computer_act.
+    // time - no coordinate can go stale - so it ASKS like computer_act.
     let element = serde_json::json!({
         "app": "Firefox",
         "selector": "button[name='OK']",
@@ -329,7 +329,7 @@ fn build_denies_coordinates_anywhere_in_the_chain_but_asks_for_element_chains() 
         assert!(req.args.contains("button[name='OK']"), "{}", req.args);
     }
 
-    // Element-to-element drag: tree-grounded on both ends — asks too.
+    // Element-to-element drag: tree-grounded on both ends - asks too.
     let drag = serde_json::json!({
         "app": "Files",
         "selector": "list_item[name='report.pdf']",
@@ -384,7 +384,7 @@ fn build_accessibility_tree_tools_still_need_approval() {
 fn computer_wait_is_allowed_in_every_mode() {
     // `computer_wait` is pure observation: it sends no input, moves no
     // pointer and opens no dialog, so a blocking wait is safe in every
-    // mode — including Ask (the plan's allow-matrix decision for phase 5).
+    // mode - including Ask (the plan's allow-matrix decision for phase 5).
     // It must NOT appear in `is_restricted_in_ask_mode`.
     let wait = serde_json::json!({
         "name": "Safari",
@@ -414,7 +414,7 @@ fn computer_windows_listing_is_read_only_and_actions_need_approval() {
         );
     }
 
-    // An `action` call changes window state — Ask denies outright (no
+    // An `action` call changes window state - Ask denies outright (no
     // approval dialog exists there), Build asks, Yolo allows.
     let close = serde_json::json!({
         "name": "Safari",
@@ -445,7 +445,7 @@ fn computer_windows_listing_is_read_only_and_actions_need_approval() {
 #[test]
 fn computer_screenshot_save_path_asks_outside_project_root() {
     // Writing the PNG OUTSIDE the project root is a file write like any
-    // other — it goes through the path check even in Ask mode, where the
+    // other - it goes through the path check even in Ask mode, where the
     // inline capture itself is free.
     let dir = tempfile::tempdir().unwrap();
     let inside = dir.path().join("shot.png");
@@ -499,8 +499,8 @@ fn computer_screenshot_save_path_asks_outside_project_root() {
 #[test]
 fn build_control_is_chain_aware_click_first_asks_keyboard_first_denied() {
     // The canonical click-first pipeline: a real click on the element
-    // moves OS keyboard focus AFTER the user answers the dialog — exactly
-    // what makes the chained typing land on the target — so the whole
+    // moves OS keyboard focus AFTER the user answers the dialog - exactly
+    // what makes the chained typing land on the target - so the whole
     // chain asks once, like any synthetic-input tool.
     let click_first = serde_json::json!({
         "app": "Obsidian",
@@ -515,7 +515,7 @@ fn build_control_is_chain_aware_click_first_asks_keyboard_first_denied() {
     );
 
     // A chain that STARTS with a keyboard step types into whatever holds
-    // keyboard focus — and the approval dialog hands focus to the TUI, so
+    // keyboard focus - and the approval dialog hands focus to the TUI, so
     // the text would land in the morpheus input box (observed in the field).
     // Deny with guidance toward the click-first pattern.
     let keyboard_first = serde_json::json!({ "key": "enter" });
@@ -531,7 +531,7 @@ fn build_control_is_chain_aware_click_first_asks_keyboard_first_denied() {
     }
 
     // The same keyboard step is allowed outright in Yolo (no approval
-    // dialog exists there to steal focus — dispatch runs without an
+    // dialog exists there to steal focus - dispatch runs without an
     // interactive prompt, matching the coordinate form's Yolo behavior).
     let result = check_tool_permission("computer_control", &keyboard_first, Mode::Yolo, None);
     assert!(
@@ -540,7 +540,7 @@ fn build_control_is_chain_aware_click_first_asks_keyboard_first_denied() {
     );
 
     // ORDER-SENSITIVE (review finding, same fix as computer_act): a
-    // keyboard step BEFORE the element step is denied — the keystroke
+    // keyboard step BEFORE the element step is denied - the keystroke
     // would run before any click could set focus; a later element step
     // does not sanitize an earlier keystroke. The element-first mirror
     // passes the order check and asks.
@@ -574,7 +574,7 @@ fn build_control_is_chain_aware_click_first_asks_keyboard_first_denied() {
 #[test]
 fn build_act_is_chain_aware_element_first_asks_keyboard_first_denied() {
     // The canonical act pipeline (field-test pattern): a semantic action
-    // on an element, then a wait, then typing into the field it created —
+    // on an element, then a wait, then typing into the field it created -
     // the whole chain asks once, like any synthetic-input tool.
     let element_first = serde_json::json!({
         "name": "Obsidian",
@@ -599,7 +599,7 @@ fn build_act_is_chain_aware_element_first_asks_keyboard_first_denied() {
     }
 
     // A chain that types but never touches an element sends the text into
-    // whatever holds keyboard focus after the approval dialog — the morpheus
+    // whatever holds keyboard focus after the approval dialog - the morpheus
     // input box (observed in the field). Deny with guidance toward the
     // element-first pattern (and the click fallback via computer_control).
     let keyboard_first = serde_json::json!({ "key": "enter" });
@@ -615,7 +615,7 @@ fn build_act_is_chain_aware_element_first_asks_keyboard_first_denied() {
     }
 
     // ORDER-SENSITIVE (review finding): a keyboard step BEFORE the element
-    // step is just as unsafe as a keyboard-only chain — the keystroke runs
+    // step is just as unsafe as a keyboard-only chain - the keystroke runs
     // before any element action could set focus. A later element step does
     // not sanitize an earlier keystroke.
     let type_then_element = serde_json::json!({
@@ -667,7 +667,7 @@ fn build_act_is_chain_aware_element_first_asks_keyboard_first_denied() {
 #[test]
 fn build_act_surface_step_keeps_unchanged_approval_rules() {
     // Phase 6: `surface` is a THIRD targeting root on computer_act, not a
-    // new tool — the guardrail matrix must be UNCHANGED. A surface step is
+    // new tool - the guardrail matrix must be UNCHANGED. A surface step is
     // a semantic step (it carries `selector`), so it satisfies the
     // order-sensitive check exactly like a `name`/`pid` step: surface-first
     // chains ask in Build; a keyboard step BEFORE any selector step is
@@ -692,7 +692,7 @@ fn build_act_surface_step_keeps_unchanged_approval_rules() {
     }
 
     // A surface step LATER in the chain does not sanitize an earlier
-    // keyboard step — same order-sensitive rule as the app path.
+    // keyboard step - same order-sensitive rule as the app path.
     let keyboard_then_surface = serde_json::json!({
         "key": "escape",
         "then": { "surface": "menu_bar", "selector": "menu_item[name='About']" }
@@ -730,7 +730,7 @@ fn build_fs_edit_always_needs_approval() {
 }
 
 // The advertised single-file form (flat {path, ...}) must surface the same
-// approval args as the batch form — the guard never parses a bespoke string.
+// approval args as the batch form - the guard never parses a bespoke string.
 #[test]
 fn build_fs_edit_flat_form_carries_the_path_in_approval() {
     let args = serde_json::json!({
@@ -775,7 +775,7 @@ fn build_subagent_needs_approval() {
     assert!(matches!(result, PermissionCheck::NeedsApproval(_)));
 }
 
-// Mode::Build — tools that need approval only outside cwd
+// Mode::Build - tools that need approval only outside cwd
 
 #[test]
 fn build_fs_read_outside_cwd_needs_approval() {
@@ -800,7 +800,7 @@ fn build_fs_read_outside_cwd_needs_approval() {
 
 #[test]
 fn build_fs_read_scratch_log_is_allowed_without_approval() {
-    // Truncated-output logs live under <temp>/morpheus — reading them back is part
+    // Truncated-output logs live under <temp>/morpheus - reading them back is part
     // of the truncation contract and must never trigger the approval dialog.
     let tmp_root = std::env::temp_dir().join("morpheus_test_perm_scratch_root");
     let scratch_dir = std::env::temp_dir().join("morpheus");
@@ -921,7 +921,7 @@ fn build_find_grep_inside_cwd_is_allowed() {
 
 // The `paths` array (multi-target find_grep) must feed the same approval
 // check as the single `path`: every target the tool opens is a real path the
-// guard must see — one outside-root entry triggers approval even when `path`
+// guard must see - one outside-root entry triggers approval even when `path`
 // itself is absent. This is the guard-safe version of the oh-my-pi
 // multi-target syntax: the guard never parses a bespoke string.
 #[test]
@@ -950,7 +950,7 @@ fn build_find_grep_paths_array_outside_cwd_needs_approval() {
 }
 
 // The flip side: when every `paths` entry is inside the root, no approval is
-// needed — the array does not change the guard's verdict for safe targets.
+// needed - the array does not change the guard's verdict for safe targets.
 #[test]
 fn build_find_grep_paths_array_inside_cwd_is_allowed() {
     let args = serde_json::json!({
@@ -969,7 +969,7 @@ fn build_find_grep_paths_array_inside_cwd_is_allowed() {
     );
 }
 
-// find_glob gained the same `paths` array (multi-target) as find_grep — the
+// find_glob gained the same `paths` array (multi-target) as find_grep - the
 // guard must see every target, and one outside-root entry triggers approval.
 #[test]
 fn build_find_glob_paths_array_outside_cwd_needs_approval() {
@@ -1014,7 +1014,7 @@ fn build_find_glob_paths_array_inside_cwd_is_allowed() {
     );
 }
 
-// web tools — freely available
+// web tools - freely available
 
 #[test]
 fn build_web_fetch_is_allowed() {

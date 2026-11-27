@@ -25,7 +25,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Unique scratch root for each traversal test: the guard root is a per-test
 /// temp directory, so the "outside root" targets land in a controlled,
-/// isolated parent — never in a developer's real project tree.
+/// isolated parent - never in a developer's real project tree.
 struct TempRoot(PathBuf);
 
 impl TempRoot {
@@ -73,7 +73,7 @@ fn meta(root: &TempRoot) -> FsMetadata {
     }
 }
 
-// Read guard now enforces path validation — absolute paths outside root
+// Read guard now enforces path validation - absolute paths outside root
 // are denied.
 
 #[tokio::test]
@@ -205,7 +205,7 @@ async fn read_traversal_relative_path_escapes_denied() {
     );
 }
 
-// Write — guard now correctly rejects traversal
+// Write - guard now correctly rejects traversal
 
 #[tokio::test]
 async fn write_traversal_via_dotdot_is_denied() {
@@ -360,7 +360,7 @@ async fn write_gap_symlink_escape() {
 
     assert!(
         !PathBuf::from(&outside_file).exists(),
-        "file must NOT exist — write was denied via symlink escape"
+        "file must NOT exist - write was denied via symlink escape"
     );
 
     let _ = std::fs::remove_dir_all(&outside_dir);
@@ -425,7 +425,7 @@ async fn edit_gap_symlink_escape() {
     let _ = std::fs::remove_file(&symlink_path);
 }
 
-// Edit — guard now correctly rejects traversal
+// Edit - guard now correctly rejects traversal
 
 #[tokio::test]
 async fn edit_traversal_via_dotdot_resolves_inside_root_and_succeeds() {
@@ -524,7 +524,7 @@ async fn edit_traversal_escape_via_dotdot_is_denied() {
     let _ = std::fs::remove_file(&resolved);
 }
 
-// Rollback — guard now correctly rejects traversal
+// Rollback - guard now correctly rejects traversal
 
 #[tokio::test]
 async fn rollback_traversal_via_dotdot_resolves_inside_root_and_succeeds() {

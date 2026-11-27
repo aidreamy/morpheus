@@ -2,14 +2,14 @@
 //!
 //! A code-review sub-agent task (`code_review: true` on
 //! [`SubAgentCallInput`](crate::types::SubAgentCallInput)) carries
-//! a prompt contract: the FINAL REPORT — the sub-agent's last message, the
+//! a prompt contract: the FINAL REPORT - the sub-agent's last message, the
 //! one written after its final tool call and the only text returned to the
-//! caller (see [`crate::closure`]) — must START with an HTML
+//! caller (see [`crate::closure`]) - must START with an HTML
 //! comment header declaring the outcome: `<!-- severity: green -->`,
 //! `<!-- severity: yellow -->` (minor issues / bad practice at most) or
 //! `<!-- severity: red -->` (something critical was found).
 //!
-//! The marker lives on the final report — not on the turn's first message —
+//! The marker lives on the final report - not on the turn's first message -
 //! for a logical reason: the agent can only declare the review outcome once
 //! it has DONE the analysis. Earlier narration (progress notes between tool
 //! calls) belongs to the live TUI timeline and is never shown to the caller,
@@ -21,7 +21,7 @@
 //! survives copy-through without being reformatted.
 //!
 //! The header is CONSUMED by the client: it is stripped from the rendered
-//! report and only drives the sub-agent box color (green/orange/red — the
+//! report and only drives the sub-agent box color (green/orange/red - the
 //! wire's middle value stays named `yellow`; only the rendered color is
 //! orange). A report without a header (or a non-review task) leaves the
 //! box's neutral per-agent color untouched.
@@ -32,7 +32,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "snake_case")]
 pub enum Severity {
-    /// All good — at most cosmetic details.
+    /// All good - at most cosmetic details.
     Green,
     /// Minor issues / bad practice at most.
     Yellow,
@@ -42,7 +42,7 @@ pub enum Severity {
 
 impl Severity {
     /// Parse the DSL keyword (case-insensitive). Returns `None` for any
-    /// other word — an unknown severity is treated as "no header", leaving
+    /// other word - an unknown severity is treated as "no header", leaving
     /// the box color untouched, rather than guessing.
     pub fn parse(word: &str) -> Option<Self> {
         match word.trim().to_ascii_lowercase().as_str() {
@@ -55,19 +55,19 @@ impl Severity {
 }
 
 /// The prompt contract appended to the input when `code_review` is set. The
-/// marker must open the FINAL REPORT — the sub-agent's last message, written
+/// marker must open the FINAL REPORT - the sub-agent's last message, written
 /// after its final tool call, which is the only text returned to the caller
 /// ([`crate::closure`]). Earlier narration is not the report and
 /// carries no marker.
-pub(crate) const SEVERITY_CONTRACT: &str = "\n\n---\nREPORT FORMAT CONTRACT (mandatory): your final report — your LAST message, the one you write AFTER your final tool calls, which is the only text returned to the caller — must START with an HTML comment header declaring the review outcome, on its own first line, exactly one of:\n<!-- severity: green -->   (all good — at most cosmetic details)\n<!-- severity: yellow --> (minor issues or bad practice found, nothing critical)\n<!-- severity: red -->    (something critical was found)\nDo NOT put the header on earlier progress messages: intermediate narration between tool calls is shown live but is not your report. The header is consumed by the client tooling and never shown; everything after it is the report itself. Do not put anything before the header.";
+pub(crate) const SEVERITY_CONTRACT: &str = "\n\n---\nREPORT FORMAT CONTRACT (mandatory): your final report - your LAST message, the one you write AFTER your final tool calls, which is the only text returned to the caller - must START with an HTML comment header declaring the review outcome, on its own first line, exactly one of:\n<!-- severity: green -->   (all good - at most cosmetic details)\n<!-- severity: yellow --> (minor issues or bad practice found, nothing critical)\n<!-- severity: red -->    (something critical was found)\nDo NOT put the header on earlier progress messages: intermediate narration between tool calls is shown live but is not your report. The header is consumed by the client tooling and never shown; everything after it is the report itself. Do not put anything before the header.";
 
 /// Extract the severity from the first line of a report and return
 /// `(severity, report_without_the_header)`.
 ///
 /// The header must be the report's first non-empty line and must match
 /// `<!-- severity: WORD -->` (whitespace inside the comment is tolerated;
-/// the match is case-insensitive). Anything else — no comment, wrong word,
-/// header not on the first line — means "no severity": the report is
+/// the match is case-insensitive). Anything else - no comment, wrong word,
+/// header not on the first line - means "no severity": the report is
 /// returned untouched with `None`.
 pub fn extract_severity(report: &str) -> (Option<Severity>, &str) {
     // Tolerate leading blank lines before the header.
@@ -110,7 +110,7 @@ fn parse_header_line(line: &str) -> Option<Severity> {
 /// session evidence showed the orchestrating model routinely forgets to set
 /// it on review dispatches, so the contract was never appended and the
 /// sub-agent never produced the `<!-- severity: ... -->` header (the box
-/// stayed untinted — the reported "agent ignores the DSL"). When the flag
+/// stayed untinted - the reported "agent ignores the DSL"). When the flag
 /// is absent, a conservative heuristic infers a review task from the input
 /// itself and appends the contract anyway; the header is consumed (stripped
 /// and never shown) so a false positive costs the task nothing but a
@@ -136,12 +136,12 @@ pub fn is_review_task(input: &str, code_review: bool) -> bool {
 /// Enforce the severity header on a FINISHED review report.
 ///
 /// The prompt contract asks the sub-agent to open its final report with the
-/// `<!-- severity: ... -->` header, but prompting is not enforcement — a
+/// `<!-- severity: ... -->` header, but prompting is not enforcement - a
 /// model can end its report without one (or bury it after narration, which
 /// `extract_severity` then ignores). On a completed review turn the header
 /// is MANDATORY: it is the only color signal the report box gets. When the
 /// report lacks a valid first-line header, the client INJECTS the header
-/// that best matches the report's content ([`infer_severity`]) — the DSL is
+/// that best matches the report's content ([`infer_severity`]) - the DSL is
 /// honored even when the sub-agent ignored it. Reports that already carry
 /// the header pass through untouched, and non-review tasks are never
 /// touched. The header is never RENDERED (the visible report strips it);
@@ -162,14 +162,14 @@ pub fn enforce_severity_header(report: &str, is_review: bool) -> String {
 
 /// Words that flip a NEARBY finding keyword into "absent": a review saying
 /// "no critical findings" is CLEAN, not red. Only the three tokens before
-/// the keyword are considered — enough to reach a negation separated by
+/// the keyword are considered - enough to reach a negation separated by
 /// short filler ("nothing is a major concern"), short enough that ordinary
 /// prose does not extend the shadow across sentences.
 const NEGATIONS: [&str; 6] = ["no", "not", "never", "none", "without", "nothing"];
 
 /// Best-effort severity inference from a review report's own findings, used
 /// only when the sub-agent failed to declare the header. Scans for the
-/// finding vocabulary the review protocol prescribes — CRITICAL findings are
+/// finding vocabulary the review protocol prescribes - CRITICAL findings are
 /// red, MAJOR findings (or an explicit "changes required" verdict) are
 /// yellow, anything else reads as green. The scan is token-based (word
 /// boundaries), so "majority" does not read as "major", and a negation right
@@ -213,7 +213,7 @@ fn infer_severity(report: &str) -> Severity {
 /// Matches only unmistakable review phrasing ("code review", the VERDICT
 /// protocol used by this repo's own review dispatches, and
 /// review-only/re-review wording). It deliberately does NOT match generic
-/// "review the changes" prose — a false positive is cheap (the header is
+/// "review the changes" prose - a false positive is cheap (the header is
 /// stripped from the rendered report) but appending a report-format
 /// contract to an unrelated implementation task would still be noise.
 fn looks_like_code_review(input: &str) -> bool {
@@ -255,7 +255,7 @@ mod tests {
     }
 
     /// CRLF reports: the header line's trailing `\r` is already trimmed by
-    /// `parse_header_line`, but the split leaves `"\r\n"` before the body —
+    /// `parse_header_line`, but the split leaves `"\r\n"` before the body -
     /// the body must not start with stray carriage returns.
     #[test]
     fn extract_strips_crlf_blank_lines_after_the_header() {
@@ -300,7 +300,7 @@ mod tests {
     }
 
     /// Regression: a single-line report WITHOUT a header must come back
-    /// untouched — an earlier version returned an empty body, dropping the
+    /// untouched - an earlier version returned an empty body, dropping the
     /// only line of the report.
     #[test]
     fn extract_keeps_a_single_line_report_without_header() {
@@ -326,7 +326,7 @@ mod tests {
     /// Regression (live session evidence): the orchestrating model routinely
     /// dispatches code reviews WITHOUT setting `code_review: true`, so the
     /// contract was never appended and the sub-agent never emitted the
-    /// `<!-- severity: ... -->` header — the box stayed untinted ("agent
+    /// `<!-- severity: ... -->` header - the box stayed untinted ("agent
     /// ignores the DSL"). The heuristic must catch those unflagged review
     /// dispatches while leaving ordinary implementation tasks untouched.
     #[test]
@@ -335,7 +335,7 @@ mod tests {
         for input in [
             "Faça um CODE REVIEW do último commit deste repositório. Rode git show e leia o código.",
             "Faça um RE-REVIEW do commit mais recente deste repositório.",
-            "Code review task (review only — do NOT modify anything).",
+            "Code review task (review only - do NOT modify anything).",
             "You are a code reviewer. Review ONLY; modify nothing. End with VERDICT: ACCEPT.",
         ] {
             let out = with_severity_contract(input, false);
@@ -386,7 +386,7 @@ mod tests {
     }
 
     /// Enforcement (the point of the fix): a review report WITHOUT the
-    /// header gets one injected — inferred from its own findings — so the
+    /// header gets one injected - inferred from its own findings - so the
     /// box tint works even when the sub-agent ignored the DSL.
     #[test]
     fn a_headerless_review_report_gets_the_header_injected() {
@@ -425,7 +425,7 @@ mod tests {
     }
 
     /// Regression (review round 2): the scan is token-based and
-    /// negation-aware. A CLEAN report must never be tinted red/yellow —
+    /// negation-aware. A CLEAN report must never be tinted red/yellow -
     /// that is the loudest mis-color this inference could produce.
     #[test]
     fn the_inference_never_colors_a_clean_report_by_substring_or_negation() {
@@ -473,7 +473,7 @@ mod tests {
     }
 
     /// A report that ALREADY carries a valid header passes through
-    /// untouched — enforcement never overrides the sub-agent's own verdict.
+    /// untouched - enforcement never overrides the sub-agent's own verdict.
     #[test]
     fn a_report_with_a_header_passes_through_untouched() {
         let report = "<!-- severity: red -->\nCRITICAL: data loss.\n";

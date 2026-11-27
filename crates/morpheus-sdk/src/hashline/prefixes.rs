@@ -4,9 +4,9 @@
 //! diff-style echoes, a leading `+`. These helpers detect that and recover
 //! the raw text. Two strip modes are exposed:
 //!
-//! - [`strip_new_line_prefixes`] — opportunistic: strips when the input
+//! - [`strip_new_line_prefixes`] - opportunistic: strips when the input
 //!   clearly carries hashline or diff prefixes, leaves it alone otherwise.
-//! - [`strip_hashline_prefixes`] — strict: only strips when every non-empty
+//! - [`strip_hashline_prefixes`] - strict: only strips when every non-empty
 //!   content line is hashline-prefixed.
 //!
 //! These run *before* the tokenizer; they exist because hashline mode is the
@@ -27,7 +27,7 @@ static HL_PREFIX_PLUS_RE: LazyLock<Regex> =
 static HL_HEADER_RE: LazyLock<Regex> =
     LazyLock::new(|| Regex::new(r"^\s*¶\S+#[0-9a-fA-F]{3}\s*$").unwrap());
 
-// No regex for diff-plus — uses `is_diff_plus_line` directly (rust/regex does
+// No regex for diff-plus - uses `is_diff_plus_line` directly (rust/regex does
 // not support lookahead, and `^\+` alone would match `+++` lines from merges).
 #[allow(clippy::unwrap_used)]
 static READ_TRUNCATION_NOTICE_RE: LazyLock<Regex> = LazyLock::new(|| {

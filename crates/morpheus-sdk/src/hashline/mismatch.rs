@@ -179,7 +179,7 @@ impl MismatchError {
                 ),
                 format!(
                     "The current file hashes to {}{}. Re-read the file with `read` \
-                     to copy a current {}{}{}tag header — never invent the tag and never \
+                     to copy a current {}{}{}tag header - never invent the tag and never \
                      reuse one from a prior session.",
                     HL_FILE_HASH_SEP,
                     details.actual_file_hash,

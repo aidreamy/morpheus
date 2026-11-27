@@ -1,6 +1,6 @@
 //! Integration tests for the prompt's mouse text-selection gesture, driven
 //! through the REAL mouse pipeline (`handle_mouse_event`) so the press/drag/
-//! release ownership handoff — not just the prompt component's byte math —
+//! release ownership handoff - not just the prompt component's byte math -
 //! is covered.
 //!
 //! Regression being pinned: a drag anchored at the TAIL of the prompt (the
@@ -8,12 +8,12 @@
 //! owner the moment the pointer left the prompt box. `is_prompt_drag` was
 //! re-derived per drag event from the CURRENT pointer row, so dragging below
 //! the box handed the gesture to the chat's drag extraction; the release then
-//! copied the CHAT region and the prompt kept only a zero-length anchor —
+//! copied the CHAT region and the prompt kept only a zero-length anchor -
 //! `has_selection()` false, nothing copied. Copying the tail was only
 //! possible by re-anchoring at the head or mid-text.
 //!
 //! The assertions read `App::last_prompt_copy` (test-only record of the
-//! release's copy action) — no clipboard dependency, so the tests also run on
+//! release's copy action) - no clipboard dependency, so the tests also run on
 //! headless CI where no clipboard exists.
 
 use super::{App, HOME_LOCK, isolate_home};
@@ -94,7 +94,7 @@ fn tail_drag_out_of_the_box(app: &mut App) {
 }
 
 /// The selection survives a drag that leaves the prompt box and the release
-/// copies the selected TAIL — the gesture that used to be stolen by the chat.
+/// copies the selected TAIL - the gesture that used to be stolen by the chat.
 #[tokio::test]
 async fn tail_drag_leaving_the_prompt_box_copies_the_selection() {
     let _guard = HOME_LOCK.lock();
@@ -107,7 +107,7 @@ async fn tail_drag_leaving_the_prompt_box_copies_the_selection() {
 
     let copied = copied_text(&app);
     // A tail-anchored drag selects from its anchor to the END of the draft:
-    // the copy must be a non-empty suffix of the restored prompt — the old
+    // the copy must be a non-empty suffix of the restored prompt - the old
     // failure copied NOTHING (the chat stole the release).
     assert!(!copied.is_empty(), "the tail drag must produce a copy");
     assert!(

@@ -5,7 +5,7 @@
 //! property of the QUESTION, not of the caller:
 //!
 //! - [`branch`] answers "which branch is this working directory on?" by
-//!   reading `.git/HEAD` directly — never shelling out. It runs once per
+//!   reading `.git/HEAD` directly - never shelling out. It runs once per
 //!   rendered footer segment (rate-limited), so a subprocess (or the C
 //!   dependency libgit2, which breaks on reftable repositories) is not an
 //!   option.

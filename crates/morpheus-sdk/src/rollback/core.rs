@@ -14,7 +14,7 @@
 //!
 //! Default: [`MAX_PATHS`] distinct paths, [`MAX_VERSIONS_PER_PATH`] versions
 //! each. LRU eviction handles cold paths automatically. Files larger than
-//! [`MAX_SNAPSHOT_BYTES`] or containing null bytes are silently skipped —
+//! [`MAX_SNAPSHOT_BYTES`] or containing null bytes are silently skipped -
 //! [`record`] returns `None` for those.
 //!
 //! # Edge cases handled

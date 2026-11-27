@@ -1,4 +1,4 @@
-//! Parity guarantee suite — pins the edges of the boundary-repair port
+//! Parity guarantee suite - pins the edges of the boundary-repair port
 //! where the port could be perceptibly WORSE than upstream oh-my-pi
 //! (`crates/pi-edit/src/modes/hashline/apply.rs`). Every expectation below
 //! was captured from upstream's ACTUAL engine output (the `parity_driver` /
@@ -10,13 +10,13 @@
 //! defensive (no `unwrap()`, saturating casts, corrupt-tree-proof cache).
 //!
 //! Modules:
-//! - `flow` — apply_edits decision order and observable outcomes
-//! - `oracle` — parses_cleanly semantics for None/unknown/empty inputs
-//! - `ambiguity` — echo rejection + placement-ambiguity boundaries
-//! - `variants` — keep/drop boundary variant heuristics
-//! - `landings` — after-insert landing shifts and opener escapes
-//! - `composite` — multi-group/multi-hunk interactions
-//! - `defensive` — invariants where the port must never be worse (no panics)
+//! - `flow` - apply_edits decision order and observable outcomes
+//! - `oracle` - parses_cleanly semantics for None/unknown/empty inputs
+//! - `ambiguity` - echo rejection + placement-ambiguity boundaries
+//! - `variants` - keep/drop boundary variant heuristics
+//! - `landings` - after-insert landing shifts and opener escapes
+//! - `composite` - multi-group/multi-hunk interactions
+//! - `defensive` - invariants where the port must never be worse (no panics)
 use super::super::apply::apply_edits;
 use super::super::types::{Anchor, Cursor, Edit, Replacement};
 
@@ -78,8 +78,8 @@ mod flow {
         assert!(warnings.is_empty());
     }
 
-    /// Upstream (E1): an authored result that does NOT parse — even a subtle
-    /// case like `new();`, which is a TS syntax error — is honored as
+    /// Upstream (E1): an authored result that does NOT parse - even a subtle
+    /// case like `new();`, which is a TS syntax error - is honored as
     /// written with the machine-confirmed advisory. Never silently rewritten.
     #[test]
     fn authored_parse_break_gets_machine_confirmed_advisory() {
@@ -98,7 +98,7 @@ mod flow {
     }
 
     /// Upstream (E2): when nothing restores a parse the authored edit is
-    /// honored — the advisory fires with the first changed line, and the
+    /// honored - the advisory fires with the first changed line, and the
     /// trailing phantom line is preserved.
     #[test]
     fn unrepairable_edit_applies_with_parse_broken_advisory() {
@@ -159,7 +159,7 @@ mod oracle {
     use super::super::super::syntax::parses_cleanly;
 
     /// Upstream (pi-ast summary.rs `resolve_language` → `unparsed_result`):
-    /// a None path or unknown extension can never be syntax-proven — both
+    /// a None path or unknown extension can never be syntax-proven - both
     /// return false, so the gates never claim validity they lack.
     #[test]
     fn none_path_and_unknown_extension_are_never_clean() {
@@ -204,7 +204,7 @@ mod unknown_language {
     use super::*;
 
     /// Upstream (E4): with no grammar, `parses_cleanly` is false on both
-    /// sides and `repair_boundaries` declines — the authored edit applies
+    /// sides and `repair_boundaries` declines - the authored edit applies
     /// untouched, with no advisories and no rejections.
     #[test]
     fn unknown_extension_applies_authored_silently() {
@@ -256,7 +256,7 @@ mod ambiguity {
     }
 
     /// Upstream (E7): a trailing echo whose remainder cannot fill the range
-    /// rejects even when a neighboring hunk deletes the echoed line — the
+    /// rejects even when a neighboring hunk deletes the echoed line - the
     /// echo ambiguity is evaluated on the authored edit structure.
     #[test]
     fn trailing_echo_beside_deleted_neighbor_rejects() {
@@ -271,7 +271,7 @@ mod ambiguity {
     }
 
     /// Upstream (E5): the placement-ambiguity error only exists on the
-    /// non-parsing path — when the authored result parses, a variant-level
+    /// non-parsing path - when the authored result parses, a variant-level
     /// ambiguity flag is inert and the edit applies.
     #[test]
     fn placement_ambiguity_inert_when_authored_parses() {
@@ -281,7 +281,7 @@ mod ambiguity {
     }
 
     /// Upstream (E6): an essential-looking boundary with tied indentation
-    /// does NOT reject when the payload's own line is not essential — the
+    /// does NOT reject when the payload's own line is not essential - the
     /// authored result is honored (with the parse advisory if it breaks).
     #[test]
     fn tied_indent_boundary_applies_when_line_not_essential() {
@@ -305,7 +305,7 @@ mod variants {
     use super::*;
 
     /// Upstream: a payload restating the closer that survives below resolves
-    /// to the parse-proven reading — the echo is dropped, with the echo warning.
+    /// to the parse-proven reading - the echo is dropped, with the echo warning.
     #[test]
     fn structural_edge_resolves_to_the_parse_proven_reading() {
         let (text, warnings) = apply_ok(
@@ -321,7 +321,7 @@ mod variants {
     }
 
     /// Upstream: an intentional duplicated statement (still parsing) is
-    /// NEVER dropped — `text == authored` candidates are skipped in the
+    /// NEVER dropped - `text == authored` candidates are skipped in the
     /// combo loop (apply.rs L713-714).
     #[test]
     fn intentional_duplicate_statement_survives() {
@@ -334,7 +334,7 @@ mod variants {
         assert!(warnings.is_empty());
     }
 
-    /// Upstream (E13): `underfilled` — a payload shorter than its range with
+    /// Upstream (E13): `underfilled` - a payload shorter than its range with
     /// the closer off-range still allows keep-trailing; the parse-proven
     /// variant spares the essential closer.
     #[test]
@@ -352,7 +352,7 @@ mod variants {
         );
     }
 
-    /// Upstream: `annotation_echo` — a single-line replacement whose payload
+    /// Upstream: `annotation_echo` - a single-line replacement whose payload
     /// re-emits an attribute node that already survives below drops it.
     #[test]
     fn attribute_echo_dropped_on_single_line_range() {
@@ -370,7 +370,7 @@ mod variants {
     }
 
     /// Upstream (E11 + E19): a statement echo on a single-line range is kept
-    /// literally (duplicating) — dropping could discard intended content.
+    /// literally (duplicating) - dropping could discard intended content.
     /// With valid TS the result parses clean (E19); with a TS-invalid
     /// keyword (`new();`) the advisory fires (E11).
     #[test]
@@ -445,7 +445,7 @@ mod landings {
         assert_eq!(inner_text.lines().nth(5), Some("        c();"));
     }
 
-    /// Upstream (E9): a body whose depth equals the anchor's does NOT slide —
+    /// Upstream (E9): a body whose depth equals the anchor's does NOT slide -
     /// the shift requires the body strictly shallower than the anchor.
     #[test]
     fn body_at_anchor_depth_does_not_slide() {
@@ -461,7 +461,7 @@ mod landings {
     }
 
     /// Upstream (E18): a single-statement body is never relocated by the
-    /// opener-escape stage — `body_relocatable` requires a multi-line node
+    /// opener-escape stage - `body_relocatable` requires a multi-line node
     /// starting within the body.
     #[test]
     fn opener_escape_needs_multiline_body() {
@@ -478,7 +478,7 @@ mod landings {
     }
 
     /// Upstream (E20): a multi-line block body claiming a position outside
-    /// the opener's block escapes it — parse-proven, with the escape warning.
+    /// the opener's block escapes it - parse-proven, with the escape warning.
     #[test]
     fn opener_escape_with_block_body() {
         let edits = vec![
@@ -572,7 +572,7 @@ mod composite {
     }
 
     /// Upstream (E14): `indent_columns` counts a tab as advancing to the
-    /// next multiple of 4 — mixed tab/space indentation is measured
+    /// next multiple of 4 - mixed tab/space indentation is measured
     /// consistently through the landing logic.
     #[test]
     fn tab_columns_round_to_four() {
@@ -594,7 +594,7 @@ mod composite {
 mod defensive {
     use super::*;
 
-    /// The port returns Err (never panics) on malformed authored input —
+    /// The port returns Err (never panics) on malformed authored input -
     /// upstream returns EditError the same way; a panic here would be a
     /// regression against both.
     #[test]
@@ -628,7 +628,7 @@ mod defensive {
         assert_eq!(error, "Line 3 does not exist (file has 2 lines)");
     }
 
-    /// The trailing phantom line (file ending in \n) is never deletable —
+    /// The trailing phantom line (file ending in \n) is never deletable -
     /// upstream `phantom_line` guard (apply.rs L83-85).
     #[test]
     fn phantom_trailing_line_delete_is_ignored() {
@@ -637,7 +637,7 @@ mod defensive {
     }
 
     /// The ambiguous candidate tie-breaker: two VALID candidates with
-    /// identical materialized text are one candidate, not an ambiguity —
+    /// identical materialized text are one candidate, not an ambiguity -
     /// the ambiguity error requires DISTINCT texts (apply.rs L724-732).
     #[test]
     fn duplicate_candidate_text_is_not_ambiguous() {

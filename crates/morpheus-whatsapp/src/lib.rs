@@ -1,7 +1,7 @@
 //! morpheus-whatsapp: WhatsApp Web (multi-device) for agent communication.
 //!
-//! The crate links a personal WhatsApp account as a companion device — the
-//! same flow as "WhatsApp Web" in a browser — and exposes it as a small,
+//! The crate links a personal WhatsApp account as a companion device - the
+//! same flow as "WhatsApp Web" in a browser - and exposes it as a small,
 //! engine-agnostic surface: pairing events, normalized inbound messages and
 //! typed outbound sends. It deliberately does **not** use Meta's official
 //! (and business-only) Cloud API: the transport is the WhatsApp Web
@@ -10,20 +10,20 @@
 //!
 //! # Layers
 //!
-//! * [`Config`] — device store location, push name and pairing mode.
-//! * [`WhatsApp`] — the live link: [`connect`](WhatsApp::connect) starts it,
+//! * [`Config`] - device store location, push name and pairing mode.
+//! * [`WhatsApp`] - the live link: [`connect`](WhatsApp::connect) starts it,
 //!   [`send_text`](WhatsApp::send_text) talks,
 //!   [`set_typing`](WhatsApp::set_typing) shows presence, and
 //!   [`close`](WhatsApp::close) stops it.
-//! * [`Event`] — a bounded [`tokio::sync::mpsc`] stream of pairing,
+//! * [`Event`] - a bounded [`tokio::sync::mpsc`] stream of pairing,
 //!   connection, failure and message events. It never blocks the protocol
 //!   engine: message events are dropped (with a warning) if the consumer
 //!   falls behind, while lifecycle events wait up to 30 seconds for room so
 //!   a disconnected or logged-out link cannot go unnoticed. Pairing payloads
 //!   are raw strings; [`qr::render`] turns one into a terminal QR code.
-//! * [`message`] — engine-independent types: [`ChatId`],
+//! * [`message`] - engine-independent types: [`ChatId`],
 //!   [`IncomingMessage`], [`MessageContent`].
-//! * [`Agent`] + [`serve`] — the agent-shaped integration: one message in,
+//! * [`Agent`] + [`serve`] - the agent-shaped integration: one message in,
 //!   one reply out, with the live [`WhatsApp`] handle available for anything
 //!   richer.
 //!
@@ -36,7 +36,7 @@
 //! `from_me` set, like anything the account writes from any of its devices,
 //! so that flag alone cannot decide: a message addressed to the account's own
 //! chat is a prompt, while what the user sends to contacts and groups is not.
-//! That rule is [`WhatsApp::is_prompt`] — consumers of the raw [`Event`]
+//! That rule is [`WhatsApp::is_prompt`] - consumers of the raw [`Event`]
 //! stream should use it rather than testing [`IncomingMessage::from_me`].
 //! Every send also reserves its message id, and a message carrying a reserved
 //! id is dropped in every chat: the engine excludes the sending device from a

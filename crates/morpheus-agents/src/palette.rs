@@ -3,14 +3,14 @@
 //! The TUI paints each `/agents` pane header with the agent's own logo
 //! colors. The palettes here were sampled from each agent's official brand
 //! material (brand pages, published logo SVGs, theme files of the tools
-//! themselves — see the per-agent doc comments for the sources) and are
+//! themselves - see the per-agent doc comments for the sources) and are
 //! stored as plain RGB triples so this crate stays independent of the TUI
 //! crate: the caller converts them into its own color type.
 //!
 //! Real logos carry one to four colors and some roles do not exist for
 //! every agent, so the non-essential fields are `Option`s. A name the
 //! catalog does not know (a user-configured agent, a future CLI) falls
-//! back through [`palette_for`] to `None` — the caller then paints with
+//! back through [`palette_for`] to `None` - the caller then paints with
 //! its own theme instead of inventing a brand.
 
 /// One agent's logo palette, in plain RGB.
@@ -22,7 +22,7 @@
 /// Google's gradient mark fills all of them.
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct AgentPalette {
-    /// The dominant logo color — what the agent's name is painted in.
+    /// The dominant logo color - what the agent's name is painted in.
     pub primary: Rgb,
     /// The next-largest logo surface, when the mark has one.
     pub secondary: Option<Rgb>,
@@ -30,11 +30,11 @@ pub struct AgentPalette {
     pub tertiary: Option<Rgb>,
     /// The fourth brand color, when the mark is a full gradient.
     pub quaternary: Option<Rgb>,
-    /// The color the brand itself writes its name in on a dark surface —
+    /// The color the brand itself writes its name in on a dark surface -
     /// for the monochrome marks this IS the brand color.
     pub accent: Option<Rgb>,
     /// For TWO-TONE wordmarks: the fraction of the name (0.0..=1.0) painted
-    /// with the primary before the glyphs switch to the secondary — a hard
+    /// with the primary before the glyphs switch to the secondary - a hard
     /// per-word split, NOT a gradient. OpenCode's footer wordmark reads
     /// "Open" in the bright tone and "Code" in the gray one, with no blend
     /// between the words. `None` for gradient marks (Gemini's sparkle) and
@@ -64,7 +64,7 @@ impl Rgb {
 }
 
 impl AgentPalette {
-    /// Sample the palette at `t` in `0.0..=1.0` across the mark's colors —
+    /// Sample the palette at `t` in `0.0..=1.0` across the mark's colors -
     /// the walk from the first stop to the last, interpolated per channel.
     /// This is what paints a "mini logo" from a name: one call per glyph
     /// column with `t` walking left to right gives the gradient sweep of
@@ -74,7 +74,7 @@ impl AgentPalette {
     ///
     /// A two-tone wordmark (`hard_stop`) never interpolates at all: glyphs
     /// left of the stop take the primary, glyphs at/after it take the
-    /// secondary — the hard per-word split the brand actually renders
+    /// secondary - the hard per-word split the brand actually renders
     /// (OpenCode's "Open|Code"), not a blend through it.
     ///
     /// With a single color the result is that color; with several, `t`
@@ -137,7 +137,7 @@ const PALETTES: &[(&str, AgentPalette)] = &[
             hard_stop: None,
         },
     ),
-    // Block's goose: the mark is LITERALLY a black goose — pure #000000.
+    // Block's goose: the mark is LITERALLY a black goose - pure #000000.
     // On the pane's dark background the TUI's contrast floor lifts it
     // toward the readable foreground instead of letting it dissolve.
     (
@@ -151,11 +151,11 @@ const PALETTES: &[(&str, AgentPalette)] = &[
             hard_stop: None,
         },
     ),
-    // OpenCode: the logo is gray and white, nothing else — sampled from
+    // OpenCode: the logo is gray and white, nothing else - sampled from
     // the official repo's own assets (`packages/console/app/src/asset/
     // brand/opencode-logo-dark.svg`). The footer wordmark is a HARD
     // two-tone and the DARK part comes first: "Open" in the muted gray,
-    // "Code" in the bright warm white — no gradient between the words,
+    // "Code" in the bright warm white - no gradient between the words,
     // hence the 0.5 hard stop with primary = gray.
     (
         "opencode",
@@ -169,7 +169,7 @@ const PALETTES: &[(&str, AgentPalette)] = &[
         },
     ),
     // Kilo Code: the acid yellow-green carries the entire identity (logo
-    // tile, headlines, CTAs) on near-black — one expressive color, no
+    // tile, headlines, CTAs) on near-black - one expressive color, no
     // supporting cast.
     (
         "kilo",
@@ -182,7 +182,7 @@ const PALETTES: &[(&str, AgentPalette)] = &[
             hard_stop: None,
         },
     ),
-    // Cline: the mark is black, same call as Block's goose — the violet
+    // Cline: the mark is black, same call as Block's goose - the violet
     // seen in marketing materials is the product UI's accent, not the
     // logo. On the pane's dark background the TUI's contrast floor lifts
     // it toward the readable foreground instead of letting it dissolve.
@@ -198,7 +198,7 @@ const PALETTES: &[(&str, AgentPalette)] = &[
         },
     ),
     // Devin (Cognition): the three fixed fills of the official color
-    // logomark — blue, green, cyan-blue. Source: devin.ai/brand assets.
+    // logomark - blue, green, cyan-blue. Source: devin.ai/brand assets.
     (
         "devin",
         AgentPalette {
@@ -210,7 +210,7 @@ const PALETTES: &[(&str, AgentPalette)] = &[
             hard_stop: None,
         },
     ),
-    // Claude (Anthropic): the terracotta starburst, never recolored — the
+    // Claude (Anthropic): the terracotta starburst, never recolored - the
     // mark is exactly brand orange #D97757. The muted blue and green of
     // the published palette are product accents, NOT mark colors, so they
     // stay out: the name paints solid terracotta.
@@ -238,7 +238,7 @@ const PALETTES: &[(&str, AgentPalette)] = &[
         },
     ),
     // GitHub Copilot: the mark's Copilot gray (#24292F on light) reads as
-    // pure black in practice, same call as Block's goose and Cline — on
+    // pure black in practice, same call as Block's goose and Cline - on
     // the pane's dark background the TUI's contrast floor lifts it toward
     // the readable foreground instead of letting it dissolve.
     (
@@ -252,7 +252,7 @@ const PALETTES: &[(&str, AgentPalette)] = &[
             hard_stop: None,
         },
     ),
-    // Qwen (Alibaba): the logo's purple-violet gradient — the wordmark
+    // Qwen (Alibaba): the logo's purple-violet gradient - the wordmark
     // and the app icon both lead with the same violet. Source: the
     // qwen-code repo's own favicon / brand assets.
     (
@@ -282,7 +282,7 @@ pub fn palette_for(name: &str) -> Option<AgentPalette> {
 }
 
 /// The brand's own casing of an agent's name, for display. The ACP ids are
-/// lowercase protocol identifiers (`opencode`), but the wordmarks are not —
+/// lowercase protocol identifiers (`opencode`), but the wordmarks are not -
 /// OpenCode brands itself "OpenCode". The lowercase id stays the dispatch
 /// key; this is only what the header paints. Unknown agents display as
 /// their id unchanged.
@@ -305,8 +305,8 @@ mod tests {
             let palette =
                 palette_for(agent.name).unwrap_or_else(|| panic!("{} has no palette", agent.name));
             // Pure black BY ACCIDENT is the failure mode (an unsampled
-            // placeholder). goose and cline are INTENTIONALLY black — the
-            // marks are literally black — and the TUI's contrast floor
+            // placeholder). goose and cline are INTENTIONALLY black - the
+            // marks are literally black - and the TUI's contrast floor
             // lifts them on dark surfaces, so each is pinned by its own
             // test below.
             let is_black = palette.primary == Rgb::from_parts(0, 0, 0);
@@ -362,7 +362,7 @@ mod tests {
         let palette = palette_for("opencode").expect("opencode palette");
         // Sampled from the official repo's logo-dark.svg, in WORDMARK
         // order: "Open" in the muted gray #4B4646 FIRST, "Code" in the
-        // warm white #F1ECEC — the dark part leads, no other colors.
+        // warm white #F1ECEC - the dark part leads, no other colors.
         assert_eq!(palette.primary, Rgb::from_parts(0x4B, 0x46, 0x46));
         assert_eq!(palette.secondary, Some(Rgb::from_parts(0xF1, 0xEC, 0xEC)));
         assert!(palette.tertiary.is_none());
@@ -398,7 +398,7 @@ mod tests {
         let palette = palette_for("opencode").expect("opencode palette");
         let stop = palette.hard_stop.expect("opencode is two-tone");
         // Left of the stop: the muted gray. At/after it: the bright warm
-        // white. NO intermediate blend anywhere — every sample is one of
+        // white. NO intermediate blend anywhere - every sample is one of
         // the two exact brand colors.
         assert_eq!(palette.sample(0.0), palette.primary);
         assert_eq!(palette.sample(stop - 0.01), palette.primary);

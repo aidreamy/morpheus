@@ -1,4 +1,4 @@
-//! The USER's queue for `/agents` panes — the pane-level counterpart of the
+//! The USER's queue for `/agents` panes - the pane-level counterpart of the
 //! main agent's `PendingQueues`.
 //!
 //! The pane never had one: a submission aimed at a busy pane was refused with
@@ -44,8 +44,8 @@ fn queued(app: &App, pane: usize) -> (Vec<String>, Vec<String>) {
     )
 }
 
-/// A busy ACP pane offers BOTH queues — its next request goes out when the
-/// running prompt completes, so the control is honorable — and the message is
+/// A busy ACP pane offers BOTH queues - its next request goes out when the
+/// running prompt completes, so the control is honorable - and the message is
 /// QUEUED for that pane instead of being refused.
 #[tokio::test]
 async fn enter_on_a_busy_acp_pane_offers_both_queues() {
@@ -71,7 +71,7 @@ async fn enter_on_a_busy_acp_pane_offers_both_queues() {
         "the draft stays until the choice is confirmed"
     );
     // Both rows exist: `2` reaches the loop row, `1` returns to the request
-    // row — an ACP pane is not a second-class queue target.
+    // row - an ACP pane is not a second-class queue target.
     assert_eq!(app.queue_choice_dialog.choice(), QueueTarget::NextRequest);
     app.queue_choice_dialog
         .handle_key_event(mod_key(KeyCode::Char('2'), KeyModifiers::NONE));
@@ -210,7 +210,7 @@ async fn leftovers_return_to_the_next_request_queue() {
 }
 
 /// An ACP pane's turn is ONE prompt, so its "next request" message cannot be
-/// injected mid-turn — it goes out at the prompt boundary, consumed by the
+/// injected mid-turn - it goes out at the prompt boundary, consumed by the
 /// queue service the moment that prompt completes, so the pane never sits
 /// idle between the two. This is the pane-level twin of the morpheus harness
 /// draining its steering handle before the next request.
@@ -286,7 +286,7 @@ async fn a_next_request_outranks_the_next_loop_when_the_pane_frees() {
     assert!(app.agents_split.as_ref().unwrap().panes[0].running);
 }
 
-/// The "next agent loop" queue starts the pane's next turn once it is free —
+/// The "next agent loop" queue starts the pane's next turn once it is free -
 /// the delivery a pane that was busy, compacting or still replaying its
 /// history gets, for BOTH pane kinds.
 #[tokio::test]
@@ -310,7 +310,7 @@ async fn a_next_loop_message_starts_the_pane_turn_when_it_frees() {
 }
 
 /// A stop (Ctrl+X) ends the steering handle with the turn it fed: the
-/// messages still sitting in it are the user's — they go back to the pane's
+/// messages still sitting in it are the user's - they go back to the pane's
 /// "next request" queue and start its next turn, instead of being dropped
 /// with the dead handle (the stopped turn's terminal Done is refused, so
 /// nothing else recovers them).
@@ -349,7 +349,7 @@ async fn a_stop_recovers_the_messages_left_in_the_steering_handle() {
     assert!(pane.running, "the recovered message started that turn");
 }
 
-/// Esc leaves the draft unsent and queues nothing — the dialog contract the
+/// Esc leaves the draft unsent and queues nothing - the dialog contract the
 /// main agent's flow already had.
 #[tokio::test]
 async fn esc_on_the_pane_queue_dialog_keeps_the_draft() {

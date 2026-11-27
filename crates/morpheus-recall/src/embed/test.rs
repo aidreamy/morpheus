@@ -38,7 +38,7 @@ fn rag_error_from_vec_db_error() {
 }
 
 // ---------------------------------------------------------------------------
-// Embedder — local (ONNX via fastembed)
+// Embedder - local (ONNX via fastembed)
 // ---------------------------------------------------------------------------
 
 #[cfg(feature = "fastembed")]
@@ -92,7 +92,7 @@ fn local_embedder_different_models_have_different_dims() {
 }
 
 // ---------------------------------------------------------------------------
-// Embedder — cloud (remote via aiface connector)
+// Embedder - cloud (remote via aiface connector)
 // ---------------------------------------------------------------------------
 
 #[cfg(feature = "cloud")]
@@ -121,7 +121,7 @@ fn cloud_embedder_returns_error_without_api_key() {
 }
 
 // ---------------------------------------------------------------------------
-// VecDb — LanceDB-backed vector store
+// VecDb - LanceDB-backed vector store
 // ---------------------------------------------------------------------------
 
 #[cfg(feature = "lancedb")]
@@ -299,7 +299,7 @@ fn vec_db_exists_by_content_false() {
 }
 
 // ---------------------------------------------------------------------------
-// Rag — integration (embedder + LanceDB)
+// Rag - integration (embedder + LanceDB)
 // ---------------------------------------------------------------------------
 
 #[cfg(all(feature = "lancedb", feature = "fastembed"))]

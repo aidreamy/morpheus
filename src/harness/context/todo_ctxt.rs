@@ -2,11 +2,11 @@
 //!
 //! The [`ContextManager`](super::ContextManager) is the single owner of the
 //! conversation timeline. This separate mini-manager owns ONLY the tool TODO
-//! list — the plan the agent is executing — and renders it as a single
+//! list - the plan the agent is executing - and renders it as a single
 //! protected block placed at the END of the message list: after the
 //! conversation history and the steering input, right where the model is
 //! about to generate. When the last message is itself a `user` turn, the
-//! block is merged into it (block first, steering after — avoiding two
+//! block is merged into it (block first, steering after - avoiding two
 //! consecutive `user` messages, which some providers reject); otherwise it is
 //! injected as its own trailing `user` message. The model therefore always
 //! sees the current plan without needing any read step, and cannot forget it.
@@ -17,7 +17,7 @@
 //! auto mode, OpenAI automatic prefix caching, Gemini implicit caching). The
 //! tail placement keeps the stable `[system → history]` prefix byte-identical
 //! across requests, so a `plan_*` dispatch that re-renders the block only
-//! invalidates the tail — which is new, uncached content anyway. A front
+//! invalidates the tail - which is new, uncached content anyway. A front
 //! placement would instead invalidate the WHOLE history on every TODO change
 //! (a full-price reprocessing of the entire context on that request). The
 //! block "moving" one position per appended history turn costs nothing:
@@ -32,22 +32,22 @@
 //! call, so it is structurally immune to every compaction phase:
 //!
 //! - the useless-chain sweep never touches it (it is not an item at all);
-//! - even the LLM compaction — which hides the WHOLE pre-existing timeline
-//!   behind its summary anchor — leaves it intact, because the block is
+//! - even the LLM compaction - which hides the WHOLE pre-existing timeline
+//!   behind its summary anchor - leaves it intact, because the block is
 //!   re-rendered from the mirror afterwards.
 //!
 //! Its tokens still count toward the context budget ([`ContextManager`]'s
-//! `total_tokens`), so the 80% compaction trigger stays honest — but nothing
+//! `total_tokens`), so the 80% compaction trigger stays honest - but nothing
 //! can ever compact or summarize the block away.
 //!
 //! # Removal rules
 //!
 //! The block can leave the model's context ONLY under these two rules:
 //!
-//!   1. **All tasks are terminal** — every task is `Completed` or
+//!   1. **All tasks are terminal** - every task is `Completed` or
 //!      `Cancelled` (nothing `Pending`/`InProgress` remains): the plan is
 //!      done, the block disappears.
-//!   2. **The model manually removes the tasks** — the list becomes empty
+//!   2. **The model manually removes the tasks** - the list becomes empty
 //!      through a `plan_todo_write` call with an empty list: nothing to
 //!      show, the block disappears.
 //!
@@ -69,7 +69,7 @@ pub struct TodoContext {
     list: Option<TodoList>,
     /// Memoized rendering of `list`: `Some(text)` = the block text, `None` =
     /// no block (fresh context, cleared mirror, or the plan is over). Kept
-    /// because `tokens()` is read on EVERY budget check (`total_tokens`) —
+    /// because `tokens()` is read on EVERY budget check (`total_tokens`) -
     /// re-rendering + re-estimating per call would be pure waste; the text
     /// only changes when the list changes (`sync`/`clear`).
     rendered: Option<String>,
@@ -118,7 +118,7 @@ impl TodoContext {
 }
 
 /// The Markdown block for `list`, or `None` when the plan is over (empty or
-/// all-terminal — removal rules 1 and 2).
+/// all-terminal - removal rules 1 and 2).
 fn render(list: &TodoList) -> Option<String> {
     if list.items.is_empty() || all_terminal(list) {
         return None;
@@ -150,7 +150,7 @@ fn status_marker(status: TodoStatus) -> char {
     }
 }
 
-/// True when NO task is pending or in progress — every task is terminal
+/// True when NO task is pending or in progress - every task is terminal
 /// (completed or cancelled): the plan is done (removal rule 1).
 fn all_terminal(list: &TodoList) -> bool {
     !list
@@ -298,7 +298,7 @@ mod tests {
         m.add_user("hello");
         m.set_todo_list(list(vec![item("task-1", TodoStatus::Pending)]));
         let msgs = m.build_messages("");
-        // Merged: a single user message carrying the block AND the prompt —
+        // Merged: a single user message carrying the block AND the prompt -
         // never two consecutive `user` messages. The block leads the merged
         // message; the prompt follows it.
         assert_eq!(msgs.len(), 1);
@@ -315,7 +315,7 @@ mod tests {
     fn build_messages_injects_the_block_when_the_last_turn_is_not_user() {
         let mut m = cm(10_000);
         // A restored/compacted timeline whose visible history is just the
-        // assistant anchor: the block cannot be merged — it is appended as
+        // assistant anchor: the block cannot be merged - it is appended as
         // its own trailing `user` message.
         m.set_todo_list(list(vec![item("task-1", TodoStatus::Pending)]));
         m.add_user("hello");
@@ -333,7 +333,7 @@ mod tests {
     }
 
     // The whole point of the dedicated block: every compaction phase must
-    // leave it untouched — the useless-chain sweep (`run`) and the LLM
+    // leave it untouched - the useless-chain sweep (`run`) and the LLM
     // compaction (`apply_llm_summary`, which hides the entire pre-existing
     // timeline behind its anchor).
     #[test]

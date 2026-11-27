@@ -3,7 +3,7 @@
 //!
 //! Threading model: the accept loop runs on the main thread; each
 //! connection gets a `std::thread`. Inference and model loads are CPU-bound
-//! (ORT sessions) and run inline on the connection thread — the
+//! (ORT sessions) and run inline on the connection thread - the
 //! `inference_slot` mutex ensures at most one inference at a time, since
 //! two would only contend for the same cores. A `decide` that cannot get
 //! the slot within [`INFER_QUEUE_WINDOW`] answers [`code::BUSY`], leaving
@@ -12,7 +12,7 @@
 //! The handshake is enforced per connection: the first message must be
 //! `hello` ([`code::HANDSHAKE`] otherwise). `shutdown` flips the server
 //! into drain: the accept loop ends, in-flight inferences finish, and the
-//! process exits — the next client's activation spawns a fresh daemon.
+//! process exits - the next client's activation spawns a fresh daemon.
 
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
@@ -52,7 +52,7 @@ pub(crate) struct Server {
     /// Shared drain flag: once set, the accept loop winds down.
     draining: AtomicBool,
     started: Instant,
-    /// Millis since `started` of the last served request — the shared
+    /// Millis since `started` of the last served request - the shared
     /// signal that a daemon with open connections is still useful (the
     /// idle check must not exit under an active connection just because
     /// no new `accept` happened).
@@ -103,9 +103,9 @@ impl Server {
                 }
                 Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
                     // No pending connection: idle accounting. The budget
-                    // measures the last ACTIVITY — an accept above, or a
+                    // measures the last ACTIVITY - an accept above, or a
                     // request served inside a connection thread (which
-                    // stamps `last_request_millis`) — so an open
+                    // stamps `last_request_millis`) - so an open
                     // connection with live traffic never triggers it.
                     if self.idle_for(last_activity) >= idle_timeout {
                         log::info!("decision daemon: idle for {idle_timeout:?}, exiting");
@@ -118,7 +118,7 @@ impl Server {
                     std::thread::sleep(Duration::from_millis(200));
                 }
                 // Transient accept failures (EMFILE under fd pressure)
-                // must not kill the daemon (m9): back off and retry —
+                // must not kill the daemon (m9): back off and retry -
                 // clients re-connect; only a permanent listener error
                 // (checked below) ends the loop.
                 Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
@@ -138,7 +138,7 @@ impl Server {
 
         // Drain: wait for in-flight connection threads. A thread inside an
         // inference (or waiting on the slot) does no socket reads, so the
-        // CALL_TIMEOUT does NOT bound it — the join here is best-effort
+        // CALL_TIMEOUT does NOT bound it - the join here is best-effort
         // drain, not a liveness guarantee (m2). The daemon exits after
         // this regardless; the socket file removal below is the real
         // handoff.
@@ -183,8 +183,8 @@ impl Server {
         }
 
         // Stamp activity AFTER the handshake gate (m6): unauthenticated
-        // junk (handshake never completed) must not keep the daemon —
-        // and its multi-GB resident — alive forever; only a connection
+        // junk (handshake never completed) must not keep the daemon -
+        // and its multi-GB resident - alive forever; only a connection
         // that speaks our protocol counts as activity.
         self.last_request_millis.store(
             self.started.elapsed().as_millis() as u64,
@@ -279,7 +279,7 @@ impl Server {
         };
 
         // The single inference slot, with a bounded wait: queued requests
-        // poll until the window closes, then BUSY — the client retries once
+        // poll until the window closes, then BUSY - the client retries once
         // and otherwise fails open.
         let acquired = acquire_slot(&self.inference_slot, INFER_QUEUE_WINDOW);
         let Ok(_guard) = acquired else {
@@ -340,7 +340,7 @@ impl Message {
 }
 
 /// Poll for the inference slot. A std `Mutex` has no timed lock, so the
-/// queue is a `try_lock` loop — the poll interval is noise next to the
+/// queue is a `try_lock` loop - the poll interval is noise next to the
 /// seconds-long inference it is waiting for.
 fn acquire_slot(slot: &Mutex<()>, window: Duration) -> Result<std::sync::MutexGuard<'_, ()>, Ipc> {
     let deadline = Instant::now() + window;

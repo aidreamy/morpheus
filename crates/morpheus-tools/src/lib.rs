@@ -3,7 +3,7 @@
 // These cannot be unified without breaking upstream crates.
 #![allow(clippy::multiple_crate_versions)]
 // The tool-description schemas are single `serde_json::json!` macros with
-// deep `allOf`/`anyOf` nesting (computer_control carries the deepest) —
+// deep `allOf`/`anyOf` nesting (computer_control carries the deepest) -
 // the default 128 recursion limit overflows while expanding them.
 #![recursion_limit = "512"]
 
@@ -11,7 +11,7 @@
 //
 // A tool description tells the model HOW to use the tool and WHEN to reach
 // for it. It never explains the tool's internals. Do not document
-// implementation details in descriptions — no dispatch modes, engine names,
+// implementation details in descriptions - no dispatch modes, engine names,
 // internal batching or fallback behavior, error-handling strategy, or
 // "one file per call" style rules that the input schema already expresses
 // structurally (a flat {path, content} schema says it plainly). The model
@@ -27,7 +27,7 @@
 // What does NOT belong:
 //   - how the tool works internally (engines, modes, dispatch, fallbacks)
 //   - rules that restate the schema's structure in words
-//   - history or rationale ("we changed this from X because Y") — that lives
+//   - history or rationale ("we changed this from X because Y") - that lives
 //     in code comments and commit messages, where maintainers will find it
 //
 // When a model misuses a tool, correct it at the rejection site with a
@@ -57,7 +57,7 @@ pub const TOOL_FORMAT: &str = concat!(
     "## Tool format\n",
     "To call a tool, respond with a JSON object:\n",
     "{\"name\": \"tool_name\", \"arguments\": { ... }}\n\n",
-    "Warning: Do not wrap tool calls in a code block or any markdown formatting. Emit the tool call as raw, unformatted JSON only — no backticks, no language tags, no surrounding text.\n\n",
+    "Warning: Do not wrap tool calls in a code block or any markdown formatting. Emit the tool call as raw, unformatted JSON only - no backticks, no language tags, no surrounding text.\n\n",
     "INCORRECT (do not do this):\n",
     "```json\n",
     "    {\"name\": \"tool_name\", \"arguments\": {...}}\n",
@@ -71,7 +71,7 @@ pub const TOOL_FORMAT: &str = concat!(
 ///
 /// Gemini 3.x models obey the legacy inline-JSON `TOOL_FORMAT` literally:
 /// with it in the prompt they emit tool calls as raw TEXT frames (`{"name":
-/// "fs_read", ...}`) even when the request also carries `toolConfig AUTO` —
+/// "fs_read", ...}`) even when the request also carries `toolConfig AUTO` -
 /// the API then rejects the turn with `MALFORMED_FUNCTION_CALL` and stray
 /// fragments (`}`) plus reasoning text leak to the user. The harness selects
 /// this variant when the active provider is Gemini (OpenAI/Claude ignore the
@@ -81,7 +81,7 @@ pub const TOOL_FORMAT_NATIVE: &str = concat!(
     "You call tools using the NATIVE function calling mechanism: the platform \n",
     "exposes each tool as a structured functionCall and delivers the result \n",
     "after you invoke it. NEVER write a tool call as JSON inside your text \n",
-    "response — no {\"name\": ..., \"arguments\": ...} objects in prose, code \n",
+    "response - no {\"name\": ..., \"arguments\": ...} objects in prose, code \n",
     "blocks or anywhere else. Text output is reserved for answering the user. \n",
     "When you need a tool, invoke it as a native function call; the platform \n",
     "handles the rest.\n"

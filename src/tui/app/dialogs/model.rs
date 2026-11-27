@@ -35,7 +35,7 @@ impl App {
     /// The machinery below (provider checks, cache, background
     /// revalidation) is shared with the global picker, but the commit lands
     /// on the pane's own selection and its session's model markers instead
-    /// of the global config — and cancel restores nothing, because nothing
+    /// of the global config - and cancel restores nothing, because nothing
     /// global was ever mutated (the originals stay `None`).
     pub(in crate::app) fn open_pane_model_dialog(&mut self, pane: usize) {
         self.summarization_model_edit = None;
@@ -89,7 +89,7 @@ impl App {
 
     /// Shared picker body: provider credential checks, cache fill and the
     /// background revalidation. `current` is whatever model this picker
-    /// edits — the global config's, or the focused pane's own.
+    /// edits - the global config's, or the focused pane's own.
     fn open_model_dialog_with_current(&mut self, current: String) {
         use aiface::connector::Connector;
         use morpheus::ModelEntry;
@@ -105,7 +105,7 @@ impl App {
             use aiface::connector::{is_local_provider, known_providers_with_env};
             for (provider, _) in known_providers_with_env() {
                 if !is_local_provider(provider) && !providers_to_check.contains(&provider) {
-                    // Provider no longer configured — purge cached models
+                    // Provider no longer configured - purge cached models
                     self.model_cache.invalidate(&provider.to_string());
                 }
             }
@@ -123,7 +123,7 @@ impl App {
                 cached_models.extend(models.iter().cloned());
             }
         }
-        // Deduplicate cached models as a safety net — the cache should
+        // Deduplicate cached models as a safety net - the cache should
         // already be unique after update_model_cache runs, but this
         // protects against stale on-disk data from older versions.
         {
@@ -153,7 +153,7 @@ impl App {
         } else {
             // Nothing cached (first run, or every provider failed before):
             // the background API fetch below may take a few seconds, so flag
-            // the dialog as loading — the list area shows a spinner until
+            // the dialog as loading - the list area shows a spinner until
             // ModelsLoaded replaces the list (or clears the flag when the
             // fetch finds nothing).
             self.dialog.replace(DialogType::ModelList {
@@ -164,7 +164,7 @@ impl App {
             });
         }
 
-        // Check if any provider is already being revalidated — if so,
+        // Check if any provider is already being revalidated - if so,
         // a background fetch is already in progress, skip spawning another.
         let any_revalidating = providers_to_check
             .iter()
@@ -363,7 +363,7 @@ impl App {
         }
     }
 
-    /// Apply a picked model — or, when the model supports configurable
+    /// Apply a picked model - or, when the model supports configurable
     /// reasoning, push the reasoning sub-dialog on top of the model list.
     pub(in crate::app) fn confirm_model_entry(&mut self, model: &str, provider: &str) {
         if let Some(index) = self.summarization_model_edit {
@@ -412,7 +412,7 @@ impl App {
             let current = self.dialog_reasoning_current();
             let levels = crate::config::model_reasoning_levels(model);
             let start = levels.iter().position(|l| l == &current).unwrap_or(0);
-            // Push the sub-dialog FIRST, then set its initial selection —
+            // Push the sub-dialog FIRST, then set its initial selection -
             // mutating the ModelList's `selected` (the current top before
             // the push) would corrupt the model highlight after Esc.
             self.dialog.show(DialogType::ReasoningList {
@@ -425,7 +425,7 @@ impl App {
                 inst.selected = start;
             }
         } else {
-            // Keep the previous reasoning level — the new model either
+            // Keep the previous reasoning level - the new model either
             // ignores it or uses it; user can change it from the dialog.
             // The pane-scoped picker keeps the PANE's previous level (its
             // own selection, or the global one it inherits).
@@ -472,7 +472,7 @@ impl App {
         reasoning: Option<&str>,
     ) {
         // A pane-scoped picker commits to THAT pane only: the pane's own
-        // selection plus its session's model markers — the global config,
+        // selection plus its session's model markers - the global config,
         // the persisted global slot and the main session stay untouched.
         if let Some(pane) = self.pane_model_edit {
             self.commit_pane_model_selection(pane, model, provider, reasoning);
@@ -520,13 +520,13 @@ impl App {
     }
 
     /// Commit a pane-scoped model pick: the selection lands on THAT pane
-    /// only — the pane's live state (which the dispatch route reads for
+    /// only - the pane's live state (which the dispatch route reads for
     /// every later turn) and the SAME provider/model/reasoning markers the
     /// main session records, written onto the pane's own morpheus session so
     /// the pick survives restarts with the existing marker precedence. The
     /// global config, the persisted global slot and the main session are
     /// never touched. A pane that has not run its first turn yet has no
-    /// session to stamp — the in-memory selection rides along until
+    /// session to stamp - the in-memory selection rides along until
     /// `ensure_manager_pane_session` mints the session shell.
     pub(in crate::app) fn commit_pane_model_selection(
         &mut self,
@@ -581,7 +581,7 @@ impl App {
             return;
         };
         let provider = self.setup.model.provider.clone();
-        // Same credential gate as the boot restore — with the same `auto`
+        // Same credential gate as the boot restore - with the same `auto`
         // exception: an empty provider is the persisted `auto` selection,
         // not an orphan. A concrete provider must still have a credential,
         // or the selection died with its key.
@@ -596,7 +596,7 @@ impl App {
     /// Restore the model recorded on the current session into the active LLM
     /// config. Used when switching back to a session so the last model used
     /// there comes back. A session without a recorded selection leaves the
-    /// active config untouched — before this feature, switching sessions
+    /// active config untouched - before this feature, switching sessions
     /// never mutated the config, so that legacy behavior is preserved.
     pub(in crate::app) fn restore_current_session_model(&mut self) {
         let Some(session) = self.state.current_session() else {
@@ -608,13 +608,13 @@ impl App {
             session.reasoning.clone(),
         );
         match (provider, model) {
-            // A recorded explicit selection fully replaces the active config —
+            // A recorded explicit selection fully replaces the active config -
             // model, provider AND reasoning (the reasoning could legitimately
             // be `None`, which must clear a leftover effort from elsewhere).
             (Some(provider), Some(model)) => {
                 self.set_llm_model(model, provider, reasoning);
             }
-            // A recorded `auto` selection has no provider to pin — the
+            // A recorded `auto` selection has no provider to pin - the
             // fallback chain stays the source of truth, so clear any leftover
             // provider from the previously active config.
             (None, Some(model)) if model == "auto" => {
@@ -631,8 +631,8 @@ impl App {
 
     /// Cycle the active model's reasoning effort to the next level
     /// (Ctrl+R). Walks the same level list the reasoning sub-dialog of the
-    /// model picker offers — `default` first, then the model's advertised
-    /// efforts in display order — and wraps back to the start when the end
+    /// model picker offers - `default` first, then the model's advertised
+    /// efforts in display order - and wraps back to the start when the end
     /// is reached. The new level goes through `commit_model_selection`, so
     /// it persists globally and on the current session exactly like a pick
     /// made through /models. A model that exposes no configurable reasoning
@@ -655,7 +655,7 @@ impl App {
         }
 
         // An effort left over from a previous model (not in this list)
-        // maps to index 0 (`default`) — the next press then walks the list
+        // maps to index 0 (`default`) - the next press then walks the list
         // from the top instead of erroring or skipping.
         let current = self.llm_config.reasoning.clone().unwrap_or_default();
         let start = levels.iter().position(|l| l == &current).unwrap_or(0);
@@ -790,7 +790,7 @@ impl App {
     }
 }
 
-/// Write a model selection onto a session record — the field mapping BOTH
+/// Write a model selection onto a session record - the field mapping BOTH
 /// the main session and the per-pane commits share: an empty provider is
 /// the persisted `auto` selection (no provider to pin), an empty model
 /// clears the record entirely.

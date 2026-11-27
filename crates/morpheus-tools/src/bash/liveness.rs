@@ -3,18 +3,18 @@
 //! A child process is "hung" when it makes progress in *no* observable way
 //! for a sustained window: no output, no CPU time growth and no I/O growth
 //! across its whole process tree (bash `-c` spawns descendants, so the tree
-//! — not just the shell — must be sampled). Any single signal of progress
+//! - not just the shell - must be sampled). Any single signal of progress
 //! resets the quiescence counter, which is what makes the watchdog safe for
 //! long-running legitimate commands: a `cargo build` burns CPU, a download
-//! moves bytes over the network, a database import writes to disk — none of
+//! moves bytes over the network, a database import writes to disk - none of
 //! them can be killed by this watchdog no matter how long they run, while a
 //! command blocked on a prompt or a lock that will never arrive dies within
 //! the quiescence window.
 //!
 //! "Process alive" is deliberately **not** a progress signal: a hung process
 //! stays alive forever, so treating aliveness as progress would defeat the
-//! watchdog. Caller-side logic uses `try_wait` for the opposite case — the
-//! child died but orphaned descendants keep the output pipes/PTY open — and
+//! watchdog. Caller-side logic uses `try_wait` for the opposite case - the
+//! child died but orphaned descendants keep the output pipes/PTY open - and
 //! escapes immediately instead of waiting for quiescence.
 //!
 //! Sampling uses [`sysinfo`], which exposes per-process accumulated CPU time
@@ -113,13 +113,13 @@ pub(crate) struct TreeSample {
 
 /// Diagnostic emitted when the liveness watchdog kills a quiescent tree.
 ///
-/// Deliberately DESCRIPTIVE ONLY — no suggested commands. The model infers
+/// Deliberately DESCRIPTIVE ONLY - no suggested commands. The model infers
 /// the retry itself; any specific advice could be wrong for the unknown
 /// case (same policy as the input-wait watchdog message).
 pub(crate) fn liveness_kill_message(quiescent_secs: u64) -> String {
     format!(
         "liveness watchdog: killed a command that produced no output, no CPU time and no \
-         I/O progress for {quiescent_secs}s — presumed hung waiting on something that \
+         I/O progress for {quiescent_secs}s - presumed hung waiting on something that \
          will never arrive (a prompt, a lock, or a dead connection)."
     )
 }
@@ -136,7 +136,7 @@ pub(crate) const ORPHAN_ESCAPE_MESSAGE: &str = concat!(
 ///
 /// Dropping the handle signals the thread to stop; it exits within a tick
 /// slice. The caller sets the output flag whenever the child produces
-/// output — that is one of the progress signals.
+/// output - that is one of the progress signals.
 ///
 /// Unix PTY path only: the piped path and the Windows ConPTY path sample
 /// inline in their async loops instead of a background thread.
@@ -169,7 +169,7 @@ const LIVENESS_THREAD_SLICE: Duration = Duration::from_millis(250);
 /// Spawn a background thread that samples the process tree and kills it on
 /// sustained quiescence.
 ///
-/// The thread owns the whole sampling/decision cycle — the caller's I/O
+/// The thread owns the whole sampling/decision cycle - the caller's I/O
 /// loop never blocks on process-table refreshes (a full refresh can take
 /// hundreds of milliseconds, which would stall output reads if done
 /// inline). `on_kill` receives the diagnostic message and must terminate
@@ -307,7 +307,7 @@ pub(crate) fn kill_process_tree(pid: u32) {
 /// CPU time and I/O counters.
 ///
 /// Returns `None` when the tree cannot be sampled reliably (root process
-/// missing from the process table — a transient that must never be
+/// missing from the process table - a transient that must never be
 /// interpreted as quiescence). This is a blocking call; run it on a blocking
 /// thread from async contexts.
 pub(crate) fn sample_tree(pid: u32) -> Option<TreeSample> {
@@ -315,7 +315,7 @@ pub(crate) fn sample_tree(pid: u32) -> Option<TreeSample> {
     // Refresh every process: the tree is discovered by walking parent links,
     // so descendants must be present. Dead entries are removed so a recycled
     // pid can never masquerade as the old tree and fake progress deltas.
-    // Only CPU time and I/O counters are fetched — the minimal refresh kind,
+    // Only CPU time and I/O counters are fetched - the minimal refresh kind,
     // because a full refresh can take hundreds of milliseconds on a busy
     // system (the PTY path even runs it on a dedicated thread so output
     // reads are never stalled by a sample).
@@ -365,7 +365,7 @@ pub(crate) fn sample_tree(pid: u32) -> Option<TreeSample> {
 /// Decision state machine for the liveness watchdog.
 ///
 /// Pure bookkeeping: callers decide when to sample (cheap ticks must never
-/// trigger expensive process-table scans — use [`LivenessState::sample_due`]
+/// trigger expensive process-table scans - use [`LivenessState::sample_due`]
 /// to throttle) and feed the result to [`LivenessState::on_sample`]. For the
 /// Unix PTY path, [`spawn_liveness_thread`] wraps both into a background
 /// thread so the poll loop never blocks on a refresh.
@@ -410,7 +410,7 @@ impl LivenessState {
                 .is_none_or(|last| now.duration_since(last) >= self.config.sample_interval)
     }
 
-    /// Decision logic for one sample — pure, unit-testable.
+    /// Decision logic for one sample - pure, unit-testable.
     ///
     /// `had_output` reports whether stdout/stderr produced bytes since the
     /// previous sample. Returns `Some(message)` when the tree must be killed
@@ -426,7 +426,7 @@ impl LivenessState {
         // (None) samples, which still cost a full scan.
         self.last_sample = Some(now);
 
-        // An unreliable sample (tree vanished from the process table — a
+        // An unreliable sample (tree vanished from the process table - a
         // transient) makes no decision and resets the clock: never count it
         // as progress and never count it as quiescence.
         let Some(sample) = sample else {
@@ -436,7 +436,7 @@ impl LivenessState {
 
         let progressed = had_output
             || match &self.previous {
-                // First observation: no delta yet — start the quiescence
+                // First observation: no delta yet - start the quiescence
                 // clock but give the tree the benefit of the doubt.
                 None => false,
                 Some(previous) => {
@@ -503,7 +503,7 @@ mod tests {
         assert!(msg.contains("no CPU time"), "{msg}");
     }
 
-    /// Any progress signal — output, CPU or I/O — resets the counter.
+    /// Any progress signal - output, CPU or I/O - resets the counter.
     #[test]
     fn progress_resets_quiescence() {
         let mut state = LivenessState::new(Some(1), config());
@@ -529,8 +529,8 @@ mod tests {
         let mut state = LivenessState::new(Some(1), config());
         assert_eq!(state.on_sample(t(0), sample(0, 0), false), None);
         assert_eq!(state.on_sample(t(400), sample(0, 0), false), None);
-        // A stray syscall: 10ms CPU and 100 bytes of I/O — both under the
-        // thresholds — must not reset the clock.
+        // A stray syscall: 10ms CPU and 100 bytes of I/O - both under the
+        // thresholds - must not reset the clock.
         assert_eq!(state.on_sample(t(800), sample(10, 100), false), None);
         let msg = state
             .on_sample(t(1_800), sample(10, 100), false)

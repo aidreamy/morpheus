@@ -24,7 +24,7 @@ pub enum Action {
     ToggleMode,
     /// Cycle the active model's reasoning effort to the next level
     /// (Ctrl+R): walks the model's reasoning levels in display order and
-    /// wraps back to the start — the same levels the reasoning sub-dialog
+    /// wraps back to the start - the same levels the reasoning sub-dialog
     /// of the /models picker offers.
     CycleReasoning,
     /// Maximize the Subagent section over the right panel (corner hint f1).

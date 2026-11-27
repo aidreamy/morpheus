@@ -1,6 +1,6 @@
 [package]
 categories = ["api-bindings"]
-description = "WhatsApp Web (multi-device) integration for Morpheus — pair by QR code, send and receive messages"
+description = "WhatsApp Web (multi-device) integration for Morpheus - pair by QR code, send and receive messages"
 keywords = ["whatsapp", "agent", "messaging", "qr-code"]
 license = "Apache-2.0"
 name = "morpheus-whatsapp"

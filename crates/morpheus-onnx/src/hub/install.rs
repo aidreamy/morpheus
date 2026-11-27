@@ -2,7 +2,7 @@
 //! from a hub repo, then hand the snapshot to the loader.
 //!
 //! The installer is cache-first and repo-agnostic: the repo id, subfolder,
-//! revision and graph candidates all arrive as parameters — no default repo
+//! revision and graph candidates all arrive as parameters - no default repo
 //! lives in this crate. The application owns the default (setup.json / env).
 //!
 //! Integrity: every network download is verified before the install
@@ -17,7 +17,7 @@
 //!
 //! Progress: downloads run through [`hf_hub::api::sync`] with the built-in
 //! progress bar DISABLED (`ApiBuilder::with_progress(false)`) and the
-//! caller's [`ProgressCallbacks`] in its place — the library never writes
+//! caller's [`ProgressCallbacks`] in its place - the library never writes
 //! to the terminal. The callbacks fire only for bytes that actually cross
 //! the network; cache hits skip them.
 
@@ -36,7 +36,7 @@ const TOKENIZER_JSON: &str = "tokenizer/tokenizer.json";
 ///
 /// Three boxed closures so an embedder never has to implement a trait or
 /// touch hf-hub types: `init` starts one file (`size` = total bytes,
-/// `filename` = repo-relative path — called again on resume/retry, so the
+/// `filename` = repo-relative path - called again on resume/retry, so the
 /// receiver must RESET its per-file counter, not accumulate), `update`
 /// adds `size` downloaded bytes, `finish` closes the file.
 ///
@@ -79,7 +79,7 @@ impl ProgressCallbacks {
 }
 
 // The `Progress` trait lives at `hf_hub::api::Progress` (api/sync.rs only
-// privately imports it), and hf-hub takes it BY VALUE per download — so the
+// privately imports it), and hf-hub takes it BY VALUE per download - so the
 // handle is a shared, cloneable sink.
 impl hf_hub::api::Progress for ProgressCallbacks {
     fn init(&mut self, size: usize, filename: &str) {
@@ -103,7 +103,7 @@ impl hf_hub::api::Progress for ProgressCallbacks {
 /// default repo (the application's configuration does).
 pub struct InstallRequest<'a> {
     /// The hub repo id (`owner/name`). A local directory path is a caller
-    /// error — local checkpoints load directly, no install.
+    /// error - local checkpoints load directly, no install.
     pub repo: &'a str,
     /// The checkpoint's subfolder inside a bundling repo (`None` = root).
     pub subfolder: Option<&'a str>,
@@ -116,7 +116,7 @@ pub struct InstallRequest<'a> {
     /// quantized graph and falls back when the mirror does not ship it).
     pub graphs: &'a [&'a str],
     /// Explicit artifact → SHA-256 map ([`verify_digests`] semantics). When
-    /// `None`, the repo's `sha256sums.txt` — when published — supplies the
+    /// `None`, the repo's `sha256sums.txt` - when published - supplies the
     /// digests, scoped to this checkpoint.
     pub expected_sha256: Option<&'a HashMap<String, String>>,
     /// Progress sink for the network downloads (cache hits never fire it).
@@ -127,7 +127,7 @@ pub struct InstallRequest<'a> {
 /// caller needs to pin and to configure the load.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct InstalledCheckpoint {
-    /// The snapshot root (`<cache>/models--*/snapshots/<sha>`) — the
+    /// The snapshot root (`<cache>/models--*/snapshots/<sha>`) - the
     /// checkpoint directory BEFORE any subfolder is applied, matching what
     /// the loader resolves and joins itself.
     pub snapshot: PathBuf,
@@ -135,7 +135,7 @@ pub struct InstalledCheckpoint {
     /// derived from the cached snapshot).
     pub revision: String,
     /// The graph file that was installed, repo-relative WITH the subfolder
-    /// prefix (e.g. `english/laya.int8.onnx`) — the name to pass as
+    /// prefix (e.g. `english/laya.int8.onnx`) - the name to pass as
     /// [`crate::LoadOptions::onnx_path`] relative to the checkpoint dir.
     pub graph: String,
 }
@@ -166,14 +166,14 @@ pub fn cache_status(
 
     // Candidate revisions. An explicit pin is a HARD constraint: probe
     // ONLY the pinned revision (the SHA itself, then the commit a
-    // branch/tag ref file points at) — a cached snapshot from another
+    // branch/tag ref file points at) - a cached snapshot from another
     // revision must never satisfy a pin.
     //
     // Without a pin, every installed snapshot is a candidate, MOST
     // RECENT FIRST. The unpinned probe serves the newest install, which
     // keeps the daemon's revision-less load (Kind::Custom carries no
     // revision over the wire, by design) on the snapshot the app last
-    // installed — and makes the upgrade path work: clear the pin, send a
+    // installed - and makes the upgrade path work: clear the pin, send a
     // message, a fresh download lands a newer snapshot, and the probe
     // picks THAT one instead of freezing on the stale lexicographic
     // minimum. The invariant this relies on: every snapshot under the
@@ -242,7 +242,7 @@ pub fn cache_status(
 /// fallback), else the encoder directory named by the config. So the
 /// snapshot is usable when `tokenizer/tokenizer.json` is present, or when
 /// the `tokenizer/` directory is absent AND `encoder/tokenizer.json` is
-/// present — a `tokenizer/` directory that exists but carries no
+/// present - a `tokenizer/` directory that exists but carries no
 /// `tokenizer.json` must REJECT the snapshot.
 fn tokenizer_usable(snapshot: &Path, prefix: &str) -> bool {
     let tok = snapshot.join(format!("{prefix}{TOKENIZER_JSON}"));
@@ -282,7 +282,7 @@ pub fn install(req: InstallRequest<'_>) -> Result<InstalledCheckpoint> {
         )));
     }
 
-    // Fast path: the essentials are already cached — no network at all.
+    // Fast path: the essentials are already cached - no network at all.
     if let Some((snapshot, revision, graph)) =
         cache_status(req.repo, req.subfolder, req.graphs, req.revision)
     {
@@ -328,7 +328,7 @@ pub fn install(req: InstallRequest<'_>) -> Result<InstalledCheckpoint> {
     // Network path. hf-hub reads the token from the cache token file only;
     // layer the HF_TOKEN environment variable over it the way
     // huggingface_hub does, for gated repositories. The built-in progress
-    // bar is DISABLED — the caller's callbacks replace it, and nothing the
+    // bar is DISABLED - the caller's callbacks replace it, and nothing the
     // library writes can reach the terminal.
     let mut builder = hf_hub::api::sync::ApiBuilder::from_env().with_progress(false);
     if let Ok(token) = std::env::var("HF_TOKEN")
@@ -424,7 +424,7 @@ pub fn install(req: InstallRequest<'_>) -> Result<InstalledCheckpoint> {
 
     // The snapshot root: the config sits at
     // <cache>/models--*/snapshots/<sha>[/<sub>]/rl_agent_config.json.
-    // Pop ONE parent per subfolder path component — a nested subfolder
+    // Pop ONE parent per subfolder path component - a nested subfolder
     // ("a/b") must not leave `a/` on the root.
     let mut snapshot = cfg_file.parent().unwrap_or(Path::new(".")).to_path_buf();
     if let Some(sub) = req.subfolder {
@@ -436,7 +436,7 @@ pub fn install(req: InstallRequest<'_>) -> Result<InstalledCheckpoint> {
     // Digests before success: caller-supplied map wins; otherwise the
     // published sums file scoped to this checkpoint's prefix. A checkpoint
     // whose mirror publishes NO sums (and no caller map) is a FAILURE, not
-    // a silent pass-through: the whole contract is verified supply chain —
+    // a silent pass-through: the whole contract is verified supply chain -
     // an unverifiable download never installs.
     //
     // EVERY integrity rejection below evicts the freshly materialized
@@ -453,13 +453,13 @@ pub fn install(req: InstallRequest<'_>) -> Result<InstalledCheckpoint> {
             // The loader's special keys point at the graph actually being
             // installed and its ordinary keys are CHECKPOINT-relative;
             // verification HERE runs against the snapshot ROOT.
-            // `normalize_caller_map` does that translation — the SAME
+            // `normalize_caller_map` does that translation - the SAME
             // helper the cache fast path uses, so the two paths cannot
             // drift.
             let map = normalize_caller_map(map, &prefix, &graph_rel);
             // A caller-supplied map REPLACES the sums manifest (a caller
             // who pins digests does not need the mirror's). But the graph
-            // — the artifact worth attacking — must be covered either way.
+            // - the artifact worth attacking - must be covered either way.
             if !map.contains_key(&graph_rel) {
                 evict(&snapshot);
                 return Err(Error::Runtime(format!(
@@ -502,7 +502,7 @@ pub fn install(req: InstallRequest<'_>) -> Result<InstalledCheckpoint> {
             }
         },
     };
-    // Completeness BEFORE verifying — sums path ONLY (a caller-supplied
+    // Completeness BEFORE verifying - sums path ONLY (a caller-supplied
     // map verifies exactly what it lists, the upstream semantics; the
     // graph-coverage check above already guards the critical artifact):
     // every downloaded artifact must carry a digest. A manifest covering
@@ -528,7 +528,7 @@ pub fn install(req: InstallRequest<'_>) -> Result<InstalledCheckpoint> {
     let graph_path = snapshot.join(&graph_rel);
     if let Err(e) = verify_digests(&snapshot, Some(&digests), Some(&graph_path)) {
         // The snapshot failed verification: EVICT IT ENTIRELY. `evict_ref`
-        // alone is not enough — the cache probe enumerates snapshot dirs
+        // alone is not enough - the cache probe enumerates snapshot dirs
         // (refs are unreliable), so a surviving snapshot dir stays
         // servable. Best effort: a leftover dir only wastes disk.
         evict(&snapshot);
@@ -552,7 +552,7 @@ fn subfolder_prefix(subfolder: Option<&str>) -> String {
 /// for verification inside `install`.
 ///
 /// The loader's special keys point at the graph actually being installed;
-/// its ordinary keys are CHECKPOINT-relative (the loader's own semantics —
+/// its ordinary keys are CHECKPOINT-relative (the loader's own semantics -
 /// its post-install re-verify applies them after the subfolder join).
 /// Verification in `install` runs against the snapshot ROOT, so the special
 /// keys are normalized to the graph's repo-relative path and ordinary keys
@@ -570,7 +570,7 @@ fn normalize_caller_map(
     // explicit graph key already in the map keeps its value (`or_insert`).
     // Ordinary keys are inserted in TWO passes so collisions are
     // deterministic: an already-prefixed (explicit repo-relative) key wins
-    // over a bare checkpoint-relative key that prefixes to the same path —
+    // over a bare checkpoint-relative key that prefixes to the same path -
     // HashMap iteration order must never decide which digest applies.
     let mut out: HashMap<String, String> = map
         .iter()
@@ -627,7 +627,7 @@ pub fn parse_sha256sums(text: &str) -> HashMap<String, String> {
 /// Remove the cache ref for `revision` (best effort): the pointer into the
 /// blob store that every cache probe resolves through. Orphaned blobs stay
 /// on disk but are unreachable from probes. Resolved through
-/// `Cache::from_env()` — the same resolution every cache probe uses —
+/// `Cache::from_env()` - the same resolution every cache probe uses -
 /// because the `Api` handle does not expose its cache.
 fn evict_ref(repo: &str, revision: &str) {
     let hf_repo = hf_hub::Repo::with_revision(

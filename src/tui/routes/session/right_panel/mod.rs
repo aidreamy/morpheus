@@ -35,11 +35,11 @@ use crate::component::spinner_highlight::HighlightSpinner;
 /// that the theme's amber warning read as BROWN (dark yellow is
 /// perceptually brown), and even green/red barely registered. The value is
 /// set by the middle severity: the color must survive the blend still
-/// recognizable as its own family — orange lands on #A8642D (copper, hue
+/// recognizable as its own family - orange lands on #A8642D (copper, hue
 /// ~27°, squarely between red and green), green on #1B8543 and red on
 /// #A03132, all three unmistakable. At that opacity the light body text
 /// keeps workable contrast on DARK backgrounds (≈3.8:1 on green, ≈5.7:1
-/// on red, ≈3.7:1 on the copper orange — the least readable of the three,
+/// on red, ≈3.7:1 on the copper orange - the least readable of the three,
 /// accepted so the verdict color survives the blend; on light-background
 /// themes the same opacity would need its own audit, out of scope here).
 const SEVERITY_TINT_ALPHA: f32 = 0.65;
@@ -49,12 +49,12 @@ const SEVERITY_TINT_ALPHA: f32 = 0.65;
 /// success/warning/error stand-ins. Two findings forced the change: theme
 /// semantic colors are not hue-stable across themes (the `orng` theme's
 /// `success` is blue), and dark or earthy tones collapse through the
-/// background blend into perceptually different colors — the morpheus
+/// background blend into perceptually different colors - the morpheus
 /// theme's amber `warning` (#D4A742) at the old 18% blend over the near-black
 /// background read as brown, not yellow. The middle severity therefore
 /// carries an ORANGE origin color: yellow, even light, darkened through
 /// the blend into a burnt goldenrod that still read as dirty yellow-brown,
-/// while orange darkens into copper — a family that survives. These
+/// while orange darkens into copper - a family that survives. These
 /// constants are theme-independent, so a verdict always reads as the same
 /// green/orange/red in every theme; the unblended color also drives the
 /// running tool-call spinner's beam, where the orange shows at full
@@ -85,7 +85,7 @@ fn draw_chip(buf: &mut Buffer, x: u16, y: u16, label: &str, bg: RGBA) {
 pub const RIGHT_PANEL_WIDTH: u16 = 42;
 /// Extra rows between consecutive section BANDS. Each section already
 /// renders its own TOP_GAP above its box, so `0` here makes the visible gap
-/// between two boxes exactly that 1 TOP_GAP row — the same rhythm as the
+/// between two boxes exactly that 1 TOP_GAP row - the same rhythm as the
 /// boxes' internal padding (TOP_PAD/BOTTOM_PAD), keeping the layout compact.
 const SECTION_GAP: i32 = 0;
 /// Margin kept BELOW the last section. Each section renders its own TOP_GAP
@@ -113,7 +113,7 @@ pub(crate) fn subagent_theme_key(theme: &Theme) -> u64 {
 /// Determine whether the right panel should be visible based on terminal width and content.
 pub fn should_show_right_panel(terminal_width: u16, state: &RightPanelState) -> bool {
     // Manual override first (Ctrl+P): the user's explicit hide wins over
-    // content and terminal size — EXCEPT while the `/agents` main-agent
+    // content and terminal size - EXCEPT while the `/agents` main-agent
     // mirror is open. Opening that mirror IS an explicit request to see the
     // panel (Ctrl+P inside the mode), so a `user_hidden` left behind by an
     // earlier Ctrl+P in normal chat must not keep suppressing it (under the
@@ -138,8 +138,8 @@ pub fn should_show_right_panel(terminal_width: u16, state: &RightPanelState) -> 
 /// Count visible sections and return a bitmask: todo, bash, subagent.
 fn count_sections(state: &RightPanelState) -> (bool, bool, bool) {
     // MAIN-AGENT MIRROR SOLE OWNERSHIP: while the `/agents` mode's
-    // main-agent mirror is open, ALL normal-mode panel content is hidden —
-    // no todo section, no bash section — and the Subagent section renders
+    // main-agent mirror is open, ALL normal-mode panel content is hidden -
+    // no todo section, no bash section - and the Subagent section renders
     // exactly the mirror window (the ranking already pins the display to
     // it). This is the agent-mode contract: the main agent owns the panel,
     // normal chat-side artifacts stay out of it.
@@ -197,12 +197,12 @@ fn natural_section_height(
 
 /// Natural height of the SUBAGENT section for the resolved window set:
 /// sum of each visible session's content rows, plus the between-window
-/// separator margins ([`RightPanelState::subagent_window_margins`] — none
+/// separator margins ([`RightPanelState::subagent_window_margins`] - none
 /// after the last window), plus box overhead. Must be called AFTER
 /// [`RightPanelState::resolve_visible_subagents`].
 fn subagent_natural_height(state: &mut RightPanelState, wrap_w: u16) -> i32 {
     // List mode: each entry contributes its WRAPPED row count (a long
-    // description breaks onto continuation rows — the tool name and spinner
+    // description breaks onto continuation rows - the tool name and spinner
     // must never be pushed off-screen). No windows are resolved and no
     // markdown rows are counted.
     if state.subagent_list_active() {
@@ -231,7 +231,7 @@ fn subagent_natural_height(state: &mut RightPanelState, wrap_w: u16) -> i32 {
 /// Compute the in-box corner hints: one lowercase italic hint per VISIBLE
 /// section, each pinned to the top-right corner INSIDE its own box (1 column
 /// of right margin). While maximized ONLY the mixed "f4" hint is shown, in
-/// the maximized box's top-right corner — the section hints disappear.
+/// the maximized box's top-right corner - the section hints disappear.
 /// Buttons exist whenever two or more boxes EXIST (present count), or while
 /// maximized (for the lone "f4").
 fn build_corner_buttons(
@@ -292,8 +292,8 @@ fn build_corner_buttons(
 }
 
 /// Paint the in-box corner hints: lowercase italic text at the top-right of
-/// each box — NO bold. Every hint rests in the dim color and lights WHITE
-/// while the cursor hovers it (hover focus, equal for all hints —
+/// each box - NO bold. Every hint rests in the dim color and lights WHITE
+/// while the cursor hovers it (hover focus, equal for all hints -
 /// f1/f2/f3/f4 alike).
 /// Resting color: the theme's muted-text slot, shared with the box content's
 /// muted text so the hints read as quiet chrome until hovered.
@@ -371,9 +371,9 @@ pub fn render_right_panel(
 
     // ── Phase 0: resolve the visible subagent windows ────────────────
     // The subagent section owns its area and may BORROW leftover space
-    // from the todo/bash areas (loans have no time guarantee — owners
+    // from the todo/bash areas (loans have no time guarantee - owners
     // reclaim whenever they need it). The budget below IS that space;
-    // expanded mode is EXCLUSIVE — exactly ONE subagent window occupies
+    // expanded mode is EXCLUSIVE - exactly ONE subagent window occupies
     // the section (the focused queue's window, else the top-ranked
     // candidate), so the budget only sizes that single window's internal
     // scroll.
@@ -477,7 +477,7 @@ pub fn render_right_panel(
         }
         // Any remaining pool is redistributed deficit-capped across ALL
         // still-needy sections (a section must never be allocated beyond
-        // its natural height — that reserved unpainted void inside the box,
+        // its natural height - that reserved unpainted void inside the box,
         // the reported "subagent expands but occupies much less" bug).
         // Whatever does not fit any deficit stays as the panel's bottom
         // margin.
@@ -600,7 +600,7 @@ pub fn render_right_panel(
             state.maximized_section,
         );
         // Register first so the hover resolves against these FRESH rects
-        // (not last frame's) — a layout shift under a still cursor can never
+        // (not last frame's) - a layout shift under a still cursor can never
         // light the wrong cells.
         state.set_header_buttons(buttons);
         let hovered = state.hovered_hint();
@@ -696,7 +696,7 @@ fn render_bash_section(
     }
 
     // History-mode badge (top-left, on the box's padding row so it never
-    // collides with content): which view the section is in — the newest
+    // collides with content): which view the section is in - the newest
     // command only ("live") or ALL commands stacked ("history").
     {
         let (label, bg) = if state.bash_history_mode {
@@ -724,7 +724,7 @@ fn render_bash_section(
 /// Render the subagent LIST (one entry per subagent session):
 /// `<agent> <description> <tool> <spinner>`, oldest first. Each entry is
 /// WRAPPED to the section width with morpheus's standard `wrap_chars` word
-/// wrap — a long description breaks onto continuation rows so the tool
+/// wrap - a long description breaks onto continuation rows so the tool
 /// name and spinner stay inside the visible area. The selected entry is
 /// highlighted (selection band + accent fg); running entries animate the
 /// shared braille spinner, finished ones carry ✓/✗ instead. Screen bands
@@ -747,7 +747,7 @@ fn render_subagent_list(
     }
     // Wrap every entry ONCE per frame; the same rows drive the drawn
     // output, the height estimate (via `subagent_list_total_rows`) and the
-    // selection regions — three consumers can never disagree.
+    // selection regions - three consumers can never disagree.
     let spin = state.subagent_list_spinner_char();
     let wrapped: Vec<Vec<String>> = entries
         .iter()
@@ -814,7 +814,7 @@ fn render_subagent_list(
         let session = &state.pty_sessions[sess_idx];
         // A BOUND `/agents` pane mirror paints its agent name as the
         // full-color brand logo (the same mark the split headers draw);
-        // normal subagents stay in the theme's own colors — opaque. The
+        // normal subagents stay in the theme's own colors - opaque. The
         // entry styles otherwise follow the shared rules: selected entries
         // read in the accent color, finished ones dim.
         let bound_agent = if session.bound {
@@ -842,7 +842,7 @@ fn render_subagent_list(
                 // glyph in the brand palette (`t` walks the mark, exactly
                 // the split header's sampling), then the rest of the row in
                 // the entry's own style. The painted span is the leading
-                // non-blank token capped at the name — a pathological wrap
+                // non-blank token capped at the name - a pathological wrap
                 // can never paint into the description.
                 let name_len = bound_agent.chars().count();
                 let token = seg
@@ -896,15 +896,15 @@ fn render_subagent_list(
 
 /// Render the resolved subagent windows as one scrollable markdown document.
 ///
-/// The visible set comes from [`RightPanelState::visible_subagents`] —
-/// EXACTLY ONE window in expanded mode (the focused queue's window — its
-/// pinned entry, else its newest — or, with no agent focus, the
+/// The visible set comes from [`RightPanelState::visible_subagents`] -
+/// EXACTLY ONE window in expanded mode (the focused queue's window - its
+/// pinned entry, else its newest - or, with no agent focus, the
 /// top-ranked candidate: running beats finished, newest first;
 /// superseded entries return only via ← navigation). The window shows
 /// ONLY content: the optional main-agent input (the user's prompt, direct
-/// text from the dedicated `input_echo` field — the list row already
+/// text from the dedicated `input_echo` field - the list row already
 /// names the agent CLI, so no `subagent: …` header), then the body as
-/// **markdown** — the same renderer the chat uses for its content, so the
+/// **markdown** - the same renderer the chat uses for its content, so the
 /// report's headings/code/lists survive inside the box. Scrolling is in
 /// markdown layout rows (matching [`RightPanelState::subagent_section_rows`])
 /// and the visible slice of each body is blitted from a reusable scratch
@@ -948,7 +948,7 @@ fn render_subagent_section(
     let wrap_w = max_w.saturating_sub(LEFT_PAD + RIGHT_PAD);
     state.subagent_wrap_w = wrap_w;
     // Selection regions are rebuilt from scratch on every content/width
-    // change — the bash section's contract. Without this clear the regions
+    // change - the bash section's contract. Without this clear the regions
     // ACCUMULATED one generation per streamed chunk, and extraction read
     // stale rows from old layouts: a selection pasted text entirely
     // different from what was on screen.
@@ -987,7 +987,7 @@ fn render_subagent_section(
     // to disk so heights and bodies see real content.
     let rows_all: Vec<u16> = state.subagent_section_rows_for_display(wrap_w).to_vec();
     // Window set resolved by the panel layout phase. Direct callers of this
-    // renderer (unit tests) may skip resolution — fall back to every
+    // renderer (unit tests) may skip resolution - fall back to every
     // subagent session so nothing silently disappears.
     let visible: Vec<usize> = if state.visible_subagents.is_empty() {
         state
@@ -1037,11 +1037,11 @@ fn render_subagent_section(
             }
         }
     }
-    // ONE read-only pass builds each window's area tint — method calls
+    // ONE read-only pass builds each window's area tint - method calls
     // borrow all of `state`, so nothing of this shape may run inside the
     // render loop. Per-agent colors are GONE: every window keeps the
     // section's default box color (the same background bash and the TODO
-    // panel use), because color is now reserved for MEANING — only a
+    // panel use), because color is now reserved for MEANING - only a
     // code-review verdict tints its window green/orange/red (Phase 3b.1).
     // The accent (the unblended color) doubles as the running tool-call
     // spinner's highlight color, so a red verdict window also sweeps red;
@@ -1085,7 +1085,7 @@ fn render_subagent_section(
     let theme_key = subagent_theme_key(theme);
     let content_bottom = scroll_y + i32::from(inner_h);
     let mut content_row: i32 = 0;
-    // Spinner keys that are InProgress THIS frame — the map is pruned to
+    // Spinner keys that are InProgress THIS frame - the map is pruned to
     // this set after the loop so finished calls stop animating.
     let mut live_spinner_keys: Vec<String> = Vec::new();
     let mut live_block_keys: Vec<String> = Vec::new();
@@ -1093,7 +1093,7 @@ fn render_subagent_section(
     for (window, (sess_idx, session)) in sessions.iter().enumerate() {
         let sess_rows = i32::from(rows_all.get(*sess_idx).copied().unwrap_or(1));
         // CLEAN view: no `subagent: <cli>` command header (the list row
-        // already names the agent) — the input echoes as DIRECT prompt
+        // already names the agent) - the input echoes as DIRECT prompt
         // text from the window's DEDICATED `input_echo` field (verbatim,
         // no marker), then the body. The rows math (types.rs) counts
         // exactly the same two blocks.
@@ -1104,7 +1104,7 @@ fn render_subagent_section(
             .unwrap_or_default();
         let input_h = input_rows.len() as i32;
         let sess_end = content_row + sess_rows;
-        // The 1-row separator margin exists only BELOW non-last windows —
+        // The 1-row separator margin exists only BELOW non-last windows -
         // the last window leans on the box's own bottom padding instead.
         let has_next_window = window + 1 < sessions.len();
 
@@ -1135,7 +1135,7 @@ fn render_subagent_section(
         }
 
         // Screen band of this window (clipped to the section's inner area)
-        // — recorded so a click can resolve WHICH agent queue to focus.
+        // - recorded so a click can resolve WHICH agent queue to focus.
         {
             let band_top = inner_y as i32 + (content_row - scroll_y).max(0);
             let band_bottom = inner_y as i32 + i32::from(inner_h).min(sess_end - scroll_y);
@@ -1148,10 +1148,10 @@ fn render_subagent_section(
 
         // Main-agent input echoed as DIRECT prompt text, wrapped; the same
         // visual rows feed the selection text regions (rebuilt only when
-        // content or width changed). No command header — the list row
+        // content or width changed). No command header - the list row
         // already names the agent CLI. Each input row wears the `│` input
         // rail in the LEFT_PAD gutter (same marking as the `/agents`
-        // panes — the shared `subagent_input_rail` helper): input vs
+        // panes - the shared `subagent_input_rail` helper): input vs
         // output stays readable at a glance, and the rail is PAINT-only
         // (selection regions keep copying the bare text).
         draw_wrapped_rows(
@@ -1171,7 +1171,7 @@ fn render_subagent_section(
                 let line_y = inner_y + (row - scroll_y) as u16;
                 // The echoed prompt is always the MAIN agent's input, so the
                 // rail wears the theme's secondary tone (the same tone an
-                // `agents_call` input wears in the panes — the glyph marks
+                // `agents_call` input wears in the panes - the glyph marks
                 // "input", the tone marks who spoke).
                 subagent_input_rail(
                     buf,
@@ -1196,7 +1196,7 @@ fn render_subagent_section(
         let has_visible_body = !sanitize_subagent_text(subagent_visible_body(&session.output))
             .trim()
             .is_empty();
-        // Live activity (Phase 3b.2): tool calls, plan, thought — the same
+        // Live activity (Phase 3b.2): tool calls, plan, thought - the same
         // lines the height math counts (for EVERY status now). A finished
         // window keeps its SEALED transcript (`SubagentActivity::seal`)
         // rendering permanently; rehydrated history entries have an empty
@@ -1213,10 +1213,10 @@ fn render_subagent_section(
                 .fold(0u16, u16::saturating_add),
         );
         // CHAT SEPARATOR: one blank row between the echoed prompt and what
-        // follows — activity first, then the body; the input and the output
+        // follows - activity first, then the body; the input and the output
         // must never read as glued text. The follow-up can be the transcript
         // ALONE (the internal sub-agent streams into the timeline and its
-        // report arrives only at the end — the body-only condition used to
+        // report arrives only at the end - the body-only condition used to
         // glue the prompt to the live mini-chat for the whole stream).
         // Conditional the SAME way the height math (types.rs) conditions it:
         // a gap with nothing after it would reserve an unpainted row, which
@@ -1250,12 +1250,12 @@ fn render_subagent_section(
         // cells (cache hit), or re-render the full body into the scratch and
         // store the cells when the content, wrap width or theme changed. The
         // renderer lays out from content row 0, so the full body must be
-        // rendered on a miss — but that happens once per streamed chunk, not
+        // rendered on a miss - but that happens once per streamed chunk, not
         // every frame (re-rendering the whole body per frame was the
         // right-panel frame bottleneck).
         // body_h derives from the (throttled, ~100 ms coalesced) row cache
         // minus the LIVE activity count: a new tool row arriving between
-        // rebuilds can push body_h ≤ 0 for a frame — the guard skips the
+        // rebuilds can push body_h ≤ 0 for a frame - the guard skips the
         // body blit until the cache catches up. Self-healing by design;
         // do NOT clamp the body into the window here, the row math owns it.
         let body_h = sess_rows - input_h - input_gap - activity_h;
@@ -1263,7 +1263,7 @@ fn render_subagent_section(
             // The severity header is consumed (it tinted the window above)
             // and is never shown as report text. Failed windows keep the
             // neutral color (no severity was extracted) but still lose a
-            // leading header line here — accepted: a header on a FAILED
+            // leading header line here - accepted: a header on a FAILED
             // run is a malformed report.
             let clean = sanitize_subagent_text(subagent_visible_body(&session.output));
             if !clean.trim().is_empty() {
@@ -1403,7 +1403,7 @@ fn render_subagent_section(
 /// 3b.2), starting at content row `start_row`, clipped to the visible band.
 ///
 /// Rendering per variant (design decisions from the user):
-/// - Tool: NO icons — the lowercase tool name (`read`, `edit`, `search`,
+/// - Tool: NO icons - the lowercase tool name (`read`, `edit`, `search`,
 ///   …) followed by the extracted detail (path/query/URL), wrapped to the
 ///   box's text width (the wrap happens in [`activity_lines`]; every row
 ///   draws indented at `x + 2`, so the wrap width is `wrap_w − 2`).
@@ -1414,14 +1414,14 @@ fn render_subagent_section(
 ///   never bleed across the box edge; the other statuses draw a plain
 ///   ✓/✗/· marker colored success/error/text.
 /// - Diff: dimmed `path +N −M` rows under the call.
-/// - Plan: compact checkbox glyphs (☐ pending/in-progress, ☑ completed —
+/// - Plan: compact checkbox glyphs (☐ pending/in-progress, ☑ completed -
 ///   the outer TODO panel's row style is deliberately NOT reused: it takes
 ///   too much width inside the box).
 /// - Message/Thought: whole markdown blocks rendered through
 ///   [`MarkdownRenderable`] with their cells cached per
 ///   `{session_id}:{index}` (same philosophy as the finished-window body
 ///   cache, per-block granularity). Message draws in the normal text
-///   color (the agent speaking); Thought draws dimmed (text_muted) — the
+///   color (the agent speaking); Thought draws dimmed (text_muted) - the
 ///   same "opaque thinking" treatment as the main agent's reasoning but
 ///   always visible (no hidden state).
 ///
@@ -1434,7 +1434,7 @@ fn render_subagent_section(
 /// whose index vanished (timeline bounded, sessions finished) are pruned.
 /// The `EditDiff` cell cache is keyed through `live_block_keys` too
 /// (`{session_id}:diff{index}`), so its entries are pruned by the SAME
-/// pass — no separate live list needed.
+/// pass - no separate live list needed.
 #[allow(clippy::too_many_arguments)]
 fn draw_activity_lines(
     buf: &mut Buffer,
@@ -1450,7 +1450,7 @@ fn draw_activity_lines(
     theme: &Theme,
     text_style: Style,
     // The window's agent CLI: a USER's replayed echo in the timeline wears
-    // the input rail in the agent's own brand color — the same marking the
+    // the input rail in the agent's own brand color - the same marking the
     // `/agents` pane paints, so the mirrored timeline reads identically in
     // both surfaces (pane AND this panel, where the pane renders outside
     // `/agents` mode). Plain windows never carry timeline inputs in live
@@ -1498,7 +1498,7 @@ fn draw_activity_lines(
                             // session+call id, holding the FULL concatenated
                             // label. The beam is normalised over that whole
                             // string, so the sweep flows ACROSS the wrapped
-                            // rows — a broken path like `src/tui/routes/…`
+                            // rows - a broken path like `src/tui/routes/…`
                             // is swept to its end instead of dying at the
                             // first wrap. render_row paints this row's slice
                             // at the row's cumulative character offset; the
@@ -1509,7 +1509,7 @@ fn draw_activity_lines(
                             // The spinner filters control characters out of
                             // its text (`HighlightSpinner::new`), so the
                             // concatenated label and the per-row offsets must
-                            // be built from the SAME filtered rows — raw
+                            // be built from the SAME filtered rows - raw
                             // offsets would desync the row slices (and, with
                             // a mismatched text, `set_text` would reset the
                             // beam every frame).
@@ -1530,7 +1530,7 @@ fn draw_activity_lines(
                             // The row's own width is the paint limit: a shared
                             // `wrap_w` would let a SHORT row (wrap_chars
                             // produces variable-length rows) also paint the
-                            // first chars of the NEXT row's slice — the
+                            // first chars of the NEXT row's slice - the
                             // duplicated-text corruption found in review.
                             let row_chars = seg.chars().count() as u16;
                             spinner.render_row(
@@ -1542,7 +1542,7 @@ fn draw_activity_lines(
                             );
                             if rebuild_regions {
                                 // The spinner paints the text at the shared
-                                // x + 2 indent — the region must start there
+                                // x + 2 indent - the region must start there
                                 // or extraction is shifted by two columns.
                                 regions.push(TextRegion::one_row(
                                     r,
@@ -1646,7 +1646,7 @@ fn draw_activity_lines(
                 path,
                 unified,
             } => {
-                // The REAL unified diff of a completed file edit — the SAME
+                // The REAL unified diff of a completed file edit - the SAME
                 // `DiffRenderable` panel the chat's edit box paints, blitted
                 // from the per-line cell cache (parse + tree-sitter
                 // highlight once per change, not once per frame). The panel
@@ -1734,7 +1734,7 @@ fn draw_activity_lines(
                 // reusable scratch that is blitted row by row. The renderer
                 // instance survives across frames, so `set_content`
                 // re-parses only the streamed tail and closed sub-blocks
-                // come back from its internal cache — a fresh cold-cache
+                // come back from its internal cache - a fresh cold-cache
                 // renderer per chunk was the previous design (and the
                 // right-panel bottleneck pattern at body scale).
                 let dimmed = matches!(line, SubagentActivityLine::Thought { .. });
@@ -1816,7 +1816,7 @@ fn draw_activity_lines(
                     // The prompt input's left rail (the shared
                     // `subagent_input_rail`): a replayed USER echo wears it
                     // in the window agent's brand color, an `agents_call`
-                    // input in the theme's secondary tone — the color alone
+                    // input in the theme's secondary tone - the color alone
                     // tells the user WHO is speaking. Same marking as the
                     // `/agents` panes, so the mirrored timeline reads
                     // identically in both surfaces. Rail is PAINT-only (the
@@ -1838,7 +1838,7 @@ fn draw_activity_lines(
             SubagentActivityLine::Gap => {
                 // The breathing row between the user's input and the
                 // agent's output: the section's background already painted
-                // it — nothing to draw, no selection region (an empty row
+                // it - nothing to draw, no selection region (an empty row
                 // is not content).
             }
         }
@@ -1979,7 +1979,7 @@ fn highlight_section_selection(
     for cy in start_y..=end_y {
         // Content row under this screen row. Rows outside the true content
         // span (selection fully clamped off-screen) are not part of the
-        // selection — skip them.
+        // selection - skip them.
         let row_content_y = i32::from(cy)
             .saturating_sub(content_top)
             .saturating_add(band.scroll_y);
@@ -2019,7 +2019,7 @@ mod tests {
     use crate::theme::ThemeRegistry;
     use types::SubagentTimelineEntry;
     // The bin target does not use `Color` (the live render goes through
-    // `rgba_color`), but the test assertions decode `Color::Rgb` values —
+    // `rgba_color`), but the test assertions decode `Color::Rgb` values -
     // scoped here so the production import stays warning-free.
     use ratatui::style::Color;
 
@@ -2027,7 +2027,7 @@ mod tests {
     /// the timeline's stream coalescing used to scan back past newer
     /// entries to find a matching kind, so a `Thought` chunk arriving after
     /// the response's `Message` conclusion merged into the OLD reasoning
-    /// block ABOVE it — the conclusion stayed pinned at the bottom while
+    /// block ABOVE it - the conclusion stayed pinned at the bottom while
     /// newer reasoning rendered higher. Under TAIL-ONLY coalescing, every
     /// chunk merges only into the timeline's LAST entry (same kind) or
     /// opens a fresh one: the painted order is strictly arrival order.
@@ -2057,7 +2057,7 @@ mod tests {
         }
         let activity = state.pty_sessions[0].subagent_activity.clone();
         // Tail-only: one fresh entry per alternation, 20 total, in arrival
-        // order — the newest content is always the LAST entry.
+        // order - the newest content is always the LAST entry.
         assert_eq!(activity.timeline.len(), 20);
         let texts = activity
             .timeline
@@ -2087,7 +2087,7 @@ mod tests {
 
         // The paint agrees: within the box, the FIRST message ("ponto 0")
         // must render strictly ABOVE the SECOND thought ("pensando no
-        // passo 1") — the exact inversion the old backscan produced.
+        // passo 1") - the exact inversion the old backscan produced.
         let wrap_w = 40u16;
         let rows = state.subagent_section_rows_for_display(wrap_w);
         let natural = (BOX_OVERHEAD + i32::from(rows.iter().sum::<u16>())).max(4) as u16;
@@ -2138,22 +2138,22 @@ mod tests {
     /// REGRESSION (user-visible "reasoning stays pinned while the earlier
     /// content is pushed out of its block"): the BACKSCAN-era coalescer
     /// absorbed every later chunk of a stream kind into the FIRST block of
-    /// that kind, so a real multi-delta response — reasoning bursts and
-    /// message deltas alternating several times — painted one giant
+    /// that kind, so a real multi-delta response - reasoning bursts and
+    /// message deltas alternating several times - painted one giant
     /// Thought block as a fixed head while the narrated content slid under
     /// it in arrival order (and reasoning that arrived AFTER the
     /// conclusion rendered ABOVE it). This test pins the FULL paint of a
     /// realistic frame-by-frame stream, exactly the shape the internal
     /// bridge emits: every alternation opens its own block, the painted
     /// rows read in strict arrival order, and the newest delta is always
-    /// the LAST text on screen — the contract the chat itself keeps.
+    /// the LAST text on screen - the contract the chat itself keeps.
     #[test]
     fn multi_delta_interleaved_stream_paints_in_arrival_order() {
         use morpheus_agents::events::SubagentEvent;
 
         let theme = test_theme();
         let mut state = RightPanelState::new();
-        // REAL throttle: frames arrive faster than the 100 ms rebuild —
+        // REAL throttle: frames arrive faster than the 100 ms rebuild -
         // the streaming condition under which the old backscan mispainted.
         state.subagent_rebuild_interval = std::time::Duration::from_millis(100);
         state.start_pty("subagent: parity".to_string(), None);
@@ -2254,7 +2254,7 @@ mod tests {
         }
 
         // The FINAL frame paints the newest delta last and the
-        // post-conclusion reasoning BELOW the conclusion — the reasoning
+        // post-conclusion reasoning BELOW the conclusion - the reasoning
         // bursts above stay in their per-round blocks instead of absorbing
         // later content.
         let rows = state.subagent_section_rows_for_display(wrap_w);
@@ -2287,7 +2287,7 @@ mod tests {
             last_text.contains("revisão final"),
             "the newest delta (post-conclusion reasoning) must paint LAST: {content_rows:?}"
         );
-        // The post-conclusion reasoning renders BELOW the conclusion — the
+        // The post-conclusion reasoning renders BELOW the conclusion - the
         // backscan pinned it inside the top Thought block instead, leaving
         // the conclusion as the last painted text.
         let conclusion_row = content_rows
@@ -2325,7 +2325,7 @@ mod tests {
     /// unified diff the `/agents` pane paints (both consume the shared
     /// `subagent_diff_block` cell grid), keyed `{session_id}:diff{index}`
     /// in the window's diff-cell cache, and the tool row carries the REAL
-    /// tool name. Height math and paint must agree — sized by
+    /// tool name. Height math and paint must agree - sized by
     /// `subagent_section_rows_for_display`, the panel's LAST row stays
     /// visible inside the natural height.
     #[test]
@@ -2415,7 +2415,7 @@ mod tests {
 
     /// REGRESSION (user-visible misleading copy): the subagent box's
     /// selection regions were only ever PUSHED, never cleared, so every
-    /// rebuild (one per streamed chunk — `pty_gen` bumps constantly) added
+    /// rebuild (one per streamed chunk - `pty_gen` bumps constantly) added
     /// another overlapping generation of regions and `extract_selected_text`
     /// returned stale text from old layouts: pasting produced text entirely
     /// different from the selection. The bash section's clear-on-rebuild
@@ -2487,7 +2487,7 @@ mod tests {
     /// The subagent body is rendered as markdown (like the chat content):
     /// heading text appears without the `#` markers, `**` emphasis is
     /// consumed by the renderer, and the echoed prompt stays DIRECT text.
-    /// CLEAN view: no `subagent: …` header anywhere — the prompt echoes
+    /// CLEAN view: no `subagent: …` header anywhere - the prompt echoes
     /// from the dedicated `input_echo` field (the list row already names
     /// the agent CLI).
     #[test]
@@ -2522,7 +2522,7 @@ mod tests {
     }
 
     /// The bash section draws a mode chip on the box's padding row: "live"
-    /// by default, "history" after toggling — English only, colored with
+    /// by default, "history" after toggling - English only, colored with
     /// theme colors (bg differs from the panel background).
     #[test]
     fn bash_section_draws_mode_chip() {
@@ -2565,7 +2565,7 @@ mod tests {
         let mut buf = Buffer::empty(Rect::new(0, 0, 50, 30));
         render_subagent_section(&mut buf, 0, 0, 50, 30, &mut state, &theme, true);
 
-        // CLEAN view: no `subagent: kilo` header — the prompt echoes as
+        // CLEAN view: no `subagent: kilo` header - the prompt echoes as
         // DIRECT text from `input_echo`; its LAST wrapped segment must be
         // present somewhere in the buffer.
         let all: String = (0..30)
@@ -2578,7 +2578,7 @@ mod tests {
             "wrapped input segments missing: {all:?}"
         );
         // Rows math agrees: the echo (verbatim) wraps into exactly the rows
-        // the height math counts — no header row on top.
+        // the height math counts - no header row on top.
         assert_eq!(
             state.subagent_section_rows(48),
             &[wrap_chars(&tail, 48).len() as u16]
@@ -2586,7 +2586,7 @@ mod tests {
     }
 
     /// The right-panel window paints the `│` input rail in the LEFT_PAD
-    /// gutter on the echoed prompt's rows — the shared `subagent_input_rail`
+    /// gutter on the echoed prompt's rows - the shared `subagent_input_rail`
     /// helper (same glyph as the `/agents` panes), wearing the theme's
     /// secondary tone (the echoed prompt is always the MAIN agent's input).
     /// The rail is paint-only: gap and body rows keep the gutter clean.
@@ -2604,7 +2604,7 @@ mod tests {
 
         let want_fg = rgba_color(theme.secondary);
         // Content starts at TOP_GAP+TOP_PAD = 2: row 2 is the echoed prompt
-        // (rail in the gutter), row 3 the chat gap, row 4 the body — both
+        // (rail in the gutter), row 3 the chat gap, row 4 the body - both
         // rail-less.
         let rail = buf.cell((0, 2)).expect("cell");
         assert_eq!(
@@ -2631,7 +2631,7 @@ mod tests {
     /// timeline's input entries: a `UserMessage` wears the pane agent's
     /// brand color (identical to the pane's own marking), an `AgentMessage`
     /// (an `agents_call` input) the theme's secondary tone. The agent's own
-    /// message rows stay rail-less — the rail marks INPUTS only.
+    /// message rows stay rail-less - the rail marks INPUTS only.
     #[test]
     fn agent_mirror_timeline_inputs_wear_the_input_rail() {
         use morpheus_agents::events::SubagentEvent;
@@ -2652,7 +2652,7 @@ mod tests {
         let mut buf = Buffer::empty(Rect::new(0, 0, 50, 12));
         render_subagent_section(&mut buf, 0, 0, 50, 12, &mut state, &theme, true);
 
-        // Row 2 is the timeline's first entry (the user echo — no
+        // Row 2 is the timeline's first entry (the user echo - no
         // `input_echo` on a mirror, so activity starts at content row 2);
         // row 3 is the agent's answer.
         let rail = buf.cell((0, 2)).expect("cell");
@@ -2675,7 +2675,7 @@ mod tests {
             row_text(&buf, 3)
         );
 
-        // An `agents_call` input (AgentMessage) wears the secondary tone —
+        // An `agents_call` input (AgentMessage) wears the secondary tone -
         // the same marking the pane paints for it.
         let mut activity = types::SubagentActivity::default();
         activity.open_turn_input("help me refactor", false);
@@ -2699,7 +2699,7 @@ mod tests {
         );
     }
 
-    /// REGRESSION: every subagent window has its OWN 1-row bottom margin —
+    /// REGRESSION: every subagent window has its OWN 1-row bottom margin -
     /// a blank separator row between consecutive windows (and after the
     /// last one) instead of stacking them flush.
     #[test]
@@ -2723,7 +2723,7 @@ mod tests {
                 gap, 1,
                 "exactly one margin row between windows: bands {bands:?}"
             );
-            // The margin shares the nearest window's tint — with per-agent
+            // The margin shares the nearest window's tint - with per-agent
             // colors gone, a margin between two verdict-less windows is
             // plain box background (and still blank).
             let want = rgba_color(theme.background_element);
@@ -2736,7 +2736,7 @@ mod tests {
             );
         }
 
-        // REGRESSION: a LONE (== last) window gets NO margin — the box's
+        // REGRESSION: a LONE (== last) window gets NO margin - the box's
         // own bottom padding frames it, so nothing is tinted right below
         // its content.
         let mut solo = RightPanelState::new();
@@ -2756,7 +2756,7 @@ mod tests {
     }
 
     /// Per-agent area colors are GONE: every subagent window (external CLI
-    /// or internal) renders on the section's DEFAULT box color — the same
+    /// or internal) renders on the section's DEFAULT box color - the same
     /// background bash and the TODO panel use. Color is reserved for
     /// meaning: only a review verdict tints a window.
     #[test]
@@ -2826,7 +2826,7 @@ mod tests {
     /// The middle severity renders ORANGE, not yellow: over the near-black
     /// element background even a light yellow blends down into a burnt
     /// goldenrod that reads as dirty yellow-brown, while an orange blends
-    /// into copper — still clearly between red and green. The test pins the
+    /// into copper - still clearly between red and green. The test pins the
     /// HUE BAND of the blended tint (orange ≈ 15..45°, yellow begins past
     /// 45°) so the constant cannot drift back into the yellow family.
     #[test]
@@ -2858,7 +2858,7 @@ mod tests {
             "the middle-severity tint must be ORANGE (hue 15..45°), got {hue:.1}° for #{tint:X?}"
         );
         // The tint must also stay distinct from its neighbors on BOTH ends:
-        // red's hue is near 0, green's near 140 — the orange band separates
+        // red's hue is near 0, green's near 140 - the orange band separates
         // the three verdicts even after the dark blend.
         let red = blend(
             theme.background_element,
@@ -2972,7 +2972,7 @@ mod tests {
         let mut state = RightPanelState::new();
         // REAL throttle: frames arrive faster than 100 ms (no sleeps), so
         // the static rows cache serves stale heights while the activity
-        // grows — the exact streaming condition of a fast CLI.
+        // grows - the exact streaming condition of a fast CLI.
         state.subagent_rebuild_interval = std::time::Duration::from_millis(100);
         state.start_pty("subagent: opencode".to_string(), None);
 
@@ -3054,11 +3054,11 @@ mod tests {
     }
 
     /// REGRESSION: same interleaved stream as above but rendered in a
-    /// CONSTRAINED viewport (inner_h smaller than the content — scroll
+    /// CONSTRAINED viewport (inner_h smaller than the content - scroll
     /// active, clip bands live) with hostile event shapes mixed in: tool
     /// updates carrying diffs, plan replacements, multi-line titles (tool
     /// rows are NOT sanitized), long markdown with fences, and an oversized
-    /// message (the live tail grows UNBOUNDED under the flow contract —
+    /// message (the live tail grows UNBOUNDED under the flow contract -
     /// it only compresses to its 8k archival tail on demotion/seal, so
     /// this exercises a taller-than-8k block in the paint walk).
     #[test]
@@ -3150,7 +3150,7 @@ mod tests {
 
     /// REGRESSION (live run): the subagent box's tool spinner held only the
     /// FIRST wrapped row, so its beam swept a few characters and died at the
-    /// wrap — a label like "edit src/tui/routes/…" never lit "/routes/…".
+    /// wrap - a label like "edit src/tui/routes/…" never lit "/routes/…".
     /// The spinner must hold the FULL concatenated label (beam normalised
     /// over the whole string) and every visible row must be painted through
     /// `render_row` at its cumulative character offset, so the sweep flows
@@ -3249,7 +3249,7 @@ mod tests {
             "the spinner must hold the full concatenated label, not just row 0"
         );
 
-        // Each row paints EXACTLY its own slice — a short row must not also
+        // Each row paints EXACTLY its own slice - a short row must not also
         // paint the head of the next row's slice (the duplicate-text
         // corruption the review probe found when every row shared one
         // max_w). Symbol-level, so a colour-only pass cannot mask it.
@@ -3319,8 +3319,8 @@ mod tests {
     /// message/thought chunks, tool calls/updates and plans, rendered
     /// frame by frame at several widths with the REAL throttle active.
     /// Every timeline entry carries unique `X<i>start`/`X<i>end` markers;
-    /// any painted row that mixes markers of two DIFFERENT entries — same
-    /// family or not — means the height math and the painter disagree (the
+    /// any painted row that mixes markers of two DIFFERENT entries - same
+    /// family or not - means the height math and the painter disagree (the
     /// reported overlap).
     #[test]
     fn fuzz_activity_paint_order_and_no_overlap() {
@@ -3480,7 +3480,7 @@ mod tests {
     /// replayed with a unique `Xn{start,end}` marker appended when its
     /// timeline entry COALESCES no more (detected by simulating the same
     /// coalescing rule the timeline uses), so a marker must paint EXACTLY
-    /// once, inside its entry's band — any overlap moves it onto another
+    /// once, inside its entry's band - any overlap moves it onto another
     /// entry's rows or duplicates it.
     #[test]
     fn subagent_captured_opencode_stream_replay_has_no_overlap() {
@@ -3504,7 +3504,7 @@ mod tests {
 
             // Faithful mirror of `SubagentActivity::apply` coalescing: a
             // Message/Thought chunk joins the timeline's LAST entry when it
-            // is of the same kind; ToolCall pushes an entry (only NEW ids —
+            // is of the same kind; ToolCall pushes an entry (only NEW ids -
             // re-announcements patch); ToolCallUpdate patches (no entry);
             // Plan pushes once, then replaces in place; Usage/Mode/Info
             // touch nothing. `entry_of[j]` = timeline entry index that
@@ -3532,7 +3532,7 @@ mod tests {
                         entry_of.push(entry_kinds.len() as i64 - 1);
                     }
                     // Patching/ignorable events: they touch the LAST entry
-                    // at most — attribute them to it (never a new entry).
+                    // at most - attribute them to it (never a new entry).
                     _ => entry_of.push(entry_kinds.len() as i64 - 1),
                 }
             }
@@ -3666,10 +3666,10 @@ mod tests {
         }
     }
 
-    /// REGRESSION: the FULL panel path — `render_right_panel` with the
+    /// REGRESSION: the FULL panel path - `render_right_panel` with the
     /// real budget/fit/scroll machinery, a bash section competing for
     /// space, and TWO subagent windows (both captured opencode streams
-    /// replayed concurrently via `include_str!` testdata) — must keep the
+    /// replayed concurrently via `include_str!` testdata) - must keep the
     /// two streams' tool rows separated: no row may mix one window's tool
     /// title with the other's file paths.
     #[test]
@@ -3703,7 +3703,7 @@ mod tests {
         let n_frames = events1.len().max(events2.len());
 
         // Interleave: window 1 replays capture1 events, window 2 capture2,
-        // on the same frames — two streams running concurrently, the
+        // on the same frames - two streams running concurrently, the
         // hardest production condition.
         for frame in 0..n_frames {
             for (stream, events) in [(1usize, events1), (2usize, events2)] {
@@ -3781,7 +3781,7 @@ mod tests {
     }
 
     /// REGRESSION (phantom fence row): documents ending in / containing
-    /// code fences must not reserve the fence's trailing blank feed row —
+    /// code fences must not reserve the fence's trailing blank feed row -
     /// estimate and real painted layout must agree exactly.
     #[test]
     fn fence_body_has_no_phantom_trailing_row() {
@@ -3797,7 +3797,7 @@ mod tests {
             md.render_self(&mut buf, Rect::new(0, 0, w, est as u16));
             // Occupied = any glyph OR any non-default background (language-
             // less fences paint their top/bottom padding as blank rows with
-            // the code background — invisible to a symbol-only scan but very
+            // the code background - invisible to a symbol-only scan but very
             // much part of the painted layout the estimate must match).
             let occupied = |y: u16| {
                 (0..w).any(|x| {
@@ -3916,7 +3916,7 @@ mod tests {
     }
 
     /// width. The box is [0, 50), so column 49 (the box edge) must stay blank
-    /// — content may reach column 48 (the last inner column).
+    /// - content may reach column 48 (the last inner column).
     #[test]
     fn subagent_section_content_does_not_reach_box_right_edge() {
         let mut state = RightPanelState::new();
@@ -3943,7 +3943,7 @@ mod tests {
 
     /// The rendered body cells are cached per session: after the first
     /// render the entry matches the layout generation and wrap width, and a
-    /// second render (no content change) serves the same cells — the blit
+    /// second render (no content change) serves the same cells - the blit
     /// must produce a byte-identical buffer to the fresh render.
     #[test]
     fn subagent_body_cache_is_populated_and_served() {
@@ -3980,7 +3980,7 @@ mod tests {
     }
 
     /// A table's border glyphs (which read as a hard "edge") stay clear of
-    /// the box's right edge too — the border of a wide table never lands on
+    /// the box's right edge too - the border of a wide table never lands on
     /// column 49 of a [0, 50) box.
     #[test]
     fn subagent_section_table_stays_inside_box() {
@@ -4041,7 +4041,7 @@ mod tests {
     }
 
     /// Regression: a drag anchored in the SUBAGENT box must highlight ONLY
-    /// the subagent rows — the bash renderer used to re-interpret the same
+    /// the subagent rows - the bash renderer used to re-interpret the same
     /// per-section content rows with its own scroll offset, painting a
     /// mirrored selection inside the bash box.
     #[test]
@@ -4055,7 +4055,7 @@ mod tests {
         state.start_pty("ls".to_string(), None);
         state.complete_last_pty("f1\nf2\nf3\n".to_string());
 
-        // Baseline render (no selection) — also populates section_layouts.
+        // Baseline render (no selection) - also populates section_layouts.
         let mut base = Buffer::empty(Rect::new(0, 0, 50, 40));
         render_right_panel(&mut base, Rect::new(0, 0, 50, 40), &mut state, &theme, 120);
 
@@ -4125,7 +4125,7 @@ mod tests {
         state.start_pty("ls".to_string(), None);
         state.complete_last_pty(output);
 
-        // Baseline render (no selection) — also populates section_layouts.
+        // Baseline render (no selection) - also populates section_layouts.
         let mut base = Buffer::empty(Rect::new(0, 0, 50, 60));
         render_right_panel(&mut base, Rect::new(0, 0, 50, 60), &mut state, &theme, 120);
 
@@ -4197,7 +4197,7 @@ mod tests {
             }
             assert!(
                 swapped == 0 || unchanged == 0,
-                "row {y}: mixed row — {swapped} inverted and {unchanged} unchanged cells \
+                "row {y}: mixed row - {swapped} inverted and {unchanged} unchanged cells \
                  (edge rows must be full-width)"
             );
             if swapped > 0 {
@@ -4211,7 +4211,7 @@ mod tests {
             }
         }
         // The FIRST and LAST content rows are the clamped edge rows of this
-        // selection — both are middle rows of the true content span and must
+        // selection - both are middle rows of the true content span and must
         // be highlighted (the old bug froze the initial mouse-down x there).
         assert!(
             first_row_swapped,
@@ -4302,7 +4302,7 @@ mod tests {
 
     /// REGRESSION: the subagent box must NEVER be taller than its content.
     /// Phase-2's leftover pool used to be dumped uncapped into the first
-    /// needy section — when bash/todo fit their base share and their
+    /// needy section - when bash/todo fit their base share and their
     /// surplus exceeded the subagent's deficit, the subagent box grew past
     /// its natural height leaving a large unpainted void. Numbers below
     /// trigger exactly that path.
@@ -4320,7 +4320,7 @@ mod tests {
         // CLEAN view: no command header row).
         state.start_pty("subagent: kilo".to_string(), None);
         // The echo rides the dedicated `input_echo` field (on the SUBAGENT
-        // window — the last session; [0] is the bash one); the output body
+        // window - the last session; [0] is the bash one); the output body
         // is the streamed plain text.
         let last = state.pty_sessions.len() - 1;
         state.pty_sessions[last].input_echo = Some("task".to_string());
@@ -4406,7 +4406,7 @@ mod tests {
         render_right_panel(&mut buf, Rect::new(0, 0, 50, h), &mut state, &theme, 120);
 
         // The lowest section band must stop at least BOTTOM_MARGIN (1) rows
-        // above the viewport bottom — the reserved gap row.
+        // above the viewport bottom - the reserved gap row.
         let lowest_bottom = state
             .section_layouts
             .iter()
@@ -4432,7 +4432,7 @@ mod tests {
         // The VISIBLE gap between adjacent section boxes is exactly 1 row:
         // with SECTION_GAP = 0 the next band starts where the previous one
         // ends (band gap 0), and its own TOP_GAP row is the single blank row
-        // between the two boxes — the same rhythm as the internal padding.
+        // between the two boxes - the same rhythm as the internal padding.
         let mut bands: Vec<(i32, i32)> = state
             .section_layouts
             .iter()
@@ -4460,7 +4460,7 @@ mod tests {
     }
 
     /// REGRESSION: the subagent box's TOP/BOTTOM padding rows follow the
-    /// NEAREST window's color — a verdict tints them with its severity, a
+    /// NEAREST window's color - a verdict tints them with its severity, a
     /// verdict-less window leaves the default box background (no hole and
     /// no stray color).
     #[test]
@@ -4521,7 +4521,7 @@ mod tests {
     /// The corner hints only appear when TWO OR MORE sections are present:
     /// with a single section there is nothing to maximize, so no hint is
     /// shown. With two sections each box carries its own hint in its
-    /// top-right corner — there is no global header row anymore.
+    /// top-right corner - there is no global header row anymore.
     #[test]
     fn header_buttons_appear_only_with_two_or_more_sections() {
         let theme = test_theme();
@@ -4551,7 +4551,7 @@ mod tests {
         let todo_rect = state
             .header_button_rect(types::SectionKind::Todo)
             .expect("todo hint present");
-        // Hints live on different rows — one per box — at the right edge.
+        // Hints live on different rows - one per box - at the right edge.
         assert_ne!(
             bash_rect.2, todo_rect.2,
             "each hint must sit in its own box, got bash {bash_rect:?} todo {todo_rect:?}"
@@ -4635,7 +4635,7 @@ mod tests {
     }
 
     /// The hint-only mixed button appears ONLY while maximized, alone in the
-    /// maximized box's top-right corner — the section hints disappear. It
+    /// maximized box's top-right corner - the section hints disappear. It
     /// sits at the RIGHT edge of that row and paints no background of its
     /// own: a bare dim "f4" on the box background.
     #[test]
@@ -4646,7 +4646,7 @@ mod tests {
         let mut buf = Buffer::empty(area);
         render_right_panel(&mut buf, area, &mut state, &theme, 120);
 
-        // Mixed view: no mixed hint yet — each box carries only its own hint.
+        // Mixed view: no mixed hint yet - each box carries only its own hint.
         assert!(
             state.header_buttons().iter().all(|b| b.target.is_some()),
             "mixed view must not show the f4 hint"
@@ -4659,7 +4659,7 @@ mod tests {
         buf = Buffer::empty(area);
         render_right_panel(&mut buf, area, &mut state, &theme, 120);
 
-        // While maximized ONLY the mixed hint remains — the section hints
+        // While maximized ONLY the mixed hint remains - the section hints
         // disappear.
         for kind in [
             types::SectionKind::Subagent,
@@ -4697,7 +4697,7 @@ mod tests {
         );
 
         // No background pill: the hint keeps the box's own background and
-        // rests dim — it lights white only under the cursor (hover focus).
+        // rests dim - it lights white only under the cursor (hover focus).
         let hint_x = (mixed.x0 + mixed.x1) / 2;
         let cell = buf.cell((hint_x, mixed.top)).expect("hint cell painted");
         assert_eq!(
@@ -4711,7 +4711,7 @@ mod tests {
             "the f4 hint must rest dim without hover"
         );
 
-        // Hovering it lights the white focus color — equal for every hint.
+        // Hovering it lights the white focus color - equal for every hint.
         state.set_hint_hover(hint_x, mixed.top);
         buf = Buffer::empty(area);
         render_right_panel(&mut buf, area, &mut state, &theme, 120);
@@ -4731,14 +4731,14 @@ mod tests {
         assert!(text.contains("task one"), "todo is back");
         assert!(
             text.contains("report"),
-            "subagent is back (its CONTENT — no `subagent:` header is rendered)"
+            "subagent is back (its CONTENT - no `subagent:` header is rendered)"
         );
         assert!(text.contains("out"), "bash is back");
     }
 
     /// Hover focus, equal for every hint: the hint under the cursor lights
     /// white (f1/f2/f3/f4 alike) while the rest stay dim. Moving the cursor
-    /// away returns every hint to dim. Clicking still maximizes/restores —
+    /// away returns every hint to dim. Clicking still maximizes/restores -
     /// the white is purely a hover state, never a click state.
     #[test]
     fn hint_hover_lights_the_hovered_hint_white() {
@@ -4755,7 +4755,7 @@ mod tests {
             state.set_hint_hover((x0 + x1) / 2, top);
         };
 
-        // At rest every hint is dim — no white anywhere.
+        // At rest every hint is dim - no white anywhere.
         let band = rgba_color(hint_dim_color(&theme));
         let white = rgba_color(theme.text);
         for kind in [
@@ -4901,7 +4901,7 @@ mod tests {
     }
 
     /// The corner hints are lowercase italic text on their own box's
-    /// background — no bold, no prefix. Each hint sits at the top-right of
+    /// background - no bold, no prefix. Each hint sits at the top-right of
     /// its box with one column of right margin.
     #[test]
     fn corner_hints_are_italic_text_on_their_own_box() {
@@ -4949,7 +4949,7 @@ mod tests {
     }
 
     /// Each box carries only its own lowercase hint in its top-right corner:
-    /// f1 in Subagent, f2 in Bash, f3 in TODO — no prefixes, no uppercase.
+    /// f1 in Subagent, f2 in Bash, f3 in TODO - no prefixes, no uppercase.
     /// The hints are right-aligned and sit on their section's own box row.
     #[test]
     fn header_buttons_list_subagent_first_with_function_key_hints() {
@@ -5071,7 +5071,7 @@ mod tests {
         render_right_panel(&mut buf, area, &mut state, &theme, 120);
         assert_eq!(state.maximized_section, Some(types::SectionKind::Bash));
 
-        // No section hint stays registered while maximized — only f4.
+        // No section hint stays registered while maximized - only f4.
         assert!(
             state
                 .header_button_rect(types::SectionKind::Subagent)
@@ -5105,7 +5105,7 @@ mod tests {
         let text: String = (0..30).map(|y| row_text(&buf, y)).collect();
         assert!(
             text.contains("report"),
-            "subagent now owns the panel (its CONTENT — no `subagent:` header is rendered)"
+            "subagent now owns the panel (its CONTENT - no `subagent:` header is rendered)"
         );
         assert!(!text.contains("bash line"), "bash was dethroned");
     }

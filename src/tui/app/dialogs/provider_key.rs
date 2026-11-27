@@ -68,7 +68,7 @@ impl App {
                 device_login: crate::app::providers::provider_has_device_login(&provider),
             });
         } else {
-            // Forget: confirm first — the keyring delete is destructive and
+            // Forget: confirm first - the keyring delete is destructive and
             // irreversible (the user must re-enter the key afterwards).
             self.dialog.show(DialogType::Confirm {
                 message: format!("Forget the API key for {provider}?"),
@@ -77,7 +77,7 @@ impl App {
     }
 
     /// Whether the current Confirm dialog sits on top of a ProviderKeyChoice
-    /// dialog — i.e. it is asking to forget a provider API key. Detected from
+    /// dialog - i.e. it is asking to forget a provider API key. Detected from
     /// the dialog stack so no pending state can go stale.
     fn confirm_over_provider_key_choice(&self) -> Option<(String, String)> {
         let n = self.dialog.stack.len();
@@ -129,7 +129,7 @@ impl App {
         // a failed keyring deletion (key still there) or a surviving env-var
         // key both keep the provider usable, and erasing the selection in
         // those cases threw away a perfectly valid configuration (that
-        // regression ignored the match arm — the cleanup must not run on
+        // regression ignored the match arm - the cleanup must not run on
         // the failure path).
         let provider_now_keyless =
             !aiface::connector::has_api_key(&provider, Some(morpheus::KEYRING_SERVICE));

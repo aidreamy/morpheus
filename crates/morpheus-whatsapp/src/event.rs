@@ -26,7 +26,7 @@ pub(crate) const BUFFER: usize = 1024;
 /// - **Lifecycle events** (pairing, connection, failures, logout) are never
 ///   dropped silently: delivery waits for room in the queue for up to 30
 ///   seconds, then gives up with a logged warning. A caller that stopped
-///   reading cannot miss the event that says the link died — but a consumer
+///   reading cannot miss the event that says the link died - but a consumer
 ///   that legitimately stops reading should drop the receiver instead of
 ///   letting the wait expire.
 ///
@@ -146,7 +146,10 @@ impl Event {
                 .messages
                 .iter()
                 .map(|message| {
-                    Self::Message(IncomingMessage::from_engine(&message.message, &message.info))
+                    Self::Message(IncomingMessage::from_engine(
+                        &message.message,
+                        &message.info,
+                    ))
                 })
                 .collect(),
             Engine::StreamReplaced(_) => one(Self::Failure {
@@ -348,8 +351,7 @@ mod tests {
             ..Default::default()
         };
 
-        let event =
-            mapped(&batch(vec![engine_message(raw, info)])).expect("message is mapped");
+        let event = mapped(&batch(vec![engine_message(raw, info)])).expect("message is mapped");
         match event {
             Event::Message(message) => assert_eq!(message.text(), Some("hi")),
             other => panic!("unexpected event: {other:?}"),

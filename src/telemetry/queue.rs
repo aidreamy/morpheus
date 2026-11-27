@@ -8,7 +8,7 @@
 //! - The queue is bounded in both directions: `push` trims the oldest lines to
 //!   make room when the file is full, and the drain rewrite also enforces the
 //!   caps. A machine that never flushes therefore stays bounded on disk.
-//! - All I/O failures are non-fatal — telemetry must never break the app.
+//! - All I/O failures are non-fatal - telemetry must never break the app.
 
 use std::io::{BufRead, Write};
 use std::path::{Path, PathBuf};
@@ -21,7 +21,7 @@ const QUEUE_TTL_DAYS: u64 = 14;
 /// Hard cap on the queue file (bytes). Oldest lines are dropped first.
 const QUEUE_MAX_BYTES: u64 = 512 * 1024;
 /// Hard cap on a SINGLE serialized event : an event bigger than
-/// this can never fit the queue budget — it is rejected on `push` (fail
+/// this can never fit the queue budget - it is rejected on `push` (fail
 /// closed) instead of being appended anyway or evicting the whole file.
 const MAX_EVENT_BYTES: usize = 64 * 1024;
 /// Hard cap on the number of queued lines.
@@ -67,7 +67,7 @@ impl EventQueue {
     /// Append an event, trimming the OLDEST lines when the caps would be
     /// exceeded. Never panics; failures are logged and ignored. An event
     /// whose serialized form exceeds [`MAX_EVENT_BYTES`] is REJECTED (audit
-    /// F07 — a single oversized value can never defeat the queue cap).
+    /// F07 - a single oversized value can never defeat the queue cap).
     pub fn push(&self, event: &EventEnvelope) {
         let Ok(line) = serde_json::to_string(event) else {
             return;
@@ -81,7 +81,7 @@ impl EventQueue {
 
         let existing = std::fs::read(&self.path).unwrap_or_default();
         // str::lines (not BufRead::lines) so the trim pass can iterate in
-        // reverse — BufRead::lines is not DoubleEndedIterator.
+        // reverse - BufRead::lines is not DoubleEndedIterator.
         let existing_str = String::from_utf8_lossy(&existing);
         let current_bytes = existing.len() as u64;
         let current_lines = existing_str.lines().count();
@@ -156,7 +156,7 @@ impl EventQueue {
                 continue;
             }
             if batch.len() < MAX_BATCH {
-                batch.push(event); // handed to the caller — NOT kept
+                batch.push(event); // handed to the caller - NOT kept
             } else {
                 kept.push(line);
             }
@@ -214,7 +214,7 @@ mod tests {
         let batch = q.drain_batch();
         assert_eq!(batch.len(), 2);
         assert_eq!(batch[0].event_type(), EventType::Error);
-        // The batch is REMOVED from the file — a re-drain returns nothing.
+        // The batch is REMOVED from the file - a re-drain returns nothing.
         assert_eq!(q.pending_count(), 0);
         assert!(q.drain_batch().is_empty());
     }
@@ -283,7 +283,7 @@ mod tests {
 
     #[test]
     fn oversized_event_is_rejected_never_appended() {
-        // a single oversized event cannot defeat the cap — it is
+        // a single oversized event cannot defeat the cap - it is
         // rejected at push time, so the file stays within QUEUE_MAX_BYTES and
         // nothing is drained.
         let dir = tempfile::tempdir().unwrap();

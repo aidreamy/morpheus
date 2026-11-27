@@ -2,7 +2,7 @@
 //!
 //! whatsapp-rust uses HTTP for two things: fetching the current WhatsApp Web
 //! version and moving media. Its bundled client is `ureq`; this crate plugs in
-//! `reqwest` instead — already the project's HTTP client and TLS stack — so no
+//! `reqwest` instead - already the project's HTTP client and TLS stack - so no
 //! second client is built or linked. The engine exposes [`HttpClient`] as a
 //! seam precisely for this.
 

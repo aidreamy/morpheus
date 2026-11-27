@@ -131,7 +131,7 @@ impl SessionView {
 
 impl SessionView {
     /// Jump straight back to the latest content and re-engage the sticky
-    /// auto-follow — the action behind the scroll-to-bottom pill (and the
+    /// auto-follow - the action behind the scroll-to-bottom pill (and the
     /// keyboard ScrollToBottom binding). Delegates to [`Self::scroll_to_bottom`]:
     /// aiming at the cached bottom avoids scroll jumping mid-stream, and
     /// clearing `has_manual_scroll` is what makes `recalculate_bar_props`

@@ -54,7 +54,7 @@ fn porcelain_states_map_to_display_statuses() {
 
 #[test]
 fn porcelain_rename_records_skip_origin_path() {
-    // `R  new.txt\0old.txt\0 M other.txt\0` — old.txt must be consumed.
+    // `R  new.txt\0old.txt\0 M other.txt\0` - old.txt must be consumed.
     let stdout = "R  new.txt\0old.txt\0 M other.txt\0";
     let entries = parse_porcelain(stdout, Path::new("/repo"));
     assert_eq!(entries.len(), 2);

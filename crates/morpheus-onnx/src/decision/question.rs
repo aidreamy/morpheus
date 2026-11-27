@@ -1,5 +1,5 @@
 //! The question protocol: types, validation, normalisation and prompt
-//! rendering — the crate-level decision contract.
+//! rendering - the crate-level decision contract.
 //!
 //! `choice` / `score` / `noul` is the option protocol the crate's decision
 //! models speak: a question is validated (`check_question`), normalised to
@@ -103,7 +103,7 @@ pub fn resolve_noul_labels(labels: Option<&Value>) -> Result<(String, String)> {
 /// Option texts in label-index order. Noul semantic order is
 /// always `[false, true]`.
 ///
-/// Only `null` and `""` count as "no description" — `0` and `false` are real
+/// Only `null` and `""` count as "no description" - `0` and `false` are real
 /// criterion values and keep their rendered form. A label with no description
 /// is rendered as itself.
 ///

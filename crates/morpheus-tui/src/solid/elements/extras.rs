@@ -14,7 +14,7 @@ static NEXT_DYNAMIC_NUM: AtomicU64 = AtomicU64::new(1);
 /// the component catalogue by name.
 ///
 /// Analogous to `SolidJS`'s `<Dynamic>` component.  Unlike the TS original this
-/// version does **not** support reactive prop spreading — props are set via
+/// version does **not** support reactive prop spreading - props are set via
 /// builder methods before the first render.
 pub struct DynamicRenderable {
     id: String,

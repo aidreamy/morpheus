@@ -1,4 +1,4 @@
-/// Shared list-selection logic — tracks `selected_index` and `scroll_offset`
+/// Shared list-selection logic - tracks `selected_index` and `scroll_offset`
 /// so the selected item stays visible. Designed for any view that renders a
 /// scrollable, selectable list (e.g. sidebar, add-provider, home view).
 ///

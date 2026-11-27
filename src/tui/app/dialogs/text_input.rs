@@ -50,7 +50,7 @@ impl App {
                 // (the same start-the-device-flow path the button's click
                 // runs): push the sign-in display over this box and begin.
                 // OTHER text inputs have no use for Tab and must keep
-                // treating it as unhandled — report handled ONLY here.
+                // treating it as unhandled - report handled ONLY here.
                 if let Some(d) = self.dialog.current()
                     && let DialogType::ApiKeyInput {
                         provider,
@@ -707,7 +707,7 @@ impl App {
     /// Release after a drag over a registration panel: copy the selected
     /// range through the shared selection helper and clear the highlight,
     /// mirroring the create-db release path. Returns whether a non-empty
-    /// selection was consumed — plain clicks fall through to the normal
+    /// selection was consumed - plain clicks fall through to the normal
     /// click dispatch (focus/dismiss).
     pub(in crate::app) fn copy_form_selection_on_release(&mut self) -> bool {
         let text: Option<String> = match self.dialog.current() {
@@ -914,7 +914,7 @@ impl App {
             }
         };
         // Keep the accidental-close draft in sync with whatever is now on
-        // the panel (a no-op unless the MCP form is still open — a save
+        // the panel (a no-op unless the MCP form is still open - a save
         // or Esc has just popped it).
         self.sync_mcp_form_draft();
         consumed
@@ -971,7 +971,7 @@ impl App {
         // Validate the whole prospective set against the SDK registry
         // before touching anything: the registry's checks (single word, no
         // built-in collision, http(s) URL) are the final authority, and a
-        // set it would reject must never be persisted — otherwise the
+        // set it would reject must never be persisted - otherwise the
         // entry would sit in setup.json skipped-with-a-warning at every
         // startup while the form reported success.
         let mut prospective = self.setup.custom_providers.clone();
@@ -1117,7 +1117,7 @@ impl App {
         // Validate the whole prospective set against the registry before
         // touching anything: the registry's checks (single word, no
         // case-variant built-in collision) are the final authority, and a
-        // set it would reject must never be persisted — otherwise the entry
+        // set it would reject must never be persisted - otherwise the entry
         // would sit in setup.json skipped-with-a-warning at every startup
         // while the form reported success.
         let mut prospective = self.setup.acp_agents.clone();
@@ -1129,9 +1129,7 @@ impl App {
             .iter()
             .map(|agent| (agent.name.clone(), agent.command.clone()))
             .collect();
-        if let Err(error) =
-            morpheus_agents::acp::register_custom_agents(&prospective_pairs)
-        {
+        if let Err(error) = morpheus_agents::acp::register_custom_agents(&prospective_pairs) {
             self.toast_form_error("Agent not saved", error);
             return false;
         }
@@ -1432,9 +1430,9 @@ impl App {
             DialogType::WhatsAppListInput { list, input, .. } => {
                 // ADDITIVE on purpose: the box adds entries, the list rows
                 // toggle and remove them. Comma-separated entries are stored
-                // exactly as typed — the matcher ignores `@server`, `+`,
+                // exactly as typed - the matcher ignores `@server`, `+`,
                 // spaces and punctuation, so normalizing here would only
-                // lose what the user wrote — skipping ones already listed so
+                // lose what the user wrote - skipping ones already listed so
                 // the same origin never appears twice.
                 let entries = match list {
                     WhatsAppList::Contacts => &mut self.setup.whatsapp.contacts,
@@ -1464,7 +1462,7 @@ impl App {
             DialogType::CheckupMinConfidenceInput { input, .. } => {
                 // A 0–1 float; empty or "default" restores the measured
                 // 0.6 floor. Out-of-range values are clamped (same clamp
-                // the harness applies when consuming the floor) — any
+                // the harness applies when consuming the floor) - any
                 // other garbage keeps the dialog open with an error toast,
                 // exactly like the cache-duration input.
                 let trimmed = input.trim();
@@ -1540,7 +1538,7 @@ impl App {
 /// Byte offset of the drag end over a registration-panel field: the
 /// clicked character inside its wrapped value rows, 0 above them and the
 /// line end below them (mirrors the create-db drag clamping). `field`
-/// always indexes `values` — the caller only extends the anchored field.
+/// always indexes `values` - the caller only extends the anchored field.
 fn form_extend_byte(
     area: Rect,
     demand: usize,
@@ -1567,8 +1565,8 @@ fn form_extend_byte(
 
 /// Take the drag selection owned by `field`, normalised to `(start, end)`
 /// bytes clamped to `len`. Editing keys consume it (typing replaces the
-/// range); navigation drops it without effect. Returns `None` — leaving
-/// no selection behind either way — when there is nothing to take.
+/// range); navigation drops it without effect. Returns `None` - leaving
+/// no selection behind either way - when there is nothing to take.
 fn take_form_selection(
     field: usize,
     selection: &mut Option<DragSelection<usize>>,
@@ -1604,7 +1602,7 @@ impl App {
 
     /// Generic "this setting needs a restart" toast, shared by any setting
     /// the running process cannot re-read (the value is resolved once at
-    /// startup and never again). Generic on purpose — a future restart-only
+    /// startup and never again). Generic on purpose - a future restart-only
     /// setting calls the same helper rather than growing its own copy.
     pub(in crate::app) fn toast_restart_required(&mut self, title: &str) {
         use crate::ui::toast::{ToastOptions, ToastVariant};
@@ -1616,7 +1614,7 @@ impl App {
         });
     }
 
-    /// Remove the entry selected in the settings list — an MCP server (its
+    /// Remove the entry selected in the settings list - an MCP server (its
     /// keyring credential is purged too), a user-registered ACP agent (the
     /// process registry is re-published without it), a user-registered
     /// provider, or a WhatsApp allowlist entry. Shared by the
@@ -1628,7 +1626,7 @@ impl App {
             .remove_selected_mcp_server(&mut self.setup)
         {
             // Purge the keyring credential too: a forgotten server must
-            // not leave a live secret behind. Failures are non-fatal —
+            // not leave a live secret behind. Failures are non-fatal -
             // the entry is gone either way, and the store may be locked.
             if let Err(err) = morpheus::mcp::auth::forget_key(&name) {
                 log::warn!("keyring cleanup for removed MCP server failed: {}", err);
@@ -1643,13 +1641,12 @@ impl App {
         {
             self.setup.save();
             // Re-publish the surviving set immediately so the removed
-            // harness stops being offered without a restart. Lossy — the
+            // harness stops being offered without a restart. Lossy - the
             // same tolerance as boot: one stale entry (e.g. a name that no
             // longer validates) must not sink the whole re-publish and
             // leave the just-removed agent still offered.
-            let dropped = morpheus_agents::acp::register_custom_agents_lossy(
-                &self.setup.acp_agent_pairs(),
-            );
+            let dropped =
+                morpheus_agents::acp::register_custom_agents_lossy(&self.setup.acp_agent_pairs());
             for err in dropped {
                 log::warn!("re-publishing user-registered ACP agents: {err}");
             }
@@ -1668,7 +1665,7 @@ impl App {
             }
             self.setup.save();
             // Re-publish the surviving set immediately so the removed
-            // endpoint stops being offered without a restart. Lossy — the
+            // endpoint stops being offered without a restart. Lossy - the
             // same tolerance as boot.
             if let Err(err) = aiface::connector::register_custom_providers(
                 self.setup
@@ -1780,7 +1777,7 @@ impl App {
     /// Refresh the MCP registration draft from the open form so an
     /// accidental close (Esc, click outside) can be reopened with
     /// everything the user had typed. A no-op unless the topmost dialog
-    /// is an MCP form — in particular it never touches the draft after a
+    /// is an MCP form - in particular it never touches the draft after a
     /// successful save has cleared it.
     pub(in crate::app) fn sync_mcp_form_draft(&mut self) {
         let draft = self.dialog.current().and_then(|d| match &d.dialog_type {
@@ -1925,10 +1922,10 @@ fn drive_form_edit<const N: usize>(
             if key.modifiers.contains(KeyModifiers::CONTROL) {
                 // Ctrl+W deletes the word before the cursor (universal
                 // terminal shortcut, same as the chat prompt and the
-                // question dialog) — or the selected range when one is
+                // question dialog) - or the selected range when one is
                 // active. Every other Ctrl+letter is consumed but ignored
                 // (dropping a lingering selection) so it never leaks a
-                // bare letter into the field — again matching the question
+                // bare letter into the field - again matching the question
                 // dialog.
                 if ch == 'w' && word_ops {
                     if let Some((s, e)) = take_form_selection(*field, selection, target.len()) {

@@ -57,7 +57,7 @@ fn signoff_cut_positive_controls() {
         assert_eq!(
             clean(&format!("{body}\n\n{tail}")),
             body,
-            "signoff cut/{label} — got {:?}",
+            "signoff cut/{label} - got {:?}",
             clean(&format!("{body}\n\n{tail}"))
         );
     }
@@ -79,7 +79,7 @@ fn signoff_cut_wider_closings_and_non_ascii_names() {
         assert_eq!(
             clean(&format!("{body}\n\n{tail}")),
             body,
-            "signoff cut/{label} — got {:?}",
+            "signoff cut/{label} - got {:?}",
             clean(&format!("{body}\n\n{tail}"))
         );
     }
@@ -171,7 +171,7 @@ fn word_only_real_footers_still_dropped() {
     ] {
         assert!(
             clean(body).trim().is_empty(),
-            "word only/still dropped: {label} — got {:?}",
+            "word only/still dropped: {label} - got {:?}",
             clean(body)
         );
     }

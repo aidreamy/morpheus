@@ -1,4 +1,4 @@
-//! Pointer (mouse) component — validation and dispatch of pointer steps.
+//! Pointer (mouse) component - validation and dispatch of pointer steps.
 //!
 //! This is a COMPONENT, not a tool: it knows how to validate and execute
 //! ONE pointer step (click/double_click/right_click/move/down/up/scroll/
@@ -11,7 +11,7 @@
 //! Targeting comes in two forms, validated to be mutually exclusive: raw
 //! coordinates (`x`/`y`, position-dependent) or the element form
 //! (`app`/`pid`/`surface` + `selector`), whose point resolves from the
-//! element's CURRENT bounds at dispatch time — never stale.
+//! element's CURRENT bounds at dispatch time - never stale.
 use std::time::Duration;
 
 use xa11y::{Anchor, ClickOptions, ClickTarget, DragOptions, MouseButton, Point, ScrollDelta};
@@ -20,7 +20,7 @@ use super::keyboard;
 use super::snapshot::DEFAULT_TIMEOUT_MS;
 use super::types::{ComputerControl, PointerAction, PointerAnchor};
 
-/// Minimum duration of a `drag` movement — below this the interpolation
+/// Minimum duration of a `drag` movement - below this the interpolation
 /// degenerates to a jump, which drops intermediate hover/enter events.
 pub const MIN_DRAG_MS: u64 = 50;
 
@@ -44,7 +44,7 @@ pub const DEFAULT_DRAG_MS: u64 = 150;
 /// action that does not take it, or a `duration_ms` under [`MIN_DRAG_MS`].
 pub fn validate(step: &ComputerControl, tool: &str) -> Result<(), String> {
     let action = step.action.unwrap_or_default();
-    // Partial coordinates are a mistake, never a "default the other axis" —
+    // Partial coordinates are a mistake, never a "default the other axis" -
     // a lone `x` would otherwise dispatch at (x, 0).
     if step.x.is_some() != step.y.is_some() {
         return Err(format!("{tool}: coordinates require BOTH `x` and `y`"));
@@ -64,13 +64,13 @@ pub fn validate(step: &ComputerControl, tool: &str) -> Result<(), String> {
     }
     if action != PointerAction::Up && !has_point && !has_element {
         return Err(format!(
-            "{tool}: action `{}` requires a target — coordinates (`x`/`y`) \
+            "{tool}: action `{}` requires a target - coordinates (`x`/`y`) \
              or the element form (`app`/`pid`/`surface` + `selector`)",
             action_name(action)
         ));
     }
     // Element form needs a selector AND exactly one root (app scope or a
-    // shell surface — phase-6 field test: a surface+selector step is the
+    // shell surface - phase-6 field test: a surface+selector step is the
     // same element form, not a scope leak).
     if step.selector.is_some() && step.app.is_none() && step.pid.is_none() && step.surface.is_none()
     {
@@ -82,18 +82,18 @@ pub fn validate(step: &ComputerControl, tool: &str) -> Result<(), String> {
         && step.selector.is_none()
     {
         return Err(format!(
-            "{tool}: `app`/`pid`/`surface` without `selector` would leak the scope — \
+            "{tool}: `app`/`pid`/`surface` without `selector` would leak the scope - \
              pass `selector`, or use coordinates (`x`/`y`)"
         ));
     }
     if step.app.is_some() && (step.pid.is_some() || step.surface.is_some()) {
         return Err(format!(
-            "{tool}: target ONE of `app`/`pid`/`surface` — they cannot share a step"
+            "{tool}: target ONE of `app`/`pid`/`surface` - they cannot share a step"
         ));
     }
     if step.pid.is_some() && step.surface.is_some() {
         return Err(format!(
-            "{tool}: target ONE of `app`/`pid`/`surface` — they cannot share a step"
+            "{tool}: target ONE of `app`/`pid`/`surface` - they cannot share a step"
         ));
     }
     if step.nth == Some(0) {
@@ -117,7 +117,7 @@ pub fn validate(step: &ComputerControl, tool: &str) -> Result<(), String> {
         PointerAction::Drag => validate_drag(step, tool)?,
         // Click actions accept `count` and `held`.
         PointerAction::Click | PointerAction::DoubleClick | PointerAction::RightClick => {}
-        // `count` and `held` are click/drag concepts — a `move`/`scroll`/
+        // `count` and `held` are click/drag concepts - a `move`/`scroll`/
         // `down`/`up` carrying them is a mistake the model should hear about.
         _ => {
             if step.count.is_some() {
@@ -150,7 +150,7 @@ pub fn validate(step: &ComputerControl, tool: &str) -> Result<(), String> {
             ));
         }
     }
-    // Drag endpoints are drag-only — a click carrying `x2`/`y2`/`to_selector`
+    // Drag endpoints are drag-only - a click carrying `x2`/`y2`/`to_selector`
     // is a mistake the model should hear about, not a silently ignored field.
     if action != PointerAction::Drag
         && (step.x2.is_some() || step.y2.is_some() || step.to_selector.is_some())
@@ -182,7 +182,7 @@ fn validate_drag(step: &ComputerControl, tool: &str) -> Result<(), String> {
     }
     if start_is_element && coord_end {
         return Err(format!(
-            "{tool}: `drag` endpoints must share a form — an element start pairs \
+            "{tool}: `drag` endpoints must share a form - an element start pairs \
              with `to_selector`, a coordinate start with `x2`/`y2`"
         ));
     }
@@ -200,7 +200,7 @@ fn validate_drag(step: &ComputerControl, tool: &str) -> Result<(), String> {
     }
     if start_is_coord && !coord_end {
         return Err(format!(
-            "{tool}: `drag` requires an end point — `x2`/`y2` or `to_selector`"
+            "{tool}: `drag` requires an end point - `x2`/`y2` or `to_selector`"
         ));
     }
     Ok(())
@@ -233,7 +233,7 @@ pub fn run_step(
             ambiguity = super::ambiguity_note(&locator, step.nth);
         }
         // resolve_element already renders through the error component with
-        // the failing selector in context — no extra wrapper here.
+        // the failing selector in context - no extra wrapper here.
         let element = locator
             .element()
             .map_err(|e| super::errors::render(tool, "resolve element", &e))?;
@@ -250,7 +250,7 @@ pub fn run_step(
     };
 
     // The drag's end point is resolved ONCE, before dispatch, and reused
-    // for the report below — re-resolving `to_selector` after the drag ran
+    // for the report below - re-resolving `to_selector` after the drag ran
     // would let a UI change (e.g. the drop reordering the tree) turn a
     // successful drag into a spurious failure.
     let mut drag_to: Option<Point> = None;
@@ -260,7 +260,7 @@ pub fn run_step(
             ClickOptions::new().button(button).count(count).held(held),
         ),
         // `count` is honored on EVERY click action: double_click defaults to
-        // 2, right_click defaults to 1 — passing an explicit `count` always
+        // 2, right_click defaults to 1 - passing an explicit `count` always
         // wins, so `right_click` + count 2 is a double right-click.
         PointerAction::DoubleClick => sim.mouse().click_with(
             point_target(point),
@@ -280,7 +280,7 @@ pub fn run_step(
             .mouse()
             .move_to(point.expect("validated: move requires a target")),
         // `down` presses at the CURRENT cursor position, so an explicit
-        // target must be moved to FIRST — otherwise a drag would start at
+        // target must be moved to FIRST - otherwise a drag would start at
         // wherever the cursor happens to be while the output still claims
         // the requested coordinates.
         PointerAction::Down => {
@@ -317,7 +317,7 @@ pub fn run_step(
     };
     result.map_err(|e| super::errors::render(tool, &action_name(action).to_lowercase(), &e))?;
 
-    // Human-facing report with the EFFECTIVE point — for the element form
+    // Human-facing report with the EFFECTIVE point - for the element form
     // this is what the bounds resolved to at dispatch time, which makes a
     // mis-aimed click debuggable.
     let report = match action {
@@ -371,7 +371,7 @@ fn where_at(step: &ComputerControl, point: Option<Point>) -> String {
     }
 }
 
-/// Build the locator for ONE selector under the step's root — a shell
+/// Build the locator for ONE selector under the step's root - a shell
 /// surface when `surface` is set, the application otherwise (validated:
 /// exactly one of app/pid/surface).
 fn element_locator(
@@ -410,7 +410,7 @@ fn resolve_element(
 /// time; coordinates → coordinates pass through.
 fn drag_end_point(step: &ComputerControl, tool: &str) -> Result<Point, String> {
     if let Some(to_selector) = &step.to_selector {
-        // resolve_element already renders through the error component —
+        // resolve_element already renders through the error component -
         // no extra wrapper here.
         let element = resolve_element(step, to_selector, 1, tool)?;
         xa11y::point_for(&element, anchor(step.anchor.unwrap_or_default()))
@@ -424,7 +424,7 @@ fn drag_end_point(step: &ComputerControl, tool: &str) -> Result<Point, String> {
 }
 
 /// Wrap the resolved point into a [`ClickTarget`] (both forms land as a
-/// point by the time the click runs — the element's bounds were just read).
+/// point by the time the click runs - the element's bounds were just read).
 fn point_target(point: Option<Point>) -> ClickTarget<'static> {
     ClickTarget::Point(point.unwrap_or(Point::new(0, 0)))
 }

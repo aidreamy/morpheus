@@ -4,7 +4,7 @@
 //! display the MAIN agent itself through the exact viewer the subagents use
 //! (F1 expands the section; the mirror outranks every normal candidate
 //! while it exists). The mirror is a display-only `PtySession` in
-//! `RightPanelState` (`main_mirror` — see `open_main_mirror_window`) fed
+//! `RightPanelState` (`main_mirror` - see `open_main_mirror_window`) fed
 //! EXCLUSIVELY by this module: every hook translates a main-loop
 //! `HarnessEvent` into the typed `SubagentEvent` the window's timeline
 //! already renders, so the mirror reads like the chat with zero new
@@ -15,7 +15,7 @@
 //! with one deliberate difference: there is no STREAMING tool-output feed.
 //! The live path projects a tool call's FINAL result tail (`ToolResult`/`
 //! `ToolError` patch the row once, like a pane mirror's); the mid-stream
-//! `ToolOutput` chunks are chat-only — the mirror shows the agent's
+//! `ToolOutput` chunks are chat-only - the mirror shows the agent's
 //! narration, thinking, tool activity, plan and usage in the
 //! subagent-window visual language. The OPEN path additionally backfills
 //! the timeline from the session transcript (`backfill_from_transcript`)
@@ -28,7 +28,7 @@ use super::App;
 
 /// Bridge state for ONE main-agent turn: announced tool calls awaiting
 /// their result, FIFO (the main loop guarantees the Nth `ToolResult`/`
-/// ToolError` matches the Nth `ToolCall` — the same sequential contract the
+/// ToolError` matches the Nth `ToolCall` - the same sequential contract the
 /// internal sub-agent bridge relies on). Ids are synthesized per
 /// announcement; the mirror is display-only, so ids only need to pair a
 /// patch with its row.
@@ -71,7 +71,7 @@ impl MirrorBridge {
 
 /// Map a main-loop event to the typed events the mirror window renders.
 /// `None` = nothing worth projecting (bookkeeping, LSP/MCP footers,
-/// question/permission dialogs — the chat shows those differently).
+/// question/permission dialogs - the chat shows those differently).
 fn mirror_events(bridge: &mut MirrorBridge, event: &HarnessEvent) -> Vec<SubagentEvent> {
     match event {
         HarnessEvent::Token { text } => {
@@ -84,9 +84,7 @@ fn mirror_events(bridge: &mut MirrorBridge, event: &HarnessEvent) -> Vec<Subagen
             let mut events = vec![bridge.tool_call(tool, input)];
             if tool == "plan_todo_write"
                 && let Some(plan) =
-                    morpheus_agents::internal::InternalEventBridge::plan_from_todo_write(
-                        input,
-                    )
+                    morpheus_agents::internal::InternalEventBridge::plan_from_todo_write(input)
             {
                 events.push(plan);
             }
@@ -101,12 +99,10 @@ fn mirror_events(bridge: &mut MirrorBridge, event: &HarnessEvent) -> Vec<Subagen
             .into_iter()
             .collect(),
         HarnessEvent::ContextInfo { info } => {
-            vec![
-                morpheus_agents::internal::InternalEventBridge::usage(
-                    info.total_tokens,
-                    info.max_tokens,
-                ),
-            ]
+            vec![morpheus_agents::internal::InternalEventBridge::usage(
+                info.total_tokens,
+                info.max_tokens,
+            )]
         }
         _ => Vec::new(),
     }
@@ -114,7 +110,7 @@ fn mirror_events(bridge: &mut MirrorBridge, event: &HarnessEvent) -> Vec<Subagen
 
 /// Backfill the mirror from the session's chat transcript: the conversation
 /// the user ALREADY had with the main agent before opening the panel. The
-/// mirror opens EMPTY otherwise — a user who interacted first would see no
+/// mirror opens EMPTY otherwise - a user who interacted first would see no
 /// trace of that dialog (the reported defect). Projected through the same
 /// typed-event vocabulary, newest last, with the mirror bridge left alone
 /// (backfill and live stream never interleave: the bridge is fresh at open).
@@ -205,14 +201,14 @@ impl App {
 
     /// Open the main-agent mirror. Idempotent; the bridge is reset on EVERY
     /// open (a close→reopen mid-turn must not patch the new window against
-    /// ids its fresh timeline has never seen — the old bridge's outstanding
+    /// ids its fresh timeline has never seen - the old bridge's outstanding
     /// deque would feed patches for tool rows that no longer exist, dropped
     /// silently).
     ///
     /// NO list-mode handling here: `subagent_list_active` is false whenever
     /// the mirror exists (the sole-owner guard in `RightPanelState`), so the
     /// section renders exactly the mirror window expanded. The list-mode /
-    /// focus state the user left behind is left UNTOUCHED — it reasserts
+    /// focus state the user left behind is left UNTOUCHED - it reasserts
     /// itself the moment the mirror closes, unchanged.
     ///
     /// Idempotent for real: an already-open mirror is left exactly as it is
@@ -231,7 +227,7 @@ impl App {
         self.state.right_panel.open_main_mirror_window();
         // BACKFILL: project the conversation the user ALREADY had with the
         // main agent into the fresh window (a user who interacted first
-        // must still see that dialog — the panel opens showing the main
+        // must still see that dialog - the panel opens showing the main
         // agent's history, not an empty pane). The bridge stays untouched:
         // backfill and live stream never interleave (it was just reset).
         let session = self.state.current_session().cloned();
@@ -258,17 +254,17 @@ impl App {
     }
 
     /// Feed ONE main-loop event into the mirror (a no-op while closed).
-    /// The mirror is only projected while `/agents` is open — a turn run
+    /// The mirror is only projected while `/agents` is open - a turn run
     /// outside the mode builds no projection (the transcript is the view).
     ///
-    /// A visible change re-pins the viewport to the bottom — the EXACT
+    /// A visible change re-pins the viewport to the bottom - the EXACT
     /// contract `events.rs` applies to normal subagent traffic
     /// (`update_subagent_activity(..) && !is_scrolled_up()`). This is what
     /// makes the mirror's follow behave like the subagents': every token,
     /// thought, tool row and usage line climbs the window instead of the
     /// viewport only re-pinning at the tool-call/tool-result events the
     /// main-loop handlers touch (the pre-fix behavior, which left narration
-    /// and thinking streaming below a static viewport — non-sequential,
+    /// and thinking streaming below a static viewport - non-sequential,
     /// and absent entirely on a tool-less turn).
     pub(super) fn mirror_main_event(&mut self, event: &HarnessEvent, running: bool) {
         if !self.agents_split.is_some() || !self.main_mirror_open() {
@@ -286,16 +282,16 @@ impl App {
     /// while closed). Called on the same submit path `start_agent_loop`
     /// serves.
     ///
-    /// A new turn RE-ENGAGES the follow UNCONDITIONALLY — the pane mirror's
+    /// A new turn RE-ENGAGES the follow UNCONDITIONALLY - the pane mirror's
     /// `auto_follow` re-arm at dispatch, and the same rule a freshly spawned
     /// subagent window gets (`events.rs`'s unguarded pin on spawn). The
     /// user just submitted the prompt, so the turn start is the natural
     /// moment to land on the live edge; the echo swap also grows/shrinks
     /// the window's head and shifts the whole timeline, so without the
-    /// re-pin the viewport would land mid-content — or worse, clamp to the
+    /// re-pin the viewport would land mid-content - or worse, clamp to the
     /// bottom only when the echo happened to shrink, the drift the
     /// reported unpredictability came from. (A user pin still wins for
-    /// every STREAM event — only the turn start re-engages.)
+    /// every STREAM event - only the turn start re-engages.)
     pub(super) fn mirror_main_input(&mut self, input: &str) {
         if !self.agents_split.is_some() || !self.main_mirror_open() {
             return;
@@ -308,7 +304,7 @@ impl App {
     }
 
     /// Append a free-form line (a loop error, an interrupted-turn notice)
-    /// to the mirror's transcript — the same `Message` entry a subagent
+    /// to the mirror's transcript - the same `Message` entry a subagent
     /// window renders for its failure text. A visible append re-pins the
     /// follow like any other mirror event.
     pub(super) fn mirror_main_message(&mut self, text: &str) {
@@ -328,7 +324,7 @@ impl App {
     }
 
     /// Seal the mirror's terminal marker for the turn that just ended
-    /// (`failed` = Stopped/Error — the same rule `close_turn` applies).
+    /// (`failed` = Stopped/Error - the same rule `close_turn` applies).
     pub(super) fn mirror_main_done(&mut self, failed: bool) {
         if !self.agents_split.is_some() || !self.main_mirror_open() {
             return;

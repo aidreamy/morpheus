@@ -8,7 +8,7 @@ use crate::error::{Error, Result};
 /// Render a pairing payload as a scannable terminal QR code.
 ///
 /// The output uses half-block characters (`▀`/`▄`/`█`), so two QR rows per
-/// terminal row — a standard 80-column terminal fits the payload with the
+/// terminal row - a standard 80-column terminal fits the payload with the
 /// quiet zone. Print it with a monospace font and a dark-on-light terminal;
 /// if the user's theme is inverted, [`render_inverted`] flips the colors.
 ///

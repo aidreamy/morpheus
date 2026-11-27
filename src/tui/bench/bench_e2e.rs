@@ -101,7 +101,7 @@ fn shell_out(lines: usize) -> String {
 /// Build a realistic context-manager snapshot sized like a long agent session
 /// (one user/assistant/tool-call/tool-result round per iteration), so
 /// `ContextSnapshot`/`Done` events measure the real cost of moving the context
-/// through the UI thread and serializing it — not an empty `Default::default()`.
+/// through the UI thread and serializing it - not an empty `Default::default()`.
 pub(crate) fn realistic_context(rounds: usize) -> morpheus::harness::context::ContextManagerState {
     use morpheus::harness::context::{ContextItem, ContextManagerState};
     let mut items = Vec::with_capacity(rounds * 4);
@@ -348,7 +348,7 @@ async fn bench_e2e_agent_loop() {
         app.state.status = crate::types::SessionStatus::Working;
     }
 
-    // ── Scenario B: agent burst — tokens + tools + subagent over many rounds.
+    // ── Scenario B: agent burst - tokens + tools + subagent over many rounds.
     // Simulates "agent working": each round pushes a full agent round-trip and
     // renders frames between event batches, like the real loop coalescing.
     {
@@ -415,7 +415,7 @@ async fn bench_e2e_agent_loop() {
         all_ok &= ft.report();
     }
 
-    // ── Scenario D: Done — final save + transition out of live mode ──
+    // ── Scenario D: Done - final save + transition out of live mode ──
     {
         let mut ft = FrameStats::new("done_save_transition");
         let context = super::bench_e2e::realistic_context(100);
@@ -436,6 +436,6 @@ async fn bench_e2e_agent_loop() {
 
     assert!(
         all_ok,
-        "[BENCH] human-perception targets missed — see [BENCH] lines above"
+        "[BENCH] human-perception targets missed - see [BENCH] lines above"
     );
 }

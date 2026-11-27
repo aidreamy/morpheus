@@ -1,4 +1,4 @@
-//! Demonstrate `morpheus_tui::core` — the rendering primitives and widget
+//! Demonstrate `morpheus_tui::core` - the rendering primitives and widget
 //! library: colors, borders, styled text, unicode width utilities,
 //! attributes, syntax styles, the layout tree, and the widget set.
 //!

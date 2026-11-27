@@ -6,7 +6,7 @@
 //!
 //! This deliberately avoids shelling out to the `git` binary (slow, may be
 //! missing), libgit2 (heavy C dependency, and it breaks on reftable
-//! repositories — Zed removed it for exactly that reason) and heuristics of
+//! repositories - Zed removed it for exactly that reason) and heuristics of
 //! any kind. Reading `HEAD` is the same thing `git symbolic-ref` does
 //! internally, so the behavior matches the CLI without invoking it:
 //!
@@ -84,7 +84,7 @@ pub fn resolve_branch(git_dir: &Path) -> Option<String> {
             .map(String::from);
     }
     // Detached HEAD: HEAD holds a raw object id (40 hex chars for SHA-1
-    // repositories, 64 for SHA-256). Validate the shape before displaying —
+    // repositories, 64 for SHA-256). Validate the shape before displaying -
     // anything else is a corrupted or unsupported HEAD, not a commit.
     let is_sha =
         (head.len() == 40 || head.len() == 64) && head.chars().all(|c| c.is_ascii_hexdigit());

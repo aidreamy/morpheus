@@ -131,7 +131,7 @@ pub fn todo_write(todos: &[TodoItemInput]) -> Result<TodoWriteOutput, PlanError>
             });
             // Mark exactly the members of this cycle (nodes reachable from
             // `i` that can reach `i` back) so it is reported once, not once
-            // per member — without swallowing downstream unrelated cycles.
+            // per member - without swallowing downstream unrelated cycles.
             let reachable = reachable_from(&resolved_items, &i.id);
             let members: Vec<String> = reachable
                 .iter()

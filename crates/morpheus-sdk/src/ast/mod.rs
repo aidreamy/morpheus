@@ -4,10 +4,10 @@
 //! of the N-API/JS surface. Exposes the matching engine behind the AST edit
 //! tool of `morpheus-tools`:
 //!
-//! - [`lang`] — the [`SupportLang`] registry: 60+ tree-sitter grammars, alias
+//! - [`lang`] - the [`SupportLang`] registry: 60+ tree-sitter grammars, alias
 //!   resolution, and extension inference;
-//! - [`parse`] — the tree-sitter grammar parsers behind every language;
-//! - [`ops`] — pattern compilation, structural matching, rewriting, and edit
+//! - [`parse`] - the tree-sitter grammar parsers behind every language;
+//! - [`ops`] - pattern compilation, structural matching, rewriting, and edit
 //!   application (non-overlapping, dedupe, overlap-rejection).
 //!
 //! The type [`SupportLang`] implements `ast-grep-core`'s [`Language`] trait,

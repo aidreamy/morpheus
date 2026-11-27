@@ -87,7 +87,7 @@ impl SessionView {
         // Mirrors OpenCode's `recalculateBarProps()` which calls `applyStickyStart`
         // when content size changes and user hasn't manually scrolled.
         //
-        // Expand/collapse is a content size change like any other — it must
+        // Expand/collapse is a content size change like any other - it must
         // NOT be special-cased (the old branch called `sync_manual_scroll_state`
         // instead, which poisoned `has_manual_scroll` on every toggle and killed
         // the auto-follow, leaving the view stranded mid-history: the
@@ -110,7 +110,7 @@ impl SessionView {
             // for the last message. `msg_cache_tokens[last]` is refreshed
             // by the walk whenever a non-streaming message re-renders
             // (content change or eviction), so an in-place edit of the last
-            // message still rebuilds its selection regions — one frame
+            // message still rebuilds its selection regions - one frame
             // later, without the O(n) per-frame hash this generation used
             // to pay. Streaming ignores it (the streaming cache keeps the
             // streaming message's regions fresh incrementally).
@@ -143,8 +143,8 @@ impl SessionView {
         // Start the message walk at the FIRST message that can intersect the
         // viewport (binary search over `prefix_y`, O(log n)) instead of
         // walking the whole timeline from message 0: on sessions with 500+
-        // messages the old per-frame O(n) walk — thousands of tight
-        // iterations per frame just to skip off-screen messages — was the
+        // messages the old per-frame O(n) walk - thousands of tight
+        // iterations per frame just to skip off-screen messages - was the
         // dominant frame cost even with the render cache hot. The walk below
         // then STOPS once `msg_top` passes the viewport bottom, so the frame
         // cost is O(log n + visible) instead of O(n). Computed BEFORE the
@@ -166,7 +166,7 @@ impl SessionView {
         let mut broke_at: Option<usize> = None;
 
         // Reuse one scratch buffer across all temp renders in this frame (and
-        // across frames — `Buffer::resize` keeps the allocation). Removes the
+        // across frames - `Buffer::resize` keeps the allocation). Removes the
         // per-frame large allocations that accumulated heap churn and
         // fragmented the allocator over long sessions. A direct field borrow
         // keeps `scratch` disjoint from the `tool_state`/cache writes below.
@@ -184,7 +184,7 @@ impl SessionView {
             let msg_h = self.msg_height_cache[idx];
             let msg_top = y;
             if msg_top >= vp_bottom {
-                // Nothing below can intersect the viewport — stop the walk.
+                // Nothing below can intersect the viewport - stop the walk.
                 broke_at = Some(idx);
                 break;
             }
@@ -235,7 +235,7 @@ impl SessionView {
                     // active/finishing spinner so its beam advances every frame.
                     // A global "any spinner in the session" check forced every
                     // top-clipped message to re-render fully on every frame
-                    // while any tool animated — the main per-frame cost during
+                    // while any tool animated - the main per-frame cost during
                     // agent bursts. The key is assembled into a reused buffer
                     // instead of a per-part `format!` allocation per frame.
                     let spinner_key = &mut self.spinner_key_scratch;
@@ -499,7 +499,7 @@ impl SessionView {
                                 // included) for alignment, but region text must be
                                 // content-only: it is labeled `x1 = inner_area.x + 3`, so
                                 // sampling from column 0 would inject 3 ghost columns at
-                                // the head of every line — the copy then leads with 3
+                                // the head of every line - the copy then leads with 3
                                 // spaces and loses the last 3 painted characters. Strip
                                 // the 3 leading columns, mirroring the temp-buffer sites
                                 // (`temp_cells[base + 3 + dx]`).
@@ -558,7 +558,7 @@ impl SessionView {
                             // part, so the returned height is unclamped: a stale
                             // small estimate makes it exceed the area actually
                             // painted into the scratch. Such a render is only
-                            // partial — caching it would store a truncated message
+                            // partial - caching it would store a truncated message
                             // and poison later frames.
                             let rendered_h = Self::render_assistant_message(
                                 temp,
@@ -710,7 +710,7 @@ impl SessionView {
                                     // Render full message to temp buffer, then copy
                                     // visible portion to buf. This ensures the full
                                     // message height is cached, not just the clipped
-                                    // viewport portion — preventing partial cut-off
+                                    // viewport portion - preventing partial cut-off
                                     // on subsequent frames (e.g. after theme change).
                                     let generous_h = ((msg_h as u16)
                                         .saturating_add(inner_area.height))
@@ -831,7 +831,7 @@ impl SessionView {
         }
 
         // Record actual rendered total height (accurate layout measurement).
-        // Do NOT inflate cached_total_height from the render scan — the cache
+        // Do NOT inflate cached_total_height from the render scan - the cache
         // is the stable source of truth for height estimates. Inflating it would
         // cause total_height != last_content_height on the next frame, triggering
         // recalculate_bar_props which changes scroll_y and creates visible
@@ -895,7 +895,7 @@ impl SessionView {
             // A zero-height viewport (e.g. the session area briefly collapsing
             // to 0 rows during a terminal resize) has no visible rows to
             // highlight, and the clamp bound `vp_top + height - 1` would fall
-            // below `vp_top` — panicking with `min > max`. Skip it entirely.
+            // below `vp_top` - panicking with `min > max`. Skip it entirely.
             let vp_top = i32::from(inner_area.y);
             let vp_bottom = vp_top + i32::from(inner_area.height) - 1;
             let anchor_screen_y = (self.selection_anchor_content_y - self.scroll_y + vp_top)
@@ -931,7 +931,7 @@ impl SessionView {
             for cy in start_y..=end_y {
                 // Content row under this screen row. Rows outside the true
                 // content span (selection fully clamped off-screen) are not
-                // part of the selection — skip them.
+                // part of the selection - skip them.
                 let row_content_y = i32::from(cy) - vp_top + self.scroll_y;
                 if row_content_y < top_content_y || row_content_y > bottom_content_y {
                     continue;

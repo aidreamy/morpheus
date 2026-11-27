@@ -245,7 +245,7 @@ fn regex_split(re: &Regex, text: &str) -> Vec<String> {
     parts
 }
 
-/// `_starts_new_sentence`: first letter is uppercase — a fresh sentence, not
+/// `_starts_new_sentence`: first letter is uppercase - a fresh sentence, not
 /// a wrapped line.
 ///
 /// Lines in uncased scripts (CJK, Devanagari, ...) never start a new piece,

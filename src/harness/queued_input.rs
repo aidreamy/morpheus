@@ -7,16 +7,16 @@
 //!
 //! Why not an `mpsc` channel like before: a channel consumes the message at
 //! `send` time, so a user DELETE or EDIT of the queued message could no longer
-//! reach it — the harness had already taken it, and the message was only
+//! reach it - the harness had already taken it, and the message was only
 //! removed visually. A shared deque keeps the entry owned by the TUI until the
 //! harness actually injects it (pop-on-inject), so:
 //!
-//! * **Delete** of a message still in the deque simply removes it — the model
+//! * **Delete** of a message still in the deque simply removes it - the model
 //!   never sees it.
 //! * **Edit** rewrites the entry in place (the loop picks up the edited text
 //!   at injection time, not the stale original).
 //! * The entry only disappears when the harness pops it, right before adding
-//!   it to the model context — exactly the moment the TUI is acknowledged.
+//!   it to the model context - exactly the moment the TUI is acknowledged.
 
 use std::collections::VecDeque;
 use std::sync::Mutex;
@@ -27,7 +27,7 @@ struct Inner {
     queue: VecDeque<String>,
     /// True while the TUI holds the queue (Queue Actions box open, grace
     /// window, or an edit of the next-delivered message in flight). While
-    /// held, the harness's drain returns nothing — a message the user is
+    /// held, the harness's drain returns nothing - a message the user is
     /// about to delete or edit can never be injected in that window.
     held: bool,
 }
@@ -79,7 +79,7 @@ impl QueuedInput {
     /// This is the "the user is trying to talk to you" signal the pre-Done
     /// busy-guards poll: a loop that has finished its work but is waiting for
     /// `/agents` pane reports or background sub-agents must not keep sleeping
-    /// while a real message sits here — it has to take the message now, which
+    /// while a real message sits here - it has to take the message now, which
     /// is what the user sees as "the agent is idle, so send it".
     ///
     /// Honours the hold for the same reason [`Self::drain`] does: while the
@@ -93,7 +93,7 @@ impl QueuedInput {
     }
 
     /// Remove the FIRST message whose text equals `text` (used by the TUI to
-    /// retract a message it deleted from its own pending queue — the deque
+    /// retract a message it deleted from its own pending queue - the deque
     /// mirrors that queue, so the same text may appear more than once and the
     /// head-most occurrence is the one a user acting on the queue means).
     pub fn remove(&self, text: &str) -> bool {
@@ -107,7 +107,7 @@ impl QueuedInput {
     }
 
     /// Drop every pending message and release the hold (the TUI stops or
-    /// clears its queues — anything still pending must not reach the dying
+    /// clears its queues - anything still pending must not reach the dying
     /// loop, and the next loop starts unheld).
     pub fn clear(&self) {
         let mut inner = self.inner.lock().expect("queued input poisoned");
@@ -185,7 +185,7 @@ mod tests {
         assert!(!q.has_pending(), "an empty queue wakes nothing");
         q.push("hello".into());
         assert!(q.has_pending());
-        // While held, a drain returns nothing — so has_pending must agree,
+        // While held, a drain returns nothing - so has_pending must agree,
         // or a busy-guard would wake for a message it then cannot take.
         q.set_hold(true);
         assert!(!q.has_pending(), "a held message must not wake the loop");

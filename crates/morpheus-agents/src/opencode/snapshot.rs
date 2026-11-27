@@ -4,8 +4,8 @@
 //!
 //! - [`snapshot`] answers "what does this agent advertise?" without sending a
 //!   prompt: slash commands, the agents (Morpheus session modes), the model
-//!   catalog that backs the pane's model picker, and — when a session id is
-//!   given — the mode/model that session currently runs with. It uses a
+//!   catalog that backs the pane's model picker, and - when a session id is
+//!   given - the mode/model that session currently runs with. It uses a
 //!   throwaway server and shuts it down before returning.
 //! - [`replay`] rebuilds a pane's timeline from an existing session:
 //!   `GET /session/:id/message` returns the retained conversation, which is

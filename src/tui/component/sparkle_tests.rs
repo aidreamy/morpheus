@@ -10,9 +10,9 @@ use super::{IDLE_TIMEOUT, SparkleFrame, SparkleState};
 
 const FG: (u8, u8, u8) = (220, 220, 220);
 const BG: (u8, u8, u8) = (7, 7, 10);
-/// 23:00 local — deep inside the night window.
+/// 23:00 local - deep inside the night window.
 const NIGHT: u16 = 23 * 60;
-/// 12:00 local — well outside the night window.
+/// 12:00 local - well outside the night window.
 const DAY: u16 = 12 * 60;
 
 /// A `width`x1 header strip with the theme background and some header text.

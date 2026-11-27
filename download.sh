@@ -99,7 +99,7 @@ fi
 # "slim-embed" additionally enables the workspace `embed` feature
 # (morpheus-tools/embed + fastembed) for local RAG. slim-embed is
 # produced for linux-x64 and win32-x64; macOS (both x64 and arm64) ships slim
-# only — ort-sys has no prebuilt ONNX Runtime for x86_64-apple-darwin, and
+# only - ort-sys has no prebuilt ONNX Runtime for x86_64-apple-darwin, and
 # the aarch64-apple-darwin distribution (CoreML build) fails to static-link
 # on the CI runner. "slim-speak" enables `speak-phonemize` (the complete
 # voice build, which is what makes PT-BR work) and is produced for linux-x64

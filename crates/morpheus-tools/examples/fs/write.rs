@@ -20,7 +20,7 @@ async fn main() {
 
     // 1. A fresh `Fs` scoped to the project root: everything under the root is
     //    writable by default. Note that `write` does NOT create parent
-    //    directories — create them first.
+    //    directories - create them first.
     let fs = Fs::new().cwd(&project);
     std::fs::create_dir_all(project.join("scripts")).unwrap();
 

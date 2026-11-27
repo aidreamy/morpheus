@@ -8,7 +8,7 @@ use std::sync::atomic::AtomicBool;
 // ── Reproducer: the "infinite summarization" feedback loop ────────────────
 //
 // User report (BUG): when the budget hits the ceiling and every deterministic
-// resource is spent, the LLM compaction runs and the summarizer works fine —
+// resource is spent, the LLM compaction runs and the summarizer works fine -
 // but the summarization keeps re-firing over and over ("loop infinito a
 // sumerização do agent"), with the old context appearing to be folded back in
 // each time. The model window is far larger than the trigger, so the summary
@@ -16,14 +16,14 @@ use std::sync::atomic::AtomicBool;
 //
 // Mechanism this test pins down: a single `run_agent_loop` can fire the LLM
 // compaction MULTIPLE times. A live tool chain (its call + results) stays in
-// the timeline — the useless-chain sweep only removes chains with no output —
+// the timeline - the useless-chain sweep only removes chains with no output -
 // so once the model adds a big tool call the sweep resolves nothing and
 // `run()` returns `NeedsLlmCompaction` again after EVERY dispatch that pushes
 // the total back over the 80% trigger. Each compaction serializes the ENTIRE accumulated
-// timeline (the previous summary + everything since — the "old context") into
+// timeline (the previous summary + everything since - the "old context") into
 // the summarizer prompt. With a hardcoded budget far below the model window,
 // the trigger re-fires constantly and the summarizer is called once per
-// overflow — the loop the user reported.
+// overflow - the loop the user reported.
 #[tokio::test]
 async fn repro_llm_compaction_repeats_mid_loop_when_protected_content_regrows() {
     let mut h = Harness::new_test();
@@ -49,7 +49,7 @@ async fn repro_llm_compaction_repeats_mid_loop_when_protected_content_regrows() 
     // The summarizer always succeeds with a small summary.
     h = h.with_mock_chat(Ok("## Objective\n- compacted"));
     // Each work iteration adds a HUGE live tool chain (nothing for the
-    // useless-chain sweep to remove — it is still in flight, or its results
+    // useless-chain sweep to remove - it is still in flight, or its results
     // are fresh), pushing the total back over the trigger → the LLM compaction
     // re-fires after EVERY dispatch.
     let huge = "a".repeat(20_000);

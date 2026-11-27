@@ -251,7 +251,7 @@ fn recommended_suffix_on_multiselect_is_stripped_without_badge() {
 #[test]
 fn question_falls_back_to_header() {
     // An item with only `header` still renders (models trained on harnesses
-    // that require header emit it alone — the same relaxation OpenCode
+    // that require header emit it alone - the same relaxation OpenCode
     // shipped for its question tool).
     let input = parse(serde_json::json!({
         "questions": [{"header": "Pick mode"}]

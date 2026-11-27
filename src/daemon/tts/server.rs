@@ -3,7 +3,7 @@
 //!
 //! Threading model mirrors the decision daemon: the accept loop runs on the
 //! main thread and each connection gets a thread. The engine state is a mutex
-//! that holds BOTH the lazily-loaded [`Speak`] and the synthesis slot — two
+//! that holds BOTH the lazily-loaded [`Speak`] and the synthesis slot - two
 //! syntheses would only contend for the same cores, so serializing at the
 //! engine is free. A call that cannot acquire the engine within the queue
 //! window answers [`code::BUSY`]; the client retries once.
@@ -34,7 +34,7 @@ const CONNECTION_BUDGET: Duration = Duration::from_secs(180);
 /// Idle shutdown default (the backstop for a daemon whose clients never
 /// greeted): long enough that a working session never bounces the daemon,
 /// short enough that an abandoned one does not linger. A daemon whose
-/// greeted clients all exited does not wait for this — see
+/// greeted clients all exited does not wait for this - see
 /// [`Server::clients_gone`].
 pub(crate) const DEFAULT_IDLE_TIMEOUT: Duration = Duration::from_secs(300);
 
@@ -676,9 +676,7 @@ mod tests {
         #[cfg(feature = "speak-phonemize")]
         assert_eq!(
             explicit.speak_config().phonemizer,
-            Phonemizer::Piper {
-                lang: "es".into()
-            }
+            Phonemizer::Piper { lang: "es".into() }
         );
         #[cfg(not(feature = "speak-phonemize"))]
         assert_eq!(explicit.speak_config().phonemizer, Phonemizer::Lexicon);
@@ -756,7 +754,7 @@ mod tests {
     }
 
     /// The serve loop must keep the daemon alive while one greeted client is
-    /// alive and close it once none is — this is what stops a closed TUI from
+    /// alive and close it once none is - this is what stops a closed TUI from
     /// leaving `morpheus-ttsd.exe` resident (and locked) on Windows.
     #[test]
     fn the_daemon_exits_only_after_every_greeted_client_is_gone() {

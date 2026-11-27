@@ -45,7 +45,7 @@ pub struct PanePermissionDialog {
     /// The option labels, in the agent's offered order.
     pub options: Vec<String>,
     /// The options' semantic kinds (allow kind green / reject red /
-    /// other amber), parallel to `options` — the agent labels its own
+    /// other amber), parallel to `options` - the agent labels its own
     /// rows, so the KIND (not the label) is the color's source of truth.
     pub option_kinds: Vec<String>,
     /// The highlighted row.
@@ -53,7 +53,7 @@ pub struct PanePermissionDialog {
 }
 
 impl PanePermissionDialog {
-    /// Required height — the SAME arithmetic `PermissionDialog::required_
+    /// Required height - the SAME arithmetic `PermissionDialog::required_
     /// height` runs for its fixed three options, generalized to `options`.
     #[must_use]
     pub fn required_height(&self, max_width: u16) -> u16 {
@@ -122,7 +122,7 @@ impl PanePermissionDialog {
         y_pos += 1;
 
         // Rows: the agent's own options, each colored by its semantic kind
-        // (allow green / reject red / other amber) — the KIND is the color's
+        // (allow green / reject red / other amber) - the KIND is the color's
         // source of truth, never the agent's label.
         for (i, opt) in self.options.iter().enumerate() {
             let is_selected = i == self.selected;

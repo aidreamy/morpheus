@@ -39,7 +39,7 @@ pub struct Target {
     pub symbol: Option<String>,
     /// Legacy 1-based inclusive line range(s) to read exactly, e.g.
     /// `"50-100"` or `"10-20,200-220"` (comma-separated for multiple
-    /// disjoint ranges). Performs a plain line slice — no AST block
+    /// disjoint ranges). Performs a plain line slice - no AST block
     /// resolution. Accepted but NOT advertised: the schema uses
     /// `offset`/`limit` (the CC-trained shape). `offset`+`limit` is
     /// normalized into a single range before this is consulted, and wins
@@ -71,7 +71,7 @@ pub struct TargetFile {
     pub text: String,
     pub path: String,
     /// Optional file hash from a previous `read`. When the target file
-    /// already exists on disk the hash is **required** — the write is
+    /// already exists on disk the hash is **required** - the write is
     /// rejected if it is missing or stale.  For brand-new files the
     /// field is ignored.
     #[serde(default)]
@@ -105,7 +105,7 @@ pub struct FsEdit {
     /// Edit targets. Multi-file batching is intentionally NOT advertised by
     /// the tool schema: single-path calls proved far more reliable in agent
     /// sessions (batched calls raised schema-error rates). The batch form is
-    /// kept — not removed — for future studies and benchmarks.
+    /// kept - not removed - for future studies and benchmarks.
     pub targets: Vec<EditTarget>,
     /// Preview mode: apply in memory only, returning the diff and the
     /// syntax-probe verdict without writing anything. Re-issue without
@@ -123,7 +123,7 @@ pub struct FsEdit {
 /// `old_string` is a content address: it must match the file exactly (the
 /// match must be unique unless [`Self::replace_all`] is set). The edit is
 /// still bound to a hashline snapshot tag, so drift between read and edit
-/// keeps being detected — the match runs against the tagged snapshot and the
+/// keeps being detected - the match runs against the tagged snapshot and the
 /// result flows through the same hashline apply pipeline as `targets`.
 #[derive(Debug, Clone, Deserialize, JsonSchema)]
 pub struct ReplaceEdit {
@@ -131,7 +131,7 @@ pub struct ReplaceEdit {
     /// 4-hex content hash tag: the `¶path#TAG` anchor from your last read
     /// (or a previous edit result). Required for the first edit of each file
     /// in the call; follow-up edits to the same file in the same call may
-    /// omit it — they chain on the fresh tag produced by the previous edit.
+    /// omit it - they chain on the fresh tag produced by the previous edit.
     #[serde(default)]
     pub file_hash: Option<String>,
     /// Exact text to replace, copied verbatim including whitespace and
@@ -148,7 +148,7 @@ pub struct ReplaceEdit {
 /// Arguments for the content edit engine.
 ///
 /// The tool schema advertises one edit (one path) per call; the `Vec` batch
-/// form is kept — not removed — for future studies and benchmarks (batched
+/// form is kept - not removed - for future studies and benchmarks (batched
 /// calls raised schema-error rates in agent sessions). Same-file edits in a
 /// batch still chain: follow-ups may omit `file_hash`.
 #[derive(Debug, Clone, Default, Deserialize, JsonSchema)]

@@ -72,7 +72,7 @@ impl ChatId {
         &self.0
     }
 
-    /// The addressing part of the JID — the `user` in `user@server`, without
+    /// The addressing part of the JID - the `user` in `user@server`, without
     /// the device suffix of `user:12@server`.
     ///
     /// This is what identifies an *account*, independent of which of its
@@ -277,8 +277,8 @@ impl MessageContent {
 
 /// A decrypted message from the linked account.
 ///
-/// `from_me` messages are what this account sent from any of its devices —
-/// the linked phone included — echoed back to this companion. They include
+/// `from_me` messages are what this account sent from any of its devices -
+/// the linked phone included - echoed back to this companion. They include
 /// the agent's own replies, which must never be answered again; use
 /// [`WhatsApp::is_prompt`](crate::WhatsApp::is_prompt) to decide what is
 /// addressed to the agent instead of testing this flag directly.
@@ -399,10 +399,7 @@ fn content_of(message: &wa::Message) -> MessageContent {
     if let Some(reaction) = base.reaction_message.as_option() {
         return MessageContent::Reaction {
             emoji: reaction.text.clone().unwrap_or_default(),
-            target_message_id: reaction
-                .key
-                .as_option()
-                .and_then(|key| key.id.clone()),
+            target_message_id: reaction.key.as_option().and_then(|key| key.id.clone()),
         };
     }
     if let Some(poll) = base.poll_creation_message.as_option() {
@@ -693,7 +690,8 @@ mod tests {
     #[test]
     fn the_alternate_address_form_survives_normalization() {
         let mut info = info("42121264402678@lid", "42121264402678@lid", false);
-        info.source.sender_alt = Some(Jid::from_str("554288895786@s.whatsapp.net").expect("pn jid"));
+        info.source.sender_alt =
+            Some(Jid::from_str("554288895786@s.whatsapp.net").expect("pn jid"));
 
         let message = IncomingMessage::from_engine(&text("hello"), &info);
 

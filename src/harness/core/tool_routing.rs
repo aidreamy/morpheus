@@ -7,7 +7,7 @@ use super::{Harness, Mode, looks_like_argument_error};
 use crate::harness::tools::{Tools, is_tool_disabled};
 
 /// The Manager mode's tool deny-list: the tools that WRITE/EDIT files.
-/// Everything else stays — `fs_rollback` only restores a previously recorded
+/// Everything else stays - `fs_rollback` only restores a previously recorded
 /// version (it cannot create or rewrite content), and `bash_run` stays
 /// exposed but is fenced per-command by the mode's bash blocklist
 /// (see `is_manager_blocked_bash`).
@@ -22,7 +22,7 @@ pub(crate) fn is_manager_restricted(name: &str) -> bool {
 /// filesystem. `bash_run` stays exposed in Manager (reading is the
 /// manager's verification instrument), but a command whose purpose is to
 /// mutate the tree is denied at the guardrail. The patterns match the
-/// common write shapes deliberately — this is a behavior fence for a
+/// common write shapes deliberately - this is a behavior fence for a
 /// cooperating model, not a security sandbox against a hostile one (the
 /// critical-pattern validation in `morpheus_tools::bash` already covers the
 /// hostile cases).
@@ -35,7 +35,7 @@ pub(crate) fn is_manager_restricted(name: &str) -> bool {
 pub(crate) fn is_manager_blocked_bash(command: &str) -> bool {
     let command = command.trim();
     // 1. Output redirection: any `>` that is not an fd duplication
-    // (`2>&1`, `>&2` — duplicating onto an already-open descriptor writes
+    // (`2>&1`, `>&2` - duplicating onto an already-open descriptor writes
     // nothing new). `/dev/null` targets are allowed: `2>/dev/null` is the
     // standard read-command idiom and writes nowhere.
     if has_output_redirect(command) {
@@ -71,7 +71,7 @@ pub(crate) fn is_manager_blocked_bash(command: &str) -> bool {
     // (`git -c k=v commit` has no clean "first subcommand"), allow the
     // read ones (status/diff/log/show/blame/grep). `stash` is the one
     // write-shaped subcommand with read forms: `stash list|show|log`
-    // only display — those stay allowed.
+    // only display - those stay allowed.
     if first == "git" {
         let stripped: Vec<&str> = tokens[1..].iter().map(|t| strip_token(t)).collect();
         for (i, t) in stripped.iter().enumerate() {
@@ -90,7 +90,7 @@ pub(crate) fn is_manager_blocked_bash(command: &str) -> bool {
         }
         return false;
     }
-    // 5. gh: allow only its read subcommand paths — two levels deep
+    // 5. gh: allow only its read subcommand paths - two levels deep
     // (`pr view`, `issue list`, `run view`), so a manager verifying a PR
     // is not denied. `api` is DENIED: `gh api --method POST …` mutates
     // through the same word a GET uses.
@@ -110,7 +110,7 @@ pub(crate) fn is_manager_blocked_bash(command: &str) -> bool {
     }
     // 6. Package managers / build tools: BUILD and TEST runs are the
     // manager's verification instrument (their output lands in target/,
-    // node_modules — build artifacts, not the source tree); package
+    // node_modules - build artifacts, not the source tree); package
     // installation and everything else is denied. `fmt` is DENIED even
     // though it looks like a verification verb: `cargo fmt` rewrites every
     // source file it touches. `clippy` stays allowed for the report, but
@@ -128,7 +128,7 @@ pub(crate) fn is_manager_blocked_bash(command: &str) -> bool {
 }
 
 /// Any `>` in `command` that creates/overwrites a file: plain `>`, append
-/// `>>`, `&>`, and the fd forms `n>`/`n>>` — EXCEPT the fd-duplication
+/// `>>`, `&>`, and the fd forms `n>`/`n>>` - EXCEPT the fd-duplication
 /// forms `n>&m` / `>&m` (both digits) and targets of `/dev/null`.
 fn has_output_redirect(command: &str) -> bool {
     let bytes = command.as_bytes();
@@ -202,7 +202,7 @@ const GIT_WRITE_SUBCOMMANDS: &[&str] = &[
 ];
 
 /// Interpreters that can execute inline code writing anything: a
-/// one-liner is never a manager's verification instrument — reading is
+/// one-liner is never a manager's verification instrument - reading is
 /// done with `cat`/`grep`/diff, verification with test runners.
 const INTERPRETERS: &[&str] = &[
     "python", "python3", "node", "perl", "ruby", "php", "lua", "awk", "gawk",
@@ -246,7 +246,7 @@ const PACKAGE_MANAGERS: &[&str] = &[
     "apt-get", "dnf", "yum", "pacman", "brew", "nix", "nix-env", "snap", "flatpak", "uvx", "npx",
 ];
 
-/// Verbs that only read or produce build artifacts — allowed for every
+/// Verbs that only read or produce build artifacts - allowed for every
 /// package manager in [`PACKAGE_MANAGERS`].
 const PACKAGE_READ_VERBS: &[&str] = &[
     "test", "check", "build", "clippy", "run", "doc", "bench", "list", "ls", "info", "view", "why",
@@ -278,7 +278,7 @@ impl Harness {
             ));
         }
 
-        // Morpheus tools — filtered by mode so the native API only exposes
+        // Morpheus tools - filtered by mode so the native API only exposes
         // tools the model is allowed to call in the current mode.
         if let Some(ref morpheus) = self.morpheus_tools {
             let descriptions: Vec<serde_json::Value> = match self.mode {
@@ -298,7 +298,7 @@ impl Harness {
                         .collect()
                 }
                 Mode::Yolo | Mode::Command | Mode::Manager => {
-                    // All tools minus disabled — and for Manager, minus the
+                    // All tools minus disabled - and for Manager, minus the
                     // file-writing tools: the mode's deny-list is enforced at
                     // registration so the model never even sees a schema for
                     // a tool it cannot call (defense in depth with the
@@ -359,14 +359,14 @@ impl Harness {
     /// Enrich an argument-shaped rejection with the tool's expected argument
     /// shape (a minimal example rendered from its input schema). Runtime
     /// failures (file not found, permission denied, timeouts) pass through
-    /// untouched — echoing the schema there would be noise.
+    /// untouched - echoing the schema there would be noise.
     pub(super) fn enrich_with_schema_hint(&self, tool_name: &str, err: String) -> String {
         if !looks_like_argument_error(&err) {
             return err;
         }
         match self.schema_input(tool_name) {
             Some(schema) => format!(
-                "{err}\nExpected `{tool_name}` arguments — minimal shape: {}",
+                "{err}\nExpected `{tool_name}` arguments - minimal shape: {}",
                 morpheus_sdk::extract_action::schema_skeleton(&schema)
             ),
             None => err,
@@ -375,8 +375,8 @@ impl Harness {
 
     /// Rejection for a tool nothing serves. The model may be following stale
     /// handoff context (naming a tool that no longer exists), so the reply
-    /// echoes the CURRENT available tool set — the same mode-filtered,
-    /// deduplicated set the model was registered with — instead of leaving
+    /// echoes the CURRENT available tool set - the same mode-filtered,
+    /// deduplicated set the model was registered with - instead of leaving
     /// it to re-derive from memory (which may name removed tools).
     pub(super) fn unknown_tool_message(&self, tool_name: &str) -> String {
         const MAX_LISTED: usize = 15;

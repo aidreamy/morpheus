@@ -27,7 +27,7 @@ impl SessionView {
             // regions from what is displayed.
             let body_w = max_w.saturating_sub(2).max(1);
             // Sanitize before the markdown renderer so control chars can't
-            // reach buffer cells (ratatui cell_width panic). `\n` is kept —
+            // reach buffer cells (ratatui cell_width panic). `\n` is kept -
             // the markdown renderer handles line breaks itself. The height
             // is measured on the sanitized text so it matches the render.
             let content = sanitize_text(&part.text);
@@ -40,9 +40,9 @@ impl SessionView {
             crate::util::markdown::apply_theme(&mut md, theme);
             md.render_self(buf, md_area);
             // Dim the whole reasoning body toward the background so it reads as
-            // opaque "thinking" text — white becomes gray and syntax-highlight
+            // opaque "thinking" text - white becomes gray and syntax-highlight
             // colors get grayed out. Uses the theme's `thinking_opacity`. Cells
-            // whose foreground is unset (Reset — how the markdown renderer
+            // whose foreground is unset (Reset - how the markdown renderer
             // paints plain paragraphs) are colored from the muted base first,
             // so the plain text also ends up dimmed/gray instead of matching
             // the normal reply's color.
@@ -81,10 +81,10 @@ impl SessionView {
 impl SessionView {
     /// Dim a rendered region toward its background so it looks "pushed back" /
     /// opaque. Used for the reasoning/thinking body so the model's internal
-    /// text — including syntax highlighting — appears grayed-out (less bright)
+    /// text - including syntax highlighting - appears grayed-out (less bright)
     /// compared to the normal reply. `opacity` comes from the theme's
     /// `thinking_opacity` (1.0 = no dimming). `base_fg` is the fallback colour
-    /// used for cells with no explicit foreground (Reset — how plain markdown
+    /// used for cells with no explicit foreground (Reset - how plain markdown
     /// paragraphs are painted), which is then also dimmed so the plain text is
     /// visibly gray rather than matching the normal reply.
     pub(super) fn dim_reasoning_region(

@@ -1,11 +1,11 @@
 //! Compile-time string-constant composition.
 //!
-//! `concat!` accepts string LITERALS only — it cannot compose existing
+//! `concat!` accepts string LITERALS only - it cannot compose existing
 //! `const &str` paths (a const path in a `concat!` argument is a compile
 //! error). Where a composite constant must be built from parts that ALSO
 //! exist as standalone constants (each part usable alone), this macro
 //! defines every part from its own literal list AND the joined constant
-//! from the concatenation of all parts — the literals are written exactly
+//! from the concatenation of all parts - the literals are written exactly
 //! once and can never drift apart between the part and the whole.
 
 /// Defines one or more `pub const &str` parts, plus a final constant equal
@@ -13,7 +13,7 @@
 ///
 /// Each part's body is a comma-separated token list that `concat!`
 /// accepts: plain string literals (the classic form) or zero-argument
-/// macro invocations that each expand to a single `concat!(...)` — the
+/// macro invocations that each expand to a single `concat!(...)` - the
 /// latter lets shared literal groups feed several composites while being
 /// written exactly once.
 ///
@@ -37,7 +37,7 @@
 /// A part may alternatively be a zero-argument macro invocation whose
 /// body is a single `concat!(...)` (`PART = shared_text!()`), letting one
 /// literal group feed several composites. The invoked macro must be in
-/// scope at the expansion site (textual scoping — define it before use in
+/// scope at the expansion site (textual scoping - define it before use in
 /// the same module or import it at the crate root).
 ///
 /// Every output is `const`-evaluated (no runtime cost, stays `&'static
@@ -65,7 +65,7 @@ macro_rules! const_str_joined {
     // is itself a `concat!(...)`. This lets one shared literal group feed
     // several composites (the part constant, composites containing it,
     // and composites that extend it) while the literals are written
-    // exactly once — `concat!` itself accepts such an invocation as an
+    // exactly once - `concat!` itself accepts such an invocation as an
     // argument, so the full constant concatenates the same expansions.
     (
         $(#[$full_doc:meta])*

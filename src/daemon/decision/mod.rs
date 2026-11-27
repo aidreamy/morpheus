@@ -4,13 +4,13 @@
 //! its ORT session); every morpheus instance shares it over the daemon IPC
 //! layer. This is the `c89c6e5` residency generalized: the resident model
 //! lived in per-process statics, which still duplicated the graph per open
-//! app — the daemon owns it once for all of them.
+//! app - the daemon owns it once for all of them.
 //!
-//! - [`protocol`] — the wire schema (methods, params, results, error codes).
-//! - [`model`] — the resident registry: one model at a time, the 60s retry
+//! - [`protocol`] - the wire schema (methods, params, results, error codes).
+//! - [`model`] - the resident registry: one model at a time, the 60s retry
 //!   window on failed loads.
-//! - [`server`] — the accept loop, routing, the single inference slot, drain.
-//! - `main` (the binary) — bind the socket, serve, idle-exit.
+//! - [`server`] - the accept loop, routing, the single inference slot, drain.
+//! - `main` (the binary) - bind the socket, serve, idle-exit.
 
 pub(crate) mod model;
 pub(crate) mod protocol;
@@ -22,7 +22,7 @@ use std::time::Duration;
 
 // The public surface the app binary (and future consumers) attaches with:
 // the daemon-backed Checkup and the wire kind. The transport, the server
-// and the registry stay internal — they are the daemon's implementation.
+// and the registry stay internal - they are the daemon's implementation.
 pub use client::IpcCheckup;
 pub use protocol::Kind;
 
@@ -30,11 +30,11 @@ pub use protocol::Kind;
 /// serve until idle or drained.
 ///
 /// Losing the bind race (a live daemon already owns the socket) is a
-/// SUCCESS outcome — the spawning process that lost the race exits 0, the
+/// SUCCESS outcome - the spawning process that lost the race exits 0, the
 /// winner serves. Only a real bind failure is an error.
 pub fn run() -> i32 {
     // Daemon-side logging FIRST: the daemon is a separate PROCESS (spawned
-    // on demand by whichever client lost the activation race) — without
+    // on demand by whichever client lost the activation race) - without
     // this, every `log::` call in the daemon modules went nowhere, and the
     // decision model's failures (load errors, failed-open reviews) were a
     // black box. `try_init` (never `init`): losing a logger race or a
@@ -43,7 +43,7 @@ pub fn run() -> i32 {
 
     // The activation lock first (M1 fix): a live daemon HOLDS this flock
     // for its lifetime, so contending here means one already owns the
-    // socket path — this spawner lost the activation race and exits 0
+    // socket path - this spawner lost the activation race and exits 0
     // WITHOUT ever touching the socket file. Holding the lock is what
     // makes the probe/remove/bind below race-free (two crash-recovery
     // binders can no longer interleave probe and unlink).
@@ -55,14 +55,14 @@ pub fn run() -> i32 {
 
     let path = crate::daemon::activation::socket_path(protocol::NAME);
     // m11 note: a live daemon can die between a CLIENT's connect-probe and
-    // this bind — the client then burns its activation window and fails
+    // this bind - the client then burns its activation window and fails
     // open once; its next call re-activates a fresh daemon. Self-healing,
     // one wasted review, by design (no watcher process, ever).
     std::fs::create_dir_all(path.parent().unwrap_or(&path)).ok();
     let listener = match crate::daemon::ipc::bind(&path) {
         Ok(listener) => listener,
         // Under the lock this means a stale socket file a crashed daemon
-        // left AND whose connect-probe raced us — the loser of that probe
+        // left AND whose connect-probe raced us - the loser of that probe
         // is about to bind; treat as contended (the winner serves).
         Err(e) if e.kind() == std::io::ErrorKind::AddrInUse => {
             return 0;

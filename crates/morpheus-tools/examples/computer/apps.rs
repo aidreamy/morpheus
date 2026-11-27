@@ -1,6 +1,6 @@
-//! Demonstrate `computer_apps` — the enumeration tool: which applications
+//! Demonstrate `computer_apps` - the enumeration tool: which applications
 //! are running (with PIDs and the foreground flag), or which element holds
-//! keyboard focus right now (`target: "focused"` — the cheap "where do my
+//! keyboard focus right now (`target: "focused"` - the cheap "where do my
 //! keystrokes go?" check before typing).
 //!
 //! The `focused` query is the ground truth the input tools previously
@@ -9,7 +9,7 @@
 //!
 //! The apps tool talks to the live desktop, so full dispatch needs a
 //! session. What runs offline here: input construction and the focus-walk
-//! PATTERN against xa11y's mock provider — the same Locator-driven walk
+//! PATTERN against xa11y's mock provider - the same Locator-driven walk
 //! the tool performs on a real tree.
 //!
 //! Run with:
@@ -41,7 +41,7 @@ fn main() {
     let _ = (all, focused);
 
     // Dispatch (needs a desktop session). The result is the untagged enum
-    // AppsResult — the variant follows the query:
+    // AppsResult - the variant follows the query:
     //
     //     let out = computer::apps(&all).await?;
     //     // AppsResult::All(AppsOutput { apps: Vec<AppInfo>, count })
@@ -58,19 +58,19 @@ fn main() {
     // The tool resolves the foreground application, then walks DOWN its
     // tree following each element's focused child until it reaches the
     // leaf that actually holds keyboard focus. The same walk works on any
-    // provider — here, xa11y's mock (dev-dependency feature
+    // provider - here, xa11y's mock (dev-dependency feature
     // `test-support`), which stands in for a real desktop:
     let provider: Arc<dyn Provider> = mock::build_provider();
 
-    // Resolve the app the same way the tool does — through the INJECTED
+    // Resolve the app the same way the tool does - through the INJECTED
     // provider (`by_pid_with`; the bare `App::by_pid` would use the global
-    // real-desktop provider). The mock registers ONE application —
-    // "TestApp" — at pid 1234; `MOCK_SHELL_PID` (4242) belongs to the
+    // real-desktop provider). The mock registers ONE application -
+    // "TestApp" - at pid 1234; `MOCK_SHELL_PID` (4242) belongs to the
     // shell's taskbar surface, deliberately distinct:
     let app = App::by_pid_with(mock::build_provider(), 1234, Duration::from_secs(3))
         .expect("the mock provider registers TestApp at pid 1234");
 
-    // A root locator scoped to the app resolves elements from the tree —
+    // A root locator scoped to the app resolves elements from the tree -
     // the scope is the app's element DATA (App exposes it publicly):
     let button = Locator::new(provider, Some(app.data.clone()), "button")
         .wait_visible(Duration::from_secs(1))

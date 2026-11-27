@@ -1,6 +1,6 @@
 //! Tests for snapshot rendering and shell-surface targeting against the mock provider.
 #[cfg(test)]
-/// Shell-surface dispatch tests — same mock fixture as the wait tests
+/// Shell-surface dispatch tests - same mock fixture as the wait tests
 /// (Taskbar surface at `MOCK_SHELL_PID`), driving `snapshot_surface`
 /// directly through its provider seam.
 mod snapshot_surface_tests {
@@ -40,7 +40,7 @@ mod snapshot_surface_tests {
     }
 
     /// With a selector the SAME locator flow narrows into the surface's
-    /// subtree — `nth` (1-based) applies exactly like the app path.
+    /// subtree - `nth` (1-based) applies exactly like the app path.
     #[test]
     fn surface_selector_narrows_like_app_path() {
         let input = ComputerSnapshot {
@@ -60,7 +60,7 @@ mod snapshot_surface_tests {
     }
 
     /// A selector that matches nothing under the surface is an honest
-    /// error naming the surface — same contract as the app path.
+    /// error naming the surface - same contract as the app path.
     #[test]
     fn surface_selector_miss_is_honest_error() {
         let input = ComputerSnapshot {
@@ -86,7 +86,7 @@ mod snapshot_render_tests {
     use crate::computer::types::SnapshotFormat;
     use crate::computer::types::{ElementStates, StateNode, ToggleState};
 
-    /// A node with only default states renders as bare `role name=value` —
+    /// A node with only default states renders as bare `role name=value` -
     /// no state tokens, keeping the common case one short line.
     #[test]
     fn default_states_render_nothing() {
@@ -131,7 +131,7 @@ mod snapshot_render_tests {
     }
 
     /// An unchecked checkbox is meaningful (the user wants to know it is
-    /// checkable and off), so `Some(Off)` renders `unchecked` — unlike the
+    /// checkable and off), so `Some(Off)` renders `unchecked` - unlike the
     /// absence of checkability (`None`), which renders nothing.
     #[test]
     fn unchecked_is_reported_but_non_checkable_is_silent() {
@@ -272,7 +272,7 @@ mod snapshot_render_tests {
         );
     }
 
-    /// A branch the depth limit cut must not read as a leaf — the subtree is
+    /// A branch the depth limit cut must not read as a leaf - the subtree is
     /// unknown, and saying so prevents "the control does not exist".
     #[test]
     fn cut_branch_is_marked_unknown() {
@@ -283,7 +283,7 @@ mod snapshot_render_tests {
         };
         assert_eq!(
             write_outline_str(&node),
-            "group\n  … children not read (depth limit — raise max_depth)\n"
+            "group\n  … children not read (depth limit - raise max_depth)\n"
         );
     }
 
@@ -313,7 +313,7 @@ mod surface_tests {
 
     #[test]
     fn kind_mapping_is_total() {
-        // Every wire variant maps onto a distinct xa11y kind — a missed arm
+        // Every wire variant maps onto a distinct xa11y kind - a missed arm
         // here would silently target the wrong surface.
         let pairs = [
             (SurfaceKind::MenuBar, ShellSurfaceKind::MenuBar),
@@ -327,7 +327,7 @@ mod surface_tests {
         ];
         for (wire, native) in pairs {
             assert_eq!(kind(wire), native);
-            // Wire spelling must match xa11y's snake_case spelling — the
+            // Wire spelling must match xa11y's snake_case spelling - the
             // schema's enum values and error messages rely on it.
             assert_eq!(surface_label(wire), native.to_snake_case());
         }
@@ -396,7 +396,7 @@ mod surface_tests {
 
     #[test]
     fn targeting_act_and_screenshot_match_their_wire_shapes() {
-        // act uses `name`; screenshot uses `app` — the error text must
+        // act uses `name`; screenshot uses `app` - the error text must
         // mirror each tool's wire spelling.
         let err = validate_act(&ComputerAct::default()).unwrap_err();
         assert!(err.contains("`name`"), "err: {err}");
@@ -408,7 +408,7 @@ mod surface_tests {
         .unwrap_err();
         assert!(err.contains("cannot share a call"), "err: {err}");
 
-        // Rootless screenshot is LEGAL (full display / region captures) —
+        // Rootless screenshot is LEGAL (full display / region captures) -
         // the tool's own clauses police those forms; this check only
         // rejects MIXED roots (review round 1, CRITICAL 1).
         assert!(validate_screenshot(&ComputerScreenshot::default()).is_ok());

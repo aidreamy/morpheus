@@ -20,12 +20,12 @@ static HOME_LOCK: parking_lot::Mutex<()> = parking_lot::Mutex::new(());
 /// Serializes every test that touches the REAL system clipboard (read OR
 /// write). `cargo test` runs suites on parallel threads; the Ctrl+V tests
 /// (paste_burst.rs) read the clipboard after writing a fixture, and the
-/// registration-form copy tests (dialogs/text_input.rs) write to it — an
+/// registration-form copy tests (dialogs/text_input.rs) write to it - an
 /// interleaving where a foreign write lands between a fixture write and its
 /// read fails both spuriously. `HOME_LOCK` does not cover the clipboard.
 static CLIPBOARD_LOCK: parking_lot::Mutex<()> = parking_lot::Mutex::new(());
 
-/// Redirect `$HOME` — AND, crucially on Windows, the config/data dirs — to
+/// Redirect `$HOME` - AND, crucially on Windows, the config/data dirs - to
 /// a scratch dir and drop any config left there by a previous run, so
 /// `setup.save()` never touches the developer's files.
 ///
@@ -50,7 +50,7 @@ fn isolate_home() {
 }
 
 // NOTE: `agents_click_probe` was declared here but its file never existed in
-// the tree — the orphan declaration broke the bin test target entirely
+// the tree - the orphan declaration broke the bin test target entirely
 // (`E0583: file not found for module`), so it was removed. Re-add it together
 // with its file when the probe lands.
 mod agent_loop;

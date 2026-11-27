@@ -148,7 +148,7 @@ async fn test_agent_loop_with_tool_call() {
 // 10th tool-calling iteration, so only 10 streams are consumed.
 #[tokio::test]
 async fn loop_detection_stops_repeated_identical_tool_calls() {
-    // 20 identical tool-calling iterations — the detector must stop at 10.
+    // 20 identical tool-calling iterations - the detector must stop at 10.
     let streams: Vec<Result<Vec<&str>, &str>> = (0..20)
         .map(|_| Ok(vec![r#"{"name": "test_tool", "arguments": {"x": "same"}}"#]))
         .collect();
@@ -196,7 +196,7 @@ async fn loop_detection_stops_repeated_identical_tool_calls() {
     }
     handle.abort();
 
-    // The 10th tool call is dispatched, THEN the detector fires — so the
+    // The 10th tool call is dispatched, THEN the detector fires - so the
     // loop stops with exactly 10 dispatched calls, not 20.
     let tool_calls = events
         .iter()
@@ -223,7 +223,7 @@ async fn loop_detection_stops_repeated_identical_tool_calls() {
 // ── Guardrail denials are VISIBLE conversation turns ──────────────────────
 //
 // A Build-mode denial (e.g. computer_control with pixel coordinates) skips
-// dispatch — but the schema was registered, so the model legitimately emits
+// dispatch - but the schema was registered, so the model legitimately emits
 // such calls and MUST see each one answered. Before the fix the denial path
 // popped the call and only emitted a ToolError event: the call never became
 // a conversation turn, never entered the loop-detection signature, and the
@@ -237,7 +237,7 @@ async fn loop_detection_stops_repeated_identical_tool_calls() {
 // the retry budget is burned.
 #[tokio::test]
 async fn repeated_guardrail_denials_become_visible_turns_and_trip_loop_detection() {
-    // 12 identical denied calls — more than MAX_TOOL_RETRIES (10), so the
+    // 12 identical denied calls - more than MAX_TOOL_RETRIES (10), so the
     // OLD behavior (invisible denials, failure counter only) would end with
     // the fatal "10 consecutive tool call failures" Error.
     let streams: Vec<Result<Vec<&str>, &str>> = (0..12)
@@ -315,7 +315,7 @@ async fn repeated_guardrail_denials_become_visible_turns_and_trip_loop_detection
     );
 
     // The loop must stop via LOOP DETECTION (identical denials repeat
-    // identically now that they are recorded) — Done + Toast — NOT by
+    // identically now that they are recorded) - Done + Toast - NOT by
     // exhausting the retry budget (which ends with Error).
     assert!(
         matches!(events.last(), Some(HarnessEvent::Done { .. })),
@@ -345,7 +345,7 @@ async fn repeated_guardrail_denials_become_visible_turns_and_trip_loop_detection
 // final answer) and asserts the ContextManager owns the exact item sequence
 // [user, assistant(text, non-compressible), tool_call, tool_result,
 // loop_closure] and that build_messages renders the native roles in order
-// with the user input appearing exactly once — proving no reordering, no
+// with the user input appearing exactly once - proving no reordering, no
 // content loss, and no double-send across the real agent-loop flow.
 #[tokio::test]
 async fn full_tool_loop_builds_correct_item_sequence_and_messages() {
@@ -446,7 +446,7 @@ async fn run_agent_loop_runs_the_llm_compaction_when_over_the_trigger() {
     h.context_manager = ContextManager::new(2000); // trigger = 1600
     // A loaded user turn WITH an answer (promoted to a LoopClosure
     // below): history over the trigger, and the loop input lands after
-    // an output — never directly on a user turn (that pattern is the
+    // an output - never directly on a user turn (that pattern is the
     // abandoned-input case, which the harness now drops).
     h = h.with_history(&[
         ("user".into(), "u ".repeat(1100)),
@@ -534,7 +534,7 @@ async fn run_agent_loop_runs_the_llm_compaction_when_over_the_trigger() {
 
 // When the summarization call FAILS (connector error, empty output), the
 // harness must surface `LlmCompaction::Failed` and continue the loop with the
-// context as it was (over budget but alive) — never panic or drop the turn.
+// context as it was (over budget but alive) - never panic or drop the turn.
 #[tokio::test]
 async fn run_agent_loop_survives_a_failed_llm_compaction() {
     use crate::harness::context::ContextManager;
@@ -544,7 +544,7 @@ async fn run_agent_loop_survives_a_failed_llm_compaction() {
     h.context_manager = ContextManager::new(2000); // trigger = 1600
     // A loaded user turn WITH an answer (promoted to a LoopClosure
     // below): history over the trigger, and the loop input lands after
-    // an output — never directly on a user turn (that pattern is the
+    // an output - never directly on a user turn (that pattern is the
     // abandoned-input case, which the harness now drops).
     h = h.with_history(&[
         ("user".into(), "u ".repeat(1100)),
@@ -620,7 +620,7 @@ async fn run_agent_loop_survives_a_failed_llm_compaction() {
 //
 // The user sends input A and cancels (Esc) before the LLM produced anything,
 // then sends input B. The harness rebuilds with_history(A) and B lands
-// directly on top of A — two consecutive user turns with no output between.
+// directly on top of A - two consecutive user turns with no output between.
 // The abandoned A must be dropped from the model context; B is sent exactly
 // once.
 #[tokio::test]
@@ -696,7 +696,7 @@ async fn input_with_output_before_cancel_is_kept() {
 // When the summarizer call fails with a context-window overflow, the harness
 // drives the hierarchical MapReduce contingency. When the checkpoint itself cannot
 // fit the context into the window (the summarizer keeps overflowing), the
-// provider is marked stuck and the user is notified through a Toast — the
+// provider is marked stuck and the user is notified through a Toast - the
 // loop still completes normally. The checkpoint never drains items: the tool chains
 // stay in the timeline.
 #[tokio::test]
@@ -709,7 +709,7 @@ async fn run_agent_loop_marks_provider_stuck_when_map_reduce_cannot_fit() {
     h.context_manager = ContextManager::new(2000); // trigger = 1600
     // A loaded user turn WITH an answer (promoted to a Closure
     // below): history over the trigger, and the loop input lands after
-    // an output — never directly on a user turn (that pattern is the
+    // an output - never directly on a user turn (that pattern is the
     // abandoned-input case, which the harness now drops).
     h = h.with_history(&[
         ("user".into(), "u ".repeat(1100)),
@@ -797,7 +797,7 @@ async fn run_agent_loop_marks_provider_stuck_when_map_reduce_cannot_fit() {
             .any(|e| matches!(e, HarnessEvent::Done { .. })),
         "the loop completes after the overflow is handled"
     );
-    // The checkpoint never drains items — the tool chains stay in the timeline.
+    // The checkpoint never drains items - the tool chains stay in the timeline.
     assert!(
         items.iter().any(|it| {
             matches!(
@@ -805,7 +805,7 @@ async fn run_agent_loop_marks_provider_stuck_when_map_reduce_cannot_fit() {
                 ContextItem::ToolCall { .. } | ContextItem::ToolResult { .. }
             )
         }),
-        "the checkpoint summarizes, never drains — the tool chains remain"
+        "the checkpoint summarizes, never drains - the tool chains remain"
     );
     // The provider is recorded as stuck (the notification persists).
     assert!(
@@ -815,7 +815,7 @@ async fn run_agent_loop_marks_provider_stuck_when_map_reduce_cannot_fit() {
 }
 
 // A generic (non-context-window) summarizer error is retried
-// MAX_COMPACTION_RETRIES times with backoff. No Error toast is emitted —
+// MAX_COMPACTION_RETRIES times with backoff. No Error toast is emitted -
 // the failure is visible inline in the chat instead; the loop still
 // completes.
 #[tokio::test]
@@ -827,7 +827,7 @@ async fn run_agent_loop_retries_generic_compaction_failures_then_notifies() {
     h.context_manager = ContextManager::new(2000); // trigger = 1600
     // A loaded user turn WITH an answer (promoted to a LoopClosure
     // below): history over the trigger, and the loop input lands after
-    // an output — never directly on a user turn (that pattern is the
+    // an output - never directly on a user turn (that pattern is the
     // abandoned-input case, which the harness now drops).
     h = h.with_history(&[
         ("user".into(), "u ".repeat(1100)),
@@ -900,8 +900,8 @@ async fn run_agent_loop_retries_generic_compaction_failures_then_notifies() {
 }
 
 // Once the provider is recorded as stuck (the checkpoint can no longer shrink the
-// context into the window), the doomed summarizer call is SKIPPED — no
-// LlmCompaction lifecycle events — and the throttled warning toast is
+// context into the window), the doomed summarizer call is SKIPPED - no
+// LlmCompaction lifecycle events - and the throttled warning toast is
 // re-surfaced instead.
 #[tokio::test]
 async fn run_agent_loop_skips_the_doomed_summarizer_when_stuck() {
@@ -912,7 +912,7 @@ async fn run_agent_loop_skips_the_doomed_summarizer_when_stuck() {
     h.context_manager = ContextManager::new(2000); // trigger = 1600
     // A loaded user turn WITH an answer (promoted to a LoopClosure
     // below): history over the trigger, and the loop input lands after
-    // an output — never directly on a user turn (that pattern is the
+    // an output - never directly on a user turn (that pattern is the
     // abandoned-input case, which the harness now drops).
     h = h.with_history(&[
         ("user".into(), "u ".repeat(1100)),
@@ -985,8 +985,8 @@ async fn run_agent_loop_skips_the_doomed_summarizer_when_stuck() {
 // ── Hierarchical MapReduce (the known-window contingency) ────────────────
 //
 // When the ACTIVE model's window is KNOWN (discovery or a context-window
-// error that reported it) and the held context exceeds it — the
-// model-switch-to-a-smaller-window scenario — the harness drives the checkpoint
+// error that reported it) and the held context exceeds it - the
+// model-switch-to-a-smaller-window scenario - the harness drives the checkpoint
 // instead of the single-shot compaction: the timeline is summarized in
 // independent maps, globally reduced, validated, and committed ATOMICALLY as
 // a checkpoint. This tiny-window fixture folds its oversized raw prefix whole.
@@ -1002,7 +1002,7 @@ async fn known_window_overflow_drives_map_reduce_and_commits_the_anchor() {
     h = h.with_discovered_window(600);
     h.context_manager = ContextManager::new(2000); // trigger = 1600
     // A loaded user turn WITH an answer (promoted to a LoopClosure
-    // below): history over the trigger (~2200 ≥ 1600) and > 600 — the
+    // below): history over the trigger (~2200 ≥ 1600) and > 600 - the
     // known window.
     h = h.with_history(&[
         ("user".into(), "u ".repeat(1100)),
@@ -1161,7 +1161,7 @@ async fn known_window_overflow_drives_map_reduce_and_commits_the_anchor() {
 }
 
 // The REACTIVE fork: when the single-shot compaction transcript itself
-// overflows with a REPORTED window, `llm_compact` drives the checkpoint — the
+// overflows with a REPORTED window, `llm_compact` drives the checkpoint - the
 // checkpoint shrinks the whole timeline (every item included) into a fitting
 // anchor and the compaction resolves successfully
 // (Finished, never Failed; the provider is never marked stuck).
@@ -1173,7 +1173,7 @@ async fn reactive_overflow_reports_window_and_drives_map_reduce_inside_llm_compa
 
     let mut h = Harness::new_test();
     // NO discovered window: the loop-start PROACTIVE fork must NOT fire, so
-    // `llm_compact` runs the single-shot compaction — whose transcript then
+    // `llm_compact` runs the single-shot compaction - whose transcript then
     // overflows WITH a reported window, triggering the reactive checkpoint.
     h.context_manager = ContextManager::new(2000); // trigger = 1600
     // History over the trigger (~2200 ≥ 1600) and > 600 (the
@@ -1331,7 +1331,7 @@ async fn reactive_overflow_reports_window_and_drives_map_reduce_inside_llm_compa
 }
 
 // All-or-nothing: an EMPTY chunk summary (the model returned nothing for a
-// chunk) is treated as a checkpoint failure — the checkpoint aborts and the timeline
+// chunk) is treated as a checkpoint failure - the checkpoint aborts and the timeline
 // stays exactly as it was. Nothing is silently dropped from the anchor.
 #[tokio::test]
 async fn map_reduce_aborts_on_an_empty_chunk_summary_and_keeps_the_context() {
@@ -1393,7 +1393,7 @@ async fn map_reduce_aborts_on_an_empty_chunk_summary_and_keeps_the_context() {
         .unwrap_or_default();
     handle.abort();
 
-    // The checkpoint was attempted and ABORTED — surfaced as a failed compaction.
+    // The checkpoint was attempted and ABORTED - surfaced as a failed compaction.
     assert!(
         events.iter().any(|e| matches!(
             e,
@@ -1409,7 +1409,7 @@ async fn map_reduce_aborts_on_an_empty_chunk_summary_and_keeps_the_context() {
             .any(|e| matches!(e, HarnessEvent::Done { .. })),
         "the loop completes after the abort; events={events:?}"
     );
-    // Atomicity: the giant history was NOT folded — nothing was committed.
+    // Atomicity: the giant history was NOT folded - nothing was committed.
     assert!(
         items.iter().any(|it| matches!(
             it,
@@ -1421,7 +1421,7 @@ async fn map_reduce_aborts_on_an_empty_chunk_summary_and_keeps_the_context() {
         !items
             .iter()
             .any(|it| matches!(it, ContextItem::Compaction { .. })),
-        "no anchor was committed — all or nothing; items={items:?}"
+        "no anchor was committed - all or nothing; items={items:?}"
     );
 }
 
@@ -1437,7 +1437,7 @@ fn result_is_useless_reads_find_grep_json_contract() {
         r#"{"matches":[],"files":[],"total_matches":0,"useless":true,"note":"No matches found"}"#
     ));
 
-    // A useful result — matches present, no flag (the tool omits it).
+    // A useful result - matches present, no flag (the tool omits it).
     assert!(!result_is_useless(
         "find_grep",
         r#"{"matches":[{"path":"a.rs","line_number":1}],"total_matches":1}"#
@@ -1472,8 +1472,8 @@ fn result_is_useless_reads_find_grep_json_contract() {
 // cadence) so the TUI can persist the session context records mid-run. This test
 // proves the snapshots (1) arrive during the run, (2) are valid
 // [`ContextManagerState`]s,
-// (3) reflect progress — each later snapshot owns the tool call/result
-// accumulated since — and (4) restore into a fresh manager that keeps
+// (3) reflect progress - each later snapshot owns the tool call/result
+// accumulated since - and (4) restore into a fresh manager that keeps
 // answering: exactly the round trip a crash/restart resume performs.
 #[tokio::test]
 async fn run_agent_loop_emits_resumable_incremental_context_snapshots() {
@@ -1555,7 +1555,7 @@ async fn run_agent_loop_emits_resumable_incremental_context_snapshots() {
     );
 
     // Resumability: restore the LAST snapshot into a fresh manager and keep
-    // answering — the exact session-log round trip on restart.
+    // answering - the exact session-log round trip on restart.
     let last = states.last().expect("non-empty snapshots");
     let mut restored = ContextManager::new(last.max_tokens);
     restored.restore_state(last);
@@ -1678,7 +1678,7 @@ async fn queued_next_request_message_enters_the_next_request_with_tool_work() {
     );
 
     // The context sequence places the injected user turn in the SAME request
-    // as the tool call — before it — and the loop still completes normally.
+    // as the tool call - before it - and the loop still completes normally.
     let items: Vec<ContextItem> = h.context_manager.items_snapshot();
     let user_positions: Vec<usize> = items
         .iter()
@@ -1705,12 +1705,12 @@ async fn queued_next_request_message_enters_the_next_request_with_tool_work() {
     ));
 }
 
-/// ESC pressed MID-STREAM must stop the agent loop — never complete the
+/// ESC pressed MID-STREAM must stop the agent loop - never complete the
 /// truncated turn. Regression: the streaming chunk loop used to `break` on
 /// the stop signal and fall through to `Ok("done")`, so `run_agent_loop`
 /// treated the interrupted response as a finished assistant turn and emitted
 /// a spurious `Done` (and with queued messages, the TUI auto-started the
-/// NEXT loop — the run appeared to keep going after ESC).
+/// NEXT loop - the run appeared to keep going after ESC).
 #[tokio::test]
 async fn test_agent_loop_stop_mid_stream() {
     let mut h = Harness::new_test()
@@ -1759,7 +1759,7 @@ async fn test_agent_loop_stop_mid_stream() {
     }
     handle.abort();
 
-    // The loop MUST report `Stopped` — not `Done` (the turn was interrupted,
+    // The loop MUST report `Stopped` - not `Done` (the turn was interrupted,
     // not completed) and not `Error`.
     assert!(
         matches!(terminal, Some(HarnessEvent::Stopped { .. })),
@@ -1768,7 +1768,7 @@ async fn test_agent_loop_stop_mid_stream() {
 }
 
 /// Direct contract: a stream interrupted by the stop signal must return the
-/// `INTERRUPTED_MARKER` error, never `Ok`. (Pre-set signal — the mid-stream
+/// `INTERRUPTED_MARKER` error, never `Ok`. (Pre-set signal - the mid-stream
 /// path is covered by `test_agent_loop_stop_mid_stream` above.)
 #[tokio::test]
 async fn test_stream_chat_with_messages_stop_yields_interrupted_marker() {
@@ -1788,8 +1788,8 @@ async fn test_stream_chat_with_messages_stop_yields_interrupted_marker() {
 // whatever output was produced before the stop both stay in the context.
 //
 // REGRESSION (interrupted-run amnesia): the partial assistant text streamed
-// before a mid-stream stop was never recorded — the `add_assistant` call
-// only runs on the stream-success path — and the follow-up input then
+// before a mid-stream stop was never recorded - the `add_assistant` call
+// only runs on the stream-success path - and the follow-up input then
 // landed directly on top of the bare user turn, so the abandoned-input
 // sweep hid the FIRST message as well. The model saw an almost-empty
 // history: neither its own work nor the user's original question survived.
@@ -1865,7 +1865,7 @@ async fn interrupted_run_keeps_the_first_message_and_the_partial_output() {
     let stopped = stopped.expect("the interrupted loop must report Stopped");
 
     // THE BUG UNDER TEST (recording half): the stopped state must carry the
-    // exchange — the user's first message AND the partial output streamed
+    // exchange - the user's first message AND the partial output streamed
     // before the stop.
     let mut cm = crate::harness::context::ContextManager::new(100_000);
     cm.restore_state(&stopped);
@@ -1887,7 +1887,7 @@ async fn interrupted_run_keeps_the_first_message_and_the_partial_output() {
         });
     assert!(
         partial.len() < FULL_TEXT.len(),
-        "the stop landed after the stream completed — the run raced and this \
+        "the stop landed after the stream completed - the run raced and this \
          test's interruption point is invalid; recorded={partial:?}"
     );
 
@@ -1914,7 +1914,7 @@ async fn interrupted_run_keeps_the_first_message_and_the_partial_output() {
     let texts2: Vec<&str> = msgs2.iter().filter_map(|m| m.content.as_deref()).collect();
     assert!(
         texts2.contains(&"first user message"),
-        "the follow-up turn must still see the FIRST message — the \
+        "the follow-up turn must still see the FIRST message - the \
          abandoned-input sweep must never treat an interrupted-but-active \
          turn as debris; texts={texts2:?}"
     );
@@ -1933,10 +1933,10 @@ async fn interrupted_run_keeps_the_first_message_and_the_partial_output() {
 //
 // The harness audit seam: a stub `Checkup` (no ONNX runtime needed) covers
 // the three behaviours the real `OnnxCheckup` adapter relies on:
-//   1. a confident `NotTerminated` verdict VETOES a natural completion —
+//   1. a confident `NotTerminated` verdict VETOES a natural completion -
 //      the loop continues instead of ending with `Done`;
 //   2. the verdict only vetoes at or above the configured confidence floor
-//      — a low-confidence `NotTerminated` is ignored (fail-open);
+//      - a low-confidence `NotTerminated` is ignored (fail-open);
 //   3. a heuristic guard stop (loop detection) records the verdict on the
 //      terminal `Done` event, so an improper stop is never silent.
 
@@ -2012,7 +2012,7 @@ async fn pump_terminal_events(
 
 #[tokio::test]
 async fn checkup_veto_continues_a_premature_natural_completion() {
-    // Stream 1: a tool call (the cycle does real work — the checkup only
+    // Stream 1: a tool call (the cycle does real work - the checkup only
     // reviews turns where a tool ran). Stream 2: a final-sounding text turn
     // that the model judges NOT terminated → the loop must continue.
     // Stream 3: a turn the model judges terminated → `Done`.
@@ -2101,7 +2101,7 @@ async fn checkup_low_confidence_verdict_does_not_veto() {
 #[tokio::test]
 async fn checkup_never_reviews_a_tool_free_text_cycle() {
     // The deterministic gate: a cycle with NO tool dispatch is a pure text
-    // exchange — the request was answerable directly, so the final text is
+    // exchange - the request was answerable directly, so the final text is
     // complete by construction. The checkup must not even be CONSULTED (the
     // stub's verdicts stay unconsumed and no veto/Toast can fire), and the
     // loop ends on the single text turn. This is the fix for the direct-
@@ -2135,7 +2135,7 @@ async fn checkup_never_reviews_a_tool_free_text_cycle() {
             .filter(|e| matches!(e, HarnessEvent::Done { .. }))
             .count(),
         1,
-        "exactly one Done — no continuation, events={events:?}"
+        "exactly one Done - no continuation, events={events:?}"
     );
     assert!(
         !events
@@ -2199,7 +2199,7 @@ async fn checkup_records_the_verdict_on_a_guard_stop() {
 #[tokio::test]
 async fn checkup_veto_is_bounded_by_max_iterations() {
     // The natural-completion veto runs with `finished == true`, so the
-    // `!finished` MAX_ITERATIONS guard never bounds it — but neither bounds
+    // `!finished` MAX_ITERATIONS guard never bounds it - but neither bounds
     // this test: the stub says NOT terminated for every turn (one verdict
     // per veto; the checkup only reviews turns where a tool ran, so this
     // all-text loop is never audited). The model's own stop stands and the
@@ -2229,7 +2229,7 @@ async fn checkup_veto_is_bounded_by_max_iterations() {
     let events = pump_terminal_events(rx).await;
     handle.abort();
 
-    // Exactly one terminal `Done` — the cap ended the loop, not the veto.
+    // Exactly one terminal `Done` - the cap ended the loop, not the veto.
     let done_count = events
         .iter()
         .filter(|e| matches!(e, HarnessEvent::Done { .. }))
@@ -2242,7 +2242,7 @@ async fn checkup_veto_is_bounded_by_max_iterations() {
 
 /// THE dedicated veto budget: the stub vetoes EVERY natural stop, so the
 /// loop must fire the veto arm exactly CHECKUP_VETO_BUDGET times and then
-/// let the model's stop stand — regardless of how far MAX_ITERATIONS is.
+/// let the model's stop stand - regardless of how far MAX_ITERATIONS is.
 /// Each cycle is a tool-call stream (the checkup only reviews turns where a
 /// tool ran) followed by a final-sounding text stream the stub judges NOT
 /// terminated. Counted by the veto toast (one per granted veto), the same
@@ -2259,7 +2259,7 @@ async fn checkup_veto_budget_exhaustion_stops_before_max_iterations() {
     });
     // One NOT-terminated verdict per potential veto, plus slack: the stub
     // defaults to Terminated once the queue drains, so the slack verdicts
-    // must never be reached — proving the budget, not the queue, ended it.
+    // must never be reached - proving the budget, not the queue, ended it.
     let mut streams = Vec::new();
     for _ in 0..CHECKUP_VETO_BUDGET * 4 {
         streams.push(Ok(vec![CALL]));
@@ -2377,7 +2377,7 @@ async fn a_reasoning_less_response_records_no_reasoning() {
 
 #[tokio::test]
 async fn a_mid_stream_reset_discards_the_failed_attempts_reasoning() {
-    // A mid-stream retry discards the failed attempt's partial message —
+    // A mid-stream retry discards the failed attempt's partial message -
     // its reasoning goes WITH it (the TUI drops the streaming message's
     // reasoning on the same reset). The retried tokens' reasoning is the
     // only one that may reach the context item. The mock fires the reset
@@ -2464,7 +2464,7 @@ async fn natural_stop_gate_continues_a_reasoning_only_stream_and_promotes_the_re
 
 #[tokio::test]
 async fn natural_stop_gate_retries_a_bare_empty_response() {
-    // Stream 1: `stop` with zero tokens AND zero reasoning — a bare cut (or a
+    // Stream 1: `stop` with zero tokens AND zero reasoning - a bare cut (or a
     // degenerate empty completion). The gate must retry, not Done.
     // Stream 2: the real answer.
     let mut h = Harness::new_test()
@@ -2494,7 +2494,7 @@ async fn natural_stop_gate_retries_a_bare_empty_response() {
 
 // ── Textual-output repetition detection ─────────────────────────────────────
 //
-// The crush-style loop detector only sees TOOL interactions — it is blind to
+// The crush-style loop detector only sees TOOL interactions - it is blind to
 // a model stuck repeating the same THOUGHT with no tool call (observed in the
 // field: a reasoning-only `stop` stream repeated the same paragraph for
 // dozens of iterations while the natural-stop gate kept continuing it). The
@@ -2505,7 +2505,7 @@ async fn natural_stop_gate_retries_a_bare_empty_response() {
 #[tokio::test]
 async fn repetition_detection_stops_a_reasoning_only_loop() {
     // Every stream repeats the SAME long reasoning and produces zero answer
-    // tokens — the field-observed stuck shape. The natural-stop gate would
+    // tokens - the field-observed stuck shape. The natural-stop gate would
     // happily continue 10 times (the whole nudge budget); the repetition
     // detector must stop the loop on the 3rd identical turn instead.
     let reasoning = "The provider cut the stream before any answer could be \
@@ -2563,7 +2563,7 @@ async fn repetition_detection_does_not_fire_on_two_identical_texts() {
     // (REPETITION_MAX_IDENTICAL = 2, so the streak reaches 2 without firing);
     // the third identical text trips the detector. The first two streams end
     // with `length` (truncated) so the loop continues past the natural-stop
-    // path and the detector actually sees BOTH identical texts — a pair of
+    // path and the detector actually sees BOTH identical texts - a pair of
     // clean `stop` answers would close the loop on the first turn and never
     // exercise the streak=2 boundary this test pins.
     let text = "The migration is complete: all forty-two call sites now use \
@@ -2594,7 +2594,7 @@ async fn repetition_detection_does_not_fire_on_two_identical_texts() {
             e,
             HarnessEvent::Toast { message, .. } if message.contains("repeated the same output")
         )),
-        "two identical texts are below the threshold — no repetition stop, events={events:?}"
+        "two identical texts are below the threshold - no repetition stop, events={events:?}"
     );
     assert!(
         events
@@ -2616,7 +2616,7 @@ async fn a_stream_cut_mid_tool_call_is_never_a_finished_turn() {
     // Stream 1 mirrors a stream CUT mid-tool-call: the model opened the
     // inline-JSON call `{` and the stream died before the closing `}`. The
     // provider's finish frame says `stop` (an EOF-during-JSON stream can
-    // still close "cleanly" at the HTTP layer) — the unclosed object is the
+    // still close "cleanly" at the HTTP layer) - the unclosed object is the
     // proof of the cut, so the gate must treat the turn as truncated
     // (the `!finished` continuation arm), not as a natural stop.
     // Stream 2: the model re-emits the complete call; it dispatches and the
@@ -2644,10 +2644,10 @@ async fn a_stream_cut_mid_tool_call_is_never_a_finished_turn() {
     handle.abort();
 
     // The cut call was NOT silently swallowed: the loop continued and the
-    // COMPLETE retry call dispatched (ToolCall + ToolResult present — the
+    // COMPLETE retry call dispatched (ToolCall + ToolResult present - the
     // same events the canonical tool-loop test asserts). The terminal event
     // follows the dispatch (Done, or the terminal error of the drained mock
-    // queue — both prove the loop kept working after the cut).
+    // queue - both prove the loop kept working after the cut).
     assert!(
         events
             .iter()
@@ -2672,7 +2672,7 @@ async fn a_stream_cut_mid_tool_call_is_never_a_finished_turn() {
 async fn a_healthy_single_text_turn_still_ends_naturally() {
     // Regression guard for the veto layer: a clean, complete answer with no
     // plan, no reasoning cut and no empty response must still reach Done on
-    // the first turn — the gate must never turn every turn into a retry.
+    // the first turn - the gate must never turn every turn into a retry.
     let mut h = Harness::new_test()
         .with_mock_stream(Ok(vec!["2+2 é ", "4"]))
         .with_mock_finish_reason(Some("stop"));

@@ -1,6 +1,6 @@
 //! Client side of the voice daemon: one round trip per synthesis.
 //!
-//! The daemon never plays audio — it writes the WAV and returns where it is
+//! The daemon never plays audio - it writes the WAV and returns where it is
 //! plus the bass envelope for the animation. That keeps the connection short
 //! (the TUI needs to pause and restart the sound, which a blocking IPC call
 //! could not express) and leaves file cleanup to the session store.

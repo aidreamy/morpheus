@@ -1,4 +1,4 @@
-//! **Highlight Spinner Demo** — shows off the luminous sweep effect.
+//! **Highlight Spinner Demo** - shows off the luminous sweep effect.
 //!
 //! Run with:
 //! ```sh
@@ -36,7 +36,7 @@ use ratatui::widgets::{Block, Borders, Paragraph};
 mod spinner_highlight;
 
 // `spinner_highlight` resolves its shared color helper through
-// `crate::theme` — include the real module so there is a single source of
+// `crate::theme` - include the real module so there is a single source of
 // truth for it.
 #[path = "../tui/theme.rs"]
 mod theme;
@@ -189,7 +189,7 @@ fn main() -> io::Result<()> {
                 .fg(ratatui::style::Color::DarkGray);
             frame.render_widget(footer, layout.footer);
 
-            // Colour legend — show the active RGB values.
+            // Colour legend - show the active RGB values.
             let (hr, hg, hb, _) = preset.highlight.to_ints();
             let (br, bg, bb, _) = preset.base.to_ints();
             let legend_text = format!(

@@ -6,7 +6,7 @@
 //! criteria", lines 266–271).
 //!
 //! Deferred findings (F05, F06, F09, F10, F15) require P2 architectural work
-//! and are intentionally NOT covered here — see
+//! and are intentionally NOT covered here - see
 //! `src/telemetry/.NOTE/DEFERRED-P2.md`. F03's Retry-After wait is verified
 //! at unit level (`telemetry::sink::tests::retry_after_is_parsed_and_capped`):
 //! exercising it end-to-end would require a TLS loopback server.
@@ -49,7 +49,7 @@ fn f01_denylist_matches_lowercase_inputs() {
 fn f01_typed_payloads_cannot_carry_private_content() {
     // Was repro_all_event_types_accept_unstructured_private_content: free-form
     // payloads crossed the boundary. Now payloads are closed structs with
-    // private fields and validated components — free text cannot be stored.
+    // private fields and validated components - free text cannot be stored.
     for kind in [
         EventType::Install,
         EventType::SessionSummary,
@@ -282,7 +282,7 @@ fn f13_errors_group_by_full_dimension_set() {
 #[test]
 fn f14_counters_are_saturating() {
     // Was repro_counter_is_not_saturating: bumping at u32::MAX panicked in
-    // debug builds. Counters now saturate — no panic, no wrap.
+    // debug builds. Counters now saturate - no panic, no wrap.
     let mut map = BTreeMap::from([("bash".to_string(), u32::MAX)]);
     bump(&mut map, "bash");
     assert_eq!(map["bash"], u32::MAX);

@@ -5,8 +5,8 @@
 //! repository. Colours come from [`Palette`], so the page carries the user's
 //! own theme.
 //!
-//! The layout is plain text first — padding is computed on the visible width,
-//! then fragments are painted — so a monochrome terminal gets the exact same
+//! The layout is plain text first - padding is computed on the visible width,
+//! then fragments are painted - so a monochrome terminal gets the exact same
 //! alignment without the escape bytes.
 
 use crate::cli::VERSION;
@@ -441,7 +441,7 @@ fn framed(palette: &Palette, content: &str, content_width: usize, inner: usize) 
 }
 
 /// Word-wrap `text` at `width` columns. Words longer than the width are kept
-/// whole — a URL or a version never gets split mid-token.
+/// whole - a URL or a version never gets split mid-token.
 fn wrap(text: &str, width: usize) -> Vec<String> {
     let width = width.max(1);
     let mut lines = Vec::new();

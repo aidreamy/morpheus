@@ -1,8 +1,8 @@
 //! Typed event stream for ACP sub-agent sessions.
 //!
 //! The bare `String` chunk channel (Phase 1 and earlier) only carried agent
-//! message text. The ACP `session/update` stream offers more — thoughts, tool
-//! calls, plans, usage — and the TUI needs all of it (Phase 3 renders the
+//! message text. The ACP `session/update` stream offers more - thoughts, tool
+//! calls, plans, usage - and the TUI needs all of it (Phase 3 renders the
 //! activity inside the sub-agent box). This module defines a self-owned event
 //! enum mirroring the relevant [`SessionUpdate`] variants, deliberately
 //! decoupled from the `agent-client-protocol` types so the display layer and
@@ -196,7 +196,7 @@ pub struct ToolDiffSummary {
 /// `available_commands_update` session update.
 ///
 /// The name is the AGENT's own spelling (`/models` for one harness,
-/// `/model` for another) — the TUI keeps it verbatim in its slash menu and
+/// `/model` for another) - the TUI keeps it verbatim in its slash menu and
 /// only the opened box gets standardized through the client-side mapping.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AgentCommand {
@@ -263,7 +263,7 @@ pub enum PanePermissionAnswer {
     /// The user picked one of the agent's offered options (its id).
     Selected(String),
     /// The user dismissed the box: the pending request is CANCELLED per the
-    /// ACP spec (a distinct semantic from an offered reject option — the
+    /// ACP spec (a distinct semantic from an offered reject option - the
     /// turn's harness decides what a cancellation means).
     Cancel,
 }
@@ -302,12 +302,12 @@ pub enum SubagentEvent {
         /// The streamed text chunk.
         text: String,
     },
-    /// A chunk of an AGENT's input to the pane — a message another agent
+    /// A chunk of an AGENT's input to the pane - a message another agent
     /// sent through `agents_call` (the main agent's harness or the manager
     /// pane), not the human user. Live-only: the TUI applies it when it
     /// dispatches the pane turn, and the pane renders it with a distinct
     /// rail so the user sees WHO is speaking (history replay never
-    /// produces this variant — the ACP session/load stream only carries
+    /// produces this variant - the ACP session/load stream only carries
     /// real user chunks).
     AgentMessage {
         /// The agent's input text.
@@ -337,7 +337,7 @@ pub enum SubagentEvent {
         /// Raw input parameters, when the harness reports them.
         raw_input: Option<serde_json::Value>,
         /// The tool's REAL name (`fs_edit`, `find_grep`, …) when the source
-        /// carries one — the internal sub-agent does; an ACP harness does
+        /// carries one - the internal sub-agent does; an ACP harness does
         /// not (its protocol has only the kind + a free-form title). The
         /// TUI labels the row with THIS name, exactly like the main chat's
         /// compact renderer, instead of the kind's generic short form.
@@ -359,7 +359,7 @@ pub enum SubagentEvent {
         /// Raw output returned by the tool, when the update carries it.
         raw_output: Option<serde_json::Value>,
         /// Text extracted from the update's content blocks (replaces, not
-        /// extends — mirroring the ACP "collections are overwritten" rule).
+        /// extends - mirroring the ACP "collections are overwritten" rule).
         content: ToolOutputBlock,
     },
     /// The agent's execution plan (complete replacement, per the ACP spec).
@@ -375,7 +375,7 @@ pub enum SubagentEvent {
         tokens_in_context: u64,
     },
     /// The session's serving triple, read from the ACP session config
-    /// options once per turn (and per replay pass) — the data behind the
+    /// options once per turn (and per replay pass) - the data behind the
     /// `/agents` prompt badge. Emitted by the caller, never by
     /// `session/update` mapping: it is pane chrome, not timeline content,
     /// so the TUI stores it on the pane instead of applying it. Anything
@@ -403,7 +403,7 @@ pub enum SubagentEvent {
     },
     /// A tool call AWAITS the user's permission decision. Emitted by the
     /// ACP `session/request_permission` request when the client runs a
-    /// non-Yolo mode (the split's Yolo contract auto-approves instead —
+    /// non-Yolo mode (the split's Yolo contract auto-approves instead -
     /// see [`crate::acp`]'s permission handler). The TUI shows
     /// its permission box for THIS pane; the user's answer flows back
     /// through the pane's permission channel and selects the response
@@ -419,15 +419,15 @@ pub enum SubagentEvent {
         /// The raw input JSON (the TUI's detail rows), when sent.
         raw_input: Option<serde_json::Value>,
         /// The options the agent offers, in wire order: `(option id, label,
-        /// kind string)` — the client shows them as the box's rows and the
+        /// kind string)` - the client shows them as the box's rows and the
         /// user's pick sends `option id` back.
         options: Vec<AgentPermissionOption>,
     },
-    /// The session's MODES were (re)published — the current mode plus the
+    /// The session's MODES were (re)published - the current mode plus the
     /// full list of modes the agent can operate in. Pane chrome like
     /// `SessionModel`/`Commands`: stored on the pane, never streamed into
     /// the timeline. The client maps its own harness mode onto one of these
-    /// ids (a similarity match — no ACP contract fixes the spellings) and
+    /// ids (a similarity match - no ACP contract fixes the spellings) and
     /// binds it through `session/set_mode`; an agent that advertises no
     /// modes (`None`/empty list, like gemini) simply gets none.
     Modes {
@@ -442,7 +442,7 @@ pub enum SubagentEvent {
         title: Option<String>,
     },
     /// The agent's available slash commands were (re)published. Emitted by
-    /// a live turn whenever the harness refreshes its command list — the
+    /// a live turn whenever the harness refreshes its command list - the
     /// TUI caches it per pane and feeds the focused pane's slash menu.
     /// Also produced by the on-demand `session_snapshot` probe. NOT timeline
     /// content: the TUI stores it on the pane like `SessionModel`.
@@ -451,7 +451,7 @@ pub enum SubagentEvent {
         commands: Vec<AgentCommand>,
     },
     /// The session's config options were (re)published (the full set, not a
-    /// delta — ACP always carries the complete list). Pane chrome like
+    /// delta - ACP always carries the complete list). Pane chrome like
     /// `SessionModel`/`Commands`: stored on the pane, never streamed into
     /// the timeline.
     ConfigOptions {
@@ -463,7 +463,7 @@ pub enum SubagentEvent {
 /// Whether a config VALUE must never reach the TUI's pickers: the
 /// `/agents` split runs YOLO by contract, so permission-escalation modes
 /// some harnesses publish as plain session-mode values (claude's
-/// `bypassPermissions`, devin's `bypass`) must be stripped at the mirror —
+/// `bypassPermissions`, devin's `bypass`) must be stripped at the mirror -
 /// the single choke point every config-options path flows through (the
 /// snapshot probe, live `config_option_update`s, and `set_config_option`
 /// responses alike).
@@ -472,14 +472,14 @@ fn value_exposed(value: &str) -> bool {
     !(normalized.contains("bypass")
         || normalized.contains("permission")
         || normalized.contains("yolo")
-        // The permission-softening spellings no stem above can catch —
+        // The permission-softening spellings no stem above can catch -
         // each harness's own docs publish them as plain mode/mode-config
         // VALUES: claude's `acceptEdits` and devin's `accept-edits` (both
-        // switch edits to auto-accept — the YOLO contract decides that),
+        // switch edits to auto-accept - the YOLO contract decides that),
         // codex's `agent-full-access` (the everything-runs toggle).
         || normalized.contains("accept")
-        // camelCase publications (`fullAccess`) fold to `fullaccess` — no
-        // underscore — so this stem is checked in BOTH forms (claude's
+        // camelCase publications (`fullAccess`) fold to `fullaccess` - no
+        // underscore - so this stem is checked in BOTH forms (claude's
         // `acceptEdits` precedent shows camelCase value spellings exist).
         || normalized.contains("full_access")
         || normalized.contains("fullaccess"))
@@ -527,7 +527,7 @@ pub(crate) fn mirror_config_option(option: &schema::SessionConfigOption) -> Agen
             schema::SessionConfigOptionCategory::ThoughtLevel => "thought_level".to_string(),
             schema::SessionConfigOptionCategory::Other(other) => other.clone(),
             // `#[non_exhaustive]`: a future spec category carries no string
-            // of its own here — the option still mirrors, just uncategorized.
+            // of its own here - the option still mirrors, just uncategorized.
             _ => String::new(),
         }),
         values,
@@ -537,7 +537,7 @@ pub(crate) fn mirror_config_option(option: &schema::SessionConfigOption) -> Agen
 }
 
 impl SubagentEvent {
-    /// Whether THIS event is timeline/report CONTENT — the conversation
+    /// Whether THIS event is timeline/report CONTENT - the conversation
     /// material itself: message, thought, tool and plan data.
     ///
     /// Pane chrome (usage, mode, session info, commands, config options) is
@@ -546,14 +546,14 @@ impl SubagentEvent {
     /// chronological history: replaying it APPENDS old turns into a new one.
     ///
     /// The live-turn path (`acp::run_session`) uses this to drop the content
-    /// half of a `session/load` history replay — the v1 ACP contract makes a
+    /// half of a `session/load` history replay - the v1 ACP contract makes a
     /// `load`-resume stream the ENTIRE retained conversation as ordinary
     /// `session/update` notifications BEFORE answering (measured on
     /// `goose acp`: the `user_message_chunk` / `agent_thought_chunk` /
     /// `agent_message_chunk` of EVERY previous turn arrive during the load
     /// window). Unfiltered, that replay lands in the live pane's timeline
     /// and in the turn's closure (`TurnClosure`), mixing entries from
-    /// different moments — the reported "pane mixes inputs from different
+    /// different moments - the reported "pane mixes inputs from different
     /// moments" symptom. The dedicated rehydrate path (`acp::replay`) is the
     /// only consumer that WANTS the full content stream.
     pub(crate) fn is_content(&self) -> bool {
@@ -638,7 +638,7 @@ impl SubagentEvent {
             kind: ToolKind::from_acp(call.kind),
             status: ToolCallStatus::from_acp(call.status),
             raw_input: call.raw_input,
-            // The ACP protocol carries no tool name — the free-form title is
+            // The ACP protocol carries no tool name - the free-form title is
             // all a harness gives us. `None`: the row labels itself by kind,
             // as it always did.
             tool: None,
@@ -687,8 +687,8 @@ impl SubagentEvent {
 
 /// The text of a content chunk, when it is a text block.
 ///
-/// Non-text blocks (images, audio, resources) yield `None` — they have no
-/// place in the event stream yet — and are logged here with the update kind
+/// Non-text blocks (images, audio, resources) yield `None` - they have no
+/// place in the event stream yet - and are logged here with the update kind
 /// (`what`) so triage can distinguish "unmapped update variant" from
 /// "unrenderable content block inside a mapped variant".
 fn chunk_text(
@@ -704,7 +704,7 @@ fn chunk_text(
     }
 }
 
-/// The session title, when the update sets one (not undefined, not null —
+/// The session title, when the update sets one (not undefined, not null -
 /// a `null` title is a *clear*, which yields no event).
 fn session_info_title(update: &schema::SessionInfoUpdate) -> Option<String> {
     update.title.value().cloned()
@@ -727,7 +727,7 @@ pub(crate) fn extract_content_text(content: Vec<schema::ToolCallContent>) -> Too
                 _ => skipped += 1,
             },
             schema::ToolCallContent::Diff(d) => {
-                // The LAST diff block wins — one file edit per tool call is
+                // The LAST diff block wins - one file edit per tool call is
                 // the norm, and a follow-up diff supersedes the previous.
                 diff = Some(diff_summary(
                     &d.path.to_string_lossy(),
@@ -747,13 +747,13 @@ pub(crate) fn extract_content_text(content: Vec<schema::ToolCallContent>) -> Too
 }
 
 /// Context lines around each hunk of the unified diff the TUI renders from
-/// an ACP diff block (`ToolDiffSummary::unified`). Three lines — the same
+/// an ACP diff block (`ToolDiffSummary::unified`). Three lines - the same
 /// default git uses, keeping the agent-view diffs and the chat's edit boxes
 /// visually identical.
 pub(crate) const UNIFIED_DIFF_CONTEXT: usize = 3;
 
 /// Line-count budget of [`diff_summary`]: beyond this many lines a text side
-/// is treated as unbounded and the set difference stops being meaningful —
+/// is treated as unbounded and the set difference stops being meaningful -
 /// the counts degrade to the raw line-count delta instead of an O(n) scan
 /// over megabytes of generated code.
 pub(crate) const DIFF_SUMMARY_LINE_CAP: usize = 5_000;

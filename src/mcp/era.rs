@@ -14,7 +14,7 @@
 //! Detection is deliberately *not* delegated to rmcp's
 //! `ClientLifecycleMode::Auto`: its fallback reuses the same transport
 //! session, and an rmcp server marks a session whose first message was
-//! `discover` as requiring per-request metadata — so the fallback's legacy
+//! `discover` as requiring per-request metadata - so the fallback's legacy
 //! requests are all rejected. The manager instead dials each era explicitly
 //! on a fresh transport (see `McpManager::register_with_retry`). This module
 //! owns the era vocabulary: the version preference (pinned explicitly, never
@@ -63,7 +63,7 @@ impl Era {
 /// signal, so the probe needs its own budget: generous for a real server
 /// to boot, but bounded so a silent one falls back promptly. rmcp's
 /// internal `Auto` timeout (10 s) is not exposed, and this budget only
-/// ever applies to unknown servers — a cached era dials directly with no
+/// ever applies to unknown servers - a cached era dials directly with no
 /// probing.
 pub(crate) const PROBE_TIMEOUT: Duration = Duration::from_secs(10);
 
@@ -71,7 +71,7 @@ pub(crate) const PROBE_TIMEOUT: Duration = Duration::from_secs(10);
 ///
 /// Pinned on purpose: `ProtocolVersion::LATEST` still equals
 /// `V_2025_11_25` in rmcp 3.2.0, so an unpinned preference would silently
-/// negotiate the legacy revision. Allocates one tiny `Vec` per dial —
+/// negotiate the legacy revision. Allocates one tiny `Vec` per dial -
 /// negligible next to spawning a transport; kept as `Vec` to match the
 /// `ClientLifecycleMode::Discover` signature.
 pub(crate) fn preferred_versions() -> Vec<ProtocolVersion> {
@@ -106,7 +106,7 @@ pub(crate) fn era_of(peer_info: Option<&ServerPeerInfo>) -> Era {
 /// protocol; anything else (method-not-found, parse errors, implementation
 /// codes) is a legacy signal. A future reserved modern code added by a
 /// later spec revision would misclassify as legacy until added here.
-/// The manager folds this into flip evidence per dial direction —
+/// The manager folds this into flip evidence per dial direction -
 /// see `map_initialize_error` there.
 pub(crate) fn is_modern_error(error: &ErrorData) -> bool {
     matches!(

@@ -20,7 +20,7 @@ pub async fn run_workspace_symbols(
     let clients = deps.manager.running_clients();
     if clients.is_empty() {
         return Err(
-            "no language servers are running yet — touch a file first (read/edit) \
+            "no language servers are running yet - touch a file first (read/edit) \
              to start them, then retry"
                 .into(),
         );

@@ -91,7 +91,7 @@ fn main() {
     // the first failure. Here the first target applies cleanly, the second
     // carries an anchor edit with a hash that is stale AND unknown to the
     // session history (recovery has no base to 3-way-merge against, so it must
-    // reject), and the third is therefore skipped as a consequence — never
+    // reject), and the third is therefore skipped as a consequence - never
     // reported as an independent failure. Earlier results stay committed in
     // `EditBatchError::applied`.
     let source_b = "mod b { pub fn x() {}\n}\n";

@@ -8,7 +8,7 @@
 //!
 //! This is a *new* evaluation, not a port of an upstream test: upstream has no
 //! loop-termination dataset. It follows the upstream `laya/evals.py`
-//! conventions instead — one `Example` = `state` + `questions` + `expected`
+//! conventions instead - one `Example` = `state` + `questions` + `expected`
 //! (+ tags/language), `ChoiceAccuracy` scoring (`answer["choice"] ==
 //! expected`), calibration read from `answer_confidence`, and per-slice
 //! aggregation by language and label.
@@ -25,7 +25,7 @@
 //!
 //! Measured against the three published checkpoints (ONNX exported with
 //! upstream `scripts/export_onnx.py`, and the same dataset through upstream
-//! torch laya — the numbers match to 4 decimals, confirming the port rather
+//! torch laya - the numbers match to 4 decimals, confirming the port rather
 //! than the model decides these scores):
 //!
 //! | checkpoint      | loop accuracy | mean `answer_confidence` | control |
@@ -34,7 +34,7 @@
 //! | multilingual    | 0.8333       | 0.7989                   | 1.0000  |
 //! | typed-decisions | 0.8750       | 0.7182                   | 1.0000  |
 //!
-//! The misses are all borderline "terminated" summaries read as "running" —
+//! The misses are all borderline "terminated" summaries read as "running" -
 //! the model is conservative without an explicit closing word. 0.90 is not
 //! reachable on this out-of-distribution task for any checkpoint (upstream
 //! torch included), so the default floor is 0.80; raise
@@ -114,7 +114,7 @@ const EXAMPLES: &[Example] = &[
         control: false,
     },
     Example {
-        message: "All done — build green, docs updated, PR merged. Loop finished.",
+        message: "All done - build green, docs updated, PR merged. Loop finished.",
         terminated: true,
         language: "en",
         control: false,
@@ -451,7 +451,7 @@ fn loop_termination_eval() {
         .expect("the control slice always runs");
     assert!(
         pct(c_hits, c_total) >= 0.75,
-        "control accuracy {}/{} fell below 0.75 — the checkpoint/runtime pairing \
+        "control accuracy {}/{} fell below 0.75 - the checkpoint/runtime pairing \
          is broken, not the task",
         c_hits,
         c_total
@@ -466,10 +466,10 @@ fn loop_termination_eval() {
 /// test replays exactly that decision over the loop corpus for every floor
 /// in the sweep and reports, per threshold:
 ///
-/// - `missed_stops` — running examples the consumer let end (the model said
+/// - `missed_stops` - running examples the consumer let end (the model said
 ///   `terminated`, or said `running` below the floor): an agent loop dies
-///   mid-task. The primary cost — minimize first.
-/// - `false_continues` — terminated examples the consumer kept running: a
+///   mid-task. The primary cost - minimize first.
+/// - `false_continues` - terminated examples the consumer kept running: a
 ///   wasted turn, bounded by MAX_ITERATIONS. The secondary cost.
 ///
 /// The recommended floor is the smallest one reaching the maximum number of
@@ -650,7 +650,7 @@ fn completion_prefix_probe() {
         total += 1;
         terminated_hits += usize::from(prefixed_said == "terminated");
         println!(
-            "  [{}→{}] conf={prefixed_conf:.3} — {:?}",
+            "  [{}→{}] conf={prefixed_conf:.3} - {:?}",
             bare_said, prefixed_said, example.message
         );
     }

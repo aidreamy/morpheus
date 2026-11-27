@@ -10,7 +10,7 @@ use super::Harness;
 
 impl Harness {
     /// Catalog names of every language server currently alive (Starting or
-    /// Ready) across both managers this harness drives — its own passive
+    /// Ready) across both managers this harness drives - its own passive
     /// diagnostics manager and the one inside [`MorpheusTools`] used by the
     /// `lsp_*` tools. Deduplicated, order not guaranteed. An empty slice means
     /// no server is running right now.

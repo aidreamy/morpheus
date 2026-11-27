@@ -57,7 +57,7 @@ pub enum LspError {
         data: Option<serde_json::Value>,
     },
 
-    /// The outbound channel is closed — the transport already terminated
+    /// The outbound channel is closed - the transport already terminated
     /// (stream death, writer task gone) or was never alive.
     #[error("language server is no longer running")]
     NotRunning,

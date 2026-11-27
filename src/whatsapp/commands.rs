@@ -6,7 +6,7 @@
 //!
 //! 1. the first non-whitespace character is `/`;
 //! 2. the token right after `/` is a bare name (`A-Z`, `a-z`, `0-9`, `-`,
-//!    `_`) — no `/`, `\`, `.` or `:`; and
+//!    `_`) - no `/`, `\`, `.` or `:`; and
 //! 3. the lowercased name is a command this registry publishes.
 //!
 //! The registry gate is what keeps ordinary messages from being hijacked:
@@ -273,11 +273,11 @@ impl IncomingCommand {
 pub fn help_text() -> String {
     let mut text = String::from("*Morpheus on WhatsApp*\n\nCommands (case-insensitive):\n");
     for command in COMMANDS {
-        text.push_str(&format!("• {} — {}\n", command.usage, command.summary));
+        text.push_str(&format!("• {} - {}\n", command.usage, command.summary));
     }
     text.push_str("\nModes:\n");
     for (name, description) in mode::ALL {
-        text.push_str(&format!("• {name} — {description}\n"));
+        text.push_str(&format!("• {name} - {description}\n"));
     }
     text.push_str(
         "\nExternal agents:\n• Select ACP agents with `/agent claude,codex` (up to 4).\n\

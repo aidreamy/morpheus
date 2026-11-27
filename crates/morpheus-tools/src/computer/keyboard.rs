@@ -4,14 +4,14 @@
 //! key, optionally with modifiers, or type literal text) through the same
 //! recursive `then`/`wait` skeleton, so the parsing, validation helpers and
 //! the dispatch live HERE, parameterized by the calling tool's error prefix.
-//! The keystrokes go into whatever element holds keyboard focus NOW —
+//! The keystrokes go into whatever element holds keyboard focus NOW -
 //! aiming them is the caller's job (a real click in `computer_control`, or
 //! a semantic action in `computer_act`).
 use std::sync::{Mutex, OnceLock};
 
 use xa11y::Key;
 
-/// Maximum duration of a `wait` step, in milliseconds — the pipeline stays
+/// Maximum duration of a `wait` step, in milliseconds - the pipeline stays
 /// one tool call, so a wait is a pause for the app to catch up, not a
 /// sleep primitive.
 pub const MAX_WAIT_MS: u64 = 10_000;
@@ -52,7 +52,7 @@ pub fn held_report() -> String {
     }
     let names: Vec<String> = held.iter().map(key_name).collect();
     format!(
-        " — still held: {} (release with {{\"release\": [\"{}\"]}} or \"all\")",
+        " - still held: {} (release with {{\"release\": [\"{}\"]}} or \"all\")",
         names.join(", "),
         names.join("\", \"")
     )
@@ -68,9 +68,12 @@ pub fn validate_release(names: &[String], tool: &str) -> Result<(), String> {
     if is_release_all(names) {
         return Ok(());
     }
-    if names.iter().any(|n| n.trim().eq_ignore_ascii_case(RELEASE_ALL)) {
+    if names
+        .iter()
+        .any(|n| n.trim().eq_ignore_ascii_case(RELEASE_ALL))
+    {
         return Err(format!(
-            "{tool}: `release` accepts \"{RELEASE_ALL}\" only on its own — either release \
+            "{tool}: `release` accepts \"{RELEASE_ALL}\" only on its own - either release \
              every key or name the keys explicitly"
         ));
     }
@@ -143,7 +146,7 @@ pub fn run_wait_step(wait_ms: u64) -> String {
 
 /// Execute ONE validated `hold` step: press every key DOWN and leave it
 /// held. The keys keep their state in the OS keyboard engine across steps
-/// and calls — a later `release` with the same names puts them back up.
+/// and calls - a later `release` with the same names puts them back up.
 /// Order is honored: listed first = pressed first.
 pub fn run_hold_step(
     sim: &xa11y::InputSim,
@@ -212,7 +215,7 @@ pub fn run_release_step(
 /// Parse a key name into a [`Key`].
 ///
 /// Named keys are matched case-insensitively; a single CHARACTER is taken
-/// literally — an uppercase letter is REJECTED (the caller must hold
+/// literally - an uppercase letter is REJECTED (the caller must hold
 /// `shift` explicitly), matching the `Key::Char` contract in xa11y.
 pub fn parse_key(name: &str, tool: &str) -> Result<Key, String> {
     let lower = name.to_ascii_lowercase();
@@ -233,13 +236,13 @@ pub fn parse_key(name: &str, tool: &str) -> Result<Key, String> {
         "pageup" => Key::PageUp,
         "pagedown" => Key::PageDown,
         _ if name.chars().count() == 1 => {
-            // Validate the ORIGINAL character, not the lowercased one — a
+            // Validate the ORIGINAL character, not the lowercased one - a
             // silently-lowercased uppercase letter would send the wrong key
             // and report success.
             let ch = name.chars().next().unwrap_or_default();
             if ch.is_uppercase() {
                 return Err(format!(
-                    "{tool}: uppercase `{name}` — pass the lowercase key with `held: [\"shift\"]`"
+                    "{tool}: uppercase `{name}` - pass the lowercase key with `held: [\"shift\"]`"
                 ));
             }
             Key::Char(ch)
@@ -277,7 +280,7 @@ pub fn parse_keys(names: &[String], tool: &str) -> Result<Vec<Key>, String> {
 }
 
 /// Parse names for `hold`/`release` step arrays: MODIFIER names first
-/// (same aliases as `held`), then any ordinary key name — unlike `held`,
+/// (same aliases as `held`), then any ordinary key name - unlike `held`,
 /// which takes modifiers only, a `hold` may keep any key down (an app that
 /// latches `space` or `enter` while open). Errors name the accepted set:
 /// "modifier or key".
@@ -299,7 +302,7 @@ pub fn parse_hold_keys(names: &[String], tool: &str) -> Result<Vec<Key>, String>
 
 /// Human-facing name of a `Key` (for the `sent` report and the held-key
 /// advice). Every form is a name [`parse_key`] accepts, so `key_name` can be
-/// fed back into a `release` — a Debug rendering would not round-trip.
+/// fed back into a `release` - a Debug rendering would not round-trip.
 pub fn key_name(key: &Key) -> String {
     match key {
         Key::Char(c) => c.to_string(),

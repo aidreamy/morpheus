@@ -10,7 +10,7 @@ fn new_cmd() -> crate::ui::slash_menu::SlashCommand {
     }
 }
 
-/// The one-time-offer marker lives under the platform data-local dir — the
+/// The one-time-offer marker lives under the platform data-local dir - the
 /// SAME path production reads (`BaseDirs` re-resolves per call, so tests
 /// that redirect `$HOME` through `isolate_home` hit the scratch copy).
 fn marker_path() -> std::path::PathBuf {
@@ -29,7 +29,7 @@ fn read_marker() -> Option<Vec<u8>> {
     std::fs::read(marker_path()).ok()
 }
 
-/// An app pinned to a non-local provider inside an active session — the
+/// An app pinned to a non-local provider inside an active session - the
 /// state the offer path requires (`Session` route, cloud provider).
 fn session_app(provider: &str) -> App {
     let mut app = App::new("/tmp".to_string());
@@ -38,10 +38,10 @@ fn session_app(provider: &str) -> App {
     app
 }
 
-/// REGRESSION (bug 1 — the box reappeared after every reboot): declining
+/// REGRESSION (bug 1 - the box reappeared after every reboot): declining
 /// used to set only the in-memory latch, so the NEXT launch re-offered.
 /// The decline must burn the marker WITH its answer and silence every
-/// later offer path — error-driven AND pre-send.
+/// later offer path - error-driven AND pre-send.
 #[tokio::test]
 async fn declined_offer_burns_the_marker_and_stays_silent_after_reboot() {
     let _guard = HOME_LOCK.lock();
@@ -69,7 +69,7 @@ async fn declined_offer_burns_the_marker_and_stays_silent_after_reboot() {
     );
 
     // "Reboot": a fresh App in the same install. The in-memory latch is
-    // gone; the marker is what must keep the box down — on the error path…
+    // gone; the marker is what must keep the box down - on the error path…
     let mut rebooted = session_app("openai");
     rebooted.maybe_offer_gateway_on_error("401 unauthorized");
     assert!(
@@ -98,13 +98,13 @@ async fn first_failure_without_marker_still_offers() {
     );
 }
 
-/// REGRESSION (bug 2 — the heuristic DELETED working credentials): an
+/// REGRESSION (bug 2 - the heuristic DELETED working credentials): an
 /// auth-shaped error on the gateway provider used to wipe the keyring
 /// entries (access AND refresh) before asking anyone. Heuristics must
 /// never be destructive: the offer may re-open, but whatever credential
 /// the machine had before the error must still be there after it. The test
 /// is keyring-neutral: it snapshots `has_api_key("charm")` and asserts the
-/// offer path changed NOTHING — on machines with a stored token (the
+/// offer path changed NOTHING - on machines with a stored token (the
 /// regression's victim) or without one (CI), before == after.
 #[tokio::test]
 async fn auth_error_reoffers_but_never_deletes_gateway_credentials() {
@@ -123,11 +123,11 @@ async fn auth_error_reoffers_but_never_deletes_gateway_credentials() {
     assert_eq!(
         has_api_key("charm", Some(morpheus::KEYRING_SERVICE)),
         had_credential,
-        "the error heuristic must not change stored credentials — re-running the opt-in overwrites them instead"
+        "the error heuristic must not change stored credentials - re-running the opt-in overwrites them instead"
     );
 }
 
-/// An answered install stays quiet on transient errors — even while the
+/// An answered install stays quiet on transient errors - even while the
 /// marker says `authorized`. Only a DEAD gateway credential (charm +
 /// auth-shaped) re-opens the offer.
 #[tokio::test]
@@ -145,7 +145,7 @@ async fn transient_error_after_authorization_stays_silent() {
 }
 
 /// REGRESSION: the `Authorized` completion rewrote the live provider/model
-/// unconditionally — a user who Esc'd the sign-in and picked another model
+/// unconditionally - a user who Esc'd the sign-in and picked another model
 /// (or another session) had that choice silently clobbered when the
 /// background flow finished. The rewrite only happens when the completion
 /// actually takes over the UI (idle session + picker or parked message).
@@ -180,7 +180,7 @@ async fn authorized_completion_without_takeover_keeps_the_live_model() {
     );
 }
 
-/// The flip side: with a parked message, the completion DOES take over —
+/// The flip side: with a parked message, the completion DOES take over -
 /// provider charm, model reset, and the stale reasoning cleared.
 #[tokio::test]
 async fn authorized_completion_with_parked_message_takes_over() {
@@ -207,7 +207,7 @@ async fn authorized_completion_with_parked_message_takes_over() {
 }
 
 /// REGRESSION (mouse/Ctrl+C stealing): the box can stay `visible` while a
-/// MODAL is stacked on top — the gateway hit-tests must yield to the modal
+/// MODAL is stacked on top - the gateway hit-tests must yield to the modal
 /// instead of consuming presses aimed at it.
 #[tokio::test]
 async fn gateway_hit_tests_yield_to_a_stacked_modal() {
@@ -267,7 +267,7 @@ async fn the_offer_opens_tabbed_and_the_dispatch_follows_the_active_tab() {
 }
 
 /// The `Authorized` completion switches the live config to the provider the
-/// event SAYS it signed in for — not hardcoded charm. GitHub's token lands
+/// event SAYS it signed in for - not hardcoded charm. GitHub's token lands
 /// in the keyring and the takeover routes the parked message through copilot.
 #[tokio::test]
 async fn authorized_completion_switches_to_the_provider_it_signed_in() {
@@ -291,7 +291,7 @@ async fn authorized_completion_switches_to_the_provider_it_signed_in() {
 }
 
 /// A `Failed` completion from ANY provider restores the parked message,
-/// hides the box and never burns the marker — the provider-neutral event
+/// hides the box and never burns the marker - the provider-neutral event
 /// shape must treat copilot's failure exactly like charm's.
 #[tokio::test]
 async fn failed_completion_restores_the_message_and_never_burns_the_marker() {
@@ -321,7 +321,7 @@ async fn failed_completion_restores_the_message_and_never_burns_the_marker() {
 }
 
 /// The dead-credential re-offer works for the COPILOT gateway too (the
-/// `OFFERS.any` arm), and the box opens PRE-SELECTED on the copilot tab —
+/// `OFFERS.any` arm), and the box opens PRE-SELECTED on the copilot tab -
 /// the gateway the user needs to re-run, not the first tab.
 #[tokio::test]
 async fn dead_copilot_credential_reoffers_on_the_copilot_tab() {

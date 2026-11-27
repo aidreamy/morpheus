@@ -14,7 +14,7 @@ impl App {
         themes.sort_by_key(|a| a.to_lowercase());
 
         // Palette fingerprints (color chips) per theme, always from the
-        // pristine registry entry — NOT from `self.theme`, which carries the
+        // pristine registry entry - NOT from `self.theme`, which carries the
         // /background override and would leak the toggle into the preview.
         let swatches = themes
             .iter()
@@ -27,7 +27,7 @@ impl App {
             .collect();
 
         // Resolve the current theme by comparing against each registry entry
-        // WITH the /background preference applied — self.theme carries the
+        // WITH the /background preference applied - self.theme carries the
         // transparent-background override, so a plain equality check would
         // miss while the toggle is on.
         let current = self

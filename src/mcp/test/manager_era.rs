@@ -27,7 +27,7 @@ fn era_loop_failed_reports_both_causes() {
 }
 
 /// Regression (mem0): a legacy server that cannot parse `server/discover`
-/// answered with a JSON-RPC error whose `id` does not echo the request's —
+/// answered with a JSON-RPC error whose `id` does not echo the request's -
 /// rmcp wraps that as `UncorrelatedErrorResponse` and hides the payload.
 /// That classification must count as legacy flip evidence on a modern dial,
 /// otherwise the server can never connect (it used to surface as "without
@@ -214,7 +214,7 @@ async fn silent_probe_never_flips_without_stdio_policy() {
             tool: "quiet.tool".into(),
         },
         // The HTTP policy treats a probe timeout as unreachable, not
-        // legacy — a silent stdio binary must not be classified by it.
+        // legacy - a silent stdio binary must not be classified by it.
         ProbePolicy::HTTP,
         Duration::from_millis(150),
     )

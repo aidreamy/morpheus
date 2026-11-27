@@ -1,9 +1,9 @@
 //! The synthesis engine: one loaded model, shared by its callers.
 //!
 //! [`Speak`] owns a backend engine behind [`BackendEngine`] and a
-//! [`SpeakConfig`]. It keeps the backend-agnostic parts — validating the
+//! [`SpeakConfig`]. It keeps the backend-agnostic parts - validating the
 //! session settings, tracking the speaker and speed, boxing the streaming
-//! callback and owning the resulting samples — and delegates model work to
+//! callback and owning the resulting samples - and delegates model work to
 //! the backend selected in the configuration.
 //!
 //! Backends are `Send + Sync`, so one [`Speak`] can serve the TUI's worker
@@ -119,7 +119,7 @@ impl Speak {
     ///
     /// The backend splits the text into sentences, runs them one at a time
     /// and calls back with that sentence's samples and the fraction finished
-    /// (`0.0..=1.0`) — a player can start speaking before the last sentence
+    /// (`0.0..=1.0`) - a player can start speaking before the last sentence
     /// is generated. Returning `false` stops generation early and keeps only
     /// what was produced so far. The callback sees each chunk once, not the
     /// accumulated audio.

@@ -141,7 +141,7 @@ pub struct ScanResult {
     pub cache_age_ms: u64,
     /// `true` when the scan was cut short by the timeout and `entries` only
     /// holds the partial results collected up to that point. The scan is
-    /// INCOMPLETE — an empty `entries` with `timed_out: true` is not proof of
+    /// INCOMPLETE - an empty `entries` with `timed_out: true` is not proof of
     /// absence.
     pub timed_out: bool,
 }
@@ -389,7 +389,7 @@ impl<'a> ParallelVisitorBuilder<'a> for EntryVisitorBuilder<'a> {
 ///
 /// Returns a `(entries, timed_out)` pair: on a mid-scan timeout the entries
 /// collected so far are kept with `timed_out: true` instead of failing the
-/// whole scan — an empty partial is an incomplete scan, not proof of absence.
+/// whole scan - an empty partial is an incomplete scan, not proof of absence.
 /// A timeout that elapses BEFORE the walk starts still surfaces as an error
 /// (nothing was collected, so there is nothing to salvage).
 #[allow(clippy::expect_used)]

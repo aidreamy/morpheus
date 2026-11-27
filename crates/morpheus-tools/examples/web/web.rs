@@ -1,7 +1,7 @@
 //! Demonstrate `web`: the `Web` wrapper, the tool schemas, input
 //! validation, and (best-effort) live fetching and searching. The live
 //! calls hit real endpoints (Exa MCP / the local extractor), so each one
-//! prints its result on success or the error string on failure — the
+//! prints its result on success or the error string on failure - the
 //! example never panics when the network is unavailable.
 //!
 //! Run with:

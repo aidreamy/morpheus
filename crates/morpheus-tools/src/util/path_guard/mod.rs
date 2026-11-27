@@ -5,7 +5,7 @@ use std::path::{Component, Path, PathBuf};
 /// downstream (rollback keys, seen-lines keys, hashline headers, diagnostics)
 /// spells paths the plain way, so a verbatim-resolved key silently splits the
 /// store in two: `record("C:\…")` vs `seen_lines(r"\\?\C:\…")` never meet.
-/// Strip the prefix — mapping `\\?\UNC\server\share` back to `\\server\share` —
+/// Strip the prefix - mapping `\\?\UNC\server\share` back to `\\server\share` -
 /// so the resolved path keeps the plain drive spelling.
 #[cfg(windows)]
 fn strip_windows_verbatim(path: PathBuf) -> PathBuf {
@@ -53,11 +53,11 @@ pub enum GuardResult {
 /// The harness writes truncated tool-output logs here (see `harness::truncate`)
 /// and the model reads them back with `fs_read`/`find_grep`. Temp dirs are
 /// ephemeral by nature, so this directory is exempt from the outside-root
-/// denial — but never from the blocklist, which keeps priority.
+/// denial - but never from the blocklist, which keeps priority.
 ///
 /// The exemption is shared by every tool using this guard (reads AND writes):
 /// writes into the scratch dir are still gated by the harness approval dialog
-/// in Build/Ask modes — the guard alone no longer blocks them.
+/// in Build/Ask modes - the guard alone no longer blocks them.
 pub const HARNESS_SCRATCH_DIR: &str = "morpheus";
 
 pub struct PathGuard {
@@ -147,8 +147,8 @@ impl PathGuard {
 
                 Ok(resolved)
             }
-            GuardResult::Denied(reason) => Err(format!("permission denied: `{path}` — {reason}")),
-            GuardResult::Mismatch(msg) => Err(format!("permission denied: `{path}` — {msg}")),
+            GuardResult::Denied(reason) => Err(format!("permission denied: `{path}` - {reason}")),
+            GuardResult::Mismatch(msg) => Err(format!("permission denied: `{path}` - {msg}")),
         }
     }
 
@@ -196,7 +196,7 @@ impl PathGuard {
 /// Normalize a path by resolving `.` and `..` components lexically.
 /// If the path is relative, it is first made absolute against the given root.
 ///
-/// This is purely lexical — no filesystem access, no symlink resolution.
+/// This is purely lexical - no filesystem access, no symlink resolution.
 #[must_use]
 pub fn normalize_path(path: &Path, root: &Path) -> PathBuf {
     let absolute = if path.is_relative() {
@@ -260,7 +260,7 @@ pub fn validate_path(
         })
     });
     let in_root = normalized.starts_with(&root_norm);
-    // Ephemeral scratch exemption — absolute temp dir is already absolute, so
+    // Ephemeral scratch exemption - absolute temp dir is already absolute, so
     // normalize_path ignores `root` for it. Blocklist keeps priority below.
     let in_scratch = normalized.starts_with(normalize_path(
         &std::env::temp_dir().join(HARNESS_SCRATCH_DIR),
@@ -312,13 +312,13 @@ fn auto_generated_marker(line: &str) -> Option<&'static str> {
 ///
 /// This guard is called ONLY by write-path tools ([`crate::fs::write`],
 /// [`crate::fs::edit`], [`crate::fs::ast_edit`]) because those tools replace
-/// file content. Read-only tools (`read`, `grep`) never call it — surfacing a
+/// file content. Read-only tools (`read`, `grep`) never call it - surfacing a
 /// generated file is harmless.
 ///
 /// The check is deliberately cheap: only the first [`AUTO_GENERATED_SCAN_LINES`]
 /// lines are scanned, and only for a small set of conventional markers. A file
 /// without one of those markers, a new file (nothing is being overwritten), and
-/// an unreadable file all pass — the caller surfaces its own read error.
+/// an unreadable file all pass - the caller surfaces its own read error.
 ///
 /// # Errors
 ///
@@ -342,7 +342,7 @@ pub fn assert_editable_file(path: &Path) -> Result<(), String> {
         if let Some(marker) = auto_generated_marker(&line) {
             return Err(format!(
                 "refusing to modify `{}`: its header marks it as auto-generated \
-                 (`{marker}`). Generated files are owned by a tool — your change \
+                 (`{marker}`). Generated files are owned by a tool - your change \
                  would be overwritten on the next generation run. Edit the \
                  generator instead, or remove the marker from the file to force \
                  the write.",

@@ -55,14 +55,14 @@ async fn confirm_quit_yes_click_quits_even_with_slash_menu_open() {
 }
 
 /// Same click, but in a real Session with the prompt holding "/" so the
-/// slash menu is live — mirrors the exact user flow (type "/", Ctrl+C,
+/// slash menu is live - mirrors the exact user flow (type "/", Ctrl+C,
 /// click Yes).
 #[tokio::test]
 async fn confirm_quit_yes_click_in_session_with_live_slash_menu() {
     let _guard = HOME_LOCK.lock();
     isolate_home();
     let mut app = App::new("/tmp".to_string());
-    // Pin the geometry — same reason as the first confirm test: the click
+    // Pin the geometry - same reason as the first confirm test: the click
     // at (36, 12) assumes the 80x24 fallback layout.
     app.set_test_size(80, 24);
 
@@ -108,7 +108,7 @@ async fn confirm_quit_full_real_input_flow_with_slash_menu() {
     use crossterm::event::{KeyCode as K, KeyEvent, KeyModifiers};
 
     let mut app = App::new("/tmp".to_string());
-    // Pin the geometry — same reason as the other confirm tests: the click
+    // Pin the geometry - same reason as the other confirm tests: the click
     // at (36, 12) assumes the 80x24 fallback layout.
     app.set_test_size(80, 24);
 
@@ -167,7 +167,7 @@ async fn confirm_quit_sovereign_enter_beats_slash_menu() {
         .unwrap();
     assert!(app.is_confirm_dialog_visible());
 
-    // The dialog's default selection is "No" — move to "Yes", then Enter.
+    // The dialog's default selection is "No" - move to "Yes", then Enter.
     app.process_key_event(KeyEvent::new(K::Left, KeyModifiers::NONE))
         .unwrap();
     app.process_key_event(KeyEvent::new(K::Enter, KeyModifiers::NONE))
@@ -179,11 +179,11 @@ async fn confirm_quit_sovereign_enter_beats_slash_menu() {
     );
     assert!(
         app.slash_menu.visible,
-        "the menu itself is not closed by the modal — it is just inert"
+        "the menu itself is not closed by the modal - it is just inert"
     );
 }
 
-/// Sovereign modal: Esc cancels the quit confirm and nothing else reacts —
+/// Sovereign modal: Esc cancels the quit confirm and nothing else reacts -
 /// in particular the slash menu must not swallow Esc or run anything.
 #[tokio::test]
 async fn confirm_quit_sovereign_esc_cancels_without_menu_reaction() {
@@ -214,7 +214,7 @@ async fn confirm_quit_sovereign_esc_cancels_without_menu_reaction() {
 }
 
 /// Sovereign modal: while the quit confirm is up, ordinary keys are
-/// swallowed — they must not reach the prompt input or the menu filter.
+/// swallowed - they must not reach the prompt input or the menu filter.
 #[tokio::test]
 async fn confirm_quit_swallows_other_keys() {
     let _guard = HOME_LOCK.lock();
@@ -339,7 +339,7 @@ async fn telemetry_prompt_escape_declines() {
 }
 
 /// Clicking "Yes" on the consent box must persist the opt-in and dismiss the
-/// box — never fall through to the generic Confirm path (which would quit the
+/// box - never fall through to the generic Confirm path (which would quit the
 /// app). The click also pins the dynamic multi-line geometry: the options row
 /// moves down with the explanation.
 #[tokio::test]

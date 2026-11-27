@@ -6,7 +6,7 @@ fn make_harness() -> Harness {
     Harness::new_test()
 }
 
-// ── chat() — batch mode ───────────────────────────────────────────
+// ── chat() - batch mode ───────────────────────────────────────────
 
 #[tokio::test]
 async fn chat_returns_mock_text() {
@@ -71,7 +71,7 @@ async fn chat_extracts_multiple_tool_calls_in_order() {
     assert_eq!(result, "First  then ");
 }
 
-// ── stream_chat() — streaming mode ────────────────────────────────
+// ── stream_chat() - streaming mode ────────────────────────────────
 
 #[tokio::test]
 async fn stream_chat_yields_tokens() {
@@ -169,7 +169,7 @@ async fn stream_chat_interleaves_text_and_tool_calls() {
 async fn native_mode_never_parses_text_json() {
     // Default mode (Native, like crush): text tokens are the model's
     // answer. Even a well-formed tool-call envelope in prose must NOT be
-    // turned into a queued tool call — the two delivery paths never cross.
+    // turned into a queued tool call - the two delivery paths never cross.
     let mut h = make_harness()
         .with_test_tool(
             "fetch",
@@ -198,7 +198,7 @@ async fn native_mode_never_parses_text_json() {
             r#"{"name": "fetch", "arguments": {"url": "x"}}"#,
             " after",
         ],
-        "native mode emits text verbatim — JSON envelope included"
+        "native mode emits text verbatim - JSON envelope included"
     );
     assert!(!h.has_pending_tools(), "native mode never queues from text");
 }
@@ -269,7 +269,7 @@ async fn stream_chat_routes_native_tool_call_directly() {
 #[tokio::test]
 async fn stream_chat_native_call_invalid_schema_feeds_correction_memory() {
     // A native call that fails schema validation must NOT be queued for
-    // dispatch — it is counted and recorded for the correction memory, like
+    // dispatch - it is counted and recorded for the correction memory, like
     // a failed inline-JSON call.
     let mut h = make_harness()
         .with_test_tool(
@@ -299,7 +299,7 @@ async fn stream_chat_native_call_invalid_schema_feeds_correction_memory() {
     );
     assert!(!h.has_pending_tools(), "invalid call must not be queued");
     // The failure is counted inside the extractor (`take_tool_failures`)
-    // and the raw envelope lands in `last_failed_raw` — both feed the
+    // and the raw envelope lands in `last_failed_raw` - both feed the
     // correction memory on the next loop iteration, exactly like a failed
     // inline-JSON call (unit-tested in the extractor).
 }
@@ -333,7 +333,7 @@ async fn stream_reset_marker_discards_partial_then_restarts() {
 #[tokio::test]
 async fn stream_reset_clears_queued_tool_calls() {
     // A mid-stream retry must also discard tool calls already queued from the
-    // failed attempt — otherwise they'd be dispatched (or duplicated) alongside
+    // failed attempt - otherwise they'd be dispatched (or duplicated) alongside
     // the retried response.
     let mut h = make_harness()
         .with_mock_stream_reset()

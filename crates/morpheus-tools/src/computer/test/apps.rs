@@ -9,7 +9,7 @@ mod apps_focus_tests {
     use crate::computer::apps::{FOCUSED_WALK_MAX_DEPTH, find_focused, find_focused_below};
     use crate::computer::types::{AppsTarget, ComputerApps};
 
-    /// The mock fixture's window reports `focused` — the walk below the app
+    /// The mock fixture's window reports `focused` - the walk below the app
     /// root must find it and report the role path from the root down to the
     /// leaf, inclusive (both snake_case). The root's own (synthetic)
     /// foreground stamp must not match: the answer is the window, not the
@@ -29,8 +29,8 @@ mod apps_focus_tests {
 
     /// xa11y's `foreground_with` stamps `states.focused = true` on the app
     /// root it returns (a *foreground-app* marker, not keyboard focus). The
-    /// walk below must ignore that stamp: with the root stamped — exactly
-    /// what production sees — the answer is still the focused WINDOW, never
+    /// walk below must ignore that stamp: with the root stamped - exactly
+    /// what production sees - the answer is still the focused WINDOW, never
     /// the root itself.
     #[test]
     fn walk_ignores_the_roots_synthetic_focus_stamp() {
@@ -45,7 +45,7 @@ mod apps_focus_tests {
         assert_eq!(leaf.role, Role::Window);
     }
 
-    /// A subtree with no focused element yields `None` — rendered later as
+    /// A subtree with no focused element yields `None` - rendered later as
     /// `focused_element: null`, never an error.
     #[test]
     fn walk_returns_none_when_nothing_is_focused() {
@@ -59,7 +59,7 @@ mod apps_focus_tests {
     }
 
     /// The walk honors the depth bound: past the cap it reports absence
-    /// instead of walking unbounded trees — here the cap bites before the
+    /// instead of walking unbounded trees - here the cap bites before the
     /// (focused) window is even examined.
     #[test]
     fn walk_stops_at_depth_cap() {
@@ -69,12 +69,12 @@ mod apps_focus_tests {
         let window = app_root.children().expect("window child")[0].clone();
 
         assert!(find_focused(&window, FOCUSED_WALK_MAX_DEPTH + 1).is_none());
-        // Sanity: the same element at depth 0 IS found — the cap, not the
+        // Sanity: the same element at depth 0 IS found - the cap, not the
         // element, is what made the walk stop.
         assert!(find_focused(&window, 0).is_some());
     }
 
-    /// Default target is `all` — an empty input keeps the old listing
+    /// Default target is `all` - an empty input keeps the old listing
     /// behavior, so existing callers passing `{}` are unaffected.
     #[test]
     fn default_target_is_all() {

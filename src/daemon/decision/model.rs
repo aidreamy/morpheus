@@ -1,10 +1,10 @@
-//! The daemon's resident model registry — the `c89c6e5` residency, promoted
+//! The daemon's resident model registry - the `c89c6e5` residency, promoted
 //! from per-process statics to the daemon's own state.
 //!
 //! The harness used to keep the loaded model in process-wide statics so a
 //! per-turn assembly would not reload a ~1.3 GB graph on every message. The
 //! daemon is the generalization of that: one process owns the residency,
-//! every morpheus instance shares it, and the registry below is its only copy —
+//! every morpheus instance shares it, and the registry below is its only copy -
 //! the same one-resident-at-a-time contract, the same 60s retry window on a
 //! failed load, the same "last store wins" tolerance for racing loads.
 
@@ -15,7 +15,7 @@ use morpheus_onnx::{DecisionModel, LoadOptions, ModelKind};
 
 use super::protocol::Kind;
 
-/// Minimum spacing between retries of a failed load for the same kind —
+/// Minimum spacing between retries of a failed load for the same kind -
 /// carried over unchanged from the harness residency: a transient failure
 /// must not disable the audit forever, but re-reading a multi-GB graph on
 /// every request of a broken setup is its own failure mode.
@@ -58,18 +58,18 @@ impl Registry {
     }
 
     /// The resident model for `kind`, loading it when the resident does not
-    /// match. `None` when the load failed — just now, or within the retry
+    /// match. `None` when the load failed - just now, or within the retry
     /// window of an earlier failure for the same kind.
     ///
     /// The load runs OUTSIDE the lock (carried over from `c89c6e5`): it can
     /// take seconds, and holding the mutex through it would stall every
-    /// other request. Racing loads both pay, the last store wins — never a
+    /// other request. Racing loads both pay, the last store wins - never a
     /// correctness issue.
     pub(crate) fn resident(&self, kind: &Kind) -> Option<Arc<dyn DecisionModel>> {
         let kind_name = kind.name();
         {
             let mut state = self.guard.lock().ok()?;
-            // Fast path: the resident matches — share it.
+            // Fast path: the resident matches - share it.
             if state
                 .resident
                 .as_ref()
@@ -100,7 +100,7 @@ impl Registry {
                         model: Arc::clone(&model),
                     });
                     // Clear THIS kind's failure stamp only (m1): a success
-                    // for Y must not erase X's still-open retry window —
+                    // for Y must not erase X's still-open retry window -
                     // a broken X would otherwise re-attempt a multi-GB
                     // load on every request until its own load succeeds.
                     if state
@@ -147,11 +147,11 @@ impl Registry {
 /// Load `kind`; the ONNX graph resolves by the checkpoint's origin:
 ///
 /// - a `Custom` kind pointing at a LOCAL DIRECTORY resolves the graph
-///   against that directory (`{repo}/laya.onnx`) — the contract the
+///   against that directory (`{repo}/laya.onnx`) - the contract the
 ///   harness adapter implemented before the daemon;
 /// - a NAMED kind (and a `Custom` hub repo id / bundled pair) resolves
-///   EVERY artifact — weights, config, tokenizer, and the exported graph
-///   — from the checkpoint's snapshot in the hf-hub cache, the single
+///   EVERY artifact - weights, config, tokenizer, and the exported graph
+///   - from the checkpoint's snapshot in the hf-hub cache, the single
 ///   rule the morpheus-onnx exporter installs into (no override, no second
 ///   lookup root on this side).
 pub(crate) fn load_model(kind: &Kind) -> Result<Arc<dyn DecisionModel>, morpheus_onnx::Error> {
@@ -179,7 +179,7 @@ mod tests {
 
     /// A kind whose load cannot succeed: `Custom` pointing at an empty
     /// directory (no graph, no checkpoint files). Exercises the failure
-    /// path — retry window, counters — without any model artifacts.
+    /// path - retry window, counters - without any model artifacts.
     fn broken_kind() -> Kind {
         Kind::Custom {
             repo: std::env::temp_dir()

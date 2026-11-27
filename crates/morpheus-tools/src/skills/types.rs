@@ -75,7 +75,7 @@ pub enum SkillAction {
     Match,
 }
 
-/// The schema passed by the caller — carries all policy.
+/// The schema passed by the caller - carries all policy.
 ///
 /// Zero hardcoded paths, names, or policies. Everything is supplied here.
 #[derive(Debug, Clone)]
@@ -93,7 +93,7 @@ pub struct SkillSchema {
     pub recursive: bool,
     /// Glob-style skill name exclusions.
     pub ignore: Vec<String>,
-    /// Allowlist — when non-empty, only skills whose name appears here are
+    /// Allowlist - when non-empty, only skills whose name appears here are
     /// returned. Empty means all skills pass.
     pub include: Vec<String>,
 }

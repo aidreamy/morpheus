@@ -222,8 +222,8 @@ async fn global_model_loads_applies_and_overwrites() {
     // isolate_home wipes the scratch dir first, so write AFTER it runs.
     // Seed via the SAME resolution path the app uses: MORPHEUS_CONFIG_DIR now
     // points at the scratch config dir (pre-fix, this test wrote to
-    // `$TEMP/.../.config/morpheus` while the app read `%APPDATA%\morpheus` — the
-    // developer's REAL setup — so the assertion compared against live user
+    // `$TEMP/.../.config/morpheus` while the app read `%APPDATA%\morpheus` - the
+    // developer's REAL setup - so the assertion compared against live user
     // state and failed wherever it differed).
     let cfg = {
         let dir =
@@ -239,7 +239,7 @@ async fn global_model_loads_applies_and_overwrites() {
     // Startup only restores a CONCRETE selection whose provider still has a
     // usable credential (the keyless restore would show a footer provider
     // that cannot authenticate). Seed the env fallback so the check passes
-    // deterministically — on machines without the key in the OS keyring the
+    // deterministically - on machines without the key in the OS keyring the
     // test must not depend on the developer's live credential state.
     // SAFETY: HOME_LOCK serializes env mutation across these tests.
     unsafe { std::env::set_var("NVIDIA_API_KEY", "test-key") };
@@ -300,7 +300,7 @@ async fn global_model_loads_applies_and_overwrites() {
     unsafe { std::env::remove_var("NVIDIA_API_KEY") };
 }
 
-/// An `auto` selection is recorded as a model with an empty provider — the
+/// An `auto` selection is recorded as a model with an empty provider - the
 /// session keeps the model but has no provider to pin, so the fallback chain
 /// stays the source of truth.
 #[tokio::test]
@@ -325,7 +325,7 @@ async fn auto_selection_records_model_without_provider() {
 
 /// Switching back to a session with a recorded `auto` selection restores
 /// `auto` AND clears any leftover provider from the previously active
-/// config — a stale provider would otherwise produce a mixed
+/// config - a stale provider would otherwise produce a mixed
 /// `model=auto` + `provider=nvidia` state.
 #[tokio::test]
 async fn auto_session_restore_clears_leftover_provider() {
@@ -353,7 +353,7 @@ async fn auto_session_restore_clears_leftover_provider() {
     assert_eq!(app.llm_config.reasoning.as_deref(), Some("high"));
 }
 
-/// A session that never recorded a selection — the pre-feature legacy shape —
+/// A session that never recorded a selection - the pre-feature legacy shape -
 /// leaves the active config untouched on restore, so switching sessions no
 /// longer mutates the model in cases where it never did before.
 #[tokio::test]
@@ -380,7 +380,7 @@ async fn unrecorded_session_keeps_active_config_on_restore() {
     assert_eq!(app.llm_config.reasoning.as_deref(), Some("high"));
 }
 
-/// The model dialog's Esc path reverts the live config and — critically —
+/// The model dialog's Esc path reverts the live config and - critically -
 /// persists NOTHING: neither the global slot nor the current session. Only
 /// an explicit commit (Enter on the model list or the reasoning sub-dialog)
 /// writes.
@@ -488,7 +488,7 @@ async fn reasoning_dialog_enter_commits_selection() {
 
 /// REGRESSION: the credential gate on the restore paths treated the
 /// persisted `auto` selection (deliberately stored with an EMPTY provider)
-/// as an orphan and refused to restore it — after a reboot, `auto` + its
+/// as an orphan and refused to restore it - after a reboot, `auto` + its
 /// reasoning were silently replaced by whatever the config fell back to.
 /// An empty provider is a valid persisted selection, not an orphan.
 #[tokio::test]
@@ -496,7 +496,7 @@ async fn persisted_auto_selection_survives_the_credential_gate() {
     let _guard = HOME_LOCK.lock();
     isolate_home();
     // Boot with `auto` persisted exactly as the picker stores it (empty
-    // provider, a reasoning level) — e.g. a previous run picked auto/high.
+    // provider, a reasoning level) - e.g. a previous run picked auto/high.
     let mut app = App::new("/tmp".to_string());
     app.setup.set_model_selection("", "auto", Some("high"));
 
@@ -608,7 +608,7 @@ async fn main_model_change_leaves_existing_panes_alone() {
     assert_eq!(app.llm_config.model.as_deref(), Some("main-new-model"));
     assert_eq!(app.llm_config.provider, "main-new-provider");
 
-    // The pane's selection survives verbatim — model AND reasoning (the
+    // The pane's selection survives verbatim - model AND reasoning (the
     // global pick's `medium` effort must not leak into the pane).
     let pane_a = &app.agents_split.as_ref().unwrap().panes[0];
     let selection = pane_a.model_selection.as_ref().unwrap();
@@ -657,7 +657,7 @@ async fn pane_model_persists_in_the_session_markers() {
     app.open_pane_model_dialog(0);
     app.confirm_model_entry("pane-model", "pane-provider");
     // Auto selection keeps its own shape too: model without a provider.
-    // `auto` pushes the reasoning sub-dialog (the standard effort set) —
+    // `auto` pushes the reasoning sub-dialog (the standard effort set) -
     // pick the default level and Enter, which routes the commit to the
     // pane through the same shared path.
     app.open_pane_model_dialog(0);
@@ -697,7 +697,7 @@ async fn slash_models_on_a_focused_morpheus_pane_opens_the_pane_picker() {
     };
 
     // No focused pane: the main agent's global picker. `AgentsSplitState::
-    // new` focuses pane 0 by default — the split's Alt+0 state is what
+    // new` focuses pane 0 by default - the split's Alt+0 state is what
     // routes to the main agent.
     app.agents_split.as_mut().unwrap().focused = None;
     assert!(
@@ -729,14 +729,14 @@ async fn slash_models_on_a_focused_morpheus_pane_opens_the_pane_picker() {
 //
 // REGRESSION (the badge half of the per-pane model feature): the commit
 // landed on the pane's selection and its session markers, but the badge
-// kept reading the GLOBAL config triple — a pick changed the pane's turns
+// kept reading the GLOBAL config triple - a pick changed the pane's turns
 // while the row kept painting the main agent's model. The badge now reads
 // the pane's own serving pair (`effective_pane_prompt_info`), which the
 // commit overwrites in `session_info` and the split rebuilds hydrate from
 // the session markers.
 
 /// A committed pane pick paints the prompt badge with the PANE's model the
-/// moment it is committed — not the main agent's global triple.
+/// moment it is committed - not the main agent's global triple.
 #[tokio::test]
 async fn pane_model_pick_shows_on_the_prompt_badge() {
     let _guard = HOME_LOCK.lock();
@@ -757,7 +757,7 @@ async fn pane_model_pick_shows_on_the_prompt_badge() {
 
     // Pane B never picked: a manager pane with no pick of its own shows NO
     // badge triple (the row falls through to the gateway triple it always
-    // painted) — the global config stays untouched beneath it.
+    // painted) - the global config stays untouched beneath it.
     let info_b = app.effective_pane_prompt_info(1);
     assert!(
         info_b.is_none(),
@@ -767,7 +767,7 @@ async fn pane_model_pick_shows_on_the_prompt_badge() {
 
 /// A hydrated manager pane (a pick recorded on its bound session in a
 /// previous run) shows its own model on the badge the moment the split
-/// rebuilds — before any new turn runs.
+/// rebuilds - before any new turn runs.
 #[tokio::test]
 async fn hydrated_manager_pane_shows_the_session_model_on_the_badge() {
     let _guard = HOME_LOCK.lock();

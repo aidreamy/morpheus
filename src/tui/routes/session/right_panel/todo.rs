@@ -116,7 +116,7 @@ pub fn render_todo_section(
 
     let mut line_y = box_y + TOP_PAD;
 
-    // Section header — left-aligned with left padding
+    // Section header - left-aligned with left padding
     draw_text(
         buf,
         "Todos",

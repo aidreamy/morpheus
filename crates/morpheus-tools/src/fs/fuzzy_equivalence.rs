@@ -1,4 +1,4 @@
-//! Port of oh-my-pi's `crates/pi-edit/src/fuzzy.rs` test module — the tests
+//! Port of oh-my-pi's `crates/pi-edit/src/fuzzy.rs` test module - the tests
 //! covering the surface we ported are reproduced 1:1, same inputs, same
 //! expected outputs, so any behavior drift between the two projects fails
 //! here. Tests that only exercise upstream-only surfaces (`replace_text`,

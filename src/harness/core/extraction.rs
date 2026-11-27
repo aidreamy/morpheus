@@ -125,7 +125,7 @@ impl Harness {
             )),
             // `agents_call` is an ASYNC harness tool: its `wait` mode awaits
             // the pane's report (and `dispatch_next` races it against the
-            // stop signal), so it must NOT resolve here — returning `None`
+            // stop signal), so it must NOT resolve here - returning `None`
             // queues it into the tool issuer for the async dispatch arm.
             // The explicit arm also keeps the catch-all below from
             // swallowing the call with an empty result.

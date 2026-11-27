@@ -3,14 +3,14 @@
 //! The crate is layered so the model-specific core stays inside `laya/`
 //! while everything a future model can reuse lives outside it:
 //!
-//! * `pycompat` — Python runtime parity primitives (repr/str/`%g`/round).
-//! * `runtime` — ONNX serving primitives: session seam, tokenizer, collation.
-//! * `decision` — the decision contract: question protocol, confidence,
+//! * `pycompat` - Python runtime parity primitives (repr/str/`%g`/round).
+//! * `runtime` - ONNX serving primitives: session seam, tokenizer, collation.
+//! * `decision` - the decision contract: question protocol, confidence,
 //!   schema mapping, sequence construction, the model traits, and the
 //!   backend-agnostic facade types ([`ModelKind`], [`LoadOptions`],
 //!   [`DecisionModel`], [`Prediction`]).
-//! * `hooks`, `lang`, `shortlist`, `hub` — generic supporting systems.
-//! * `laya` — the laya model core (agent, router, presets, email, pins) and
+//! * `hooks`, `lang`, `shortlist`, `hub` - generic supporting systems.
+//! * `laya` - the laya model core (agent, router, presets, email, pins) and
 //!   the facade implementation that resolves a [`ModelKind`] to laya
 //!   artifacts ([`load`]).
 //!

@@ -109,7 +109,7 @@ impl App {
                 if working {
                     self.toast_state.show(ToastOptions {
                         title: Some("Revert".into()),
-                        message: "The agent is working — wait for it to finish.".into(),
+                        message: "The agent is working - wait for it to finish.".into(),
                         variant: ToastVariant::Warning,
                         duration_ms: 4000,
                     });
@@ -135,7 +135,7 @@ impl App {
                 // reference selected by the appended Revert delta. The input
                 // history is deliberately NOT truncated: it is a recall log of
                 // what the user typed, and the reverted prompt goes back into
-                // the draft — dropping it would erase the very text being
+                // the draft - dropping it would erase the very text being
                 // edited.
                 let remaining: std::collections::HashSet<&str> =
                     session.messages.iter().map(|m| m.id.as_str()).collect();
@@ -170,7 +170,7 @@ impl App {
                 if working {
                     self.toast_state.show(ToastOptions {
                         title: Some("Fork".into()),
-                        message: "The agent is working — wait for it to finish.".into(),
+                        message: "The agent is working - wait for it to finish.".into(),
                         variant: ToastVariant::Warning,
                         duration_ms: 4000,
                     });
@@ -181,7 +181,7 @@ impl App {
                 forked.messages.truncate(idx + 1);
                 // Entry funnel: claim the fork's id (unique + exclusively
                 // locked for this process) instead of a bare
-                // generate_session_id — a raw timestamp has no
+                // generate_session_id - a raw timestamp has no
                 // file-existence check and no issuance record, so a
                 // same-millisecond collision could append fork events into
                 // a foreign history. The claim also takes the open-lock,
@@ -215,7 +215,7 @@ impl App {
                 {
                     // The claim above is THIS process's lock: on a failed
                     // fork it must be released, or the id stays claimed by
-                    // us until death (a leak — nothing was created).
+                    // us until death (a leak - nothing was created).
                     self.session_store.release_session_lock(&forked.id);
                     self.toast_state.show(ToastOptions {
                         title: Some("Fork".into()),
@@ -260,7 +260,7 @@ impl App {
     /// so the dialog hands over the user-echo ordinal and the entry index;
     /// TWO routes answer for them, chosen by what backs the pane:
     ///
-    /// - a MANAGER pane has a morpheus session in the store — the clicked prompt
+    /// - a MANAGER pane has a morpheus session in the store - the clicked prompt
     ///   resolves to one of its messages and `run_pane_session_action` runs
     ///   the store's branch machinery (a real truncation);
     /// - an ACP pane has no morpheus session (its `session_id` is the agent's),
@@ -332,7 +332,7 @@ impl App {
         // Pane kinds differ in what backs their conversation:
         //
         // - the MANAGER (morpheus) pane owns a real morpheus session in the store,
-        //   whose context snapshot IS the agent's memory — Revert/Fork run
+        //   whose context snapshot IS the agent's memory - Revert/Fork run
         //   the store's own branch machinery (and really truncate what the
         //   next turn sends);
         // - an ACP pane has no morpheus session at all (its `session_id` is the
@@ -391,14 +391,14 @@ impl App {
     /// pane's own timeline is the transcript.
     ///
     /// Revert drops the clicked prompt and everything after it from the
-    /// pane, hands the prompt back, and ABANDONS the agent session — ACP has
+    /// pane, hands the prompt back, and ABANDONS the agent session - ACP has
     /// no truncate, so the honest equivalent is a fresh session on the next
     /// turn, primed with the kept prefix (the rewind handoff).
     ///
     /// Fork branches a new morpheus session from the transcript prefix (prose
     /// only: user prompts and agent replies, one context item each, so the
     /// store records the boundaries the branch resolves) and opens it in the
-    /// MAIN view — the pane keeps its own conversation untouched.
+    /// MAIN view - the pane keeps its own conversation untouched.
     pub(in crate::app) fn run_pane_timeline_action(
         &mut self,
         action: usize,
@@ -505,7 +505,7 @@ impl App {
         }
         self.toast_state.show(ToastOptions {
             title: Some(title.into()),
-            message: "The agent is working — wait for it to finish.".into(),
+            message: "The agent is working - wait for it to finish.".into(),
             variant: ToastVariant::Warning,
             duration_ms: 4000,
         });
@@ -515,13 +515,13 @@ impl App {
     /// Rewind a pane with NO truncatable agent session (an ACP pane) to
     /// transcript index `timeline_index`: drop that entry and everything
     /// after it from the pane, hand the prompt back to the focused pane's
-    /// prompt box, and ABANDON the agent session — the protocol has no
+    /// prompt box, and ABANDON the agent session - the protocol has no
     /// truncate, so the honest equivalent is a fresh one on the next turn,
     /// primed with the kept prefix (the rewind handoff).
     ///
     /// Shared by the Message Actions Revert and the `/undo` checkpoint box
     /// (`title` only names the refusal toast), so the two surfaces cannot
-    /// drift. Returns `false` — with nothing changed — when the pane or that
+    /// drift. Returns `false` - with nothing changed - when the pane or that
     /// entry is gone, or the pane cannot be rewound right now.
     pub(in crate::app) fn rewind_pane_timeline(
         &mut self,
@@ -569,7 +569,7 @@ impl App {
             // The truncation IS the revert: if it did not land, nothing
             // else below may claim one (the old code ignored the result and
             // carried on, restoring the prompt as if the pane had been
-            // rewound — a silent no-op dressed as success).
+            // rewound - a silent no-op dressed as success).
             if !split.truncate_timeline(pane, keep) {
                 return false;
             }
@@ -578,7 +578,7 @@ impl App {
             // The ACP session cannot be truncated: drop the live binding so
             // the next turn opens a FRESH agent session, and FENCE the pane
             // against cold-restore replays of the session it abandoned (a
-            // replay would put every rewound turn back on screen — the undo
+            // replay would put every rewound turn back on screen - the undo
             // would look like it did nothing).
             if let Some(p) = split.panes.get_mut(pane) {
                 p.session_id = None;
@@ -660,7 +660,7 @@ impl App {
         // pane kinds: the manager pane runs the store's branch machinery over
         // its own morpheus session, and an ACP pane runs them over its local
         // timeline (`run_pane_message_action` picks the path). An
-        // `agents_call` input still offers Copy only — it is the other
+        // `agents_call` input still offers Copy only - it is the other
         // agent's prompt, not one of the user's.
         let is_user = hit.user_ordinal.is_some();
         // The dialog's preview: the raw timeline text (what was sent).
@@ -677,7 +677,7 @@ impl App {
             });
     }
 
-    /// The pane-session Revert/Fork core — the chat's `run_message_action`
+    /// The pane-session Revert/Fork core - the chat's `run_message_action`
     /// arms against a pane's OWN session instead of the screen's current
     /// one. Revert truncates the store session AND rebuilds the pane's
     /// timeline from the truncated session (the replay builder's mapping);
@@ -706,7 +706,7 @@ impl App {
                 if pane_running || self.state.status == SessionStatus::Working {
                     self.toast_state.show(ToastOptions {
                         title: Some("Revert".into()),
-                        message: "The agent is working — wait for it to finish.".into(),
+                        message: "The agent is working - wait for it to finish.".into(),
                         variant: ToastVariant::Warning,
                         duration_ms: 4000,
                     });
@@ -732,7 +732,7 @@ impl App {
                     return;
                 }
                 // The store's branch projection is now truncated: rebuild
-                // the pane's timeline from the reverted session — the SAME
+                // the pane's timeline from the reverted session - the SAME
                 // replay the cold restore uses, so tool rows survive a
                 // revert exactly like they survive a restart.
                 let events = match self.session_store.load_context(session_id) {
@@ -740,7 +740,7 @@ impl App {
                         crate::app::agents_dispatch::manager_context_replay_events(&context)
                     }
                     // A pre-feature session with no context records: fold the
-                    // display projection (prose only — all it has).
+                    // display projection (prose only - all it has).
                     None => {
                         let Some(truncated) = self.session_store.load_session(session_id) else {
                             return;
@@ -788,7 +788,7 @@ impl App {
                 }
                 self.sync_agents_pane_mirrors();
                 // The reverted prompt goes back into the shared prompt box
-                // for editing/resending — but ONLY when the pane holds the
+                // for editing/resending - but ONLY when the pane holds the
                 // focus (the prompt dispatches to the focused pane).
                 let pane_focused = self
                     .agents_split
@@ -814,7 +814,7 @@ impl App {
                 if pane_running || self.state.status == SessionStatus::Working {
                     self.toast_state.show(ToastOptions {
                         title: Some("Fork".into()),
-                        message: "The agent is working — wait for it to finish.".into(),
+                        message: "The agent is working - wait for it to finish.".into(),
                         variant: ToastVariant::Warning,
                         duration_ms: 4000,
                     });
@@ -872,8 +872,8 @@ impl App {
     /// The action fired FROM the /agents split, and switching the session
     /// behind the split used to leave the screen parked on the pane grid
     /// while the fork only existed behind it (a success toast and a screen
-    /// that "did nothing"). The split parks first — turns, bindings and
-    /// metadata survive, the mode closes honestly — and the fork takes the
+    /// that "did nothing"). The split parks first - turns, bindings and
+    /// metadata survive, the mode closes honestly - and the fork takes the
     /// main view.
     fn open_forked_session(&mut self, forked: crate::types::Session) {
         use crate::ui::toast::{ToastOptions, ToastVariant};
@@ -898,7 +898,7 @@ impl App {
 
 /// Resolve the clicked user echo to the pane session's message.
 ///
-/// The pane's PROMPT sequence is what the store persists as user messages —
+/// The pane's PROMPT sequence is what the store persists as user messages -
 /// the user's own prompts AND the `agents_call` inputs other agents sent
 /// (they are `ContextItem::User` in the pane's context). The echo ordinals
 /// only count the user's prompts, so the two lists are aligned by TEXT in
@@ -906,7 +906,7 @@ impl App {
 /// every later target (the old raw-ordinal lookup reverted the wrong turn).
 ///
 /// Returns the message id and its index in `session.messages`, or `None`
-/// when the clicked prompt cannot be identified — refusing is the honest
+/// when the clicked prompt cannot be identified - refusing is the honest
 /// answer to an ambiguous click, because acting on the wrong message is
 /// destructive and silent.
 fn resolve_pane_message(
@@ -970,8 +970,8 @@ fn resolve_pane_message(
     // Alignment failed. The positional lookup is only safe when it cannot be
     // off by anything: no `agents_call` prompt sits in the timeline and the
     // two lists are the same length (a legacy/hand-written session). When an
-    // agent prompt IS present, position `k` and store message `k` disagree —
-    // the exact mis-target this function exists to fix — so refuse instead of
+    // agent prompt IS present, position `k` and store message `k` disagree -
+    // the exact mis-target this function exists to fix - so refuse instead of
     // reverting the wrong turn.
     let has_agent_prompts = timeline
         .iter()
@@ -986,7 +986,7 @@ fn resolve_pane_message(
 
 /// The pane's transcript prefix as a forked morpheus conversation: one message
 /// and one context item per PROSE entry (user prompts, `agents_call`
-/// inputs, agent replies). Thoughts, tool rows and plans are skipped — they
+/// inputs, agent replies). Thoughts, tool rows and plans are skipped - they
 /// are not model-facing conversation, and keeping the two lists 1:1 is what
 /// lets the store record the boundaries the fork later resolves.
 fn pane_timeline_prefix(

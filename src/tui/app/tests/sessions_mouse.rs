@@ -174,7 +174,7 @@ async fn sidebar_tiny_drag_switches_session() {
     let mut app = build_many();
     let guard = app.state.current_session_id.clone();
 
-    // A drag released one cell away — previously this entered the chat
+    // A drag released one cell away - previously this entered the chat
     // text-region extraction path instead of switching sessions.
     let _ = app
         .handle_mouse_event(mouse(CKind::Down(CBtn::Left), 5, 10))
@@ -203,7 +203,7 @@ async fn prompt_drag_released_over_sidebar_blurs_prompt() {
 
     // Drag starts inside the prompt box (focusing it), then releases over a
     // left panel session. The prompt must lose focus once the cursor leaves its
-    // area — it must not stay "lit".
+    // area - it must not stay "lit".
     let down_x = prompt_area.x + 3; // inside the prompt's text area
     let down_y = prompt_area.y + 1; // first content row of the prompt
     let mid_x = down_x + 4; // still inside the prompt (extends selection)
@@ -288,7 +288,7 @@ async fn trash_click_on_the_exact_glyph_opens_delete_confirm() {
     let guard = app.state.current_session_id.clone();
     let span = first_row_trash_span();
 
-    // Down+Up on the glyph's first column must open the delete confirm —
+    // Down+Up on the glyph's first column must open the delete confirm -
     // and must NOT switch sessions.
     let _ = app
         .handle_mouse_event(mouse(CKind::Down(CBtn::Left), span.start, 2))
@@ -319,7 +319,7 @@ async fn click_just_after_the_trash_glyph_does_nothing() {
     let guard = app.state.current_session_id.clone();
     let span = first_row_trash_span();
 
-    // One cell past the glyph — the cleared cell / right-pad region the old
+    // One cell past the glyph - the cleared cell / right-pad region the old
     // row-wide tests treated as delete, then as switch: it must do nothing.
     // Sweep every column from the glyph's end to the panel edge.
     for x in span.end..LEFT_PANEL_WIDTH {
@@ -377,7 +377,7 @@ async fn truncated_title_is_clickable_only_in_its_visible_part() {
     let guard = app.state.current_session_id.clone();
 
     // A 40-char title: the panel displays only the first max_text_w = 12
-    // chars, so the clickable string is x = 4..16 — NOT the string's full
+    // chars, so the clickable string is x = 4..16 - NOT the string's full
     // length. The glyph shifts to trash_x = 4 + 12 + 1 = 17 (span 17..19).
     app.state.session_summaries[0].title = "x".repeat(40);
     render_session(&mut app);
@@ -397,7 +397,7 @@ async fn truncated_title_is_clickable_only_in_its_visible_part() {
 
     // Reset: click one char PAST the displayed truncation (x = 16, the gap
     // before the glyph). The string is 40 chars long, but only 12 are shown
-    // — the click is outside what is on screen, so nothing happens.
+    // - the click is outside what is on screen, so nothing happens.
     let mut app = build_small();
     app.state.session_summaries[0].title = "x".repeat(40);
     render_session(&mut app);
@@ -476,7 +476,7 @@ async fn click_on_a_session_locked_elsewhere_shows_a_toast_that_survives_the_tit
     let foreign = crate::session::store::SessionStore::new();
     assert!(foreign.try_lock_session("history-0"));
 
-    // Click the title (row 2, x=6 — inside "session 0"'s span).
+    // Click the title (row 2, x=6 - inside "session 0"'s span).
     let _ = app
         .handle_mouse_event(mouse(CKind::Down(CBtn::Left), 6, 2))
         .unwrap();
@@ -605,8 +605,8 @@ async fn leaving_chat_content_to_sidebar_clears_focus_highlight() {
 }
 
 /// Hover-follow: moving the cursor over a session row moves the shared
-/// selection there — the same contract as the slash menu, the model
-/// picker and the internal-tools list — without switching sessions or
+/// selection there - the same contract as the slash menu, the model
+/// picker and the internal-tools list - without switching sessions or
 /// opening anything.
 #[tokio::test]
 async fn hover_over_session_row_moves_the_selection() {
@@ -679,7 +679,7 @@ async fn delete_all_button_click_opens_the_confirm() {
         message, "Delete ALL sessions",
         "the confirm must name the cwd scope, not a single session"
     );
-    // Default must be "No" — a destructive bulk action never defaults to yes.
+    // Default must be "No" - a destructive bulk action never defaults to yes.
     assert_eq!(dialog.selected, 1, "the confirm must default to No");
 }
 
@@ -716,7 +716,7 @@ async fn delete_all_confirm_removes_every_session() {
         "the confirm must pop after resolving"
     );
     // The viewed session is the unsaved in-memory one (not a persisted
-    // summary), so it stays — exactly the single-delete semantics.
+    // summary), so it stays - exactly the single-delete semantics.
     assert!(app.state.current_session_id.is_some());
 }
 
@@ -749,7 +749,7 @@ async fn delete_all_cancel_keeps_every_session() {
 }
 
 /// The footer row outside the button span is dead: no dialog, no selection
-/// change — the reserved row is not a list row and the button is exact-span.
+/// change - the reserved row is not a list row and the button is exact-span.
 /// The centered button occupies 6..16 of the 22-wide panel, so x=0 is a dead
 /// in-panel column; x=23 additionally exercises the outside-the-panel guard.
 #[tokio::test]

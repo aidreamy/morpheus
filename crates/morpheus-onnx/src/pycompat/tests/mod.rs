@@ -34,7 +34,7 @@ fn py_repr_value_renders_python_scalars() {
 // --------------------------------------------------------------- round4
 #[test]
 fn round4_matches_python_round_4() {
-    // Values verified against CPython `round(x, 4)` — including the exact
+    // Values verified against CPython `round(x, 4)` - including the exact
     // dyadic ties where Python's banker's rounding is observable.
     assert_eq!(round4(0.123456), 0.1235);
     assert_eq!(round4(0.5), 0.5);

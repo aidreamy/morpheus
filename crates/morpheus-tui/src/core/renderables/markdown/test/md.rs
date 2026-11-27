@@ -281,12 +281,12 @@ fn test_table_border_color_default_is_muted() {
 /// Regression: a VS16 emoji sequence ("⚙️" = U+2699 + U+FE0F) inside a table
 /// cell used to be split char-by-char into TWO cells (one holding a bare
 /// VS16). Terminals render the pair as one 2-column glyph while ratatui's
-/// diff models the cells with mismatched widths — so when the surrounding UI
+/// diff models the cells with mismatched widths - so when the surrounding UI
 /// changed (e.g. switching sessions), the affected physical columns were
 /// never repainted and the row "leaked" into other views.
 ///
 /// The cell writer must place each grapheme cluster in ONE cell, size columns
-/// by display width and mark wide-glyph shadow columns as `Skip` — exactly
+/// by display width and mark wide-glyph shadow columns as `Skip` - exactly
 /// like the prose renderer does.
 #[test]
 fn test_table_vs16_emoji_never_splits_into_two_cells() {
@@ -868,7 +868,7 @@ fn test_loose_list_paragraph_on_marker_row() {
     );
 }
 
-/// inline formatting survives into table cells — bold spans keep
+/// inline formatting survives into table cells - bold spans keep
 /// their modifier while surrounding padding stays plain.
 #[test]
 fn test_table_cell_inline_styles() {
@@ -900,7 +900,7 @@ fn test_table_cell_inline_styles() {
 }
 
 /// Regression (review finding): marker-width slots must be consumed per list,
-/// not always from index 0 — a nested ordered list with ≥10 items inside
+/// not always from index 0 - a nested ordered list with ≥10 items inside
 /// another list previously fell back to width 2 and its "10."/"11." markers
 /// were overwritten by item text.
 #[test]
@@ -987,7 +987,7 @@ fn test_blockquote_softbreak_indent_single_count() {
 
 /// Regression (review round 2): a quote opened INSIDE a list item must keep
 /// its +2 through sibling blocks (code block → paragraph) and when opening a
-/// sublist — indentation derives from open containers, never from stored
+/// sublist - indentation derives from open containers, never from stored
 /// restores.
 #[test]
 fn test_quote_inside_list_item_survives_blocks() {
@@ -1121,7 +1121,7 @@ fn test_link_hit_map_covers_inter_word_spaces() {
 #[test]
 fn test_active_links_skip_clipped_rows() {
     let md = make_md("before\n\n[docs](https://x.io)");
-    // Viewport of a single row: the label renders on row 1 — clipped away.
+    // Viewport of a single row: the label renders on row 1 - clipped away.
     let mut buf = Buffer::empty(Rect::new(0, 0, 40, 1));
     md.render_self(&mut buf, Rect::new(0, 0, 40, 1));
 
@@ -1206,7 +1206,7 @@ fn test_nested_quote_double_bar() {
     );
 }
 
-/// the warning theme is configurable through the renderer — a custom
+/// the warning theme is configurable through the renderer - a custom
 /// prefix triggers custom colors instead of the ⚠/yellow defaults.
 #[test]
 fn test_warning_theme_configurable_prefix_and_colors() {

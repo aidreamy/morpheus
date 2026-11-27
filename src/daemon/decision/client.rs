@@ -4,13 +4,13 @@
 //!
 //! The seam is unchanged and still sync: a review serializes the same
 //! `state`/`questions` the ONNX adapter built, sends `decision/decide`,
-//! and interprets the model's raw result — the interpretation logic
+//! and interprets the model's raw result - the interpretation logic
 //! (`choice`/`answer_confidence` → verdict) moved here verbatim from the
 //! in-process adapter. What changed is only where the model runs.
 //!
 //! Fail-open, at every layer, per the approved protocol: daemon absent or
 //! unactivatable, handshake rejected, request timeout, remote error of any
-//! code — all collapse to [`TerminationVerdict::fallback`], and the loop
+//! code - all collapse to [`TerminationVerdict::fallback`], and the loop
 //! behaves exactly as without the model. The daemon's only failure mode
 //! that reaches the user is nothing.
 
@@ -34,7 +34,7 @@ pub struct IpcCheckup {
 /// The whole-review budget (M3): one review = activation (≤2s) plus
 /// handshake and decide. The first decide of a daemon also loads the model
 /// (a multi-GB mmap + ORT session build takes seconds; the daemon's own
-/// retry window prevents repeat attempts). 45s bounds the WORST case — a
+/// retry window prevents repeat attempts). 45s bounds the WORST case - a
 /// wedged daemon fails the review well under a minute instead of composing
 /// per-read timeouts into minutes.
 const DECIDE_BUDGET: std::time::Duration = std::time::Duration::from_secs(45);
@@ -44,7 +44,7 @@ impl IpcCheckup {
     ///
     /// Never fails: unlike the in-process adapter's `load` (which returned
     /// `None` when the model could not load), the model is NOT loaded
-    /// here — the daemon loads it on the first `decide`, throttled by its
+    /// here - the daemon loads it on the first `decide`, throttled by its
     /// own retry window. A broken setup surfaces as per-review fail-opens,
     /// not as a missing checkup at assembly time.
     pub fn new(kind: Kind) -> Self {
@@ -59,7 +59,7 @@ impl IpcCheckup {
     /// Every outcome is logged under `target: "laya"` (mirrored into the
     /// dedicated `laya.log`): the review that is about to run, the verdict
     /// that came back, and the fail-open reason when it did not. The model
-    /// is otherwise invisible — a silent fail-open is indistinguishable
+    /// is otherwise invisible - a silent fail-open is indistinguishable
     /// from a working model, which is exactly how improper stops go
     /// undiagnosed.
     fn decide(&self, state: &serde_json::Value) -> Option<serde_json::Value> {
@@ -118,7 +118,7 @@ impl Checkup for IpcCheckup {
             return TerminationVerdict::fallback();
         };
         // The interpretation the in-process adapter performed on
-        // `Prediction` — now on the raw wire value. Missing answer fields
+        // `Prediction` - now on the raw wire value. Missing answer fields
         // are a broken checkpoint/runtime pairing: fail open, not guess.
         let answers = result
             .get("answers")
@@ -147,7 +147,7 @@ impl Checkup for IpcCheckup {
             .unwrap_or(0.0);
         log::info!(
             target: "laya",
-            "checkup: verdict {decision:?} (confidence {confidence:.2}) — text: {:?}",
+            "checkup: verdict {decision:?} (confidence {confidence:.2}) - text: {:?}",
             truncate_for_log(final_text)
         );
         TerminationVerdict {

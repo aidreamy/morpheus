@@ -366,7 +366,7 @@ fn main() {
         }),
     );
     // A non-quantifier brace is tolerated (escaped to a literal), so `a{2`
-    // simply matches nothing here — the pattern never errors.
+    // simply matches nothing here - the pattern never errors.
     show_grep(
         "grep `a{2` (brace tolerance)",
         grep(GrepOptions {
@@ -391,7 +391,7 @@ fn main() {
             on_match: None,
         }),
     );
-    // An unclosed character class has no tolerance path — genuine error.
+    // An unclosed character class has no tolerance path - genuine error.
     show_grep(
         "grep `[abc` (genuine regex error)",
         grep(GrepOptions {

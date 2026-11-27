@@ -68,7 +68,7 @@ where
     /// Creates the cache directory if it does not exist.
     ///
     /// Callers must supply a `cache_subdir` (e.g. `"cache"`). No vendor
-    /// path is hardcoded here — each caller decides where under the OS data
+    /// path is hardcoded here - each caller decides where under the OS data
     /// directory to place cache files.
     ///
     /// # Panics
@@ -102,7 +102,7 @@ where
 
     /// Mark `key` as being revalidated.
     ///
-    /// Returns `false` if the key was already marked — the caller should
+    /// Returns `false` if the key was already marked - the caller should
     /// skip spawning another background fetch.
     pub fn start_revalidation(&mut self, key: K) -> bool {
         self.revalidating.insert(key)
@@ -224,7 +224,7 @@ mod tests {
         let file_path = dir.path().join("corrupt.json");
         std::fs::write(&file_path, "this is not valid json").unwrap();
 
-        // Should not panic — treats corrupted file as empty cache
+        // Should not panic - treats corrupted file as empty cache
         let cache = StaleCache::<String, String>::new_for_test(file_path);
         assert!(cache.get(&"any".to_string()).is_none());
     }
@@ -234,7 +234,7 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let file_path = dir.path().join("missing.json");
 
-        // File does not exist — should not panic
+        // File does not exist - should not panic
         let cache = StaleCache::<String, String>::new_for_test(file_path);
         assert!(cache.get(&"any".to_string()).is_none());
     }

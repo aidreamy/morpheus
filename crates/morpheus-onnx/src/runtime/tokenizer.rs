@@ -3,7 +3,7 @@
 //!
 //! `fix_tokenizer_config` patches `tokenizer_config.json` so a checkpoint
 //! produced by newer Transformers versions loads across tokenizer-library
-//! versions — rewritten through a temporary file and an atomic replace,
+//! versions - rewritten through a temporary file and an atomic replace,
 //! because HuggingFace snapshots are links into a shared blob store and
 //! writing through the link would truncate a file shared with other
 //! revisions and processes.
@@ -15,7 +15,7 @@ use serde_json::{Map, Value, json};
 
 use crate::error::{Error, Result};
 
-/// The tokenizer surface `build_sequence` uses — the HuggingFace fast
+/// The tokenizer surface `build_sequence` uses - the HuggingFace fast
 /// tokenizer's call shape, restricted to what the sequence builder passes.
 ///
 /// Upstream wraps every call in `_TOKENIZE_LOCK` (`encode_text`) because a
@@ -145,7 +145,7 @@ impl Tokenizer for HfTokenizer {
 /// Checkpoints produced by newer Transformers versions can contain a
 /// `TokenizersBackend` class or a list-valued `extra_special_tokens` field
 /// that older loaders cannot parse. When a change is needed the file is
-/// rewritten through a temporary file and an atomic replace — HuggingFace
+/// rewritten through a temporary file and an atomic replace - HuggingFace
 /// snapshots are links into a shared blob store, so writing through the link
 /// would truncate a file shared with other revisions and processes.
 pub fn fix_tokenizer_config(path: &std::path::Path) {
@@ -233,7 +233,7 @@ pub(crate) fn fix_tokenizer_config_inner(
         }
     }
     // Dropping the PersistError removes the temporary file, leaving the
-    // original intact — the cleanup path of the upstream `except` block.
+    // original intact - the cleanup path of the upstream `except` block.
     tmp.persist(cfg_file).map_err(|e| e.error.to_string())?;
     Ok(())
 }

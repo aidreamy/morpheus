@@ -46,7 +46,7 @@ fn gateway_app() -> App {
 }
 
 /// After a path that closes an overlay, Ctrl+C on a non-empty draft must
-/// CLEAR the draft (prompt owns keyboard) — not show the quit confirm.
+/// CLEAR the draft (prompt owns keyboard) - not show the quit confirm.
 fn assert_ctrl_c_clears(app: &mut App) {
     app.process_key_event(ctrl(KeyCode::Char('c'))).unwrap();
     assert_eq!(

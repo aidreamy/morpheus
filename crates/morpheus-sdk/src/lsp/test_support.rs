@@ -82,7 +82,7 @@ pub fn spawn_fake_server(buffer: usize) -> (FakeServer, DuplexStream) {
 
     // `tokio::io::split` halves hold the underlying stream via BiLock: the
     // peer only sees EOF once BOTH halves are gone. The shutdown watch makes
-    // that ordering explicit — the pump leaves on signal, releasing its half.
+    // that ordering explicit - the pump leaves on signal, releasing its half.
     let (shutdown_tx, shutdown_rx) = watch::channel(false);
     let (incoming_tx, incoming_rx) = mpsc::channel(64);
     tokio::spawn(pump_incoming(read_half, shutdown_rx, incoming_tx));
@@ -143,7 +143,7 @@ pub async fn auto_serve(server: FakeServer) {
 /// Like [`auto_serve`], but requests whose method appears in `replies` are
 /// answered with the mapped JSON `result` value instead of `null`.
 ///
-/// Every request still gets exactly one reply — servers hang otherwise.
+/// Every request still gets exactly one reply - servers hang otherwise.
 pub async fn auto_respond(mut server: FakeServer, replies: Vec<(String, Value)>) {
     while let Some(body) = server.next_client_message().await {
         let Ok(parsed) = serde_json::from_str::<Value>(&body) else {

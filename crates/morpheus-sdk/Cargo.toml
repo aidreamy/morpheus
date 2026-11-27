@@ -38,12 +38,12 @@ tree-sitter-swift = "0.7"
 tree-sitter-zig = "1.1"
 # The upstream `tree-sitter-kotlin` crate is stale on crates.io (0.3.8 predates
 # the `LANGUAGE` const API from tree-sitter 0.23). The fwcd fork declares 0.4.0
-# but was never published, and git deps can't carry a `version` requirement —
+# but was never published, and git deps can't carry a `version` requirement -
 # which `cargo package` mandates. So we ship the maintained WillBooster fork
 # from the registry instead (same pattern as tree-sitter-astro/-svelte/-dockerfile).
 tree-sitter-kotlin = { version = "1.6", package = "willbooster-tree-sitter-kotlin" }
 
-# ast::* — ast-grep structural matching (vendored from oh-my-pi pi-ast/pi-natives).
+# ast::* - ast-grep structural matching (vendored from oh-my-pi pi-ast/pi-natives).
 # Versions mirror the upstream workspace. `tree-sitter` is unified on the
 # ast-grep line (0.25): the runtime crate links a single native lib, so Morpheus's
 # own `tree_sitter` module and ast-grep must share one version.
@@ -115,7 +115,7 @@ tokio-stream = "0.1"
 url = "2"
 serde = { version = "1.0.228", features = ["derive", "rc"] }
 
-# lsp::* — Language Server Protocol types (messages, capabilities, URIs).
+# lsp::* - Language Server Protocol types (messages, capabilities, URIs).
 # Kept behind our own re-export surface so the concrete crate can be swapped
 # (e.g. for a maintained fork) without touching call sites.
 lsp-types.workspace = true

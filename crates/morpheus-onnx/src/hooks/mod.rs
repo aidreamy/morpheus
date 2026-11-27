@@ -248,7 +248,7 @@ pub(crate) fn skip_default_hooks() -> bool {
     SKIP_DEFAULTS.with(Cell::get)
 }
 
-/// Whether a call would run any hook at all — the fast-path probe for the
+/// Whether a call would run any hook at all - the fast-path probe for the
 /// no-hooks prediction path. False only when every source is empty: the
 /// process-wide defaults (unless suppressed on this thread), the installed
 /// hooks and the per-call hooks. Reading the default registry takes its
@@ -292,7 +292,7 @@ pub fn clear_default_hooks() {
     lock_registry().clear();
 }
 
-/// `compose_hooks`: effective hook list for one call — defaults, then
+/// `compose_hooks`: effective hook list for one call - defaults, then
 /// installed, then per-call hooks. Reads the process-wide defaults at call
 /// time, so hooks set after construction still apply.
 pub fn compose_hooks(installed: &[SharedHook], per_call: &PerCall) -> Vec<SharedHook> {
@@ -351,8 +351,8 @@ pub fn validate_timeout(value: Option<f64>) -> Result<Option<f64>> {
         )));
     }
     if value.is_infinite() || value >= 1.0e18 {
-        // A positive infinity — or any wait beyond what `Duration::secs_f64`
-        // can represent — is an unlimited wait, which is exactly what `None`
+        // A positive infinity - or any wait beyond what `Duration::secs_f64`
+        // can represent - is an unlimited wait, which is exactly what `None`
         // means (upstream `thread.join(inf)` is a legal infinite wait); this
         // also keeps the downstream duration conversion from panicking.
         return Ok(None);
@@ -401,8 +401,8 @@ impl HookEvent {
 /// Without a timeout the hook runs inline on the calling thread. With one, the
 /// hook runs on a detached thread operating on a clone of the context; a
 /// timely completion writes the mutated context back, an overrun abandons the
-/// clone (see the module docs) and raises `TimeoutError` — [`Error::Timeout`]
-/// here — with the upstream message.
+/// clone (see the module docs) and raises `TimeoutError` - [`Error::Timeout`]
+/// here - with the upstream message.
 fn call_hook(
     hook: &SharedHook,
     event: HookEvent,

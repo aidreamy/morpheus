@@ -156,7 +156,7 @@ mod act_validation_tests {
     fn chain_needs_sim_walks_through_wait_steps() {
         use crate::computer::act::chain_needs_sim;
         // Regression (review finding): a wait step may carry a `then`
-        // continuation — the sim decision must look PAST the wait, not
+        // continuation - the sim decision must look PAST the wait, not
         // stop at it.
         let wait_then_type = ComputerAct {
             wait: Some(600),
@@ -528,7 +528,7 @@ mod touch_validation_tests {
 
     #[test]
     fn semantic_step_with_held_rejected() {
-        // Review finding: `held` on a semantic step was silently ignored —
+        // Review finding: `held` on a semantic step was silently ignored -
         // a chord belongs to keyboard/pointer steps, so reject it loudly.
         let s = ComputerAct {
             name: Some("Safari".into()),
@@ -574,7 +574,7 @@ mod touch_validation_tests {
     }
 }
 
-/// Shell-surface dispatch tests — same mock fixture as the wait tests
+/// Shell-surface dispatch tests - same mock fixture as the wait tests
 /// (Taskbar surface at `MOCK_SHELL_PID`), driving `run_step_on_surface`
 /// directly through its provider seam.
 #[cfg(test)]
@@ -597,7 +597,7 @@ mod touch_surface_tests {
         .expect("mock fixture carries a taskbar")
     }
 
-    /// A press on a surface locator reports against the SURFACE's name —
+    /// A press on a surface locator reports against the SURFACE's name -
     /// same report shape as the app path (`action `selector` (target)`).
     #[test]
     fn surface_step_report_names_the_surface() {
@@ -772,7 +772,7 @@ mod tests {
         );
     }
 
-    /// The EVENT mode: app-scoped only — every element field is rejected;
+    /// The EVENT mode: app-scoped only - every element field is rejected;
     /// without an event the input still needs a selector.
     #[test]
     fn event_mode_rules() {
@@ -902,7 +902,7 @@ mod tests {
     }
 
     /// The wire kind echoes the SAME token vocabulary the `event` request
-    /// used (serde snake_case) — including the placeholder payload which
+    /// used (serde snake_case) - including the placeholder payload which
     /// `state_changed` waits accept as match-any. The result JSON is flat
     /// (untagged): no `Event`/`State` wrapper key may leak onto the wire.
     #[test]
@@ -911,7 +911,7 @@ mod tests {
         use crate::computer::wait::event_kind_wire;
 
         // The echo vocabulary is the SERDE token of `WaitEvent`
-        // (`announcement`) — a delivered kind matches the request token.
+        // (`announcement`) - a delivered kind matches the request token.
         assert_eq!(
             event_kind_wire(&xa11y::EventKind::Announcement),
             "announcement"
@@ -990,7 +990,7 @@ mod tests {
     #[test]
     fn wait_detached_met_without_element() {
         // A selector nothing matches: the ABSENCE condition is met on the
-        // first poll — the common "spinner went away" shape.
+        // first poll - the common "spinner went away" shape.
         let locator = root_locator("button[name='Definitely Not There']");
         let out = wait_on_locator(
             &locator,
@@ -1017,7 +1017,7 @@ mod tests {
             Instant::now(),
         )
         .expect_err("attached on a missing element must time out");
-        // Phase 7: the wait path routes through the error renderer — the
+        // Phase 7: the wait path routes through the error renderer - the
         // message must carry the tool prefix, the NEXT-STEP guidance
         // (budget, wait step) and the platform's Diagnosis verbatim, so
         // the model sees exactly what the poll loop last saw.
@@ -1043,7 +1043,7 @@ mod tests {
 
     #[test]
     fn state_mapping_is_total() {
-        // Every wire variant maps onto a distinct xa11y state — a missed
+        // Every wire variant maps onto a distinct xa11y state - a missed
         // arm here would silently wait for the wrong condition.
         let pairs = [
             (WaitState::Attached, ElementState::Attached),
@@ -1071,13 +1071,13 @@ mod tests {
         let locator = Locator::new(provider_dyn, None, "check_box");
         assert!(
             locator.count().map(|n| n >= 1).unwrap_or(false),
-            "mock fixture lost its check_box — update the wait tests' fixture assumptions"
+            "mock fixture lost its check_box - update the wait tests' fixture assumptions"
         );
     }
 }
 
 /// Extractor-level wait coverage: `event` is a string enum and
-/// `value_contains` a plain string — a stringified `pid` must still
+/// `value_contains` a plain string - a stringified `pid` must still
 /// repair alongside them, against the hand-written description schema.
 #[cfg(test)]
 mod wait_extraction_tests {

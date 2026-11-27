@@ -36,7 +36,7 @@ pub struct LlmConfig {
     pub reasoning: Option<String>,
     /// How tool calls are delivered: native structured parts (default, like
     /// crush) or inline-JSON text the harness parses. The two paths are
-    /// mutually exclusive at the request level — see
+    /// mutually exclusive at the request level - see
     /// [`aiface::connector::ToolCallMode`].
     pub tool_call_mode: aiface::connector::ToolCallMode,
 }
@@ -74,7 +74,7 @@ const MODELS_DEV_CACHE_DIR: Option<&str> = Some("morpheus/cache");
 /// Whether a model supports configurable reasoning/thinking.
 ///
 /// Resolved by the SDK, fastest source first: the static table of known
-/// models (exact ids — no disk read, no family catch-alls), then the
+/// models (exact ids - no disk read, no family catch-alls), then the
 /// models.dev catalog cache (real `reasoning`/`reasoning_options` per model).
 /// Models known to neither fall back to a name heuristic (OpenAI
 /// `o1`/`o3`/`o4`/`gpt-5` series, DeepSeek R1, Kimi k2 thinking, Gemini 3.x,

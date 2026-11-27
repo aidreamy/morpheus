@@ -57,11 +57,11 @@ pub trait Tools: Send + Sync {
 }
 
 /// Simplified embedder config for the `recall_search` dispatch.
-/// Does not depend on TUI types — model names are stored as strings.
+/// Does not depend on TUI types - model names are stored as strings.
 #[cfg(feature = "embed")]
 #[derive(Debug, Clone)]
 pub enum RecallEmbedderConfig {
-    /// Local fastembed model — model_name must match serde renames of
+    /// Local fastembed model - model_name must match serde renames of
     /// `fastembed::EmbeddingModel` (e.g. "AllMiniLML6V2", "BGESmallENV15Q").
     Local { model_name: String },
     /// Cloud embedding provider.
@@ -155,20 +155,20 @@ pub struct MorpheusTools {
     /// PNG payload staged by the last `computer_screenshot` dispatch
     /// (`dispatch` takes `&self`, so staging is interior-mutable). The
     /// harness drains it right after the dispatch returns `Ok` and lowers
-    /// it into the tool-result `ChatMessage` — see `push_tool_history`.
+    /// it into the tool-result `ChatMessage` - see `push_tool_history`.
     pending_images: Mutex<Option<Vec<aiface::connector::ImageBlock>>>,
     /// Optional event sender for streaming tool output.
     event_tx: Option<tokio::sync::mpsc::UnboundedSender<HarnessEvent>>,
     /// Per-call routing identity of the tool call currently being
     /// dispatched (pushed in by the agent loop right before `dispatch`):
     /// the sub-agent arm stamps it on every stream/report event so the TUI
-    /// pairs a window's input echo with ITS OWN traffic — two parallel
+    /// pairs a window's input echo with ITS OWN traffic - two parallel
     /// spawns of the same agent CLI share the agent name but never this
     /// ref (the input1↔output1 cross-pairing bug).
     active_call_ref: std::sync::Mutex<Option<String>>,
     /// Shared stop flag for interruptible tools (Phase 5): the agent loop's
     /// `stop_signal` reaches a running `subagent_call` through this, turning
-    /// an ESC into a spec-conformant ACP `session/cancel` — the only way a
+    /// an ESC into a spec-conformant ACP `session/cancel` - the only way a
     /// turn ends early (there is no time limit). `None` → turns run to
     /// completion.
     stop_signal: Option<Arc<AtomicBool>>,
@@ -181,7 +181,7 @@ pub struct MorpheusTools {
 ///
 /// A missing (or non-directory) default is NOT registered: discovery is a
 /// hard `InvalidSource` error for unreadable sources, and a default that
-/// does not exist must never break the skills tools — they simply report
+/// does not exist must never break the skills tools - they simply report
 /// an empty list until the directory (or a setup.json override) appears.
 fn default_skill_sources() -> Vec<SkillSource> {
     default_skill_sources_for(morpheus_tools::skills::home_dir().as_deref())
@@ -194,7 +194,7 @@ fn default_skill_sources_for(home: Option<&str>) -> Vec<SkillSource> {
     };
     // A HOME inherited from Git Bash / MSYS uses POSIX drive syntax
     // ("/c/Users/..."), which native filesystem calls cannot resolve on
-    // Windows — normalize it before the `is_dir` probe, or the default
+    // Windows - normalize it before the `is_dir` probe, or the default
     // source would be silently dropped (empty skills list).
     let dir = format!("{home}/.skills");
     let dir = morpheus_tools::skills::normalize_shell_path(&dir);
@@ -222,8 +222,8 @@ impl MorpheusTools {
             // strips ANSI escapes / CRLF per chunk (see `strip_ansi`).
             // Hangs are handled inside the tool: the liveness watchdog kills
             // a command that shows no output/CPU/I-O progress (a PTY child
-            // whose stdin is the slave side and nothing feeds it — `cat`,
-            // `ssh`, a prompt — would otherwise block forever), and the hard
+            // whose stdin is the slave side and nothing feeds it - `cat`,
+            // `ssh`, a prompt - would otherwise block forever), and the hard
             // runtime cap (Bash::new default) bounds progress-making runs.
             bash: Bash::new().cwd(cwd).pty(true),
             fs,
@@ -264,7 +264,7 @@ impl MorpheusTools {
         self.skills = skills;
     }
 
-    /// Clone of the skills wrapper — propagated to nested sub-agent
+    /// Clone of the skills wrapper - propagated to nested sub-agent
     /// harnesses so they serve the same skill set as the parent.
     #[must_use]
     pub fn skills(&self) -> Skills {
@@ -503,7 +503,7 @@ impl MorpheusTools {
     /// `include_schema` controls whether the full `inputSchema` is written
     /// inline after each tool: local model servers (which may lack reliable
     /// native function calling and emit inline JSON the extractor parses)
-    /// keep it, cloud providers omit it — they hold the schemas in their
+    /// keep it, cloud providers omit it - they hold the schemas in their
     /// native tool definitions, so re-sending them in the system prompt
     /// would duplicate every schema on each request.
     pub fn write_tool_descriptions_enabled(
@@ -603,7 +603,7 @@ impl MorpheusTools {
             include_schema,
         );
         // Ask mode exposes the READ-ONLY observation tools of the computer
-        // set (apps/snapshot/screenshot/wait/windows-list) — no synthetic
+        // set (apps/snapshot/screenshot/wait/windows-list) - no synthetic
         // input, so they are as safe as a web search. act/control stay out
         // (they need approval even in Build mode); computer_windows' action
         // form is guarded by guardrails instead.
@@ -676,7 +676,7 @@ impl MorpheusTools {
         v.push(extract_schema(&self.skills.description_read_asset));
         v.push(extract_schema(&self.skills.description_match_skills));
         // Ask mode exposes the READ-ONLY observation tools of the computer
-        // set (apps/snapshot/screenshot/wait/windows) — mirroring
+        // set (apps/snapshot/screenshot/wait/windows) - mirroring
         // `tool_descriptions_filtered`/`write_tool_descriptions_filtered`.
         v.push(extract_schema(&self.computer.description_apps));
         v.push(extract_schema(&self.computer.description_snapshot));
@@ -749,7 +749,7 @@ fn config_to_embedder(
 
 /// Execute `recall_search` by embedding `query` and searching the vector DB.
 ///
-/// Uses `VecDb::connect_readonly` — fails with a clear error if the table
+/// Uses `VecDb::connect_readonly` - fails with a clear error if the table
 /// does not exist (no silent table creation).
 ///
 /// This function is only available when at least one embedding feature
@@ -830,7 +830,7 @@ fn extract_schema(desc: &serde_json::Value) -> ToolSchema {
 ///
 /// Cloud providers hold the schemas in their native function-calling
 /// mechanism, so the harness omits the inline `Schema:` block for them (see
-/// [`MorpheusTools::write_tool_descriptions_enabled`]) — re-sending it would
+/// [`MorpheusTools::write_tool_descriptions_enabled`]) - re-sending it would
 /// duplicate every schema on each request. Local model servers without
 /// reliable native calling keep the schemas because the model emits inline
 /// JSON the extractor parses.
@@ -893,7 +893,7 @@ fn write_tool_if_enabled(
 /// Build the language-server wrapper bound to `cwd`.
 ///
 /// Shares the process-wide singleton ([`crate::harness::lsp::global_lsp`]) with
-/// the passive diagnostics path — one server process per language, not one per
+/// the passive diagnostics path - one server process per language, not one per
 /// wrapper. Returns `None` when `MORPHEUS_LSP=off|0|false`, the config-driven LSP
 /// switch is off, no tokio runtime is active, or under `cfg(test)`.
 fn build_lsp(cwd: &str) -> Option<Arc<Lsp>> {
@@ -1150,13 +1150,13 @@ impl Tools for MorpheusTools {
 
                 // Flush the unfinished tail (a final line without `\n`, or a
                 // multi-byte char / escape sequence split across the last
-                // chunks) once, AFTER the stream ends — before the
+                // chunks) once, AFTER the stream ends - before the
                 // exit-code/signal annotations: a command whose last line
                 // lacks `\n` and exits non-zero must read
                 // `...tail\nexit code: N`, not `exit code: N...tail`.
                 // Flushing inside the per-chunk loop would discard the carry
                 // after every chunk, so a partial line (and any partially
-                // received UTF-8 char in it) would be stripped alone — the
+                // received UTF-8 char in it) would be stripped alone - the
                 // vte parser drops an incomplete UTF-8 lead and the next
                 // chunk's continuation bytes turn into U+FFFD garbage.
                 if !carry.is_empty() {
@@ -1187,7 +1187,7 @@ impl Tools for MorpheusTools {
             "fs_read" => {
                 // Advertised single-target shape: a flat {path, offset?,
                 // limit?, symbol?}. The legacy `targets` batch form is
-                // kept for a single element (like `fs_write`) — batched reads
+                // kept for a single element (like `fs_write`) - batched reads
                 // raised schema-error rates in agent sessions.
                 let targets: Vec<Target> = if args.get("path").is_some() {
                     if args.get("targets").is_some() {
@@ -1223,7 +1223,7 @@ impl Tools for MorpheusTools {
             "fs_write" => {
                 // Advertised single-file shape: a flat {path, content,
                 // file_hash?}. The multi-file `targets` batch form is kept
-                // (like `fs_edit`) but only for a single legacy target —
+                // (like `fs_edit`) but only for a single legacy target -
                 // batched writes raised schema-error rates in agent sessions.
                 let targets: Vec<TargetFile> = if args.get("path").is_some() {
                     if args.get("targets").is_some() {
@@ -1419,7 +1419,7 @@ impl Tools for MorpheusTools {
                 let text = self.web.fetch(input).await?;
                 // Keep the model context lean: only ridiculously dense pages
                 // are head/tail-truncated (generous budget, middle → scratch
-                // log — see `truncate`); normal articles pass through whole.
+                // log - see `truncate`); normal articles pass through whole.
                 let truncated = truncate_tool_output_with_budget(&text, WEB_FETCH_MAX_TOKENS);
                 Ok(truncated.text)
             }
@@ -1562,7 +1562,7 @@ impl Tools for MorpheusTools {
                 // Snapshot the per-call routing identity ONCE: every event
                 // this call emits (spawn receipt, live SubagentEvents, the
                 // final report) carries it, so the TUI pairs the window's
-                // input echo with THIS call's stream and report — never a
+                // input echo with THIS call's stream and report - never a
                 // sibling's, even for two parallel spawns of the same CLI.
                 let call_ref = self
                     .active_call_ref
@@ -1592,22 +1592,20 @@ impl Tools for MorpheusTools {
                 // invariant documented on `SubAgent::last_session`.
                 let resume = self.subagent.resume_id(&agent, input.continue_session);
                 // Review tasks carry the severity contract: the sub-agent's
-                // FINAL REPORT (its last message, post-tool-calls — see
+                // FINAL REPORT (its last message, post-tool-calls - see
                 // `subagent::closure`) must start with
                 // `<!-- severity: green|yellow|red -->`. The contract is
                 // appended AFTER the stored-input resolution so a retry
                 // (reused raw input) never double-appends it. The same
                 // review decision is kept for the report side: a finished
                 // review turn's report gets the header ENFORCED below.
-                let is_review = morpheus_agents::severity::is_review_task(
-                    &call_input,
-                    input.code_review,
-                );
+                let is_review =
+                    morpheus_agents::severity::is_review_task(&call_input, input.code_review);
                 // Right-panel list entry description: explicit values pass
                 // through; a code-review call may omit it (the harness infers
                 // `code-review-NN`), non-review calls must carry one. The
-                // RESOLVED value is display-only — the TUI derives the entry
-                // from the raw input — so this call exists to VALIDATE.
+                // RESOLVED value is display-only - the TUI derives the entry
+                // from the raw input - so this call exists to VALIDATE.
                 self.subagent
                     .resolve_description(input.description.clone(), is_review)?;
                 let call_input = morpheus_agents::severity::with_severity_contract(
@@ -1617,11 +1615,11 @@ impl Tools for MorpheusTools {
 
                 // Background mode (opt-in): register the task, spawn the ACP
                 // turn DETACHED on the process-wide runtime, and return the
-                // receipt immediately — the model keeps working. The detached
+                // receipt immediately - the model keeps working. The detached
                 // task streams live events to the TUI (the user watches the
                 // sub-agent box as usual) and records the outcome in the
                 // registry when the turn ends; the report reaches the MODEL
-                // later — as the automated completion notification pushed by
+                // later - as the automated completion notification pushed by
                 // the top-level loop's next drain, or via `subagent_status`
                 // (poll). Session bookkeeping shares the same map the
                 // synchronous path uses (via `session_recorder`), so a later
@@ -1631,7 +1629,7 @@ impl Tools for MorpheusTools {
                     // Busy guard: a second background spawn for the SAME
                     // agent with `continue_session` (the default) would
                     // resume the same remote ACP session concurrently with
-                    // the running task — two interleaved turns in one
+                    // the running task - two interleaved turns in one
                     // session. Rejected with an actionable message instead;
                     // `continue_session: false` opens an independent session
                     // and skips the guard.
@@ -1664,7 +1662,7 @@ impl Tools for MorpheusTools {
                     super::background::spawn_detached(async move {
                         // Panic safety net: a panic (or runtime cancellation)
                         // inside the turn body must not leave the task
-                        // eternally Running — it would never notify AND,
+                        // eternally Running - it would never notify AND,
                         // with the busy guard, would block every later
                         // `continue_session` spawn for this agent. The body
                         // runs in an inner task; a JoinError (panic) marks
@@ -1672,7 +1670,7 @@ impl Tools for MorpheusTools {
                         // `catch_unwind` does for its thread.
                         // Clones for the INNER spawned task: made here, in
                         // the outer block, so the inner `async move` never
-                        // captures (and moves) the originals — the match
+                        // captures (and moves) the originals - the match
                         // arms below still use them for bookkeeping.
                         let body_tx = event_tx_bg.clone();
                         let body_agent = bg_agent.clone();
@@ -1738,7 +1736,7 @@ impl Tools for MorpheusTools {
                                 // report (same mirror the synchronous path
                                 // uses), then record completion for push/poll.
                                 // The agent hint routes the report to THIS
-                                // agent's window — with parallel background
+                                // agent's window - with parallel background
                                 // spawns the last-Running window may be a
                                 // sibling's.
                                 if let Some(ref tx) = event_tx_bg {
@@ -1810,7 +1808,7 @@ impl Tools for MorpheusTools {
                 // Cancellation (Phase 5): share the agent loop's stop flag so
                 // ESC interrupts the remote turn via `session/cancel`. Tools
                 // dispatched outside an agent loop (or before the flag is
-                // wired) run to completion — a fresh flag can never fire.
+                // wired) run to completion - a fresh flag can never fire.
                 let stop_signal = self
                     .stop_signal
                     .clone()
@@ -1846,7 +1844,7 @@ impl Tools for MorpheusTools {
 
                 // Stream typed sub-agent events while waiting for the ACP
                 // turn to complete. ALL events go to the typed variant for
-                // the TUI's sub-agent box — message text is part of the
+                // the TUI's sub-agent box - message text is part of the
                 // box's chronological mini-chat timeline (Phase 3b.4), so
                 // there is no per-chunk `ToolOutput` mirror (it would
                 // render the text twice). One final `ToolOutput { finished:
@@ -1861,7 +1859,7 @@ impl Tools for MorpheusTools {
                                 && let Some(ref tx) = event_tx_during {
                                     // Message text renders INSIDE the sub-agent
                                     // box (the chronological mini-chat timeline,
-                                    // Phase 3b.4) — the legacy `ToolOutput`
+                                    // Phase 3b.4) - the legacy `ToolOutput`
                                     // mirror that used to stream it into the
                                     // markdown body is gone, or the text would
                                     // appear twice.
@@ -1891,7 +1889,7 @@ impl Tools for MorpheusTools {
                 // deliberately narrow: `end_turn` only. Cancelled/errored
                 // turns keep their partial output, and so do the remaining
                 // stop reasons (`max_tokens`, `max_turn_requests`,
-                // `refusal` in acp.rs) — tinting a truncated or refused
+                // `refusal` in acp.rs) - tinting a truncated or refused
                 // turn would misreport it. A headerless TRUNCATED review
                 // stays untinted; that is the accepted trade (a report that
                 // already carries a header still tints, via extraction).
@@ -1899,7 +1897,7 @@ impl Tools for MorpheusTools {
                 // the returned envelope, so the live box and the persisted
                 // transcript agree. NOTE: if a new stop reason is ever added
                 // to `stop_reason_str`, decide here whether it counts as
-                // completed — this match will silently exclude it.
+                // completed - this match will silently exclude it.
                 let completed = matches!(stop_reason.as_str(), "end_turn");
                 let accumulated = if is_review && completed && !accumulated.trim().is_empty() {
                     morpheus_agents::severity::enforce_severity_header(&accumulated, true)
@@ -1959,7 +1957,7 @@ impl Tools for MorpheusTools {
                         )
                     })?;
 
-                // Embed the query and search — requires fastembed or cloud feature
+                // Embed the query and search - requires fastembed or cloud feature
                 let output =
                     dispatch_recall_search(db, query, limit, &self.local_base_urls).await?;
                 Ok(output)
@@ -1993,7 +1991,7 @@ impl Tools for MorpheusTools {
                 // The PNG travels as a staged image payload (base64
                 // ImageBlocks): `dispatch` takes `&self`, so the bytes are
                 // parked here and drained by the harness right after this
-                // `Ok` — see `take_pending_images` in `core.rs` — before
+                // `Ok` - see `take_pending_images` in `core.rs` - before
                 // being lowered into the tool-result `ChatMessage`. The
                 // JSON the model parses for coordinates never carries them.
                 *self
@@ -2034,7 +2032,7 @@ mod skills_sources_tests {
     use super::default_skill_sources_for;
 
     /// The `~/.skills` default is only registered when the directory
-    /// exists — a missing default must not become a discovery error.
+    /// exists - a missing default must not become a discovery error.
     #[test]
     fn missing_default_skills_dir_is_skipped() {
         let dir = tempfile::tempdir().unwrap();

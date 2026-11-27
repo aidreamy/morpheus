@@ -75,13 +75,13 @@ pub struct AddProviderView {
     pub search_bar: SearchBar,
     /// How many rows actually fit in the current viewport. Updated on every
     /// render so that scrolling, clamping and mouse hit-testing all agree on
-    /// the same value — otherwise items scroll out of view while free space
+    /// the same value - otherwise items scroll out of view while free space
     /// below the list is wasted.
     visible_count: usize,
     /// Buffer row of the first visible list item, captured at render time.
     /// The vertical centering depends on the exact area the render used, so
     /// the mouse path must reuse it instead of re-deriving it from its own
-    /// (differently sized) area — re-deriving shifted every hit by one row.
+    /// (differently sized) area - re-deriving shifted every hit by one row.
     /// `pub(crate)` so tests can hover the same rows the render drew.
     pub(crate) list_start_y: u16,
 }
@@ -183,7 +183,7 @@ impl AddProviderView {
     }
 
     /// Move the visual selection to the row under the pointer WITHOUT
-    /// executing it — the same hover-follow contract as the model picker.
+    /// executing it - the same hover-follow contract as the model picker.
     /// Returns whether the pointer hit a provider row; hovering outside the
     /// list keeps the current selection.
     pub fn follow_hover(&mut self, mouse: &MouseEvent, area: Rect) -> bool {
@@ -322,7 +322,7 @@ impl AddProviderView {
     }
 }
 
-/// Reserved width of the `(local)` tag column — cloud rows leave it empty
+/// Reserved width of the `(local)` tag column - cloud rows leave it empty
 /// but the hint column must still start at the same x on every row.
 const TAG_W: usize = "(local)".len();
 
@@ -437,7 +437,7 @@ mod tests {
     }
 
     /// The hover-follow contract: a Move over a row moves the highlight and
-    /// reports a hit, while a Move outside the list keeps the selection —
+    /// reports a hit, while a Move outside the list keeps the selection -
     /// the same behavior the model picker gives its rows.
     #[test]
     fn hover_moves_the_selection_without_confirming() {
@@ -477,7 +477,7 @@ mod tests {
     }
 
     /// Column alignment regression: every drawn row must start its name and
-    /// its hint at the SAME x — the fixed-column layout, not a free-form
+    /// its hint at the SAME x - the fixed-column layout, not a free-form
     /// string that drifts per row.
     #[test]
     fn columns_align_across_rows() {

@@ -1,13 +1,13 @@
 //! Terminal styling for the CLI screens (`--help`, `paths`, `update`).
 //!
-//! The palette is the user's **active theme** — the same [`Theme`] the TUI
-//! paints with — converted to 24-bit ANSI escapes. Loading goes through
+//! The palette is the user's **active theme** - the same [`Theme`] the TUI
+//! paints with - converted to 24-bit ANSI escapes. Loading goes through
 //! [`morpheus::setup::Setup`], so `morpheus --help` looks like the app the user
 //! configured, without a second colour configuration to keep in sync.
 //!
 //! Colour is emitted only when it cannot hurt: stdout must be a terminal,
 //! `NO_COLOR` must be unset and `TERM` must not be `dumb`. On Windows the
-//! terminal must also advertise VT support (`WT_SESSION` or `TERM`) — plain
+//! terminal must also advertise VT support (`WT_SESSION` or `TERM`) - plain
 //! `cmd.exe` without those would print raw escape bytes instead of colours.
 
 use morpheus_tui::core::lib::rgba::RGBA;
@@ -41,7 +41,7 @@ impl Palette {
         Self::new(theme, colors_enabled())
     }
 
-    /// Explicit constructor — the seam every rendering test uses so output
+    /// Explicit constructor - the seam every rendering test uses so output
     /// never depends on the machine's `setup.json`.
     pub fn new(theme: Theme, colors: bool) -> Self {
         Self {

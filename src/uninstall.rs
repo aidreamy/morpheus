@@ -1,15 +1,15 @@
-//! `morpheus-uninstall` — self-removal of the morpheus CLI (Linux, macOS, Windows).
+//! `morpheus-uninstall` - self-removal of the morpheus CLI (Linux, macOS, Windows).
 //!
 //! Lives in its OWN binary (`src/bin/morpheus_uninstall.rs`, shipped alongside
 //! `morpheus` by the release workflow and the download scripts): a separate
-//! process can delete the running `morpheus` image directly — on Windows the
+//! process can delete the running `morpheus` image directly - on Windows the
 //! main binary is unlinked while this uninstaller runs, and only the
 //! uninstaller's own image needs the rename-and-defer trick.
 //!
 //! Flow (deliberately simple):
 //!
 //! 1. Ask ONCE, in plain text, why the user is uninstalling. The answer is
-//!    optional — pressing Enter skips it. No suggestions, no ratings.
+//!    optional - pressing Enter skips it. No suggestions, no ratings.
 //! 2. Cleanup phase 1: remove the `morpheus` binary plus the morpheus profile
 //!    directories (config, cache, and the data dir's non-telemetry entries).
 //! 3. Telemetry: enqueue the `uninstall` event and flush the queue. The event
@@ -34,10 +34,10 @@ use crate::telemetry::events::{
 use crate::telemetry::schema::EventType;
 
 /// The single, direct uninstall question. Deliberately bare: no reason
-/// suggestions, no multiple choice — the user types freely or presses Enter.
+/// suggestions, no multiple choice - the user types freely or presses Enter.
 const REASON_PROMPT: &str = concat!(
     "Before Morpheus is removed, would you tell us why you are uninstalling?\n",
-    "(optional — press Enter to skip)\n> "
+    "(optional - press Enter to skip)\n> "
 );
 
 /// Directory name of the telemetry queue inside the platform data dir.
@@ -49,7 +49,7 @@ const TELEMETRY_DIR_NAME: &str = "telemetry";
 ///
 /// With `dry_run` (morpheus-uninstall --dry-run) NOTHING is deleted and NO
 /// telemetry is sent: the same prompt is shown, and every phase runs in a
-/// report-only mode that lists exactly what a real run would remove —
+/// report-only mode that lists exactly what a real run would remove -
 /// binaries, profile directories and which keyring credentials exist. The
 /// return value is still the process exit code (always `0`).
 pub async fn run(consented_in_config: bool, dry_run: bool) -> i32 {
@@ -92,12 +92,12 @@ pub async fn run(consented_in_config: bool, dry_run: bool) -> i32 {
     0
 }
 
-/// The persisted telemetry consent flag from `setup.json` (DEFAULT ON —
+/// The persisted telemetry consent flag from `setup.json` (DEFAULT ON -
 /// opt-out, same semantics as the TUI's private `Setup` loader, which this
 /// standalone binary cannot see). Honors the same `MORPHEUS_CONFIG_DIR` override
 /// the TUI uses so tests and power users get identical behavior. The
 /// effective consent still goes through `Telemetry::resolve` (env override +
-/// CI hard-off) — this is only the user's persisted choice.
+/// CI hard-off) - this is only the user's persisted choice.
 pub fn consented_in_config() -> bool {
     let config_dir = match std::env::var("MORPHEUS_CONFIG_DIR") {
         Ok(dir) if !dir.is_empty() => std::path::PathBuf::from(dir),
@@ -119,10 +119,10 @@ pub fn consented_in_config() -> bool {
 }
 
 /// Report-only pass for `--dry-run`: lists exactly what a real run would
-/// remove. Strictly read-only — existence checks and keyring READS only
+/// remove. Strictly read-only - existence checks and keyring READS only
 /// (`get_password`), never a delete, and no telemetry is enqueued or sent.
 fn report_dry_run(reason: Option<&str>) {
-    say("DRY RUN — nothing was removed. A real run would:");
+    say("DRY RUN - nothing was removed. A real run would:");
     match reason {
         Some(answer) => say(format!("  - record your feedback: \"{answer}\"").as_str()),
         None => say("  - skip the (empty) feedback answer"),
@@ -167,14 +167,14 @@ fn report_dry_run(reason: Option<&str>) {
         }
     }
     if stored == 0 {
-        say("        (none found — nothing to clean)");
+        say("        (none found - nothing to clean)");
     }
 
     // Telemetry note (nothing is sent in dry-run, even with consent on).
     if Telemetry::resolve(consented_in_config()).enabled() {
         say("  - send the uninstall telemetry event (skipped in dry-run)");
     }
-    say("Dry run complete — your installation is untouched. Run without --dry-run to uninstall.");
+    say("Dry run complete - your installation is untouched. Run without --dry-run to uninstall.");
 }
 
 /// Print the one-shot question and read a single line from stdin. `None` on
@@ -196,7 +196,7 @@ fn ask_reason() -> Option<String> {
 }
 
 /// Best-effort line write to stdout: a closed/broken pipe (`morpheus uninstall |
-/// head`) is IGNORED — `print!`/`println!` would panic, and a closed stdout
+/// head`) is IGNORED - `print!`/`println!` would panic, and a closed stdout
 /// must never abort an uninstall.
 fn say(text: &str) {
     let mut out = std::io::stdout().lock();
@@ -224,7 +224,7 @@ fn remove_binaries() -> bool {
     let main = self_exe.with_file_name(morpheus_binary_name());
     // Main binary FIRST: the uninstaller's own image must never be the
     // reason `morpheus` survives. A missing main binary (never installed,
-    // already removed, or a differently-named manual copy) is a success —
+    // already removed, or a differently-named manual copy) is a success -
     // there is nothing left to clean.
     let main_removed = !main.exists() || std::fs::remove_file(&main).is_ok();
     if !main_removed {
@@ -331,7 +331,7 @@ fn remove_profile_dirs() -> bool {
 }
 
 /// Phase 2: remove the telemetry queue directory, then the data dir itself.
-/// If the queue cannot be removed its events are kept for a later flush —
+/// If the queue cannot be removed its events are kept for a later flush -
 /// the data dir stays with it.
 fn remove_telemetry_and_data_dir() -> bool {
     let Some(dirs) = project_dirs() else {
@@ -353,7 +353,7 @@ fn remove_telemetry_and_data_dir() -> bool {
 
 /// Enqueue the `uninstall` event and flush the queue. Returns `true` when the
 /// queue has NO pending events left (flush succeeded, or nothing was ever
-/// enqueued) — only then may the queue directory be deleted. Best-effort end
+/// enqueued) - only then may the queue directory be deleted. Best-effort end
 /// to end: no entropy, no version validation or no ingest config → nothing is
 /// sent and the uninstall continues regardless.
 async fn enqueue_and_flush(
@@ -405,7 +405,7 @@ async fn enqueue_and_flush(
 /// The TUI stores provider keys under the service `"morpheus"`, one entry per
 /// known provider (the entry "user" is the provider's env-var name). Scope
 /// note: MCP server credentials (`mcp:<server>` users under the same
-/// service) are NOT covered — server names are dynamic and not enumerable
+/// service) are NOT covered - server names are dynamic and not enumerable
 /// from the static provider table; removing them would require the (now
 /// deleted) MCP config. A missing or already-deleted entry counts as
 /// removed; real failures are aggregated into ONE warning and make the
@@ -417,7 +417,7 @@ fn remove_keyring_credentials() -> bool {
             Ok(entry) => match entry.delete_credential() {
                 Ok(()) => true,
                 // NoEntry is the normal case for providers whose key was
-                // never stored (env-var-only users) — nothing to clean.
+                // never stored (env-var-only users) - nothing to clean.
                 Err(keyring::Error::NoEntry) => true,
                 Err(_) => false,
             },
@@ -428,7 +428,7 @@ fn remove_keyring_credentials() -> bool {
         }
     }
     if failures > 0 {
-        // One aggregated warning instead of one line per provider — a locked
+        // One aggregated warning instead of one line per provider - a locked
         // or headless keyring would otherwise print 26 near-identical lines.
         eprintln!("warning: could not remove {failures} API key(s) from the OS credential store");
     }
@@ -437,7 +437,7 @@ fn remove_keyring_credentials() -> bool {
 
 /// Post-uninstall report: what was removed and the ONE manual step that may
 /// remain (the PATH entry the install scripts printed instructions for).
-/// Every line goes through [`say`] — a closed stdout must never panic here.
+/// Every line goes through [`say`] - a closed stdout must never panic here.
 fn print_summary(
     binary_removed: bool,
     data_removed: bool,
@@ -459,7 +459,7 @@ fn print_summary(
         say("  - some API keys could not be removed from the OS credential store");
     }
     if !queue_removed {
-        say("  - the telemetry queue was kept (pending events) — remove it later");
+        say("  - the telemetry queue was kept (pending events) - remove it later");
     }
     say("If your PATH still references the morpheus install dir, remove that entry manually.");
 }
@@ -494,7 +494,7 @@ mod tests {
 
     #[test]
     fn project_dirs_resolves_or_fails_cleanly() {
-        // Either resolution works or it returns None — never a panic. The
+        // Either resolution works or it returns None - never a panic. The
         // important property is that it is the SAME resolution telemetry
         // uses (same ProjectDirs call), asserted implicitly by construction.
         let dirs = project_dirs();

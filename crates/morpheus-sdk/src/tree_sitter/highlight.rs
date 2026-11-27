@@ -190,7 +190,7 @@ fn query_for_language(lang: &str) -> Option<&'static str> {
              (float_literal) @number"
         }
         // Kotlin (willbooster-tree-sitter-kotlin): no `comment`,
-        // `type_identifier` or `integer_literal` nodes — using the shared
+        // `type_identifier` or `integer_literal` nodes - using the shared
         // C-family pattern above fails Query compilation, which
         // `compiled_highlighter` swallows and caches, silently disabling
         // Kotlin highlighting entirely.
@@ -397,7 +397,7 @@ mod tests {
     /// (`line_comment`/`block_comment` instead of `comment`, `identifier`
     /// instead of `type_identifier`). A pattern referencing a nonexistent
     /// node fails `Query` compilation, which `compiled_highlighter` swallows
-    /// and caches — so a bad pattern silently disables Kotlin highlighting
+    /// and caches - so a bad pattern silently disables Kotlin highlighting
     /// entirely. This test fails loudly if the grammar/pattern drift again.
     #[test]
     fn test_highlight_kotlin() {

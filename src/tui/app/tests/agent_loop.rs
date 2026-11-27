@@ -121,7 +121,7 @@ async fn loop_end_orphaned_next_request_becomes_first_next_loop_candidate() {
 }
 
 /// A mid-stream reset (the SDK retrying a failed attempt) must discard ONLY
-/// the partial message the failed attempt rendered — never the previous
+/// the partial message the failed attempt rendered - never the previous
 /// iteration's transcript. An attempt that reset BEFORE its first token has
 /// nothing to discard: the tool messages of the previous iteration (the
 /// diffs/edits the user sees) must survive. Repeated resets on a flaky
@@ -209,7 +209,7 @@ async fn mid_stream_reset_never_eats_the_previous_iteration_transcript() {
     );
 
     // A reset AFTER the attempt rendered a partial message discards only
-    // that partial — the retried attempt then re-renders cleanly.
+    // that partial - the retried attempt then re-renders cleanly.
     app.event_tx.send(HarnessEvent::BeginAssistant).ok();
     app.event_tx
         .send(HarnessEvent::Token {
@@ -255,7 +255,7 @@ async fn mid_stream_reset_never_eats_the_previous_iteration_transcript() {
 
 /// Resuming a session whose context records are missing must NOT feed any
 /// model-facing history: the display transcript is never parsed into the
-/// context. The only observable outcome is the "context lost" toast — a
+/// context. The only observable outcome is the "context lost" toast - a
 /// session that already shows dialog AND exists on disk must not resume
 /// silently as if the model remembered nothing on purpose.
 #[tokio::test]
@@ -263,7 +263,7 @@ async fn resuming_without_a_ctx_file_warns_and_starts_with_empty_context() {
     let _guard = HOME_LOCK.lock();
     isolate_home();
     let mut app = App::new("/tmp".to_string());
-    // Isolate the store in a temp dir — persisting tests must never leak
+    // Isolate the store in a temp dir - persisting tests must never leak
     // session files into the real user data dir.
     let dir = tempfile::tempdir().unwrap();
     app.session_store =
@@ -291,7 +291,7 @@ async fn resuming_without_a_ctx_file_warns_and_starts_with_empty_context() {
         model: None,
     }];
     // The session was persisted (display-only save) BEFORE its context went
-    // missing — the on-disk JSONL is what distinguishes "lost context" from
+    // missing - the on-disk JSONL is what distinguishes "lost context" from
     // a brand-new session's first prompt.
     let persisted = app.state.current_session().unwrap().clone();
     app.session_store.save_session(&persisted);
@@ -300,7 +300,7 @@ async fn resuming_without_a_ctx_file_warns_and_starts_with_empty_context() {
     // the loop would start with an empty context.
     assert!(
         app.session_store.load_context(&id).is_none(),
-        "no context records on disk — the context source is absent"
+        "no context records on disk - the context source is absent"
     );
     app.warn_if_resuming_without_context(&None);
 
@@ -318,7 +318,7 @@ async fn resuming_without_a_ctx_file_warns_and_starts_with_empty_context() {
 
 /// A brand-new session's FIRST prompt also puts a message on screen with no
 /// context on disk yet (records are only written by Done/Stopped/snapshot
-/// saves) — that is the normal path and must never warn. The on-disk JSONL
+/// saves) - that is the normal path and must never warn. The on-disk JSONL
 /// gate (persisted session vs fresh one) is what keeps this quiet.
 #[tokio::test]
 async fn fresh_session_first_prompt_does_not_warn() {
@@ -364,7 +364,7 @@ async fn resuming_with_a_ctx_file_stays_silent() {
     let _guard = HOME_LOCK.lock();
     isolate_home();
     let mut app = App::new("/tmp".to_string());
-    // Isolate the store in a temp dir — persisting tests must never leak
+    // Isolate the store in a temp dir - persisting tests must never leak
     // session files into the real user data dir.
     let dir = tempfile::tempdir().unwrap();
     app.session_store =
@@ -392,7 +392,7 @@ async fn resuming_with_a_ctx_file_stays_silent() {
     }];
     // Persist real context records so the resume path finds context. An
     // empty-but-present snapshot is deliberate: RECORD PRESENCE is the
-    // authority — a decodable context means it is whatever the harness
+    // authority - a decodable context means it is whatever the harness
     // last persisted, not a loss.
     let state: morpheus::harness::ContextManagerState = Default::default();
     app.session_store
@@ -447,7 +447,7 @@ fn assistant_texts(app: &App) -> Vec<String> {
 /// (Gemini's `streamGenerateContent` and several OpenAI-compatible
 /// tokenizers) used to lose their paragraph breaks: the token intake
 /// dropped EVERY whitespace-only token, so `["Hello", "\n\n", "world"]`
-/// glued into "Helloworld" — the "missing line break" that only some
+/// glued into "Helloworld" - the "missing line break" that only some
 /// providers show. Newline-bearing deltas must survive (the markdown
 /// renderer turns `\n\n` into a paragraph break); pure whitespace WITHOUT a
 /// newline stays dropped (the old guard's noise filter).
@@ -464,7 +464,7 @@ async fn newline_only_stream_deltas_keep_their_line_break() {
     }
     app.poll_events();
 
-    // ONE message — the break deltas append, they never split the stream —
+    // ONE message - the break deltas append, they never split the stream -
     // with every newline intact and the bare-space/tab deltas gone.
     assert_eq!(
         assistant_texts(&app),
@@ -476,7 +476,7 @@ async fn newline_only_stream_deltas_keep_their_line_break() {
 /// The two tokenization styles produce the SAME transcript: a provider that
 /// streams breaks as standalone chunks (Gemini-like) and one that bundles
 /// the newline with the adjacent word (OpenAI-like) must render
-/// identically — that is what makes the bug per-provider instead of
+/// identically - that is what makes the bug per-provider instead of
 /// universal.
 #[tokio::test]
 async fn standalone_break_chunk_matches_bundled_newline_output() {
@@ -546,7 +546,7 @@ async fn leading_newline_delta_neither_opens_a_bubble_nor_breaks_the_stream() {
 /// The spinner label follows the loop's activity: reasoning narrows it to
 /// "pondering", tool calls to "searching"/"recalling", and tool results /
 /// streamed tokens restore the default "working". Driven through the real
-/// event intake (`poll_events`), like the live loop — no special hooks.
+/// event intake (`poll_events`), like the live loop - no special hooks.
 #[tokio::test]
 async fn spinner_label_follows_agent_activity() {
     let _guard = HOME_LOCK.lock();
@@ -563,7 +563,7 @@ async fn spinner_label_follows_agent_activity() {
     assert_eq!(app.agent_activity, crate::types::AgentActivity::Working);
     assert!(app.agent_spinner.is_none());
 
-    // Simulate loop start (what `start_agent_loop` does — keep in sync with
+    // Simulate loop start (what `start_agent_loop` does - keep in sync with
     // the spinner init in `agent_loop.rs`, which cannot run in a test since
     // it spawns the real harness thread): fresh spinner with the default
     // label, animation state untouched by later label changes.
@@ -731,9 +731,9 @@ async fn spinner_activity_ignores_noise_deltas() {
 }
 
 /// The `/agents` mode's Right Panel contract, exercised through the real
-/// App: the main agent is the panel's SOLE owner — no agent LIST renders
+/// App: the main agent is the panel's SOLE owner - no agent LIST renders
 /// even with several pane mirrors alive (the pane count and a stale forced
-/// list flag are both overridden while the main mirror exists) — and the
+/// list flag are both overridden while the main mirror exists) - and the
 /// mirror opens showing the conversation the user ALREADY had with the main
 /// agent, not an empty window.
 #[tokio::test]
@@ -823,7 +823,7 @@ async fn agents_mode_right_panel_shows_the_main_agent_not_a_list() {
     assert!(app.main_mirror_open());
     assert!(
         !app.state.right_panel.subagent_list_active(),
-        "the mirror owns the section as the ONE expanded window — no list"
+        "the mirror owns the section as the ONE expanded window - no list"
     );
     assert!(
         app.right_panel_visible(120),
@@ -876,7 +876,7 @@ async fn agents_mode_right_panel_shows_the_main_agent_not_a_list() {
     );
     assert!(
         app.state.right_panel.subagent_list_active(),
-        "without the mirror the pane mirrors' list returns — normal behavior"
+        "without the mirror the pane mirrors' list returns - normal behavior"
     );
 }
 
@@ -887,7 +887,7 @@ async fn agents_mode_right_panel_shows_the_main_agent_not_a_list() {
 ///
 /// The pre-fix defect: `sync_main_mirror_event` applied events WITHOUT the
 /// `applied && !is_scrolled_up() → scroll_to_bottom()` contract
-/// `update_subagent_activity` serves to real subagent traffic — the mirror
+/// `update_subagent_activity` serves to real subagent traffic - the mirror
 /// only re-pinned as a side effect of the main-loop ToolCall/ToolResult
 /// handlers, so narration/thought streaming below a static viewport looked
 /// non-sequential and a tool-less turn never climbed at all.
@@ -932,7 +932,7 @@ async fn mirror_follows_every_visible_event_like_the_subagents() {
     );
 
     // Pure narration deltas (NO tool calls): each visible change must
-    // re-arm the sentinel — this is the case the old code left dead.
+    // re-arm the sentinel - this is the case the old code left dead.
     for chunk in ["pensando", " bem", " aqui"] {
         app.event_tx
             .send(HarnessEvent::Token { text: chunk.into() })
@@ -1006,7 +1006,7 @@ async fn mirror_follows_every_visible_event_like_the_subagents() {
 /// the failed attempt's partial message STAYS in place and the retried
 /// stream's first delta REPLACES its content in the same bubble (same id,
 /// same position, no reflow). The old remove-and-recreate behavior made the
-/// whole block vanish and reappear on every retry — the "blinking chat"
+/// whole block vanish and reappear on every retry - the "blinking chat"
 /// incident. A partial that never gets re-streamed is pruned at turn end,
 /// restoring the old discard semantics.
 #[tokio::test]
@@ -1143,7 +1143,7 @@ async fn mid_stream_reset_keeps_the_thought_bubble_instead_of_blinking() {
     }
 
     // A partial that never gets re-streamed is pruned at turn end (Error
-    // terminal here — the cheapest terminal event to drive). A NEW attempt
+    // terminal here - the cheapest terminal event to drive). A NEW attempt
     // opens a NEW bubble (BeginAssistant dissociates the old one); its reset
     // stages THAT message for reuse.
     app.event_tx.send(HarnessEvent::BeginAssistant).ok();

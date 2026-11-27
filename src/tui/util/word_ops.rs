@@ -187,11 +187,11 @@ mod tests {
     #[test]
     fn word_start_simple() {
         let text = "hello world";
-        // cursor at space — word before starts at 'h' (pos 0)
+        // cursor at space - word before starts at 'h' (pos 0)
         assert_eq!(find_word_start(text, 6), 0);
-        // cursor at 'w' — same word starts at 'w' (pos 6)
+        // cursor at 'w' - same word starts at 'w' (pos 6)
         assert_eq!(find_word_start(text, 7), 6);
-        // cursor at 'l' in 'world' — word start is 'w' (pos 6)
+        // cursor at 'l' in 'world' - word start is 'w' (pos 6)
         assert_eq!(find_word_start(text, 10), 6);
     }
 
@@ -202,7 +202,7 @@ mod tests {
 
     #[test]
     fn word_start_skips_whitespace() {
-        // cursor at end of trailing spaces — word before starts at 'h' (pos 0)
+        // cursor at end of trailing spaces - word before starts at 'h' (pos 0)
         assert_eq!(find_word_start("hello   ", 8), 0);
     }
 

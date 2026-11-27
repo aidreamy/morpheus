@@ -20,14 +20,14 @@ use morpheus_agents::events::SubagentEvent;
 
 /// Process-wide sequence for live-created tool parts' `tool_call_id`s. The
 /// id is the identity per-box UI state (expand/collapse, LSP-notes toggle)
-/// AND the spinner map key — unique per part across the WHOLE app run,
+/// AND the spinner map key - unique per part across the WHOLE app run,
 /// stable once assigned.
 ///
 /// The counter is SEEDED above every id a restored session already carries:
 /// persisted parts keep their `call-N` ids from the previous process run
 /// (`ensure_tool_call_ids` only fills blanks, it does not renumber), so an
 /// unseeded counter would restart at `call-0` on every app start and
-/// collide with the transcript's historical ids — the new call would share
+/// collide with the transcript's historical ids - the new call would share
 /// a spinner/expansion key with an old row, resurrecting the very
 /// re-animation bug the call-id keying was introduced to fix. Seeding is
 /// idempotent per run: each seed advances the counter past the observed
@@ -69,7 +69,7 @@ impl App {
     /// auto-dismiss, sparkle, paste-burst window, dialog spinners), so an
     /// idle frame only needs to happen when the next one of those deadlines
     /// arrives. Blocking until then instead of the fixed 50 ms drops the
-    /// idle redraw rate from ~20 fps to the animation cadence — on mid-range
+    /// idle redraw rate from ~20 fps to the animation cadence - on mid-range
     /// Windows laptops that removes a permanent CPU/thermal tax that made
     /// every other frame feel slow. Live frames (streaming, spinners,
     /// auto-scroll) never reach this path: `run()` bypasses it entirely via
@@ -78,11 +78,11 @@ impl App {
         const DEFAULT: Duration = Duration::from_millis(200);
         const MIN: Duration = Duration::from_millis(16);
 
-        // Candidate deadlines, composed with `min()` — NEVER early-returned.
+        // Candidate deadlines, composed with `min()` - NEVER early-returned.
         // An early return here lets the FIRST matching animation dictate the
         // idle cadence for everything else: in the session router the prompt
         // cursor is always present, so its blink deadline (up to 500 ms) used
-        // to shadow the header sparkle's 33 ms animation wait entirely — the
+        // to shadow the header sparkle's 33 ms animation wait entirely - the
         // starfield stepped at the cursor blink rate (~2 fps) and looked
         // frozen/laggy even though each frame renders in well under a
         // millisecond. Every animation that needs wakeups contributes its own
@@ -99,7 +99,7 @@ impl App {
         }
 
         // Cursor blink: the prompt cursor is On for the first 500 ms after
-        // activity, then toggles every 500 ms — wake at the next toggle.
+        // activity, then toggles every 500 ms - wake at the next toggle.
         let now = std::time::SystemTime::now();
         let blink_deadline = |cursor: &crate::component::cursor::Cursor| -> Option<Duration> {
             let idle_ms = now.duration_since(cursor.last_input_at).ok()?.as_millis() as u64;
@@ -137,13 +137,13 @@ impl App {
         }
 
         // Paste burst in flight: the flush is due BURST_WINDOW after the
-        // last absorbed key — wake exactly then so a long paste lands
+        // last absorbed key - wake exactly then so a long paste lands
         // atomically at the right moment instead of up to 200 ms late.
         if self.paste_burst_pending_flush_deadline() {
             wait = wait.min(MIN);
         }
 
-        // Header sparkle flourish: time-driven starfield — keep redraws at
+        // Header sparkle flourish: time-driven starfield - keep redraws at
         // animation cadence while it plays.
         if self.sparkle.is_animating() {
             wait = wait.min(Duration::from_millis(33));
@@ -171,7 +171,7 @@ impl App {
         // Block briefly for the FIRST event, then drain everything already
         // buffered. Input events (mouse drag during a copy selection, mouse
         // wheel, key auto-repeat) arrive in bursts far faster than one per
-        // frame — consuming exactly one event per loop iteration let the
+        // frame - consuming exactly one event per loop iteration let the
         // internal event queue back up, so the selection highlight / cursor
         // visibly lagged behind the mouse and then "normalized" once the
         // burst ended. Draining the whole buffer per call applies every
@@ -278,7 +278,7 @@ impl App {
 
     /// Prune a staged mid-stream-reset message that was never re-streamed:
     /// the turn ended (Done/Stopped/Error) without the retry delivering a
-    /// delta, so the failed attempt's partial content is removed — the same
+    /// delta, so the failed attempt's partial content is removed - the same
     /// discard semantics the old remove-on-reset behavior applied, just
     /// deferred to the turn's end.
     fn prune_unreused_cleared_stream(&mut self) {
@@ -304,7 +304,7 @@ impl App {
             // viewer. A no-op otherwise (see `mirror_main_event`). The
             // projection runs BEFORE the match because the chat handlers
             // below consume the event by value. `running` follows the
-            // loop status AT ARRIVAL — the terminal arms below seal the
+            // loop status AT ARRIVAL - the terminal arms below seal the
             // mirror explicitly, before they flip the status.
             self.mirror_main_event(
                 &event,
@@ -312,7 +312,7 @@ impl App {
             );
             match event {
                 // /agents split: a pane streamed a live event. The pane's
-                // own SubagentActivity does all the coalescing — the same
+                // own SubagentActivity does all the coalescing - the same
                 // state machine the right-panel sub-agent box uses. A split
                 // PARKED in the background (user left the mode with the
                 // turn running) is an equal sink: the stream follows the
@@ -326,7 +326,7 @@ impl App {
                 } => {
                     // Route by the pane's stable identity FIRST: a pane set
                     // rebuilt around a running turn (a fresh picker confirm
-                    // that keeps the pane) moved the pane to a new index —
+                    // that keeps the pane) moved the pane to a new index -
                     // the id still finds it, so the stream follows the pane
                     // instead of dying or corrupting a replacement. The
                     // epoch gate below only judges events that name no live
@@ -337,19 +337,19 @@ impl App {
                         Some(resolved) => pane = resolved,
                         // The pane is gone (dropped by a rebuild, or the
                         // whole set torn down): its turn was cancelled with
-                        // it — the event must never land in a replacement
+                        // it - the event must never land in a replacement
                         // pane that merely shares the index.
                         None if pane_id != 0 => continue,
-                        // Unstamped senders (`pane_id == 0` — the zero is
+                        // Unstamped senders (`pane_id == 0` - the zero is
                         // reserved, no live pane carries it): the split
-                        // generation still guards them — a stale epoch means
+                        // generation still guards them - a stale epoch means
                         // the set was replaced or torn down while the turn
                         // was being cancelled.
                         None if epoch != self.agents_pane_epoch => continue,
                         None => {}
                     }
                     // The turn gate: an event of a turn this pane is no
-                    // longer running (a stop retired it, best-effort — the
+                    // longer running (a stop retired it, best-effort - the
                     // thread keeps winding down) must never paint into the
                     // turn that replaced it. Unstamped senders (chrome
                     // refreshes, replay) always pass.
@@ -396,9 +396,9 @@ impl App {
                         // Pane chrome like `SessionModel`: the config options
                         // cache on the pane (the standardized config boxes
                         // the mapped command groups open read it). The model
-                        // option's `current` is the HARNESS default — every
+                        // option's `current` is the HARNESS default - every
                         // fresh connection reports it regardless of the
-                        // persisted pick — so the persisted per-agent pick is
+                        // persisted pick - so the persisted per-agent pick is
                         // seeded OVER it: the box's selected dot and the
                         // badge must show the model that will actually serve
                         // the turn (dispatch seeds the same pick; this keeps
@@ -406,13 +406,13 @@ impl App {
                         // option's own value list no longer offers is left
                         // out: the harness dropped that model, and a stale
                         // badge would lie about the serving default. Seeding
-                        // is unconditional — a real `session/new` reports the
+                        // is unconditional - a real `session/new` reports the
                         // harness default as a NON-empty `current`, so guarding
                         // on emptiness would skip the seed and the dot would
                         // show the default instead of the persisted pick.
                         // Every user confirm rewrites the store, so the
                         // persisted record always IS the user's freshest
-                        // choice — except on a SIBLING pane of the same
+                        // choice - except on a SIBLING pane of the same
                         // agent: there the pane's own confirm recorded a
                         // pane-local pick (`picked_config_ids`) that
                         // dispatch serves, so the seed must not stomp it
@@ -428,7 +428,7 @@ impl App {
                             let model_id = morpheus::coordinator::turn::model_option_id(&options)
                                 .map(str::to_string);
                             if let Some(p) = split.panes.get(pane) {
-                                // The seed value in precedence order — the
+                                // The seed value in precedence order - the
                                 // same order `turn_picks` applies: the
                                 // pane's OWN pick (its cached current, when
                                 // it confirmed this very option) outranks
@@ -442,7 +442,7 @@ impl App {
                                 // output picks in dispatch, so the persisted
                                 // record; a dropped value skips the seed and
                                 // the dot shows what the turn will really
-                                // serve) — display and dispatch stay aligned.
+                                // serve) - display and dispatch stay aligned.
                                 let pane_picked_current = model_id
                                     .as_ref()
                                     .filter(|id| {
@@ -494,7 +494,7 @@ impl App {
                         // - only a RUNNING pane opens a box (a request the
                         //   turn thread emitted microseconds before the stop
                         //   landed must not paint a dead box over an idle
-                        //   pane — the ACP handler already answered
+                        //   pane - the ACP handler already answered
                         //   `Cancelled` on the closed channel);
                         // - an existing pending request is never
                         //   overwritten (a pipelined second request whose
@@ -554,9 +554,9 @@ impl App {
                     // The same identity routing the streamed events apply:
                     // the Done belongs to the pane its id names. A rebuilt
                     // set that kept the pane retargets the index (the turn
-                    // SURVIVED the re-pick — its report lands in the pane's
+                    // SURVIVED the re-pick - its report lands in the pane's
                     // new slot); a pane the rebuild dropped delivers
-                    // nothing — its terminal report must never seed a
+                    // nothing - its terminal report must never seed a
                     // replacement pane's session id, seal the retargeted
                     // mirror, or bind into the CURRENT session's metadata
                     // under a same-named pane. The epoch gate only judges
@@ -571,12 +571,12 @@ impl App {
                     }
                     // The turn gate FIRST: a force-closed turn was closed
                     // synthetically (Ctrl+X), and its thread keeps winding
-                    // down — if the pane's next turn (a queued message, or a
+                    // down - if the pane's next turn (a queued message, or a
                     // prompt sent right after the stop) already began, this
                     // Done closes THAT turn. It used to: `running` went
                     // false and the new turn's stop signal was dropped, so
                     // the agent kept working behind an idle-looking pane and
-                    // every further Ctrl+X returned early on `!p.running` —
+                    // every further Ctrl+X returned early on `!p.running` -
                     // the "uninterruptible pane" bug. Unstamped (0) senders
                     // keep the old behaviour.
                     if turn != 0
@@ -608,8 +608,8 @@ impl App {
                     let binding = session;
                     // How the turn ended, parsed ONCE from the wire spelling
                     // and shared by every consumer below (the pane timeline,
-                    // the registry delivery, the mirror). Parsing here — not
-                    // at each use — is what keeps `cancelled` meaning "the
+                    // the registry delivery, the mirror). Parsing here - not
+                    // at each use - is what keeps `cancelled` meaning "the
                     // user stopped it" everywhere: the pane produces the
                     // reason from its own terminal event now, so a guard stop
                     // or a cut stream arrives as `incomplete`/`partial` and
@@ -625,7 +625,7 @@ impl App {
                         // The turn is over: any still-pending permission
                         // request belongs to a turn the ACP handler just
                         // saw end (the closed receiver answers `Cancelled`
-                        // per the spec) — the box must not outlive it.
+                        // per the spec) - the box must not outlive it.
                         split.clear_permission(pane);
                         // A failed turn (`session = None`) leaves the session
                         // unusable: drop the handle so the next dispatch opens
@@ -633,10 +633,8 @@ impl App {
                         // and is still offered as the resume attempt, exactly
                         // like the per-turn path's degradation.
                         if binding.is_none()
-                            && let Some(handle) = split
-                                .panes
-                                .get_mut(pane)
-                                .and_then(|p| p.acp_session.take())
+                            && let Some(handle) =
+                                split.panes.get_mut(pane).and_then(|p| p.acp_session.take())
                         {
                             handle.shutdown();
                         }
@@ -648,7 +646,7 @@ impl App {
                         // pane's own deduplication (`finish_turn`): the
                         // stream already played the final message into the
                         // timeline, and appending the report raw would let
-                        // the coalescer merge it into that same entry —
+                        // the coalescer merge it into that same entry -
                         // the "answer twice" bug.
                         split.finish_turn(pane, &output, end);
                     }
@@ -658,7 +656,7 @@ impl App {
                     // request ids). Wait-mode callers unblock with the
                     // report; background callers park it for their drain.
                     // The pane id is computed from the live-or-parked split
-                    // BEFORE the mutable borrow below — a pane that left
+                    // BEFORE the mutable borrow below - a pane that left
                     // the set resolves nothing (its requests were failed by
                     // `set_coworkers` already).
                     let registry_id = either_split(&self.agents_split, &self.parked_agents_split)
@@ -682,11 +680,11 @@ impl App {
                     // The pane just freed: the user's OWN queues are served
                     // first (the human outranks an agent's queued
                     // `agents_call`, and inside that pass "next request"
-                    // outranks "next loop" — it is the delivery an ACP pane's
+                    // outranks "next loop" - it is the delivery an ACP pane's
                     // turn could not take mid-prompt, so it goes out the
                     // moment that prompt completes), then the queue service
                     // may dispatch its next queued agent message in this same
-                    // frame — the user turn, when it started, leaves the pane
+                    // frame - the user turn, when it started, leaves the pane
                     // running so the agent request keeps waiting its turn.
                     // Independent of the registry: a pane with no registry id
                     // (a set rebuilt under the turn) still owns its queues.
@@ -700,10 +698,10 @@ impl App {
                     // report.
                     self.wake_main_agent_if_promised(requester);
                     // The mirror finishes: it inherits the pane's ALREADY-CLOSED
-                    // timeline (`close_turn` ran in `finish_turn` above — the
+                    // timeline (`close_turn` ran in `finish_turn` above - the
                     // report is its LAST chronological entry) and the list
                     // entry stops spinning. Runs even when the split is gone
-                    // (no pane to read from — the sync would no-op; the
+                    // (no pane to read from - the sync would no-op; the
                     // binding below still persists).
                     self.finish_agents_pane_mirror(pane, end.is_failure());
                     // Persist the binding for the NEXT open: a `Name` pane
@@ -712,7 +710,7 @@ impl App {
                     // resumes THIS agent context. (Only for the CURRENT
                     // epoch: a set replaced or torn down mid-turn delivers
                     // its terminal Done stale and was already dropped
-                    // above — its session id belongs to a pane set that no
+                    // above - its session id belongs to a pane set that no
                     // longer exists.)
                     if let Some(id) = binding {
                         self.bind_agents_pane_session(pane, id);
@@ -722,7 +720,7 @@ impl App {
                 // replay stream (if any) already landed through the event
                 // arm above; this terminal event clears the pane's
                 // rehydrating flag and re-syncs its mirror out of the
-                // spinner. A failed pass is surfaced on the pane itself —
+                // spinner. A failed pass is surfaced on the pane itself -
                 // the transcript is empty and the pane input works as
                 // usual, so a toast would only shout at a degraded,
                 // self-healing state.
@@ -836,7 +834,7 @@ impl App {
                 HarnessEvent::BeginAssistant => {
                     // A new streaming attempt starts: what follows belongs to
                     // THIS attempt. ClearAssistant may later discard only the
-                    // message opened here — never older transcript content.
+                    // message opened here - never older transcript content.
                     self.stream_msg_id = None;
                 }
                 HarnessEvent::ClearAssistant => {
@@ -844,14 +842,14 @@ impl App {
                     // response would otherwise concatenate with the partial
                     // one. Instead of REMOVING the partial message (which
                     // made the whole chat block vanish and reappear on every
-                    // retry — the "blinking chat" symptom during long
+                    // retry - the "blinking chat" symptom during long
                     // reasoning phases, where mid-stream resets are most
                     // likely), KEEP it staged: the retried stream's first
                     // delta clears the partial in place and re-streams into
                     // the same bubble (same id, same position, no reflow
                     // jump). Scoped to the message the attempt opened
                     // (BeginAssistant) AND to the session the attempt
-                    // belongs to — a session switch during a background loop
+                    // belongs to - a session switch during a background loop
                     // must never let a late reset reach another session's
                     // transcript. If no delta ever arrives, the terminal
                     // handlers prune the stale partial.
@@ -874,7 +872,7 @@ impl App {
                     // some providers show). Whitespace WITHOUT a newline
                     // stays noise (it renders identically bundled with the
                     // words around it), and a whitespace-only delta never
-                    // OPENS a bubble either — so it must not churn the
+                    // OPENS a bubble either - so it must not churn the
                     // spinner either: flipping Working→Pondering→Working on
                     // noise deltas restarts the status glyph at frame 0 and
                     // the pondering animation looks frozen mid-stream.
@@ -886,7 +884,7 @@ impl App {
                     // A mid-stream reset staged this attempt's message for
                     // reuse (see `ClearAssistant`). Read-only decision here:
                     // the actual take/clear happens on the FIRST REAL delta
-                    // below — a leading noise chunk must neither open a
+                    // below - a leading noise chunk must neither open a
                     // bubble nor wipe the staged partial.
                     let staged_mid = if self.stream_msg_id.is_none() {
                         self.cleared_stream_msg
@@ -899,7 +897,7 @@ impl App {
                     let Some(session) = self.state.current_session_mut() else {
                         continue;
                     };
-                    // Append to the CURRENT attempt's message only — a fresh
+                    // Append to the CURRENT attempt's message only - a fresh
                     // attempt never bleeds into the previous iteration's
                     // message (its tool parts would be at risk on a reset).
                     let taken_id = self.stream_msg_id.take();
@@ -909,7 +907,7 @@ impl App {
                         .map(|(_, mid)| mid.clone());
                     if whitespace_only && target_id.is_none() {
                         // Leading whitespace before any text must never open
-                        // a blank bubble — and the stream id goes back
+                        // a blank bubble - and the stream id goes back
                         // untouched: a break chunk must not disturb the
                         // attempt's bookkeeping (nor the spinner: same
                         // no-churn rule as the noise guard above).
@@ -976,7 +974,7 @@ impl App {
                     // Streaming text means the model is generating a response:
                     // the default spinner state (also restores it after a
                     // reasoning segment). Set only after the delta actually
-                    // rendered — the noise guards above `continue` first, so
+                    // rendered - the noise guards above `continue` first, so
                     // whitespace-only deltas never restart the status glyph
                     // at frame 0 (which froze the pondering animation
                     // mid-stream on providers that interleave noise tokens).
@@ -994,7 +992,7 @@ impl App {
                     // The spinner label follows the tool now running; the
                     // matching ToolResult/ToolError restores the default.
                     self.set_agent_activity(crate::types::AgentActivity::for_tool(&tool));
-                    // The attempt ended — its message is now transcript
+                    // The attempt ended - its message is now transcript
                     // history (tool parts attach below); a future reset must
                     // never reach it.
                     self.stream_msg_id = None;
@@ -1017,7 +1015,7 @@ impl App {
                         // WINDOW BINDING (the cross-pairing fix): this
                         // call_ref is the routing identity every stream,
                         // report and notification of THIS call carries back.
-                        // The echo below lands in the window bound HERE —
+                        // The echo below lands in the window bound HERE -
                         // two parallel spawns of the same CLI each bind
                         // their own window, so input1 can never pair with
                         // output2.
@@ -1025,7 +1023,7 @@ impl App {
                             .right_panel
                             .bind_last_pty_call_ref(call_ref.clone());
                         // List-entry metadata: the task description (required
-                        // for non-review calls — validated at dispatch — and
+                        // for non-review calls - validated at dispatch - and
                         // inferred as `code-review-NN` for a review call that
                         // omitted it) plus the review flag.
                         self.state.right_panel.set_last_subagent_meta(
@@ -1037,7 +1035,7 @@ impl App {
                                 .unwrap_or(false),
                         );
                         // Show the input message as the first lines of the
-                        // dialogue: the linear chat flow — prompt, then
+                        // dialogue: the linear chat flow - prompt, then
                         // the subagent's answer. The echo is stored
                         // VERBATIM on the window (`input_echo` field) and
                         // wears the `│` input rail at paint time; the
@@ -1098,7 +1096,7 @@ impl App {
                     // arrives before the next render (fast tools like read).
                     // Pre-create ONLY under the key the part's renderer will
                     // actually use (render_generic-managed tools pre-create
-                    // under the generic key; spinner-less renderers skip — a
+                    // under the generic key; spinner-less renderers skip - a
                     // pre-created entry under a key no renderer reads leaks
                     // one forever-Active spinner per call).
                     let display = crate::routes::session::tool_render::tool_display(&tool);
@@ -1148,7 +1146,7 @@ impl App {
                 }
 
                 HarnessEvent::ToolResult { output, call_ref } => {
-                    // The tool is done — back to the default working state
+                    // The tool is done - back to the default working state
                     // (the model's next response or tool call re-narrows it).
                     // Before the session borrow: `current_session_mut` below
                     // holds `self.state` for the rest of the block.
@@ -1173,7 +1171,7 @@ impl App {
                                     // A MISSING agent means internal: the
                                     // window was created with the same
                                     // `unwrap_or("")` (blank CLI name), so
-                                    // the hint is ALWAYS Some — `Some("")`
+                                    // the hint is ALWAYS Some - `Some("")`
                                     // targets THAT window exactly and can
                                     // never land on a bash window or a
                                     // sibling background turn's window.
@@ -1235,7 +1233,7 @@ impl App {
                     //
                     // Sub-agent guard (the leak fix, ToolResult twin): a
                     // `subagent_status` RESULT (the model's own poll) must
-                    // never complete a window at all — a poll of a RUNNING
+                    // never complete a window at all - a poll of a RUNNING
                     // task is pure JSON status, and completing the
                     // last-Running subagent window with it would both leak
                     // the JSON and mark a live turn finished. Same for a
@@ -1249,7 +1247,7 @@ impl App {
                     }
                     if completed_tool_name.as_deref() == Some("subagent_call") {
                         // Per-call routing when the ref is present: the
-                        // completion closes the window BOUND to the call —
+                        // completion closes the window BOUND to the call -
                         // never a sibling's (two parallel spawns share the
                         // hint, never the ref). The routed variant falls
                         // back to the hint when the ref matches nothing.
@@ -1265,7 +1263,7 @@ impl App {
                     }
                     // BASH-scoped completion: a main-agent tool result
                     // (`bash_run`, `plan_todo_write`, …) must never close a
-                    // RUNNING background subagent window — with a parallel
+                    // RUNNING background subagent window - with a parallel
                     // background turn, the subagent window IS the
                     // last-Running session, and the untargeted completion
                     // used to stamp the other tool's output into its body
@@ -1287,10 +1285,10 @@ impl App {
                     // Telemetry aggregate: fingerprint-only representation,
                     // raw message discarded inside the accumulator.
                     self.telemetry_tool_error(&error);
-                    // The failed tool is done — back to the default state.
+                    // The failed tool is done - back to the default state.
                     // Before the session borrow (like ToolResult above): the
                     // reset must also run when the session is gone
-                    // (`current_session_mut` → None) — a deleted session must
+                    // (`current_session_mut` → None) - a deleted session must
                     // not leave the label stuck on the failed tool's state.
                     self.set_agent_activity(crate::types::AgentActivity::Working);
                     let Some(session) = self.state.current_session_mut() else {
@@ -1309,7 +1307,7 @@ impl App {
                         {
                             if tp.tool == "subagent_call" {
                                 // Same normalization as the ToolResult arm:
-                                // a missing agent means internal — the hint
+                                // a missing agent means internal - the hint
                                 // is ALWAYS Some, so the failure targets the
                                 // calling subagent's own window and can never
                                 // land on a bash window or a sibling turn.
@@ -1342,7 +1340,7 @@ impl App {
                         );
                     } else {
                         // Any other tool's failure (or no Running part at
-                        // all): BASH-scoped — a main-agent tool error must
+                        // all): BASH-scoped - a main-agent tool error must
                         // never kill a RUNNING background subagent window.
                         self.state.right_panel.fail_last_bash_pty(error.clone());
                     }
@@ -1392,7 +1390,7 @@ impl App {
                     }
                     // Sub-agent routing (the leak fix): a `subagent_status`
                     // event is a BACKGROUND sub-agent's completion
-                    // notification — its wrapper carries the owning agent,
+                    // notification - its wrapper carries the owning agent,
                     // so resolve the hint before any window consumes the
                     // text. A `subagent_call` event's routing hint travels
                     // in the event itself. Everything else (bash) is
@@ -1417,7 +1415,7 @@ impl App {
                     // completion below classifies the same text again) and
                     // an UNIDENTIFIED one (malformed wrapper, no agent
                     // hint) would land verbatim in the last-Running window
-                    // — possibly a bash run (the pre-fix leak shape). So
+                    // - possibly a bash run (the pre-fix leak shape). So
                     // `subagent_status` output only ever reaches the panel
                     // as a routed COMPLETION; without a hint it is dropped
                     // from the panel entirely (the injected user turn still
@@ -1450,13 +1448,13 @@ impl App {
                             );
                         }
                     } else {
-                        // Bash (and any other streaming tool): BASH-scoped —
+                        // Bash (and any other streaming tool): BASH-scoped -
                         // a main-agent tool's live chunks must never append
                         // into a RUNNING background subagent window (with a
                         // parallel background turn, the subagent window IS
                         // the last-Running session, and the untargeted
                         // append grafted the other tool's output into the
-                        // mini-chat — the plan/stream leak family).
+                        // mini-chat - the plan/stream leak family).
                         self.state.right_panel.update_last_bash_pty(output.clone());
                         // Auto-follow if user is at the bottom
                         if !self.state.right_panel.is_scrolled_up() {
@@ -1473,7 +1471,7 @@ impl App {
                 // Typed sub-agent activity (message text, thoughts, tool
                 // calls, plans, usage) feeds the chronological mini-chat
                 // timeline of the running subagent window (Phase 3a/3b) and
-                // auto-follows the scroll like any other streamed output —
+                // auto-follows the scroll like any other streamed output -
                 // the box behaves as a small chat that climbs as content
                 // arrives, unless the user scrolled away. NOTE: the `tool`
                 // field is always "subagent_call" today and is intentionally
@@ -1512,7 +1510,7 @@ impl App {
                 }
 
                 HarnessEvent::Reasoning { text } => {
-                    // Empty reasoning deltas carry no visible thinking yet —
+                    // Empty reasoning deltas carry no visible thinking yet -
                     // flipping on them would churn the status glyph back to
                     // frame 0 (same no-churn rule as the Token noise guard).
                     if text.trim().is_empty() {
@@ -1604,7 +1602,7 @@ impl App {
                     // The loop is gone, so the "only waiting for reports"
                     // state is gone with it. The harness emits `false` when
                     // its wait ends, but a loop that ends WITHOUT entering
-                    // that wait in this pass — or that dies mid-wait — never
+                    // that wait in this pass - or that dies mid-wait - never
                     // gets to; a stale flag would make the submit gate treat
                     // a genuinely idle agent as still awaiting reports.
                     self.awaiting_pane_reports = false;
@@ -1643,7 +1641,7 @@ impl App {
                         // Voice follows the finalized answer: show the
                         // controls always, generate in the background only
                         // when the user enabled it. Generation never starts
-                        // playback — the audio waits for Speak / Ctrl+Y.
+                        // playback - the audio waits for Speak / Ctrl+Y.
                         self.speech.set_targets(&id, speech_targets);
                         if self.speech.auto_generate() {
                             // Disjoint fields: `session` borrows
@@ -1703,7 +1701,7 @@ impl App {
                                     // main loop (pins it to the warm backend).
                                     connector = connector
                                         .with_session_id(super::session_affinity_id(&session_id));
-                                    // Disable tools and retry for the title call —
+                                    // Disable tools and retry for the title call -
                                     // it is a simple chat completion.
                                     connector = connector
                                         .with_tool_call_mode(
@@ -1734,7 +1732,7 @@ impl App {
                     // The loop ended: leftover "next request" messages become
                     // "next agent loop" candidates, and the first one starts a
                     // fresh loop (FIFO). If nothing is queued, the work is
-                    // complete — ring the terminal bell to call the user back.
+                    // complete - ring the terminal bell to call the user back.
                     let started_new_loop = self.handle_loop_end(true);
                     if !started_new_loop {
                         self.trigger_bell();
@@ -1756,11 +1754,11 @@ impl App {
                     self.telemetry_feature(morpheus::telemetry::schema::Feature::Prompt);
                     // The running loop consumed a "next request" message:
                     // retire the in-flight marker and pop the deque head
-                    // (FIFO — the harness drains the channel in order).
+                    // (FIFO - the harness drains the channel in order).
                     // Popping only on acknowledgment guarantees a message
                     // already handed to the loop can never be lost.
                     //
-                    // The ack always belongs to the OWNING session's queue —
+                    // The ack always belongs to the OWNING session's queue -
                     // pop from there, never from whichever session is being
                     // viewed after a mid-run switch.
                     if self.next_request_in_flight {
@@ -1794,7 +1792,7 @@ impl App {
                             hint.index -= 1;
                         }
                     }
-                    // Mirror the message into the owning session's history —
+                    // Mirror the message into the owning session's history -
                     // never into whichever session happens to be selected
                     // after a mid-run switch.
                     let owner_matches = self
@@ -1827,14 +1825,14 @@ impl App {
                     // The main-agent mirror seals its interrupted turn as
                     // Failed, with the interruption notice as the transcript's
                     // last line (the same rule `close_turn` applies to a
-                    // failed pane turn) — BEFORE the status flips.
+                    // failed pane turn) - BEFORE the status flips.
                     self.mirror_main_message("The agent loop was stopped.");
                     self.mirror_main_done(true);
                     self.state.status = SessionStatus::Idle;
                     // The loop is gone: the "only waiting for reports" state
                     // cannot outlive it. (The harness also emits `false` when
-                    // the wait ends, but a loop that dies mid-wait — a stop,
-                    // an error — never gets to.)
+                    // the wait ends, but a loop that dies mid-wait - a stop,
+                    // an error - never gets to.)
                     self.awaiting_pane_reports = false;
                     self.agent_spinner = None;
                     self.stream_msg_id = None;
@@ -1885,7 +1883,7 @@ impl App {
                     // finished its own work and is idle as far as the user is
                     // concerned. Recorded so the submit path can send a
                     // prompt straight through instead of asking which queue
-                    // it should join — the wait wakes on the message.
+                    // it should join - the wait wakes on the message.
                     self.awaiting_pane_reports = awaiting;
                 }
 
@@ -1897,7 +1895,7 @@ impl App {
                     // Snapshot of the LSP status for the prompt footer.
                     // Session-scoped (opencode model): the list persists
                     // across turns until a newer snapshot, the user disables
-                    // LSP, or the process ends — it is never cleared by loop
+                    // LSP, or the process ends - it is never cleared by loop
                     // lifecycle events.
                     self.state.lsp_available = available;
                     self.state.lsp_servers = servers;
@@ -2051,7 +2049,7 @@ impl App {
                     let error_text = format!("Error: {message}");
                     // The main-agent mirror records the loop error inline
                     // (the same `Message` entry a failed pane turn shows)
-                    // and seals the turn as Failed — BEFORE the status
+                    // and seals the turn as Failed - BEFORE the status
                     // flips.
                     self.mirror_main_message(&error_text);
                     self.mirror_main_done(true);
@@ -2065,7 +2063,7 @@ impl App {
                     // The loop died mid-flight, so any pending "only waiting
                     // for reports" state is gone with it. (Status becomes
                     // `Retry`, not `Idle`, so the submit gate could not fire
-                    // on a stale flag anyway — but the flag must never
+                    // on a stale flag anyway - but the flag must never
                     // describe a wait that no longer exists.)
                     self.awaiting_pane_reports = false;
 
@@ -2102,7 +2100,7 @@ impl App {
                     // recorded (the model-facing timeline stays clean); a
                     // TUI-side failure (thread runtime, connector
                     // construction, panic) has nothing to persist into the
-                    // context — the display JSONL alone carries the styled
+                    // context - the display JSONL alone carries the styled
                     // error line and the context records on disk stay
                     // untouched. Gated on `is_valid_session` exactly like
                     // Done/Stopped/snapshot: a prompt that never got a real
@@ -2127,12 +2125,12 @@ impl App {
 
                     // The run failed: leave the queues parked (promote leftover
                     // next-request messages to next-loop semantics but never
-                    // auto-start — the user decides when to resend).
+                    // auto-start - the user decides when to resend).
                     self.handle_loop_end(false);
 
                     // First failure of the keyless OpenCode path (missing key
                     // or auth rejection): offer the one-time free-gateway
-                    // recommendation. Write-once — never offered again once answered.
+                    // recommendation. Write-once - never offered again once answered.
                     self.maybe_offer_gateway_on_error(&message);
 
                     // Image-failure retry: if this turn carried images and the
@@ -2225,17 +2223,17 @@ impl App {
                     // window is not focused (user switched away): the
                     // dialog blocks the loop until answered. Even when a
                     // worktree ask currently holds the box (the request
-                    // parks below), the loop IS blocked on it — notify.
+                    // parks below), the loop IS blocked on it - notify.
                     notification::notify_permission(self.terminal_focused, &tool, &description);
                     // An `agents_worktree` ask renders in this box ONLY
                     // through the App drain (`serve_agents_pane_worktree_
-                    // ops`), which resolves it App-side — never by the
+                    // ops`), which resolves it App-side - never by the
                     // running loop. A harness PermissionRequest arriving
                     // while such an ask is parked would otherwise
                     // OVERWRITE its box content (and its answer would go
                     // into the main loop's `perm_tx`); hold the incoming
                     // request and answer it AFTER the worktree ask is
-                    // resolved (the loop stays blocked meanwhile — the
+                    // resolved (the loop stays blocked meanwhile - the
                     // permission gate is its own wait). Only ONE request
                     // can be held: the producer blocks on its own gate
                     // until the current one is answered.
@@ -2300,7 +2298,7 @@ impl App {
                     // provider, saturating token counters, real cost.
                     self.telemetry_llm_usage(&provider, &model, &usage, reported_cost);
                     // The provider's remaining prepaid balance (Charm
-                    // Hypercredits) — the user-facing ◆ figure in the
+                    // Hypercredits) - the user-facing ◆ figure in the
                     // session header. Latest request wins. Its PRESENCE is
                     // what switches the header to credits mode (only Charm
                     // reports it), so no provider-name matching happens.

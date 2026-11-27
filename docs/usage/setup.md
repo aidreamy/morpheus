@@ -44,7 +44,7 @@ sessions and caches; it does not change the location of `setup.json`.
 | `providers` | `/providers` | Local model-server URLs |
 | `custom_providers` | `/settings` → Integrations | OpenAI-compatible endpoints registered by URL |
 | `acp_agents` | `/settings` → Integrations | Custom ACP sub-agent harnesses |
-| `native_transport` | — | Force the generic ACP transport for OpenCode/Kilo (`"acp"`); empty keeps the native server path |
+| `native_transport` | - | Force the generic ACP transport for OpenCode/Kilo (`"acp"`); empty keeps the native server path |
 | `voice` | `/settings` → Voice, voice builds only | Automatic speech output |
 | `effective_context` | `/settings` → Models & caching | Reduced context budget instead of the full window |
 | `model` | `/models` | Last selected provider/model |
@@ -430,7 +430,7 @@ group never changes it, so allowing someone new cannot lock the account out of
 its own chat.
 
 Each entry is `{ "id": …, "enabled": … }`. An entry with `enabled: false`
-stays in the file but grants nothing — disabling is separate from removing.
+stays in the file but grants nothing - disabling is separate from removing.
 Older files that list bare strings (the pre-toggle shape) still load, with
 every string treated as enabled.
 

@@ -4,8 +4,8 @@
 //! and the detector-level sections of `tests/test_router.py` (the
 //! `is_english` table, `latin/undecided`, the `latin_lang` table, dotted
 //! tokens #177, state flattening, dict-state #384 and the mixed-states
-//! tables). The Router-level halves of those tables — the `.route(...).model`
-//! assertions — are ported with the Router in Phase 6, as are the routing
+//! tables). The Router-level halves of those tables - the `.route(...).model`
+//! assertions - are ported with the Router in Phase 6, as are the routing
 //! halves of `test_lang_guess.py` / `test_blank_lang_routing.py`. The
 //! upstream "analyse reports the same keys on every branch" check is enforced
 //! structurally here: the `Analysis` struct cannot omit a field.
@@ -526,7 +526,7 @@ fn dict_state_language_matches_string_state() {
 
 // ---------------------------------------------------------------- mixed states
 // A Portuguese ticket carrying an English stack trace, error payload or form
-// template reads as English as a whole — the English part is longer — and
+// template reads as English as a whole - the English part is longer - and
 // went to the checkpoint that cannot read the customer's own words (#384).
 // Any line or field that on its own is named a non-English language now wins.
 const TRACE: &str = "O sistema caiu de novo hoje de manhã, segue o log:\n\
@@ -697,7 +697,7 @@ fn latin_profile_values_pinned_against_cpython() {
 
 #[test]
 fn classifier_semantics_pinned_against_python() {
-    // str.isalpha: L* only — Nl roman numerals and Mn marks are not alpha
+    // str.isalpha: L* only - Nl roman numerals and Mn marks are not alpha
     assert!(py_is_alpha('a') && py_is_alpha('é') && py_is_alpha('ǅ') && py_is_alpha('世'));
     assert!(!py_is_alpha('Ⅰ') && !py_is_alpha('ा') && !py_is_alpha('½'));
     // str.isupper / str.islower: the Uppercase/Lowercase properties

@@ -1,9 +1,9 @@
-//! The turn's final-message accumulator — the ACP analogue of the internal
+//! The turn's final-message accumulator - the ACP analogue of the internal
 //! harness's `ContextItem::Closure` (the item that marks WHICH text is a
 //! loop's final answer).
 //!
 //! A sub-agent turn narrates: message, tool call, message, tool call, … and
-//! the text that matters to the caller is the LAST message — the one written
+//! the text that matters to the caller is the LAST message - the one written
 //! after the final tool call (this is the market-standard contract: Claude
 //! Code returns "only its final message" from the Task tool, Gemini CLI's
 //! `generalist` returns "only the final result", and `codex exec` literally
@@ -21,7 +21,7 @@
 //! # The defensive fallback
 //!
 //! A harness that ends its turn immediately after a tool call produces NO
-//! final message (Claude Code had exactly this bug — the parent received
+//! final message (Claude Code had exactly this bug - the parent received
 //! nothing). An empty report would be worse than the last complete message,
 //! so an emptied segment is remembered as the fallback and returned when the
 //! turn ends without post-call text.
@@ -37,7 +37,7 @@ use super::events::SubagentEvent;
 /// Tracks which text of one ACP turn is the final message.
 #[derive(Debug, Default)]
 pub(crate) struct TurnClosure {
-    /// Text chunks since the last (new) tool-call announcement — the
+    /// Text chunks since the last (new) tool-call announcement - the
     /// candidate final message.
     current: String,
     /// The last message COMPLETED by a tool-call announcement. Only read
@@ -57,7 +57,7 @@ impl TurnClosure {
             SubagentEvent::Message { text } => self.current.push_str(text),
             // A NEW tool call ends the current message segment (the guard's
             // first operand deduplicates: a repeated id is a re-announcement
-            // — a patch, not a boundary — and falls through to the catch-all
+            // - a patch, not a boundary - and falls through to the catch-all
             // arm). An empty segment is a no-op: back-to-back tool calls
             // must not wipe the fallback with an empty overwrite.
             SubagentEvent::ToolCall { id, .. }
@@ -69,8 +69,8 @@ impl TurnClosure {
         }
     }
 
-    /// The turn's report: the message written after the last tool call, or —
-    /// when the turn ended without any post-call text — the last completed
+    /// The turn's report: the message written after the last tool call, or -
+    /// when the turn ended without any post-call text - the last completed
     /// message before it.
     pub(crate) fn output(&self) -> String {
         if self.current.is_empty() {

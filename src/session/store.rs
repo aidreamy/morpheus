@@ -177,7 +177,7 @@ impl SessionStore {
     }
 
     /// Test-visible sessions dir (tests copy fixture files into the SAME
-    /// dir the app's store watches — `load_history_for_branch` scans it).
+    /// dir the app's store watches - `load_history_for_branch` scans it).
     pub fn sessions_dir(&self) -> &std::path::Path {
         &self.sessions_dir
     }
@@ -295,7 +295,7 @@ impl SessionStore {
     ///
     /// Each job carries its own `SessionStore` clone: the writer thread is a
     /// process-wide singleton, but it must persist to the ENQUEUING store's
-    /// directory — binding one store at first use would silently route every
+    /// directory - binding one store at first use would silently route every
     /// later job to that first store's directory.
     fn enqueue_job(&self, job: StoreJob, wait: bool) -> bool {
         static WRITER: std::sync::OnceLock<std::sync::mpsc::Sender<QueuedStoreJob>> =
@@ -345,7 +345,7 @@ impl SessionStore {
     fn run_job(&self, job: StoreJob) -> bool {
         // One exclusive kernel lock covers the whole read-diff-append window
         // of every write job. The lock is bound to the open file
-        // description: if this process dies, the OS releases it — no orphan
+        // description: if this process dies, the OS releases it - no orphan
         // lockfiles can freeze the store.
         let _lock =
             match acquire_store_lock(&self.sessions_dir, self.notify.as_ref(), self.lock_wait) {
@@ -476,7 +476,7 @@ impl SessionStore {
             });
         }
         // The /agents split-pane mode: persisted like every other session
-        // metadata — a change in the pane set, in the hidden-pane stack OR
+        // metadata - a change in the pane set, in the hidden-pane stack OR
         // in whether the split SCREEN was left open emits one small delta
         // (the flag distinguishes the restored screen from a parked set); a
         // display-only save with nothing changed emits nothing.
@@ -498,8 +498,8 @@ impl SessionStore {
         // so the delta carries just the new suffix and one prompt costs one
         // short line; a wholesale difference (a fork starting from the
         // parent's list, or a divergence after a load) replaces it instead.
-        // Without this, `/agents` pane prompts — which never enter the
-        // transcript — were the only inputs that died with the process.
+        // Without this, `/agents` pane prompts - which never enter the
+        // transcript - were the only inputs that died with the process.
         if current.session.input_history != requested.input_history {
             let known = &current.session.input_history;
             let grew = requested.input_history.len() > known.len()
@@ -837,13 +837,13 @@ impl SessionStore {
     /// Compute the message id → context item ids mapping for a session against
     /// a context snapshot, and store it in `session.ctx_ids`.
     ///
-    /// The grouping is [`crate::harness::context::display_groups`] — the same
+    /// The grouping is [`crate::harness::context::display_groups`] - the same
     /// rule `tui::app::agents_dispatch::manager_context_display` projects the
     /// manager pane's messages with, so the two can never disagree on where a
     /// message boundary falls.
     ///
     /// Conservative: if the group count does not match the message count the
-    /// mapping is left UNCHANGED — bookkeeping must never corrupt itself by
+    /// mapping is left UNCHANGED - bookkeeping must never corrupt itself by
     /// guessing. With append-only visibility (compaction/sweep hide instead
     /// of delete) the counts match by construction for as long as the session
     /// lives; the guard is a safety net against streaming races and future
@@ -906,14 +906,14 @@ impl SessionStore {
         summaries
     }
 
-    /// The session most recently *touched* in this directory — what
+    /// The session most recently *touched* in this directory - what
     /// `morpheus -c` / `--continue` resumes.
     ///
     /// [`list_sessions`](Self::list_sessions) orders by creation time, which
     /// answers "which session did I start last", not "which one did I work in
     /// last": resuming an older session appends to its file, so the file's
     /// modification time is the activity signal. Only a file that still holds
-    /// a live (non-deleted) branch with at least one message qualifies — a
+    /// a live (non-deleted) branch with at least one message qualifies - a
     /// fresh empty session has nothing to continue.
     pub fn last_active_session(&self) -> Option<SessionSummary> {
         let mut histories: Vec<(SystemTime, PathBuf)> = std::fs::read_dir(&self.sessions_dir)
@@ -1115,7 +1115,7 @@ impl SessionStore {
             }
             Err(error) => {
                 // Contention is the expected refusal path (info); an I/O
-                // failure is unexpected and gets a louder log — both refuse
+                // failure is unexpected and gets a louder log - both refuse
                 // the claim, but they need different diagnosability.
                 if error.kind() == std::io::ErrorKind::WouldBlock {
                     log::info!("session {session_id} is open in another process: {error}");
@@ -1136,13 +1136,13 @@ impl SessionStore {
     /// A session that enters the app without claiming its open-lock here is
     /// the exact regression this guards against: two processes could hold
     /// the same session open because `switch_to_session` only refuses when
-    /// a lock ALREADY exists — a freshly created session has none, so a
+    /// a lock ALREADY exists - a freshly created session has none, so a
     /// second process listing the directory could claim it freely.
     ///
     /// Ids are millisecond timestamps, so two processes creating sessions
     /// in the same millisecond collide: the claim retries with a `-N`
     /// suffix under the same uniqueness+lock rule. Returns `None` only when
-    /// every candidate failed to lock (I/O trouble — no session is created
+    /// every candidate failed to lock (I/O trouble - no session is created
     /// unlocked, by construction).
     pub fn claim_fresh_session_id(&self) -> Option<(String, u64)> {
         let now_ms = SystemTime::now()
@@ -1216,7 +1216,7 @@ impl SessionStore {
     /// The lock FILE is left on disk on purpose: removing it would race with
     /// another process that has just acquired the lock (it would keep
     /// holding a lock on an unlinked file while a third process creates a
-    /// fresh file and wins its own lock). Orphan files are harmless — they
+    /// fresh file and wins its own lock). Orphan files are harmless - they
     /// are not `.jsonl`, so the listing ignores them.
     pub fn release_session_lock(&self, session_id: &str) {
         self.session_locks
@@ -1239,8 +1239,8 @@ impl SessionStore {
     /// The link lives ONLY in the parent: a pane session carries no
     /// back-reference, so "is this session depended on?" is answered by
     /// scanning the parents, never the session itself. Tombstoned parents
-    /// do not count — deleting the parent is exactly what frees its panes.
-    /// Unbound panes (`AgentPaneRef::Name`, or `Unbound` — a worktree pin
+    /// do not count - deleting the parent is exactly what frees its panes.
+    /// Unbound panes (`AgentPaneRef::Name`, or `Unbound` - a worktree pin
     /// without a session) link nothing: they never ran (or their rewind
     /// abandoned the session), so there is no session behind them to protect.
     pub fn linked_agents_pane_sessions(&self) -> HashSet<String> {
@@ -1267,7 +1267,7 @@ impl SessionStore {
                     }
                 }
                 // HIDDEN panes are still linked: hiding (Backspace) never
-                // deletes the pane, only moves it out of the visible set — a
+                // deletes the pane, only moves it out of the visible set - a
                 // restore (Ctrl+Z) must still find its bound agent session on
                 // disk. Deleting the parent is what frees every pane,
                 // hidden ones included.
@@ -2497,7 +2497,7 @@ mod tests {
 
         let loaded = store.load_session("12346").unwrap();
         // The recorded `auto` selection wins over deriving the concrete model
-        // from the last assistant message — no provider is pinned.
+        // from the last assistant message - no provider is pinned.
         assert_eq!(loaded.model.as_deref(), Some("auto"));
         assert_eq!(loaded.provider, None);
         assert_eq!(loaded.reasoning.as_deref(), Some("low"));
@@ -2599,7 +2599,7 @@ mod tests {
     }
 
     /// A session whose file carries no embedded context (never saved with
-    /// context — e.g. a display-only session) has no model-facing context:
+    /// context - e.g. a display-only session) has no model-facing context:
     /// `load_context` returns `None`, and the resume warns truthfully.
     #[test]
     fn a_session_without_embedded_context_loads_display_only() {
@@ -2652,7 +2652,7 @@ mod tests {
         assert!(store.load_context("12348").is_none());
     }
 
-    /// A corrupt item record loses exactly that item — and a compaction
+    /// A corrupt item record loses exactly that item - and a compaction
     /// boundary whose anchor was among the lost records is CLEARED, so the
     /// surviving raw history reaches the model instead of an amnesiac empty
     /// view (the same repair applied to reference-selected projections).
@@ -3184,7 +3184,7 @@ mod tests {
     /// REGRESSION (multi-process session adoption): a freshly created
     /// session used to be selectable-but-unlocked, so a second morpheus process
     /// could adopt it through the sidebar switch while the creator kept
-    /// writing to it — two projections appending divergent histories to the
+    /// writing to it - two projections appending divergent histories to the
     /// same JSONL. The claim must take the open-lock at CREATION time.
     #[test]
     fn fresh_session_claim_is_locked_against_a_foreign_process() {
@@ -3199,7 +3199,7 @@ mod tests {
         assert!(id.starts_with(&format!("{now_ms}")));
 
         // A foreign process (independent store, same sessions dir) must be
-        // REFUSED from the moment of creation — that refusal is the whole
+        // REFUSED from the moment of creation - that refusal is the whole
         // point of the entry funnel.
         let foreign = test_store(&dir);
         assert!(
@@ -3218,7 +3218,7 @@ mod tests {
 
     /// Two claims in the same millisecond must never yield the same id:
     /// ids are timestamps, so the claim must retry with a suffix (and never
-    /// adopt an id this process itself already holds — the per-process
+    /// adopt an id this process itself already holds - the per-process
     /// re-claim is idempotent, which would otherwise mask the collision).
     #[test]
     fn fresh_session_claim_retries_when_the_timestamp_is_already_taken() {
@@ -3241,14 +3241,14 @@ mod tests {
             id, taken,
             "the claim must never adopt an id that already has a history file"
         );
-        // And it must be a claimable, unique id — locking again is fine
+        // And it must be a claimable, unique id - locking again is fine
         // (same process), but the id differs from the taken one.
         assert!(store.try_lock_session(&id));
     }
 
     /// Every claim leaves exactly one open-lock for its own id, and a
     /// failed attempt (all candidates taken) returns None instead of
-    /// handing out an unlocked session — "no session" beats "shared session".
+    /// handing out an unlocked session - "no session" beats "shared session".
     #[test]
     fn fresh_session_claim_never_returns_an_unlocked_id() {
         let dir = tempfile::tempdir().unwrap();
@@ -3285,7 +3285,7 @@ mod tests {
 
     /// REGRESSION (id re-mint after hand-off): with /new releasing the
     /// previous claim, a second claim in the SAME millisecond used to
-    /// re-mint the just-released id — silently replacing the first session
+    /// re-mint the just-released id - silently replacing the first session
     /// in the LRU cache. A release hands the session to OTHER processes;
     /// the issuer must never re-mint the id. The injected seed pins the
     /// same millisecond, so this fails deterministically without the
@@ -3382,7 +3382,7 @@ mod tests {
     /// Unequal collision blocks: the first writer appends a ONE-event block,
     /// the stale second writer a TWO-event block starting at the same id.
     /// The log records no save boundaries, so replay cannot tell where the
-    /// stale writer's block ends — its trailing ids continue contiguously
+    /// stale writer's block ends - its trailing ids continue contiguously
     /// exactly like the next healthy save's would. First-writer-wins
     /// therefore holds per ID (B's rename is skipped), and B's trailing
     /// deltas merge deterministically on top of the first writer's state.
@@ -3445,7 +3445,7 @@ mod tests {
             reloaded.title, "Unequal",
             "B's colliding rename must be skipped"
         );
-        // B's trailing scalar merges on top of A's state — the deterministic,
+        // B's trailing scalar merges on top of A's state - the deterministic,
         // data-preserving outcome (see the test doc comment).
         assert_eq!(
             store.load_context(&session.id).unwrap().max_tokens,
@@ -3481,7 +3481,7 @@ mod tests {
     /// through with no orphan lockfile and no visible contention.
     ///
     /// Unix-only by design: the harness drives the external `flock(1)` CLI
-    /// and `kill -9 -- -<pgid>` to simulate a foreign killed process — tools
+    /// and `kill -9 -- -<pgid>` to simulate a foreign killed process - tools
     /// that do not exist on Windows.
     #[test]
     #[cfg(unix)]
@@ -3566,7 +3566,7 @@ mod tests {
         );
     }
 
-    /// The full context projection — items, scalar state, and split staging —
+    /// The full context projection - items, scalar state, and split staging -
     /// round-trips through deltas, so an interrupted split resumes exactly
     /// where it stopped.
     #[test]
@@ -4066,7 +4066,7 @@ mod tests {
 
     /// A parent with bound panes reports exactly its pane session ids; an
     /// unbound pane (`Name`) links nothing, and a tombstoned parent links
-    /// nothing either — deleting the parent is what frees its panes.
+    /// nothing either - deleting the parent is what frees its panes.
     #[test]
     fn linked_pane_sessions_reflects_only_live_bound_parents() {
         let dir = tempfile::tempdir().unwrap();
@@ -4133,7 +4133,7 @@ mod tests {
     }
 
     /// The hidden-pane stack round-trips through the metadata delta pipeline,
-    /// and a HIDDEN bound pane still guards its agent session from deletion —
+    /// and a HIDDEN bound pane still guards its agent session from deletion -
     /// hiding (Backspace) never deletes the pane, only moves it out of the
     /// visible set, so Ctrl+Z must still find its session on disk.
     #[test]
@@ -4182,7 +4182,7 @@ mod tests {
     }
 
     /// The durable input history round-trips through the metadata delta
-    /// pipeline — that is what makes `/agents` pane prompts (which never
+    /// pipeline - that is what makes `/agents` pane prompts (which never
     /// enter the transcript) survive the process that recorded them. The
     /// normal append costs one short delta carrying ONLY the new entries,
     /// so a long session's file does not re-copy the whole list per prompt.
@@ -4260,7 +4260,7 @@ mod tests {
 
     #[test]
     fn test_cwd_hash_deterministic() {
-        // The hash should be deterministic for the same input — we verify
+        // The hash should be deterministic for the same input - we verify
         // by checking it's a non-empty 8-char hex string.
         let hash = compute_cwd_hash();
         assert_eq!(hash.len(), 8);
@@ -4363,7 +4363,7 @@ mod tests {
     }
 
     /// Reasoning ("+ Thought") blocks are part of the display message, so
-    /// they survive a reload straight from the JSONL — without ever entering
+    /// they survive a reload straight from the JSONL - without ever entering
     /// the model-facing context (the persisted context records carry no
     /// reasoning).
     #[test]
@@ -4398,7 +4398,7 @@ mod tests {
             ],
         );
 
-        // The harness context carries NO reasoning — it is display-only.
+        // The harness context carries NO reasoning - it is display-only.
         let context = make_context(vec![
             user_item(1, "Why is the sky blue?"),
             assistant_item(2, "Because of Rayleigh scattering."),
@@ -4433,7 +4433,7 @@ mod tests {
     }
 
     /// Merged tool chains survive the JSONL round trip with their name, input
-    /// AND output — the exact shape the live loop renders — so the transcript
+    /// AND output - the exact shape the live loop renders - so the transcript
     /// does not visually collapse after a restart.
     #[test]
     fn restored_tool_chains_render_like_the_live_display() {
@@ -4482,7 +4482,7 @@ mod tests {
     /// The full error-display contract across a save/restore: the API error
     /// lives in the JSONL as a `msg-err-` message (the styled red error box)
     /// and as a display-only `Error` item record that `build_messages`
-    /// skips — so the model never inherits a provider failure after a
+    /// skips - so the model never inherits a provider failure after a
     /// restart.
     #[test]
     fn api_errors_keep_their_display_semantics_across_a_restart() {
@@ -4529,8 +4529,8 @@ mod tests {
     }
 
     /// The ctx_ids mapping: a merged tool chain in the display (one assistant
-    /// message carrying the call+result) maps to MULTIPLE context items — the
-    /// call, its result and the answer text — with ids that let revert/fork
+    /// message carrying the call+result) maps to MULTIPLE context items - the
+    /// call, its result and the answer text - with ids that let revert/fork
     /// truncate the exact items behind a clicked message. The mapping is
     /// computed from a snapshot, persisted in the JSONL lines, and survives a
     /// reload.
@@ -4660,7 +4660,7 @@ mod tests {
 
     /// A mismatch between item groups and display messages (e.g. a display
     /// save racing a streaming turn) must leave the existing mapping
-    /// UNCHANGED — the bookkeeping never guesses.
+    /// UNCHANGED - the bookkeeping never guesses.
     #[test]
     fn ctx_ids_mapping_is_untouched_on_a_count_mismatch() {
         let session = make_test_session("7002", "Mismatch", vec![make_user_msg("msg-0", "hi")]);

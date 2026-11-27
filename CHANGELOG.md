@@ -239,7 +239,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Inputs sent to `/agents` panes no longer vanish when morpheus exits. They
   never enter the session transcript (the conversation belongs to another
   agent), so they are now recorded on the session and persisted as an
-  append-only metadata delta the moment they are sent — Ctrl+↑ finds them
+  append-only metadata delta the moment they are sent - Ctrl+↑ finds them
   in the next process instead of only in the one that typed them.
 
 - Revert and Fork on the `/agents` morpheus pane no longer fail with "Could
@@ -334,7 +334,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - The Internal Tools screen's disabled list no longer leaks between projects.
   The blocklist was always persisted to the global `setup.json`, so one
   project's tool choices applied to every other environment. A Global toggle
-  now sits as the screen's first row — OFF by default, with the same
+  now sits as the screen's first row - OFF by default, with the same
   check/cross contract as the disable toggles: with it off, the disabled set
   persists to `.morpheus-tools.json` in the directory morpheus was started from, so
   each project keeps its own tool set; with it on, the old global behavior
@@ -461,9 +461,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     registry (plus a synthetic morpheus manager entry) divides the chat area
     into one pane per chosen agent, and a single shared prompt fans out to
     all of them at once. Every pane carries the session's interaction
-    contract — per-pane scroll with sticky-bottom semantics, selection
+    contract - per-pane scroll with sticky-bottom semantics, selection
     copy, focused dispatch, the chat's message actions, a mirrored
-    sent-prompt box and the shared scroll-to-bottom pill — and the mode
+    sent-prompt box and the shared scroll-to-bottom pill - and the mode
     adds its own controls: a pane maximizes to take the whole area while
     the others keep running, hides with Backspace and restores with
     Ctrl+Z, and focusing a pane probes the agent's harness live to bring
@@ -479,22 +479,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     onto the closest advertised session mode at the start of every turn,
     each pane's ACP budget shows in its header, the focused pane's serving
     triple (provider, model, reasoning) shows on the prompt badge, and
-    model selection is per pane — `/models` on a focused pane commits to
+    model selection is per pane - `/models` on a focused pane commits to
     that pane only, survives
     restarts through the session's own markers, and the last model picked
     for each agent is remembered across pane sessions, so a fresh pane no
     longer lands on the harness default (often a paid-tier model).
 
   - Coordination through the main agent. The main agent reaches the panes
-    with the `agents_call` tool — blocking on the pane's report or parking
-    it in the background with a requester-tagged receipt — and the
+    with the `agents_call` tool - blocking on the pane's report or parking
+    it in the background with a requester-tagged receipt - and the
     `agents_compact` tool asks for one pane's context to be compacted
     ahead of the harness's 80% trigger. Every pane is told who it shares
     the workspace with through a peer preamble refreshed when the pane set
-    changes; panes never coordinate themselves — coordination tooling is
+    changes; panes never coordinate themselves - coordination tooling is
     stripped from their loops and they only report.
 
-  - Opt-in worktree isolation. Any pane — and the main agent itself — can
+  - Opt-in worktree isolation. Any pane - and the main agent itself - can
     work in its own git worktree instead of the shared checkout. morpheus
     adopts existing worktrees and lists them, resolves explicit paths,
     refuses to run two agents in one checkout, quotes paths with spaces,
@@ -502,14 +502,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     checkout.
 
 - Automatic hang detection for the bash tool (`bash_run`). A liveness
-  watchdog samples the executed command's whole process tree — bash spawns
-  descendants, so the tree, not just the shell, is watched — for three
+  watchdog samples the executed command's whole process tree - bash spawns
+  descendants, so the tree, not just the shell, is watched - for three
   progress signals: new output, growing accumulated CPU time, and growing
   I/O counters (disk, and network on Windows). A command that shows none of
   the three for 120 seconds is presumed hung (waiting on a prompt, a lock or
   a dead connection) and killed, with a `liveness watchdog: ...` diagnostic
   on stderr. Any single progress signal resets the counter, so long-running
-  but active commands — builds, downloads, imports — are never cut, no
+  but active commands - builds, downloads, imports - are never cut, no
   matter how long they run. An immediate escape complements the counter: a
   command that has already exited but whose orphaned descendants keep the
   output pipes/PTY open is detached at once and its own exit status is
@@ -518,8 +518,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Process-tree kill on unix: every kill path (liveness watchdog, input-wait
   watchdog, hard runtime cap, zero timeout) now signals the child's whole
-  process group with SIGKILL — the piped path spawns bash in its own
-  process group and the PTY path already makes it a session leader —
+  process group with SIGKILL - the piped path spawns bash in its own
+  process group and the PTY path already makes it a session leader -
   instead of killing only the shell. The old behavior leaked CPU-burning
   grandchildren that never touch the output pipes again (a leaked
   `yes >/dev/null` spins a core forever). On Windows the whole tree dies
@@ -546,7 +546,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   event carries a per-call routing identity, so each call's prompt echo,
   stream, report and failure land in its own window, and a straggler event
   for a completed window is dropped instead of spilling into a sibling.
-  Windows read as chats now — the main agent's prompt echoes verbatim, the
+  Windows read as chats now - the main agent's prompt echoes verbatim, the
   finished window seals its full transcript (reasoning, tool rows,
   narration) instead of being wiped, and edit diffs and tool names render
   for real. `subagent_call` takes a `description` shown in the list entry,
@@ -554,25 +554,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The computer toolset's last major surface: window management. The new
   `ComputerWindows` tool lists an app's windows (title, class, bounds,
-  state) or performs one native verb — activate, minimize, maximize,
-  fullscreen, restore, close, move or resize — through the OS window
+  state) or performs one native verb - activate, minimize, maximize,
+  fullscreen, restore, close, move or resize - through the OS window
   manager. Key holds land as standalone `hold`/`release` steps in the act
   and control pipelines, and waits gain `value`/`value_contains` (block
   until an element's value matches) and app-scoped event waits
   (window_opened, menu_closed, announcement…), replacing poll loops.
 
 - Termination tuning: the decision checkup's confidence floor moves from
-  0.6 to 0.75 — the measured optimum of a sweep over the termination corpus
-  (23/24 correct, zero false continues) — and the harness now instructs the
+  0.6 to 0.75 - the measured optimum of a sweep over the termination corpus
+  (23/24 correct, zero false continues) - and the harness now instructs the
   agent to open its final response with an explicit completion phrase, with
   a stop veto injecting a bare "continue" instead of coaching the model to
   finish remaining work (coaching confirmed a state the model could never
   disprove and looped forever).
 
-- A `/spinner` picker: five styles for the agent-loop spinner — Bass
+- A `/spinner` picker: five styles for the agent-loop spinner - Bass
   (equalizer with a kick beat, the default), Runes, Opencode (direct port
   of the Knight-Rider scanner, 40 ms), Crush (direct port of crush's anim
-  package, HCL gradient, 20 fps) and the classic braille wheel — persisted
+  package, HCL gradient, 20 fps) and the classic braille wheel - persisted
   as `appearance.spinner` in `setup.json`. AnySpinner dispatches the shared
   surface, so the agent loop never learns the chosen style.
 
@@ -601,14 +601,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   follows the ambient `AWS_REGION` / `AWS_DEFAULT_REGION` automatically (with
   an explicit `with_base_url` always winning), and the region value is
   validated against the AWS region grammar before it ever touches the endpoint
-  host — a malformed or hostile `AWS_REGION` falls back to the default region
+  host - a malformed or hostile `AWS_REGION` falls back to the default region
   instead of silently re-pointing the bearer token elsewhere. AWS error bodies
   (`{"__type": "ThrottlingException", …}`, flat or wrapped) now classify
   through the shared error path, with throttling/service-outage kinds marked
   retryable so the existing backoff middleware paces them. The two surfaces
-  the OpenAI-compatible endpoint genuinely lacks — model listing (`GET
+  the OpenAI-compatible endpoint genuinely lacks - model listing (`GET
   /models` exists only on `bedrock-mantle`) and embeddings (Titan/Cohere are
-  Invoke-only) — fail up front with errors that explain the workaround
+  Invoke-only) - fail up front with errors that explain the workaround
   (point `with_base_url` at the Mantle catalog, or use a proxy). Sixteen new
   tests cover the registry wiring, auth, streaming, tool calls, error
   classification, the gates, and the region resolution.
@@ -617,7 +617,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   OpenAI-compatible endpoint covers everything morpheus needs today, and the SDK
   would pull dozens of crates into the slim build. Users who later need the
   native Bedrock surface (Converse, Guardrails, Titan embeddings) will get an
-  opt-in `bedrock-sdk` feature gate wrapping the SDK — the integration stays
+  opt-in `bedrock-sdk` feature gate wrapping the SDK - the integration stays
   basic and light by default.
 
 - Kimi (Moonshot AI) as a provider, through the connector's
@@ -626,7 +626,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   always-thinking with top-level `reasoning_effort`). Two Kimi quirks are
   handled in the shared path: streams that historically carry `usage` only
   inside each choice (top-level `usage` is tried first, the per-choice copy
-  as a fallback), and cost reporting — Kimi's responses carry no per-request
+  as a fallback), and cost reporting - Kimi's responses carry no per-request
   cost, so the session figure stays the reported sum while the account
   balance comes from the documented `GET /users/me/balance` endpoint, read
   defensively (a missing `data` reports the cost as unavailable instead of a
@@ -634,7 +634,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Mouse-hover selection in the ADD Provider list and the /tools list,
   matching the model picker's behavior: moving the pointer over a row moves
-  the highlight, and only the left-button release executes the action —
+  the highlight, and only the left-button release executes the action -
   hovering never toggles a tool or opens a provider credential dialog.
 
 - Theme color swatches next to each theme name in the theme picker: a strip
@@ -645,8 +645,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Fixed the chat prompt's mouse copy selection dying when the drag left
   the prompt box. Drag ownership was re-derived per drag event from the
-  current pointer row, so a drag anchored at the prompt's tail — the only
-  direction that extends a selection from the end of the text — handed the
+  current pointer row, so a drag anchored at the prompt's tail - the only
+  direction that extends a selection from the end of the text - handed the
   gesture to the chat's drag extraction the moment the pointer dropped
   below the box; the release then copied the chat region and the prompt
   kept a zero-length anchor, making the tail impossible to copy without
@@ -661,8 +661,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - The `[Pasted ~N lines]` placeholder color no longer leaks into the
   text around it. The paste color was decided per wrapped line, so any
-  line that merely overlapped the placeholder — ordinary text typed after
-  it on the same line, or the line's wrapped continuation — was painted
+  line that merely overlapped the placeholder - ordinary text typed after
+  it on the same line, or the line's wrapped continuation - was painted
   entirely in the placeholder color. The paint decision is now per glyph,
   driven by the exact byte ranges the placeholders occupy in the draft,
   and every occurrence of a duplicated placeholder gets its own range.
@@ -679,7 +679,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   side by side performed a lost update (the last save silently discarded
   the other's changes to providers, mode selection and everything else), a
   crash or concurrent write mid-serialization could truncate the file, and
-  any unparsable file was treated as missing — resetting the user to
+  any unparsable file was treated as missing - resetting the user to
   defaults without a trace. Saving is now a locked read-modify-write: an
   flock on `setup.json.lock` guards the section, what is currently on disk
   is read and merged under the in-memory settings (a section is kept from
@@ -694,7 +694,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Sessions no longer vanish from the sidebar while another morpheus process is
   still using them. The per-session flock was only claimed when switching
-  to a session — every path that CREATED one assigned it directly, so a
+  to a session - every path that CREATED one assigned it directly, so a
   second process could adopt a brand-new session and both went on writing
   history to it concurrently. Session creation now goes through a single
   claim funnel that mints the id, takes the lock at creation time and only
@@ -711,7 +711,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   once the pump had pushed the head message the harness owned it, so a
   deleted message still reached the model on the next request, and editing
   the message the chain would send next paused nothing. The queue now
-  lives in a shared retractable deque both sides hold by reference — the
+  lives in a shared retractable deque both sides hold by reference - the
   harness pops an entry only at the moment it injects it into the model
   context, a Delete retracts the pumped copy outright, an Edit retracts the
   stale text so the edited version is what gets injected, and editing the
@@ -737,7 +737,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   turn and only consults the checkup when it did: a cycle with no tool
   dispatch is a pure text exchange, answerable directly, with nothing to
   audit. A failed tool call still counts as agentic work, while a cycle
-  whose tool calls were refused by the user lands unaudited — explicit user
+  whose tool calls were refused by the user lands unaudited - explicit user
   intent is never reviewed by the model. Enriching the decision state with
   the user's request was measured against the cached checkpoints and made
   things worse (every closing summary flipped to "running"); the negative
@@ -749,7 +749,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   delayed-expansion exit code, relaunch) and dispatched it through
   `Command::args`: the standard library quotes arguments with the MSVCRT
   rules, but cmd.exe parses its command line with its own rules, where a
-  backslash is literal — the backslash-escaped quotes therefore survived as
+  backslash is literal - the backslash-escaped quotes therefore survived as
   literal quote characters, curl received an invalid quoted output path, the
   download failed and the `&&` chain short-circuited before the installer
   ever ran, all invisible under `CREATE_NO_WINDOW`, so the app closed and
@@ -773,20 +773,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 
 - Free gateway with OAuth 2.0 sign-in. When a message fails for missing
-  credentials — or a provider key is broken, revoked or out of quota — morpheus
+  credentials - or a provider key is broken, revoked or out of quota - morpheus
   offers its free gateway once, right in the session. Opting in runs the
   Charm device sign-in entirely in the interface: the recommendation dialog
   becomes the sign-in screen with the verification URL and a drag-copyable
   device code, Esc dismisses the box in any phase without cancelling the
   flow (it finishes on its own with a toast), and the parked message replays
-  only after the user picks a model — never under the picker with a default.
+  only after the user picks a model - never under the picker with a default.
   Under the hood, a hardened in-house OAuth 2.0 client (Authorization Code +
   PKCE S256, loopback redirect, device grant, issuer validation, zeroized
   secrets, single-flight token renewal) joins `morpheus-sdk`'s connector, ready
   to back other providers.
 - In-app update announcement. When a newer release is detected, the session
   footer shows a `current → new` version hint whose version button updates
-  morpheus in place — the same install pipeline as the Home banner's button —
+  morpheus in place - the same install pipeline as the Home banner's button -
   and the announcement toast carries a copy button with the manual install
   command, so updating never requires retyping a curl one-liner.
 
@@ -820,14 +820,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [0.1.0] - 2026-10-01
 
-Initial release of **morpheus** — a coding agent for the terminal.
+Initial release of **morpheus** - a coding agent for the terminal.
 
 ### Agent core
 
 - General-purpose coding agent with a streaming TUI session: live transcript,
   tool-call rendering, markdown with syntax highlighting and diff previews.
 - Providers, models and operating modes are configured from within the
-  interface — almost zero manual setup.
+  interface - almost zero manual setup.
 - Multi-provider LLM support through a unified connector (Claude, OpenAI and
   Gemini via native adapters, plus OpenAI-compatible endpoints), with
   mid-stream retry and context-window awareness.
@@ -854,7 +854,7 @@ Initial release of **morpheus** — a coding agent for the terminal.
   planning, skills and structured user questions.
 
 - Computer tools: observe and drive native desktop applications through the
-  OS accessibility tree (X11 and Wayland), with screenshots as fallback —
+  OS accessibility tree (X11 and Wayland), with screenshots as fallback -
   fewer images processed, fewer tokens consumed.
 
 - Subagents via the Agent Client Protocol, dispatching to external harnesses
@@ -865,15 +865,15 @@ Initial release of **morpheus** — a coding agent for the terminal.
 
 The agent's building blocks are published as reusable libraries:
 
-- `morpheus-sdk` — LLM connector, tolerant tool-call extraction, hashline patch
+- `morpheus-sdk` - LLM connector, tolerant tool-call extraction, hashline patch
   engine, file rollback, embedded LSP client stack (26-server catalog) and
   tree-sitter/ast-grep code intelligence.
-- `morpheus-tools` — every tool exposed to the agent, usable standalone.
-- `morpheus-tui` — Ratatui widget/renderable toolkit (markdown, diff, layout,
+- `morpheus-tools` - every tool exposed to the agent, usable standalone.
+- `morpheus-tui` - Ratatui widget/renderable toolkit (markdown, diff, layout,
   colors) with a SolidJS-style reactive layer.
-- `morpheus-recall` — optional RAG layer (behind the `embed` feature): local
+- `morpheus-recall` - optional RAG layer (behind the `embed` feature): local
   embeddings via fastembed or cloud providers, stored in LanceDB.
-- `morpheus-onnx` — ONNX decision engine (behind the `onnx` feature, not
+- `morpheus-onnx` - ONNX decision engine (behind the `onnx` feature, not
   published to crates.io), including the `morpheus-decisiond` daemon that shares
   one resident model across running instances.
 
@@ -889,7 +889,7 @@ The agent's building blocks are published as reusable libraries:
 
 ### Platform support
 
-- Linux and Windows are tested. macOS builds are published but untested —
+- Linux and Windows are tested. macOS builds are published but untested -
   report any issues with details.
 
 [1.0.0]: https://github.com/aidreamy/morpheus/compare/v0.3.0...v1.0.0

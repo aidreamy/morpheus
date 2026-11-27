@@ -75,7 +75,7 @@ fn classify_error_response() {
     assert_eq!(err.message, "nope");
 }
 
-/// Malformed frames must be classifiable failures — never a panic — so the
+/// Malformed frames must be classifiable failures - never a panic - so the
 /// reader loop can log-and-skip them.
 #[test]
 fn classify_malformed_messages_are_rejected_not_fatal() {

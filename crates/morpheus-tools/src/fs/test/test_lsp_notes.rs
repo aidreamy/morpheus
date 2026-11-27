@@ -1,5 +1,5 @@
 //! Passive LSP feedback: the `with_lsp` toggle, the per-call guards, and the
-//! structured notes attached to mutating fs results — driven over the SDK's
+//! structured notes attached to mutating fs results - driven over the SDK's
 //! in-memory fake servers (same harness as the `lsp` tool tests).
 
 use std::sync::Arc;

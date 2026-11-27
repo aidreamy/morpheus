@@ -35,13 +35,13 @@ impl App {
     }
 
     /// Is a modal box (a popup the user must dismiss) currently on
-    /// screen? ESC belongs to the BOX first — its own handler closes it
-    /// and the agent loop keeps running — and only the SECOND Esc, with
+    /// screen? ESC belongs to the BOX first - its own handler closes it
+    /// and the agent loop keeps running - and only the SECOND Esc, with
     /// no box open anymore, interrupts the loop. Covered here: the
     /// dialog stack (theme/model/reasoning pickers, message and queue
     /// actions, text inputs, registration forms, alerts, shortcuts,
     /// confirm), the slash menu, the queue-choice and free-gateway
-    /// dialogs, and the router's ACP picker (a stub today — the term
+    /// dialogs, and the router's ACP picker (a stub today - the term
     /// stays so the picker is protected the day it exists). The question
     /// and permission dialogs are deliberately EXCLUDED: their Esc is a
     /// semantic REJECT of a pending tool call / permission request (an
@@ -54,7 +54,7 @@ impl App {
             || self.router_view.acp_picker_open()
             // The /agents picker: a standalone modal whose Esc must close
             // ONLY the picker (the sovereign gate would otherwise interrupt
-            // a running loop invisibly behind it — the exact rule this
+            // a running loop invisibly behind it - the exact rule this
             // method exists to protect).
             || self.agents_picker.visible
     }

@@ -71,7 +71,7 @@ impl Harness {
                 self.tool_issuer.pop_front();
                 return Err(
                     "run_in_background is not available in this loop: background \
-                     sub-agent spawns are disabled here — the completion \
+                     sub-agent spawns are disabled here - the completion \
                      notification would have nowhere coherent to land. Run the \
                      task in the foreground (omit run_in_background) instead."
                         .to_string(),
@@ -104,15 +104,13 @@ impl Harness {
                 // decision is kept for the report side: the internal turn's
                 // final report gets the header ENFORCED in
                 // `run_internal_subagent`.
-                let is_review = morpheus_agents::severity::is_review_task(
-                    &call_input,
-                    input.code_review,
-                );
+                let is_review =
+                    morpheus_agents::severity::is_review_task(&call_input, input.code_review);
                 // Right-panel list entry description (same contract as the
                 // external path): explicit values pass through; a code-review
                 // call may omit it (inferred `code-review-NN`), non-review
-                // calls must carry one. The RESOLVED value is display-only —
-                // the TUI derives the entry from the raw input — so this
+                // calls must carry one. The RESOLVED value is display-only -
+                // the TUI derives the entry from the raw input - so this
                 // call exists to VALIDATE.
                 if let Some(tools) = self.morpheus_tools.as_ref() {
                     // The issuer slot was ALREADY popped above ("Pop BEFORE
@@ -147,11 +145,11 @@ impl Harness {
         // The /agents coworker tool (`agents_call`): enqueue the message in the
         // coworker registry and either await the coworker's report (wait mode,
         // raced against the stop signal so Esc unblocks the tool) or
-        // return the receipt immediately (background mode — the report
+        // return the receipt immediately (background mode - the report
         // arrives later as an automated notification in THIS loop's drain;
         // the other loop never sees it). The queue itself IS the race
         // handling: a coworker busy with the user's turn (or an earlier
-        // request) receives the message after its current work — the
+        // request) receives the message after its current work - the
         // registry holds it, the App dispatches it when the coworker frees.
         if tool_name == "agents_call" {
             self.tool_issuer.pop_front();
@@ -171,21 +169,21 @@ impl Harness {
             }
             // Coworker-call guard (defense in depth): `with_own_coworker_id` strips
             // the tool from every coworker loop, so this arm is unreachable from
-            // a coworker — but if a coworker ever reaches it anyway (a re-added
+            // a coworker - but if a coworker ever reaches it anyway (a re-added
             // tool, a stale harness), refuse BEFORE the registry is
             // touched: a coworker must never queue work into the coworker set.
-            // NO pop here — the arm already popped this call at its top,
+            // NO pop here - the arm already popped this call at its top,
             // and every error path after that point pops nothing.
             if self.own_coworker_id.is_some() {
                 return Err(
                     "`agents_call` is not available to a pane: pane agents execute their \
-                     delegated task and report back — the coordinating agent owns the panes."
+                     delegated task and report back - the coordinating agent owns the panes."
                         .to_string(),
                 );
             }
             // Self-call guard (deadlock): a MANAGER loop runs INSIDE its own
             // coworker, so asking that same coworker to run a turn would queue behind
-            // the turn making the call — the `wait` could never resolve and
+            // the turn making the call - the `wait` could never resolve and
             // the background busy-guard would spin forever. This refuses
             // BOTH modes for the coworker's OWN id; the cross-coworker `Wait` case
             // (a manager targeting ANOTHER morpheus coworker) is refused inside
@@ -219,19 +217,19 @@ impl Harness {
             if let Some(rx) = handle.receiver {
                 // Wait mode: the report IS the tool result. Esc unblocks:
                 // the stop wait wins the race and the tool returns the stop
-                // error (the request is cancelled for THIS requester — a
+                // error (the request is cancelled for THIS requester - a
                 // coworker already working on it finishes its turn normally,
                 // the report simply is not delivered to a dead caller).
                 // A QUEUED USER MESSAGE wakes the wait too: the user's
                 // input outranks the block, and the wait is INSIDE a tool
-                // call — the loop cannot drain the queue until this tool
+                // call - the loop cannot drain the queue until this tool
                 // returns. The wait degrades to background WITHOUT
                 // `cancel_wait`: dropping the oneshot receiver parks the
                 // report for this requester's drain (the dead-waiter branch
-                // in `complete_request`), so the coworker's work is not lost —
+                // in `complete_request`), so the coworker's work is not lost -
                 // it just stops blocking the loop.
-                // The result goes through `report_block` — the SAME builder
-                // the background drain uses — because this is the path where
+                // The result goes through `report_block` - the SAME builder
+                // the background drain uses - because this is the path where
                 // a non-final report is most dangerous: the requester blocked
                 // on the call, gets the text as its tool result, and has no
                 // other signal telling it the coworker may not have finished. The
@@ -263,7 +261,7 @@ impl Harness {
                     } => {
                         return Err(
                             "the agents_call wait was interrupted: a user message arrived \
-                             while waiting — the coworker keeps working and its report arrives \
+                             while waiting - the coworker keeps working and its report arrives \
                              as an automated notification."
                                 .to_string(),
                         );
@@ -288,8 +286,8 @@ impl Harness {
         // the model can correct itself in place), park the op in the coworker
         // registry, then PAUSE this dispatch until the outcome exists. The
         // TOOL never touches git: the App's frame drain pops, supervises
-        // (the user's supremacy over a User-assigned coworker — even in Yolo)
-        // and executes it. The loop does NOT proceed on a bare receipt —
+        // (the user's supremacy over a User-assigned coworker - even in Yolo)
+        // and executes it. The loop does NOT proceed on a bare receipt -
         // the model must not keep working while its ask (and possibly the
         // cwd it depends on) is still undecided; the tool result IS the
         // outcome (executed / refused by the user / failed in git), so the
@@ -313,7 +311,7 @@ impl Harness {
                 "clear" => super::agent_coworkers::WorktreeAction::Clear,
                 other => {
                     return Err(format!(
-                        "`agents_worktree` action must be \"assign\" or \"clear\" — got \
+                        "`agents_worktree` action must be \"assign\" or \"clear\" - got \
                          \"{other}\"."
                     ));
                 }
@@ -324,12 +322,12 @@ impl Harness {
                 .map(str::to_string);
             // Coworker-call guard (defense in depth): `with_own_coworker_id` strips
             // the tool from every coworker loop; if a coworker ever reaches it
-            // anyway, refuse BEFORE the registry is touched — a coworker must
+            // anyway, refuse BEFORE the registry is touched - a coworker must
             // never rebind the coworker set. (Popped at the arm's top already.)
             if self.own_coworker_id.is_some() {
                 return Err(
                     "`agents_worktree` is not available to a pane: pane agents execute their \
-                     delegated task and report back — the coordinating agent owns the panes."
+                     delegated task and report back - the coordinating agent owns the panes."
                         .to_string(),
                 );
             }
@@ -345,14 +343,14 @@ impl Harness {
             // PAUSE here until the App drain resolves the ask (the user's
             // permission box, or an immediate execution): poll the
             // registry's deliveries for this op's Worktree outcome. Esc
-            // wins the race — the op stays parked and its outcome still
+            // wins the race - the op stays parked and its outcome still
             // reaches this loop's drain on a later turn, like a
             // background `agents_call` report.
             loop {
                 tokio::select! {
                     () = wait_for_stop_signal(self.stop_signal.clone()) => {
                         return Err(
-                            "the worktree ask was interrupted (stop requested) — the ask \
+                            "the worktree ask was interrupted (stop requested) - the ask \
                              stays parked with the App; its outcome arrives as an \
                              [automated notification] on a later turn"
                                 .to_string(),
@@ -375,7 +373,7 @@ impl Harness {
 
         // The /agents compaction ask (`agents_compact`): park the op in the
         // coworker registry, then PAUSE this dispatch until the App drain
-        // resolves it — the App runs the actual compaction (the SAME
+        // resolves it - the App runs the actual compaction (the SAME
         // mechanism its `/compact` slash command uses on the coworker's own
         // session), so the tool result IS the outcome and the model never
         // proceeds while the ask is undecided. Esc interrupts the wait like
@@ -394,13 +392,13 @@ impl Harness {
                 .to_string();
             // Coworker-call guard (defense in depth): `with_own_coworker_id` strips
             // the tool from every coworker loop; if a coworker ever reaches it
-            // anyway, refuse BEFORE the registry is touched — compaction is
+            // anyway, refuse BEFORE the registry is touched - compaction is
             // coordination, and a coworker must never fold a sibling's context
             // into a summary only IT can then steer.
             if self.own_coworker_id.is_some() {
                 return Err(
                     "`agents_compact` is not available to a pane: pane agents execute their \
-                     delegated task and report back — the coordinating agent owns the panes."
+                     delegated task and report back - the coordinating agent owns the panes."
                         .to_string(),
                 );
             }
@@ -415,7 +413,7 @@ impl Harness {
                 tokio::select! {
                     () = wait_for_stop_signal(self.stop_signal.clone()) => {
                         return Err(
-                            "the compaction ask was interrupted (stop requested) — the ask \
+                            "the compaction ask was interrupted (stop requested) - the ask \
                              stays parked with the App; its outcome arrives as an \
                              [automated notification] on a later turn"
                                 .to_string(),

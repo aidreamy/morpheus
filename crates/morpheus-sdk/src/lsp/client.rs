@@ -4,22 +4,22 @@
 //! Wraps a [`Transport`] with the pieces an agent needs to actually operate a
 //! language server:
 //!
-//! * **Handshake** — [`LanguageServer::initialize`] builds honest client
+//! * **Handshake** - [`LanguageServer::initialize`] builds honest client
 //!   capabilities (only what an agent uses), negotiates the position
 //!   encoding, announces `initialized`, then mirrors settings through
 //!   `workspace/didChangeConfiguration` because some servers read exactly one
 //!   of the two channels (opencode ships both for the same reason).
-//! * **Document sync** — disk-based [`LanguageServer::touch_file`] /
+//! * **Document sync** - disk-based [`LanguageServer::touch_file`] /
 //!   [`LanguageServer::close_file`] with an LRU bound: the file on disk is
 //!   always the source of truth, versions are internal counters, and evicted
 //!   documents get a proper `didClose` (opencode never closed documents and
 //!   leaked them over long sessions).
-//! * **Server→client traffic** — a dispatcher task answers
+//! * **Server→client traffic** - a dispatcher task answers
 //!   `workspace/configuration` from our settings, acknowledges capability
 //!   registration, replies `null` to progress creation, and answers unknown
 //!   requests with `MethodNotFound` (a request left unanswered wedges
 //!   servers). Diagnostics and messages surface as [`Event`]s.
-//! * **Death** — an exit watcher turns transport termination into
+//! * **Death** - an exit watcher turns transport termination into
 //!   [`ServerState::Exited`] so owners can restart or degrade gracefully.
 use std::{
     collections::HashSet,
@@ -310,7 +310,7 @@ impl LanguageServer {
     }
 
     /// Position encoding negotiated at initialize (UTF-16 until proven
-    /// otherwise — the protocol default when the server says nothing).
+    /// otherwise - the protocol default when the server says nothing).
     pub fn position_encoding(&self) -> PositionEncoding {
         *self.inner.position_encoding.read().expect("encoding lock")
     }
@@ -432,7 +432,7 @@ impl LanguageServer {
     /// Bring `path` into the server's view of the world, reading from disk.
     ///
     /// First touch sends a synthetic `didChangeWatchedFiles` created-event
-    /// (several servers — tsserver, clangd — index only after seeing it),
+    /// (several servers - tsserver, clangd - index only after seeing it),
     /// followed by `didOpen`. Subsequent touches compare content hashes:
     /// unchanged files are a no-op (clangd does not re-emit diagnostics for
     /// no-op changes), changed files go out as a single full-document
@@ -447,7 +447,7 @@ impl LanguageServer {
         let language_id = language_id_for_path(path);
 
         // Held across the wire notifications below: they are all synchronous
-        // channel sends, so the lock serializes every toucher of one path —
+        // channel sends, so the lock serializes every toucher of one path -
         // a didChange can never overtake the didOpen it depends on, and two
         // concurrent first touches cannot both send didOpen.
         let mut docs = self.inner.docs.lock().expect("documents lock");
@@ -572,7 +572,7 @@ impl LanguageServer {
     /// Notify the server that the on-disk document was saved
     /// (`textDocument/didSave`).
     ///
-    /// Servers key expensive post-save pipelines off this signal —
+    /// Servers key expensive post-save pipelines off this signal -
     /// rust-analyzer reruns flycheck (cargo check) on save and never on
     /// `didChange`, and its own file watcher may be unavailable, so without
     /// this notification compile-error diagnostics never regenerate after
@@ -615,7 +615,7 @@ impl LanguageServer {
     ///
     /// This is not an optional refinement: servers that see the client
     /// advertising the `diagnostic` capability (this client does) may go
-    /// entirely push-silent — rust-analyzer does exactly that — and answer
+    /// entirely push-silent - rust-analyzer does exactly that - and answer
     /// `workspace/diagnostic/refresh` nudges instead. The only reliable way
     /// to observe their diagnostics is to pull.
     pub async fn pull_diagnostics(
@@ -681,7 +681,7 @@ impl LanguageServer {
     // Teardown
 
     /// Graceful teardown: close every open document, request `shutdown`
-    /// (bounded by a 5 s timeout), send `exit`, wait — briefly — for the
+    /// (bounded by a 5 s timeout), send `exit`, wait - briefly - for the
     /// writer to flush, then kill the process.
     ///
     /// [`ServerState::Stopped`] is claimed *before* the kill so the exit

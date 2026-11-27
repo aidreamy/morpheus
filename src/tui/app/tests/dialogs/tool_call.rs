@@ -1,7 +1,7 @@
 use super::super::{App, HOME_LOCK, isolate_home};
 
 /// Regression: the picker box must be wide enough to show each option's
-/// full description — the inline row used to truncate at
+/// full description - the inline row used to truncate at
 /// "JSON written in the text,". Geometry at 80x24 with the 60-wide box:
 /// dialog_x=10, list_top=12, labels start at x=13; the inline label ends
 /// with 'y' at x=63 and the native one with ')' at x=58.
@@ -67,7 +67,7 @@ async fn tool_call_dialog_mouse_wheel_changes_selection() {
         modifiers: KeyModifiers::NONE,
     };
 
-    // The 50ms scroll debounce starts at App creation — wait before the
+    // The 50ms scroll debounce starts at App creation - wait before the
     // first wheel notch so it isn't dropped.
     tokio::time::sleep(std::time::Duration::from_millis(60)).await;
 

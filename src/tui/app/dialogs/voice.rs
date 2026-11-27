@@ -137,7 +137,7 @@ impl App {
         let (message, variant) = if voice.needs_phonemize && !cfg!(feature = "speak-phonemize") {
             (
                 format!(
-                    "{} · {} · {} — this build has no external phonemizer; rebuild with \
+                    "{} · {} · {} - this build has no external phonemizer; rebuild with \
                      `--features speak-phonemize` to hear it in this language",
                     voice.name, voice.language_label, voice.model
                 ),
@@ -168,7 +168,7 @@ impl App {
 /// the recommended v1.1 bundle only has Chinese and English voices, so
 /// Portuguese, Spanish, French, Hindi, Italian and Japanese live exclusively
 /// in the v1.0 bundle. A row from another bundle carries that bundle's
-/// directory, and confirming it switches `voice.model_dir` — the user never
+/// directory, and confirming it switches `voice.model_dir` - the user never
 /// has to edit `setup.json` to reach those voices. Bundles reached through two
 /// directories (the configured path and the discovered one) are listed once,
 /// and the configured path wins. A configured bundle that no longer exists is

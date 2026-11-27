@@ -1,7 +1,7 @@
 //! Batch collation: pad a batch of encoded questions into the model inputs.
 //!
-//! The padding shape — `input_ids` padded, `attention_mask` over real tokens,
-//! marker positions zero-filled with a `marker_mask` — is the input contract
+//! The padding shape - `input_ids` padded, `attention_mask` over real tokens,
+//! marker positions zero-filled with a `marker_mask` - is the input contract
 //! the crate's decision models build on. The training-only `target`/`label`
 //! fields of the upstream function are omitted: model training is out of
 //! scope for this port.
@@ -28,7 +28,7 @@ pub struct CollateItem {
 ///
 /// Padding shape: `input_ids` filled with `pad_id`, `attention_mask` 1 over
 /// real tokens, `marker_pos` zero-filled to the widest marker count and
-/// `marker_mask` true only over a row's own markers — masked marker logits are
+/// `marker_mask` true only over a row's own markers - masked marker logits are
 /// read only through `marker_mask`.
 #[derive(Debug, Clone)]
 pub struct CollatedBatch {

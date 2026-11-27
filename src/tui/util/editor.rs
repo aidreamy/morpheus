@@ -53,7 +53,7 @@ fn is_executable(path: &std::path::Path) -> bool {
 pub fn resolve_editor_command(configured: &str) -> Option<String> {
     let configured = configured.trim();
     if !configured.is_empty() {
-        // A configured editor is used as-is — even when its binary is not
+        // A configured editor is used as-is - even when its binary is not
         // found here, launching may still work (shell alias, PATH change
         // since startup). The launch failure itself is silent.
         return Some(configured.to_string());

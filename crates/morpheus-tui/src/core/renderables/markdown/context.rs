@@ -16,7 +16,7 @@ pub enum MarkdownElement {
     Strong,
     /// `~~strikethrough~~`.
     Strikethrough,
-    /// `[label](url)` — the label part.
+    /// `[label](url)` - the label part.
     Link,
     /// Inline `` `code` ``.
     InlineCode,
@@ -69,9 +69,9 @@ pub struct MarkdownContext {
     link_dest: String,
 
     // ── List tracking ──────────────────────────────────────────
-    /// Stack — one entry per nesting level. `true` = ordered.
+    /// Stack - one entry per nesting level. `true` = ordered.
     list_ordered: Vec<bool>,
-    /// Stack — running counter for each list level.
+    /// Stack - running counter for each list level.
     list_counters: Vec<usize>,
 }
 
@@ -278,7 +278,7 @@ impl MarkdownContext {
 
     /// The current list-item counter value (always `Some` inside a list item).
     /// For ordered lists this is the number to display; for unordered it is
-    /// meaningless — the palette should emit `•` regardless.
+    /// meaningless - the palette should emit `•` regardless.
     #[must_use]
     pub fn list_marker(&self) -> Option<(bool, usize)> {
         let ordered = self.list_ordered.last().copied()?;

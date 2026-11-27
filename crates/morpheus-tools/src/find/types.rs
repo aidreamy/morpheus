@@ -56,7 +56,7 @@ pub struct GrepInput {
     pub ignore_case: Option<bool>,
     /// Maximum total number of matches to return across all files.
     pub max_count: Option<u32>,
-    /// Files to skip before collecting results — use to paginate when the
+    /// Files to skip before collecting results - use to paginate when the
     /// prior call hit the file window limit.
     pub skip: Option<u32>,
     /// Lines of context to include before each match.
@@ -73,7 +73,7 @@ pub struct GrepInput {
 
 /// Configuration for the [`glob`](super::glob::glob) tool.
 ///
-/// Fields are optional — use `Glob::default()` for sensible defaults.
+/// Fields are optional - use `Glob::default()` for sensible defaults.
 #[derive(Default)]
 pub struct Glob {
     /// Restrict results to a filesystem kind: `"file"`, `"dir"`, or `"symlink"`.
@@ -153,7 +153,7 @@ pub struct GlobOutput {
     /// pagination/limit notes).
     pub note: Option<String>,
     /// `true` when no matches were selected. Such a result carries no new
-    /// information — adjust the pattern or scope instead of blindly retrying.
+    /// information - adjust the pattern or scope instead of blindly retrying.
     pub useless: Option<bool>,
     /// User-supplied targets whose directory was missing on disk. These were
     /// skipped; the surviving targets' results are still returned.
@@ -173,7 +173,7 @@ pub struct GlobOutput {
 
 /// Configuration for the [`grep`](super::grep::grep) tool.
 ///
-/// Fields are optional — use `Grep::default()` for sensible defaults.
+/// Fields are optional - use `Grep::default()` for sensible defaults.
 #[derive(Default)]
 pub struct Grep {
     /// Restrict the search to files whose names match this glob (e.g., `"*.rs"`).
@@ -184,7 +184,7 @@ pub struct Grep {
     pub ignore_case: Option<bool>,
     /// Maximum total number of matches to return across all files.
     pub max_count: Option<u32>,
-    /// Files to skip before collecting results — use to paginate when the
+    /// Files to skip before collecting results - use to paginate when the
     /// prior call hit the file window limit.
     pub skip: Option<u32>,
     /// Restrict matches to a 1-based inclusive line range `"start-end"`.
@@ -221,7 +221,7 @@ pub struct GrepMatchEntry {
     /// Content of the matched line.
     pub line: String,
     /// `true` when the line was truncated to the column limit (see the tool
-    /// description) — read the file for the full line.
+    /// description) - read the file for the full line.
     pub truncated: Option<bool>,
     /// Context lines immediately before the match.
     pub context_before: Vec<ContextEntry>,
@@ -238,7 +238,7 @@ pub struct GrepMatchEntry {
 pub struct GrepFileEntry {
     /// File path, in the same form as the match paths in this result.
     pub path: String,
-    /// 4-hex content hash of the whole file — the `file_hash` for `fs_edit`.
+    /// 4-hex content hash of the whole file - the `file_hash` for `fs_edit`.
     pub file_hash: String,
     /// Hashline header `¶path#TAG` anchoring edits to this file. The path is
     /// absolute so it round-trips through `fs_edit`'s path validation.
@@ -258,7 +258,7 @@ pub struct GrepOutput {
     pub files_with_matches: u32,
     /// Number of files searched.
     pub files_searched: u32,
-    /// `true` when more files matched than the shown window — page with `skip`.
+    /// `true` when more files matched than the shown window - page with `skip`.
     pub file_limit_reached: bool,
     /// `true` when at least one file had more matches than shown (capped to
     /// keep a single hot file from crowding out diverse hits).
@@ -267,7 +267,7 @@ pub struct GrepOutput {
     /// hit, or a no-match notice (`"No matches found"` / `"No more results …"`).
     pub note: Option<String>,
     /// `true` when no matches were selected. Such a result carries no new
-    /// information — adjust the pattern or scope instead of blindly retrying.
+    /// information - adjust the pattern or scope instead of blindly retrying.
     pub useless: Option<bool>,
     /// Hashline anchors for shown files, in encounter order. Bounded to a
     /// small window of files (whole-file tags require reading each file);

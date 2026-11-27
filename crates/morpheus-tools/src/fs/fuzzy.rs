@@ -1,11 +1,11 @@
-//! Fuzzy closest-match search — a behavior port of oh-my-pi's
+//! Fuzzy closest-match search - a behavior port of oh-my-pi's
 //! `crates/pi-edit/src/fuzzy.rs` (which itself ports the TypeScript
 //! `packages/coding-agent/src/edit/fuzzy.ts`).
 //!
 //! # Why this exists here
 //!
 //! The `edits` (content replace) engine matches `old_string` EXACTLY and
-//! uniquely — a wrong `old_string` is rejected, never guessed away. But a
+//! uniquely - a wrong `old_string` is rejected, never guessed away. But a
 //! rejection that only says "not found" forces the model into an expensive
 //! recovery loop (re-read the file, re-copy the text). This module gives the
 //! rejection a memory: locate the CLOSEST near-match and describe it
@@ -14,7 +14,7 @@
 //!
 //! # The one rule that makes fuzzy safe here
 //!
-//! The fuzzy result is **advisory only** — it never selects what gets
+//! The fuzzy result is **advisory only** - it never selects what gets
 //! replaced. oh-my-pi uses the same machinery to auto-substitute a
 //! high-confidence fuzzy hit; we deliberately do not. The worst case of a
 //! diagnostic mismatch is a slightly wrong hint; the worst case of a
@@ -27,7 +27,7 @@
 //! benchmark (`benches/fuzzy.rs`) guards the miss-path cost on
 //! representative shapes. Where the TS original used UTF-16
 //! code units, the Rust port compares Unicode scalar values (astral
-//! characters count as one element) — a deliberate upstream decision kept
+//! characters count as one element) - a deliberate upstream decision kept
 //! here so similarity scores agree with the Rust reference.
 //!
 //! The `js_*` helpers reproduce JavaScript's `String.prototype.trim`
@@ -52,7 +52,7 @@ pub const DOMINANT_FUZZY_MIN_CONFIDENCE: f64 = 0.97;
 /// hazard: a single-line snapshot (minified JS/JSON) times a long
 /// single-line `old_string` would otherwise run one O(n·m) DP with ~10¹⁰
 /// cells. When the estimate exceeds the budget, the fuzzy pass is skipped
-/// entirely (the outcome degrades to "no closest match" — a weaker message,
+/// entirely (the outcome degrades to "no closest match" - a weaker message,
 /// never a wrong one).
 pub const MAX_FUZZY_WORK: u64 = 50_000_000;
 /// Minimum confidence gap for a dominant fuzzy hit.
@@ -118,7 +118,7 @@ pub fn js_trim(text: &str) -> &str {
     text.trim_matches(is_js_whitespace)
 }
 
-/// Length in UTF-16 code units — JS `string.length`. Preview truncation uses
+/// Length in UTF-16 code units - JS `string.length`. Preview truncation uses
 /// it so astral characters never get cut in half.
 pub fn utf16_len(text: &str) -> usize {
     text.encode_utf16().count()
@@ -137,7 +137,7 @@ pub fn count_leading_whitespace(line: &str) -> usize {
 }
 
 /// Normalize a line for fuzzy comparison: trim, fold quotes/dashes to ASCII,
-/// collapse runs of spaces and tabs. Pure per line — the result never
+/// collapse runs of spaces and tabs. Pure per line - the result never
 /// depends on neighboring lines, which is what makes the window pre-compute
 /// in the applier's hot loop safe.
 pub fn normalize_for_fuzzy(line: &str) -> String {
@@ -407,7 +407,7 @@ struct BestFuzzyMatch {
 /// dominant-match rule.
 ///
 /// Unlike upstream, the whitespace-folded form of every content line is
-/// computed ONCE (via `normalized_lines`) instead of once per window — the
+/// computed ONCE (via `normalized_lines`) instead of once per window - the
 /// strings are pure per line, so the results are identical while the hot
 /// loop stops re-running the character-level fold.
 fn best_fuzzy_match_core(
@@ -466,7 +466,7 @@ fn best_fuzzy_match_core(
 }
 
 /// Normalize every line of a block. `precomputed` (content side only) may
-/// carry the per-line `normalize_for_fuzzy(js_trim(line))` results — the
+/// carry the per-line `normalize_for_fuzzy(js_trim(line))` results - the
 /// depth prefix still depends on the whole window, so only the prefix is
 /// built per call.
 fn normalize_lines(
@@ -573,7 +573,7 @@ fn best_fuzzy_match(
 /// allowed. Excluded ranges are invisible to both passes.
 ///
 /// In this crate the outcome is consumed by the content-replace engine's
-/// REJECTION diagnostics only — `matched` here never means "substitute it".
+/// REJECTION diagnostics only - `matched` here never means "substitute it".
 pub fn find_match(content: &str, target: &str, options: &FindMatchOptions<'_>) -> MatchOutcome {
     if target.is_empty() {
         return MatchOutcome::default();
@@ -635,8 +635,8 @@ pub fn first_different_line<'a>(
 }
 
 /// Format the no-match rejection, byte-for-byte compatible with upstream's
-/// `EditMatchError.formatMessage` (pinned by ported tests): heading, then —
-/// when a closest candidate exists — its similarity, line, and the first
+/// `EditMatchError.formatMessage` (pinned by ported tests): heading, then -
+/// when a closest candidate exists - its similarity, line, and the first
 /// differing line as `-`/`+`, then the discriminating hint.
 pub fn format_match_error(
     path: &str,

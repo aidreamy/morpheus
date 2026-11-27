@@ -12,23 +12,23 @@ use crate::harness::Mode;
 pub const ALL: &[(&str, &str)] = &[
     (
         "build",
-        "Build — normal agent. Tools that need interactive approval are denied.",
+        "Build - normal agent. Tools that need interactive approval are denied.",
     ),
     (
         "ask",
-        "Ask — read-only answers, no file writes or shell commands.",
+        "Ask - read-only answers, no file writes or shell commands.",
     ),
     (
         "yolo",
-        "Yolo — full access: writes and shell commands run without approval.",
+        "Yolo - full access: writes and shell commands run without approval.",
     ),
     (
         "command",
-        "Command — every message is run as a shell command; no LLM call.",
+        "Command - every message is run as a shell command; no LLM call.",
     ),
     (
         "manager",
-        "Manager — plans and delegates; direct file writes are blocked.",
+        "Manager - plans and delegates; direct file writes are blocked.",
     ),
 ];
 

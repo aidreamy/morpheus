@@ -1,4 +1,4 @@
-//! Single source of truth for the sessions-list geometry — the anti-mirror.
+//! Single source of truth for the sessions-list geometry - the anti-mirror.
 //!
 //! Render (`sessions.rs`), mouse hit-testing (`SessionsView::handle_mouse`)
 //! and the hover tooltip (`app/render.rs`) all derive their coordinates from
@@ -68,7 +68,7 @@ impl SessionListLayout {
         )
     }
 
-    /// Character columns the title actually occupies on screen — the string
+    /// Character columns the title actually occupies on screen - the string
     /// clamped to [`SessionListLayout::max_text_w`]. The string's char count
     /// is NOT the visible width: the renderer truncates at `max_text_w`, so
     /// a long title displays only its first `max_text_w` chars. Control
@@ -90,13 +90,13 @@ impl SessionListLayout {
     }
 
     /// Exact columns the visible (truncated) title occupies on an item's row
-    /// — from after the selection prefix to its last displayed char. `None`
+    /// - from after the selection prefix to its last displayed char. `None`
     /// when nothing is displayed (empty title, or a panel too narrow for any
     /// title text).
     ///
     /// The switch hit-test must use THIS, never `mx >= text_x` nor the
     /// string's length: the left pad and the selection-prefix columns before
-    /// the title, the gap and everything past the glyph are not the string —
+    /// the title, the gap and everything past the glyph are not the string -
     /// a click there must not enter the session. The span is clamped to
     /// `max_text_w`, exactly what the renderer displays.
     pub fn title_span(area: Rect, title: &str) -> Option<std::ops::Range<u16>> {
@@ -107,12 +107,12 @@ impl SessionListLayout {
         })
     }
 
-    /// Exact columns the 🗑 glyph occupies on an item's row — `trash_x` and
+    /// Exact columns the 🗑 glyph occupies on an item's row - `trash_x` and
     /// the one after it. `None` when the glyph is not drawn (it would cross
     /// the panel's right edge; render skips it, so the hit-test must too).
     ///
     /// The delete hit-test must use THIS, never `mx >= trash_x`: the gap,
-    /// the cleared cell and the right pad are not the glyph — a click there
+    /// the cleared cell and the right pad are not the glyph - a click there
     /// must not open the delete confirm (nor switch: only the visible title
     /// text does, see [`SessionListLayout::title_span`]).
     pub fn trash_span(area: Rect, title: &str) -> Option<std::ops::Range<u16>> {

@@ -1,5 +1,5 @@
 //! Cost-tracking tests: the provider-reported REAL cost is the ONLY source
-//! of truth. Requests whose provider does not report a cost stay unpriced —
+//! of truth. Requests whose provider does not report a cost stay unpriced -
 //! no models.dev estimate is applied anymore (providers without cost
 //! reporting simply show no price; see `aiface::connector::supports_cost_reporting`).
 
@@ -7,7 +7,7 @@ use super::{App, HOME_LOCK, isolate_home};
 
 #[test]
 fn reported_cost_is_the_source_of_truth() {
-    // The provider reported $0.42 — recorded verbatim, never re-priced.
+    // The provider reported $0.42 - recorded verbatim, never re-priced.
     let cost = App::resolve_recorded_cost(Some(0.42));
     assert_eq!(cost, Some(0.42));
 }
@@ -22,14 +22,14 @@ fn no_reported_cost_stays_unpriced() {
 
 #[test]
 fn zero_reported_cost_is_real_and_not_re_priced() {
-    // Free-tier models genuinely report $0 — kept as a real (zero) cost.
+    // Free-tier models genuinely report $0 - kept as a real (zero) cost.
     let cost = App::resolve_recorded_cost(Some(0.0));
     assert_eq!(cost, Some(0.0));
 }
 
 /// Regression for the wrong-session cost bug: a Usage event lands while the
 /// user is VIEWING a different session than the one OWNING the running agent
-/// loop. The record (its cost AND tokens) must go to the owner's session —
+/// loop. The record (its cost AND tokens) must go to the owner's session -
 /// the viewed session's dashboard must not absorb it, and the owner's must.
 #[tokio::test]
 async fn usage_event_attributed_to_loop_owner_not_viewed_session() {
@@ -68,7 +68,7 @@ async fn usage_event_attributed_to_loop_owner_not_viewed_session() {
 }
 
 /// Without a loop owner (idle usage events, e.g. a background compaction
-/// surfaced late), the currently-viewed session remains the fallback —
+/// surfaced late), the currently-viewed session remains the fallback -
 /// same resolution order as every other async event handler.
 #[tokio::test]
 async fn usage_event_falls_back_to_current_session_without_loop_owner() {

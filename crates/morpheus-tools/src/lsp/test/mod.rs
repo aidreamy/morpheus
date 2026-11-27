@@ -440,7 +440,7 @@ async fn rename_two_phase_dry_run_then_apply() {
     )];
     let (lsp, _counter) = lsp_for(dir.path(), r#"{"renameProvider":true}"#, replies);
 
-    // Phase 1: dry-run — no writes.
+    // Phase 1: dry-run - no writes.
     let plan = lsp
         .rename(&RenameInput {
             file_path: file.display().to_string(),

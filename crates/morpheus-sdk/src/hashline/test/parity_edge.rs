@@ -1,4 +1,4 @@
-//! Edge-case parity dump — identical scenarios to upstream's
+//! Edge-case parity dump - identical scenarios to upstream's
 //! `crates/pi-edit/tests/parity_driver.rs::parity_dump_edge`. Run both sides
 //! with `--nocapture --test-threads=1` and diff.
 use super::super::apply::apply_edits;

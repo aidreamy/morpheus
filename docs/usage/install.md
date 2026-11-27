@@ -4,7 +4,7 @@ Morpheus is shipped as a prebuilt binary, so no Rust toolchain is required.
 
 ## Requirements
 
-- A terminal. Linux and Windows are tested; macOS has not been tested yet — if
+- A terminal. Linux and Windows are tested; macOS has not been tested yet - if
   something fails, open an issue with as much detail as possible.
 - `curl` for the Unix installer (PowerShell uses `Invoke-RestMethod`).
 - 64-bit x64, or arm64 on Linux and macOS. Windows builds are x64 only.
@@ -40,7 +40,7 @@ to `PATH` when that directory is not on it yet. The defaults are
 | --- | --- | --- |
 | `slim` (default) | The agent and its tools. No local RAG and no Home screen; `morpheus` starts straight in a session. | Linux x64/arm64, macOS x64/arm64, Windows x64 |
 | `slim-embed` | `slim` plus local retrieval (RAG) through fastembed. | Linux x64, Windows x64 |
-| `slim-speak` | The complete voice build: local speech through Kokoro, with the `speak-phonemize` frontend so languages without a bundled lexicon — Brazilian Portuguese included — work. | Linux x64, macOS x64/arm64 |
+| `slim-speak` | The complete voice build: local speech through Kokoro, with the `speak-phonemize` frontend so languages without a bundled lexicon - Brazilian Portuguese included - work. | Linux x64, macOS x64/arm64 |
 
 Select a variant with `MORPHEUS_VARIANT` before running the installer:
 

@@ -1,7 +1,7 @@
 //! Curated language-server catalog and discovery helpers.
 //!
 //! Matching is by exact file extension (lowercase, dot included) or by
-//! exact extensionless file name (`Dockerfile`), plus root-marker walk-up — the loose heuristics that made crush start the wrong
+//! exact extensionless file name (`Dockerfile`), plus root-marker walk-up - the loose heuristics that made crush start the wrong
 //! server for a language (#1751) are exactly what this avoids.
 //!
 //! Servers are expected on `PATH`; there is no auto-install. Missing binaries
@@ -333,7 +333,7 @@ pub const CATALOG: &[ServerSpec] = &[
 /// Mirrors `which(1)` semantics closely enough for discovery: entries are
 /// tried in order, first executable regular file wins.
 ///
-/// Precondition: `command` is a bare file name — every catalog entry satisfies
+/// Precondition: `command` is a bare file name - every catalog entry satisfies
 /// this, and commands containing path separators would be joined onto each
 /// PATH entry and never found.
 pub fn lookup_on_path(command: &str) -> Option<PathBuf> {

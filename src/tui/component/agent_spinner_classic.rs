@@ -1,7 +1,7 @@
-//! Animated agent spinner — the morpheus classic braille spinner.
+//! Animated agent spinner - the morpheus classic braille spinner.
 //!
 //! Wraps the shared [`SPINNER_FRAMES`] braille table (`component/spinner.rs`)
-//! — the `⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏` wheel every in-app busy indicator speaks — as a
+//! - the `⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏` wheel every in-app busy indicator speaks - as a
 //! `/spinner` style: a single spinning glyph in the theme's primary colour,
 //! followed by the label and the per-activity status glyph animation.
 //!
@@ -20,7 +20,7 @@ use super::agent_spinner::activity_frames;
 
 // ── Constants ──────────────────────────────────────────────────────────────
 
-/// Frames per braille step — `SpinnerState::advance` flips the frame every
+/// Frames per braille step - `SpinnerState::advance` flips the frame every
 /// 2 ticks.
 const TICKS_PER_FRAME: u32 = 2;
 

@@ -1,15 +1,15 @@
-//! Demonstrate `computer_snapshot` — read the application's accessibility
+//! Demonstrate `computer_snapshot` - read the application's accessibility
 //! tree as an outline (or JSON): role, name, value and state flags per
 //! element, optionally scoped to a subtree by selector.
 //!
-//! This is the tool the model calls FIRST and re-reads after every action —
+//! This is the tool the model calls FIRST and re-reads after every action -
 //! it is how the desktop becomes legible: "what windows does this app
 //! have?", "what does this dialog contain?", "is the button disabled?"
 //! State flags ride on the outline (`[disabled]`, `[focused]`,
 //! `[checked]`), so the answer usually needs no second call.
 //!
 //! The snapshot tool talks to the live desktop for dispatch; what runs
-//! offline here is input construction — including the exact JSON wire
+//! offline here is input construction - including the exact JSON wire
 //! shapes the MCP tool receives, since `ComputerSnapshot` deserializes
 //! from the same payloads.
 //!
@@ -24,7 +24,7 @@ use morpheus_tools::computer::types::{ComputerSnapshot, SnapshotFormat};
 fn main() {
     // ── The whole-app snapshot ──
     //
-    // Wire: {"name": "Reports"} or {"pid": 4242} — exactly one scope.
+    // Wire: {"name": "Reports"} or {"pid": 4242} - exactly one scope.
     let whole_app = ComputerSnapshot {
         name: Some("Reports".into()),
         ..Default::default()
@@ -69,7 +69,7 @@ fn main() {
             r#"{"name": "Reports", "max_depth": 4, "format": "json"}"#,
         ),
     ] {
-        // Deserialize-from-wire works — the shape the schema advertises:
+        // Deserialize-from-wire works - the shape the schema advertises:
         let input: ComputerSnapshot = serde_json::from_str(wire).expect("valid wire shape");
         println!("{label}: {wire} → {:?}", input);
     }
@@ -86,7 +86,7 @@ fn main() {
     //
     //     button 'Export' [enabled=false]
     //
-    // answers "can I press it?" (no — wait: computer_wait Enabled) and
+    // answers "can I press it?" (no - wait: computer_wait Enabled) and
     // hands you the selector (`button[name='Export']`) that every other
     // computer tool accepts.
 }

@@ -9,7 +9,7 @@ pub(crate) use loop_state::result_is_useless;
 #[cfg(test)]
 pub(crate) use guards::ResumeCause;
 // Public re-exports: the TUI's idle wake sends the SAME pending-todos message
-// the harness's natural-stop gate resumes a report-owing turn with — one
+// the harness's natural-stop gate resumes a report-owing turn with - one
 // source, two surfaces (see `guards::todo_rerun_message`).
 #[allow(unused_imports)]
 use super::context::error_catalog_window;
@@ -95,7 +95,7 @@ pub(crate) use limits::{
 };
 // Test-only: the veto-budget pin counts against this bound (the lib itself
 // reads it from `limits::` directly), so the re-export must not exist in a
-// production build — there it is an unused import.
+// production build - there it is an unused import.
 #[cfg(test)]
 pub(crate) use limits::CHECKUP_VETO_BUDGET;
 use limits::{LOOP_DETECTION_WINDOW_SIZE, MAX_TOOL_RETRIES, SUBAGENT_INTERNAL_NOTE};
@@ -152,7 +152,7 @@ pub struct Harness {
     /// Reasoning deltas accumulated for the CURRENT stream attempt. Cleared
     /// at every stream start and by a mid-stream reset, and recorded with the
     /// attempt's context item (`add_assistant_with_reasoning`) so a restored
-    /// session rehydrates the thinking blocks. DISPLAY-ONLY payload — see
+    /// session rehydrates the thinking blocks. DISPLAY-ONLY payload - see
     /// `ContextItem::Assistant::reasoning`.
     attempt_reasoning: String,
     tool_issuer: VecDeque<ToolCallData>,
@@ -162,26 +162,26 @@ pub struct Harness {
     /// stamp every stream/report event. Cleared after the dispatch returns.
     /// Parallel sub-agent calls (same CLI or different) each hold a UNIQUE
     /// ref, so the TUI can pair a window's input echo with ITS OWN stream
-    /// and report — the last-Running-window guess could cross-pair them.
+    /// and report - the last-Running-window guess could cross-pair them.
     active_call_ref: Option<String>,
     /// The CURRENT loop's queued-input handle (`None` outside a running
     /// loop). Set at every `run_agent_loop*` entry so a blocking dispatch
     /// arm (the `agents_call` wait) can wake when the user queues a message
-    /// — the queue belongs to the LOOP, not the harness, and a harness
+    /// - the queue belongs to the LOOP, not the harness, and a harness
     /// reused across loops must never read a previous loop's queue.
     loop_queued_input: Option<queued_input::QueuedInput>,
     /// True when this harness is an INTERNAL SUB-AGENT (a nested harness
     /// built by [`Self::run_internal_subagent`]). Gates the two behaviors a
     /// nested loop must not have (Claude Code non-interactive nesting rules):
     /// background sub-agent spawns are rejected, and completion
-    /// notifications are never drained — a sub-agent must not swallow a
+    /// notifications are never drained - a sub-agent must not swallow a
     /// notification meant for the top-level agent's context.
     nested: bool,
     /// Which loop this harness drives for the /agents coworker bridge
     /// ([`super::agent_coworkers::MAIN`] for the normal chat loop,
     /// [`super::agent_coworkers::MANAGER`] for the split's morpheus-coworker manager loop). Tags
     /// every `agents_call` request so a background report is drained ONLY
-    /// by the loop that asked for it — the two loops never run
+    /// by the loop that asked for it - the two loops never run
     /// concurrently (the `/agents` gate refuses to open while the main
     /// loop works), but a delivery can outlive its requester's turn.
     coworkers_requester: &'static str,
@@ -214,7 +214,7 @@ pub struct Harness {
     /// [`capabilities::Harness::refresh_tool_omissions`]).
     disabled_tools: HashSet<String>,
 
-    /// Tools explicitly disabled by the user via the Internal Tools screen —
+    /// Tools explicitly disabled by the user via the Internal Tools screen -
     /// the source of truth [`Self::disabled_tools`] is derived from, kept
     /// separately so a capability recompute (fallback switch, learned
     /// verdict) never discards the user's choices.
@@ -235,20 +235,20 @@ pub struct Harness {
     /// failure came from the connector itself. `stream_chat_with_messages`
     /// reports errors as strings (the loop compares marker constants, and the
     /// TUI renders plain text), which would erase the classification the
-    /// resilience policy needs — `is_retryable_error` and
+    /// resilience policy needs - `is_retryable_error` and
     /// `is_image_input_unsupported` only exist on the typed enum. Cleared at
     /// every stream start and taken by the loop's error handling.
     last_connector_error: Option<aiface::connector::ConnectorError>,
 
     /// `finish_reason` of the most recently completed stream (e.g. `"stop"`,
     /// `"length"`). `"length"` means the provider cut the response at
-    /// `max_tokens` — the loop must continue instead of treating the
+    /// `max_tokens` - the loop must continue instead of treating the
     /// truncated turn as a finished one.
     last_finish_reason: Option<String>,
     /// Whether the most recently completed stream ended with a half-parsed
     /// construct still in flight (a validated tool call awaiting delivery or
     /// an unclosed JSON object). A stream in this state was CUT mid-tool-call
-    /// regardless of what `finish_reason` claims — the natural-stop gate
+    /// regardless of what `finish_reason` claims - the natural-stop gate
     /// must treat the turn as truncated, never as finished. Set at stream
     /// end from the extractor, reset at every stream start.
     last_stream_unfinished: bool,
@@ -268,7 +268,7 @@ pub struct Harness {
     /// Test-only override for the natural-stop nudge budget `run_agent_loop_inner`
     /// starts each ENTRY with. The budget is reset on every entry, so a test
     /// that wants to reach the "budget exhausted" branch cannot simply set
-    /// `stop_nudges_left` — it seeds this instead.
+    /// `stop_nudges_left` - it seeds this instead.
     #[cfg(test)]
     stop_nudge_budget_override: Option<u32>,
 
@@ -288,7 +288,7 @@ pub struct Harness {
     tool_loop_recovery_left: bool,
 
     /// Remaining checkup vetoes for THIS loop. The decision model's
-    /// natural-stop veto used to answer only to `MAX_ITERATIONS` — a
+    /// natural-stop veto used to answer only to `MAX_ITERATIONS` - a
     /// persistent model↔checkup disagreement re-sent the growing context up
     /// to 100 times. See [`super::limits::CHECKUP_VETO_BUDGET`]; exhausted,
     /// the model's stop stands with the verdict still recorded.
@@ -314,7 +314,7 @@ pub struct Harness {
     /// The harness checks this BEFORE calling `check_tool_permission`:
     /// if all paths from a tool call are already approved, the dialog
     /// is skipped entirely. Paths approved via AllowOnce are NOT stored
-    /// here — they are only added transiently to the morpheus-tools allowlist
+    /// here - they are only added transiently to the morpheus-tools allowlist
     /// and removed after dispatch.
     approved_paths: HashSet<std::path::PathBuf>,
 
@@ -323,7 +323,7 @@ pub struct Harness {
     fallbacks: Vec<(String, String)>,
     /// The decision-model audit seam (`harness::checkup`). `None` when the
     /// binary has no ONNX runtime or the user never enabled the termination
-    /// audit — the loop then behaves exactly as it always did.
+    /// audit - the loop then behaves exactly as it always did.
     checkup: Option<Arc<dyn super::checkup::Checkup>>,
     /// The consumer floor for the termination audit: a `NotTerminated`
     /// verdict only continues the loop when its confidence reaches this
@@ -369,14 +369,14 @@ pub struct Harness {
     snapshot_interval: std::time::Duration,
 
     /// How many consecutive generic (non-context-window) summarizer failures
-    /// in the current compaction attempt — bounded by [`MAX_COMPACTION_RETRIES`].
+    /// in the current compaction attempt - bounded by [`MAX_COMPACTION_RETRIES`].
     compaction_generic_retries: usize,
 
     #[cfg(test)]
     pub(crate) mock_chat_response: Option<Result<String, String>>,
     /// Test-only queue of mock CHAT (summarizer) responses, consumed one per
     /// call and falling back to [`Self::mock_chat_response`] when empty. Lets
-    /// a test drive a SEQUENCE of summarizer outcomes — e.g. a single-shot
+    /// a test drive a SEQUENCE of summarizer outcomes - e.g. a single-shot
     /// compaction overflow that reports its window, followed by the split
     /// chunks' successes (the reactive fork).
     #[cfg(test)]
@@ -394,7 +394,7 @@ pub struct Harness {
     #[cfg(test)]
     pub(crate) mock_reasoning_queue: VecDeque<Vec<String>>,
     /// Test-only per-token pause (ms) applied by the mock stream so tests
-    /// can interleave with it — e.g. set the stop signal mid-stream and
+    /// can interleave with it - e.g. set the stop signal mid-stream and
     /// assert the loop stops instead of completing the turn.
     #[cfg(test)]
     pub(crate) mock_stream_delay_ms: u64,
@@ -434,7 +434,7 @@ impl Harness {
     /// Builds the system header for the LLM.
     ///
     /// Concatenates mode-specific instructions, system prompts, harness tools, system tools,
-    /// and MCP server tools — all rendered inline with full name, description, and input schema.
+    /// and MCP server tools - all rendered inline with full name, description, and input schema.
     pub fn format_header_context(&mut self) -> &str {
         let mut out = String::new();
 
@@ -443,7 +443,7 @@ impl Harness {
             None => match self.mode {
                 // Build/Command keep the unmodified Build prompt; Yolo is
                 // the same text interpolated with the cwd-containment
-                // block — tool freedom is intended, directory drift is
+                // block - tool freedom is intended, directory drift is
                 // not (worktree-pinned loops tended to wander back to
                 // the main repository without it).
                 Mode::Build | Mode::Command => INSTRUCTIONS_BUILD,
@@ -454,18 +454,18 @@ impl Harness {
         };
         let _ = write!(out, "{instructions}");
         // The tool-call delivery mode decides BOTH the prompt instruction
-        // and the header schemas — the two paths are mutually exclusive (see
+        // and the header schemas - the two paths are mutually exclusive (see
         // `ToolCallMode`):
         // - `Native` (default, like crush): the model uses the platform's
         //   structured function calling. The prompt forbids JSON-in-text, and
-        //   the schemas live ONLY in the request's native `tools` array —
+        //   the schemas live ONLY in the request's native `tools` array -
         //   re-sending them in the system prompt would duplicate every
         //   schema on each request (~4.3k tokens of the measured header).
         // - `Inline`: the model writes `{"name", "arguments"}` JSON into its
         //   text response (the extractor parses it). The full `Schema: {...}`
         //   dump stays in the header, and the request carries no native
         //   `tools` (see the caller gates) so the API can never produce
-        //   structured tool calls — the two paths never cross.
+        //   structured tool calls - the two paths never cross.
         let include_inline_schemas = self.connector.tool_call_mode() == ToolCallMode::Inline;
         let tool_format = if include_inline_schemas {
             TOOL_FORMAT
@@ -613,7 +613,7 @@ impl Harness {
         // position 0, so a coworker binding/unbinding re-rendered this block
         // mid-session and invalidated the provider's exact-prefix cache
         // for the WHOLE conversation on every such change. The tail costs
-        // only itself — the same contract the corrections and TODO blocks
+        // only itself - the same contract the corrections and TODO blocks
         // already follow.
 
         self.context_manager.set_last_tool_set(current);
@@ -623,7 +623,7 @@ impl Harness {
     }
     /// Send a chat completion and return the full response as a single string.
     ///
-    /// Use this when streaming is not enabled — the model's reply is collected
+    /// Use this when streaming is not enabled - the model's reply is collected
     /// entirely and returned as `Result<String, String>`.
     ///
     /// # Errors
@@ -646,7 +646,7 @@ impl Harness {
             .map_err(|e| e.to_string())?;
 
         // Inline mode: parse tool calls out of the model's text. Native mode
-        // (default): the text is the answer — never parsed, matching the
+        // (default): the text is the answer - never parsed, matching the
         // crush contract (tool calls arrive only as structured parts, which
         // the non-streaming `chat` path does not surface).
         if self.connector.tool_call_mode() == ToolCallMode::Inline {

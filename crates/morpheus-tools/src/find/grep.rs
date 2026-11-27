@@ -28,10 +28,10 @@ use super::types::{ContextEntry, Grep, GrepFileEntry, GrepMatchEntry, GrepOutput
 /// Maximum number of distinct files surfaced in a single call. The agent
 /// paginates further pages via `skip`.
 const DEFAULT_FILE_LIMIT: usize = 20;
-/// Per-file match cap for multi-file searches — keeps a single hot file from
+/// Per-file match cap for multi-file searches - keeps a single hot file from
 /// crowding out diverse hits.
 const MULTI_FILE_PER_FILE_MATCHES: u32 = 20;
-/// Per-file match cap for single-file searches — there is no diversity
+/// Per-file match cap for single-file searches - there is no diversity
 /// concern when the scope is one file.
 const SINGLE_FILE_MATCHES: u32 = 200;
 /// Hard safety ceiling on how many matches are fetched from the engine before
@@ -66,8 +66,8 @@ fn match_absolute_path(root: &str, match_path: &str) -> std::path::PathBuf {
 /// a follow-up `fs_edit` can validate (or 3-way-recover) against it, and record
 /// which lines of the file were surfaced to the model at that tag.
 ///
-/// The recorded key is the canonicalized absolute path — the same form `read`
-/// and the hashline patcher use — so recovery finds the snapshot regardless of
+/// The recorded key is the canonicalized absolute path - the same form `read`
+/// and the hashline patcher use - so recovery finds the snapshot regardless of
 /// which tool recorded it. Returns `None` for unreadable, oversized, or binary
 /// files (same contract as `rollback::record`); those get plain output. The
 /// size guard mirrors `rollback::MAX_SNAPSHOT_BYTES` so files that would not be
@@ -127,7 +127,7 @@ fn group_by_file(
 
 /// Build per-file hashline anchors for the shown matches.
 ///
-/// Only the first [`DEFAULT_FILE_LIMIT`] files are anchored — minting a tag
+/// Only the first [`DEFAULT_FILE_LIMIT`] files are anchored - minting a tag
 /// requires reading the whole file, so the work is bounded per grep call.
 /// Files beyond the window surface plain, headerless output. The seen-lines
 /// recorded for each anchored file cover every line the model actually saw
@@ -198,7 +198,7 @@ fn apply_line_range(matches: Vec<GrepMatchEntry>, range: (u32, u32)) -> (Vec<Gre
 
 /// Search file content for lines matching a regex pattern.
 ///
-/// Single-target convenience wrapper over [`grep_targets`] — see it for the
+/// Single-target convenience wrapper over [`grep_targets`] - see it for the
 /// full behavior and output bounds.
 ///
 /// # Errors
@@ -241,7 +241,7 @@ pub fn grep_targets(grep: &Grep, pattern: &str, targets: &[String]) -> Result<Gr
 ///   fetch budget is widened so in-range matches are not starved by
 ///   out-of-range ones.
 /// - Zero selected matches are marked `useless` with a no-match note: such a
-///   result carries no new information — adjust the pattern or scope instead
+///   result carries no new information - adjust the pattern or scope instead
 ///   of blindly retrying.
 /// - A timeout is not an error: the partial matches found so far are returned
 ///   with `timed_out: true` and an explanatory `note`. An empty `timed_out`
@@ -439,7 +439,7 @@ pub fn grep_targets_with(
 
     // Apply the line-range filter before windowing so counts reflect it.
     // `raw.len()` is the deduplicated union count across targets (before the
-    // per-file caps and window trim) — for multi-target searches the engine
+    // per-file caps and window trim) - for multi-target searches the engine
     // per-target totals would double-count overlapping matches.
     let total_after_filter = match range {
         Some(r) => {
@@ -450,7 +450,7 @@ pub fn grep_targets_with(
         None => u32::try_from(raw.len()).unwrap_or(u32::MAX),
     };
 
-    // Group by file in encounter order (order-independent — the engine does
+    // Group by file in encounter order (order-independent - the engine does
     // not have to emit contiguous per-file runs).
     let (order, mut groups) = group_by_file(&raw);
 
@@ -469,7 +469,7 @@ pub fn grep_targets_with(
     let total_files = order.len();
     // Pagination only applies to the windowed path. A caller that set
     // `max_count` gets a match-bounded fetch (the engine stops early), so
-    // `skip` cannot advance past files the fetch never covered — and that
+    // `skip` cannot advance past files the fetch never covered - and that
     // caller is not paginating anyway.
     let can_paginate = is_multi_scope && file_window.is_some();
     let skip_files = if can_paginate {
@@ -517,7 +517,7 @@ pub fn grep_targets_with(
 
     let timeout_note = timed_out.then(|| {
         if shown.is_empty() {
-            "Search timed out before finding matches — the scan is incomplete, NOT proof of absence; narrow the scope instead of retrying blindly".to_string()
+            "Search timed out before finding matches - the scan is incomplete, NOT proof of absence; narrow the scope instead of retrying blindly".to_string()
         } else {
             "Search timed out; results are partial and incomplete".to_string()
         }
@@ -525,7 +525,7 @@ pub fn grep_targets_with(
     let (note, useless) = if shown.is_empty() {
         if timed_out {
             // A timed-out empty result is an incomplete scan, not a verified
-            // absence — never mark it useless or claim "No matches found".
+            // absence - never mark it useless or claim "No matches found".
             (timeout_note, None)
         } else {
             let skip_past_end = can_paginate

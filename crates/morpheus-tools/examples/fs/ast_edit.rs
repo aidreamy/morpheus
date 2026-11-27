@@ -19,7 +19,7 @@ async fn main() {
 
     // Two files under `src`, one in a nested directory (all sharing the same
     // `double` helper and the same logging idiom), and one file that matches
-    // none of the patterns — it will come back with a "no AST matches found"
+    // none of the patterns - it will come back with a "no AST matches found"
     // warning rather than aborting the batch.
     let file_a = "\
 fn double(x: i32) -> i32 {
@@ -44,7 +44,7 @@ fn main() {
 
     // A single edit call rewrites every matched file under `src`. The `ast`
     // argument carries ops (applied in order per file) and the paths to search
-    // (files, directories, or globs — here a directory, walked recursively).
+    // (files, directories, or globs - here a directory, walked recursively).
     //
     // op 1: structural rename with metavariables. `$A` captures exactly one
     //       node (the parameter), `$$$BODY` captures zero or more nodes (the

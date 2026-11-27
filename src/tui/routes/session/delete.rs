@@ -8,7 +8,7 @@
 //! The fix lives here: [`App::delete_session`] is the single deletion
 //! entry point shared by every Confirm-dialog resolution path (keyboard,
 //! mouse, and the dialog module). When the deleted session owns the
-//! running loop, it raises the shared stop signal — the SAME mechanism the
+//! running loop, it raises the shared stop signal - the SAME mechanism the
 //! ESC stop uses (`stop_signal.store(true)`), which the harness checks at
 //! every checkpoint of `run_agent_loop`. The harness then winds the loop
 //! down, emits its terminal `Stopped` event (resetting status/spinner and
@@ -33,10 +33,10 @@ use crate::ui::toast::{ToastOptions, ToastVariant};
 /// The stop fires only when the deleted session owns the live loop: it is
 /// the recorded loop owner (`active_loop_session_id`) and the app is
 /// actually inside a run (`loop_running`). Only `Working` counts as
-/// running — `Retry` is terminal (the `Error` handler already ran
+/// running - `Retry` is terminal (the `Error` handler already ran
 /// `handle_loop_end` and the harness thread exited), so raising the stop
-/// signal for it would stop a dead loop. Any other combination — no running
-/// loop, or a loop owned by a different session — deletes without touching
+/// signal for it would stop a dead loop. Any other combination - no running
+/// loop, or a loop owned by a different session - deletes without touching
 /// the shared stop signal.
 pub fn deletion_stops_running_loop(
     active_loop_session_id: Option<&str>,
@@ -49,7 +49,7 @@ pub fn deletion_stops_running_loop(
 /// Save target for a terminated loop event (`Stopped`/`Done`).
 ///
 /// Returns the owning session id when it still exists in `session_cache`,
-/// otherwise `None` (owner deleted while the harness wound down — the
+/// otherwise `None` (owner deleted while the harness wound down - the
 /// caller must skip the save AND the toast, never fall back to the
 /// currently viewed session).
 pub fn terminated_loop_save_target(
@@ -76,7 +76,7 @@ impl App {
     /// raises the flag, drops the loop-owned senders, and clears the owner
     /// record plus the in-flight stream marker so late harness events can
     /// detect the owner is gone instead of touching the viewed session.
-    /// Returns `false` — without touching anything — when the session is
+    /// Returns `false` - without touching anything - when the session is
     /// still linked as a `/agents` pane of a live parent session: the pane's
     /// context belongs to the parent, so deleting it out from under the
     /// parent would orphan the binding (the parent would resume a session
@@ -134,7 +134,7 @@ impl App {
                 .as_ref()
                 .is_some_and(|hint| hint.session_id == session_id)
             {
-                // The hint points into the deleted session's queues — they
+                // The hint points into the deleted session's queues - they
                 // are removed below, so the hint would be invalid.
                 self.edit_requeue_hint = None;
             }
@@ -150,8 +150,8 @@ impl App {
 
     /// Delete every session of the current working directory.
     ///
-    /// The store is cwd-scoped by construction — its sessions dir is
-    /// `{data_dir}/sessions/{cwd_hash}` — so "all sessions" here means all
+    /// The store is cwd-scoped by construction - its sessions dir is
+    /// `{data_dir}/sessions/{cwd_hash}` - so "all sessions" here means all
     /// sessions of the directory the CLI is running in, never other
     /// directories'. Each session goes through the same [`App::delete_session`]
     /// path as a single deletion, so loop-owner teardown, state removal and
@@ -162,7 +162,7 @@ impl App {
     /// The pane gate cannot refuse anything here: "all" includes the
     /// parents, and deleting a parent frees its panes. A pane whose parent
     /// is deleted LATER in the iteration is simply retried after the first
-    /// pass — by then every linkage is gone.
+    /// pass - by then every linkage is gone.
     pub fn delete_all_sessions(&mut self) {
         let ids: Vec<String> = self
             .state
@@ -404,7 +404,7 @@ mod tests {
     }
 
     /// The core rule: a session linked as a `/agents` pane of a live parent
-    /// refuses deletion — the parent's binding would resume a session that
+    /// refuses deletion - the parent's binding would resume a session that
     /// no longer exists. Nothing is removed (state or store).
     #[tokio::test]
     async fn deleting_a_linked_pane_session_is_refused() {

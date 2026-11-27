@@ -98,7 +98,7 @@ impl SessionView {
         // Same O(log n + visible) walk as the render: start at the first
         // message that can intersect the viewport and stop past its bottom.
         // Off-screen messages contribute no regions, so skipping them is
-        // identical to the old full walk — just without the per-frame O(n)
+        // identical to the old full walk - just without the per-frame O(n)
         // scan of the whole timeline. Computed BEFORE the field borrows
         // below (`find_first_visible` needs `&self`).
         let first_vis = self.find_first_visible(scroll);
@@ -117,7 +117,7 @@ impl SessionView {
 
         // Tool render state for the region scratch renders: expansion maps
         // cloned from the live state (so collapsed/expanded boxes sample the
-        // same rows the screen shows) but a FRESH spinner map — `dispatch_tool`
+        // same rows the screen shows) but a FRESH spinner map - `dispatch_tool`
         // creates/advances spinners as a side effect, and the real ones must
         // not be touched by a copy-region build (the build also runs for
         // content rows that are currently off-screen).
@@ -136,7 +136,7 @@ impl SessionView {
             // mouse-up copy path (`build_text_regions_for_content_range`)
             // runs against the PAINTED layout. The selection's content range
             // is computed entirely from that painted layout, so the appended
-            // messages' rows lie beyond it and can hold no selected rows —
+            // messages' rows lie beyond it and can hold no selected rows -
             // stop the walk instead of indexing past `msg_height_cache`
             // (index-out-of-bounds panic). App callers sync the caches first
             // via `sync_layout_for_selection`; this guard stays as
@@ -346,9 +346,9 @@ impl SessionView {
                                     let screen_end = p_bottom.min(vp_bottom) as u16;
 
                                     // Visual rows this part has scrolled off ABOVE the
-                                    // viewport. Computed ONCE from the RAW part top — NOT
+                                    // viewport. Computed ONCE from the RAW part top - NOT
                                     // from `screen_line_y`, which starts pre-clamped at
-                                    // `p_top.max(vp_top)` and would zero the skip — then
+                                    // `p_top.max(vp_top)` and would zero the skip - then
                                     // consumed across empty lines and wrapped rows alike,
                                     // so screen row `vp_top` pairs with the part's visual
                                     // row `vp_top - p_top`. Pairing from row 0 re-mapped
@@ -359,7 +359,7 @@ impl SessionView {
                                     for logical_line in content.lines() {
                                         if logical_line.is_empty() {
                                             // `draw_text_wrap` advances one row per wrapped
-                                            // line, blanks included — the walk must match or
+                                            // line, blanks included - the walk must match or
                                             // every row after a blank line copies shifted.
                                             if skip > 0 {
                                                 skip -= 1;
@@ -432,7 +432,7 @@ impl SessionView {
                                 // split diff view pairs two source lines per row, and
                                 // single-line generic labels were followed by
                                 // whole-output regions that collided with the NEXT
-                                // part's rows — copying text the user never selected.
+                                // part's rows - copying text the user never selected.
                                 // Rendering the part through the same `dispatch_tool`
                                 // the screen uses and sampling the painted cells keeps
                                 // copy, highlight and screen in sync for every
@@ -450,8 +450,8 @@ impl SessionView {
                                     temp.resize(scan_area);
                                 }
                                 temp.reset();
-                                // Block boxes start one row below the part top — the
-                                // external top margin render_parts adds — so mirror it
+                                // Block boxes start one row below the part top - the
+                                // external top margin render_parts adds - so mirror it
                                 // here and the sampled rows line up with the screen.
                                 let mut y_cur = u16::from(is_block);
                                 let mut line_h = 0u16;
@@ -469,7 +469,7 @@ impl SessionView {
                                     pi as u16,
                                 );
                                 y_cur = y_cur.saturating_add(line_h);
-                                // Bottom margin, then the passive LSP findings — the
+                                // Bottom margin, then the passive LSP findings - the
                                 // same geometry render_parts paints below the box.
                                 if is_block && y_cur.saturating_add(1) < scan_area.height {
                                     y_cur += 1;
@@ -539,7 +539,7 @@ impl SessionView {
                                     // The body is drawn through the SAME
                                     // markdown pipeline as the screen
                                     // (render_reasoning): word-wrapped, so
-                                    // VISUAL rows — not source lines — are
+                                    // VISUAL rows - not source lines - are
                                     // what a selection must map to. Render
                                     // into the scratch buffer and scan one
                                     // region per visual row, exactly like
@@ -606,7 +606,7 @@ impl SessionView {
                                     // The box paints at the part top with no external
                                     // margin (render_parts advances straight past it),
                                     // and its width is max_w + 3 inside the message's
-                                    // max_w + 6 content area — mirror that exactly.
+                                    // max_w + 6 content area - mirror that exactly.
                                     let scan_area =
                                         Rect::new(0, 0, max_w.saturating_add(6), part_h as u16);
                                     let temp = scratch.get_or_insert_with(|| {

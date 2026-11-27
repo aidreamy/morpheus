@@ -1,6 +1,6 @@
 [package]
 categories = ["development-tools"]
-description = "Sub-agent integration for Morpheus — ACP client harnesses, session state and typed event streams"
+description = "Sub-agent integration for Morpheus - ACP client harnesses, session state and typed event streams"
 keywords = ["ai", "coding", "terminal", "agent", "acp"]
 license = "Apache-2.0"
 name = "morpheus-agents"

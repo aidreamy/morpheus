@@ -25,7 +25,7 @@ pub const MAX_ERRORS: usize = 64;
 // Validated scalar components
 
 /// Validated app version: `major.minor[.patch]`, digits only. An app version
-/// is not an IP address — validated by shape, never by the denylist (audit
+/// is not an IP address - validated by shape, never by the denylist (audit
 /// F11).
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct AppVersion(String);
@@ -85,7 +85,7 @@ fn is_uuid_v4_shape(s: &str) -> bool {
             .zip(&parts)
             .all(|(n, p)| p.len() == *n && p.chars().all(|c| c.is_ascii_hexdigit()))
         && parts[2].starts_with('4')
-        // RFC 9562 §4.1: variant must be 10xx — first char of group 4 in 8/9/a/b.
+        // RFC 9562 §4.1: variant must be 10xx - first char of group 4 in 8/9/a/b.
         && parts[3]
             .starts_with(['8', '9', 'a', 'b', 'A', 'B'])
 }
@@ -133,7 +133,7 @@ impl OccurredAt {
 }
 
 /// Random UUIDv4 from OS entropy. Returns `None` when the OS entropy source
-/// fails — the caller DROPS the telemetry event. There is deliberately no
+/// fails - the caller DROPS the telemetry event. There is deliberately no
 /// time- or address-derived fallback.
 pub fn uuid_v4() -> Option<String> {
     let mut bytes = [0u8; 16];
@@ -178,7 +178,7 @@ pub const ARCH_NAME: &str = if cfg!(target_arch = "x86_64") {
     "other"
 };
 
-/// Payload for `install` — one per installation.
+/// Payload for `install` - one per installation.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct InstallPayload {
     os: String,
@@ -229,13 +229,13 @@ impl InstallPayload {
     pub fn validate(&self) -> bool {
         InstallPayload::new(&self.first_run_day).is_some()
             // os/arch come from cfg! at construction, but a tampered queue
-            // line could carry anything — re-check them.
+            // line could carry anything - re-check them.
             && self.os == OS_NAME
             && self.arch == ARCH_NAME
     }
 }
 
-/// A single aggregated error representation — NEVER a raw message.
+/// A single aggregated error representation - NEVER a raw message.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ErrorRepr {
     category: ErrorCategory,
@@ -330,7 +330,7 @@ impl ErrorPayload {
     }
 }
 
-/// Payload for `session_summary` — the core aggregated event (1 per session).
+/// Payload for `session_summary` - the core aggregated event (1 per session).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct SessionSummaryPayload {
     /// Wall-clock usage seconds, rounded to multiples of 30.
@@ -345,7 +345,7 @@ pub struct SessionSummaryPayload {
     features: BTreeMap<String, u32>,
     /// tool (allowlisted or "other") → call count.
     tools: BTreeMap<String, u32>,
-    /// MCP server count only — average servers per user (identity deferred,
+    /// MCP server count only - average servers per user (identity deferred,
     /// plan §4.6).
     mcp_servers: u32,
     compactions: u32,
@@ -504,7 +504,7 @@ impl CrashPayload {
     }
 }
 
-/// Payload for `update` — version adoption.
+/// Payload for `update` - version adoption.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UpdatePayload {
     from: AppVersion,
@@ -531,14 +531,14 @@ impl UpdatePayload {
 /// is truncated before it can enter the payload.
 pub const MAX_UNINSTALL_REASON: usize = 256;
 
-/// Payload for `uninstall` — emitted once, from `morpheus uninstall`, right before
+/// Payload for `uninstall` - emitted once, from `morpheus uninstall`, right before
 /// the local installation is removed.
 ///
 /// The feedback message is the ONE free-form field in the whole schema (a
 /// deliberate product decision: it is exactly what the user typed when asked
 /// "why are you uninstalling?"). It is still guarded at the exit boundary:
 /// the constructor drops any value matching the [`crate::telemetry::sanitize`]
-/// denylist (paths, keys, URLs — fail closed, the field becomes `null` while
+/// denylist (paths, keys, URLs - fail closed, the field becomes `null` while
 /// `reason_provided` records that the user DID answer).
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UninstallPayload {
@@ -551,7 +551,7 @@ pub struct UninstallPayload {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     reason: Option<String>,
     /// True when the user typed SOMETHING (even if `reason` was dropped by
-    /// the denylist) — distinguishes "skipped" from "answer withheld".
+    /// the denylist) - distinguishes "skipped" from "answer withheld".
     reason_provided: bool,
     os: String,
     arch: String,
@@ -569,7 +569,7 @@ impl UninstallPayload {
     /// Build from validated components. `reason` is the RAW user answer:
     /// trimmed, control characters stripped, capped at
     /// [`MAX_UNINSTALL_REASON`], and finally checked against the
-    /// [`crate::telemetry::sanitize`] denylist — a forbidden value is dropped
+    /// [`crate::telemetry::sanitize`] denylist - a forbidden value is dropped
     /// (becomes `None`) while `reason_provided` stays true.
     pub fn new(
         install_id: &UuidId,
@@ -645,7 +645,7 @@ impl UninstallPayload {
     }
 }
 
-/// Closed payload set — the variant MUST match the envelope's event type.
+/// Closed payload set - the variant MUST match the envelope's event type.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "kind", rename_all = "snake_case")]
 pub enum EventPayload {
@@ -687,7 +687,7 @@ impl EventPayload {
 
 // Envelope
 
-/// Envelope shared by every event — maps 1:1 to the `telemetry_events` row.
+/// Envelope shared by every event - maps 1:1 to the `telemetry_events` row.
 /// All fields are private: build through [`EventEnvelope::new`] only.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EventEnvelope {
@@ -705,7 +705,7 @@ pub struct EventEnvelope {
     /// Client-generated dedupe/idempotency id.
     client_event_id: String,
     occurred_at: String,
-    /// Payload — the variant always matches `event_type`.
+    /// Payload - the variant always matches `event_type`.
     payload: EventPayload,
 }
 
@@ -738,7 +738,7 @@ impl EventEnvelope {
     }
 
     /// Re-validate a (possibly deserialized) envelope. The sink runs this on
-    /// every persisted event before sending — queue content is untrusted
+    /// every persisted event before sending - queue content is untrusted
     ///.
     pub fn validate(&self) -> bool {
         let scalars_ok = (SCHEMA_MIN_SUPPORTED_VERSION..=SCHEMA_VERSION)
@@ -761,7 +761,7 @@ impl EventEnvelope {
             && self.payload.validate();
         // Belt-and-braces denylist over the PAYLOAD only. Scalar metadata
         // (app_version, ids, timestamp) is validated by typed components
-        // above — running the denylist over the whole envelope would
+        // above - running the denylist over the whole envelope would
         // regression guard: "10." must keep being accepted in app_version 0.10.0.
         //
         // Update payloads are exempt for the same reason:
@@ -814,7 +814,7 @@ impl EventEnvelope {
 
     /// Test-only: inflate the serialized size by swapping the payload's error
     /// source for an over-long filler (exercises the queue size cap). The
-    /// result intentionally fails `validate` — `push` checks size first.
+    /// result intentionally fails `validate` - `push` checks size first.
     #[doc(hidden)]
     pub fn with_padding(mut self, bytes: usize) -> Self {
         if let EventPayload::Error(p) = &mut self.payload {
@@ -828,7 +828,7 @@ impl EventEnvelope {
 
 /// Saturating counter bump (counters never panic or wrap).
 ///
-/// NOTE: this does NOT enforce [`MAX_CARDINALITY`] — new keys always enter
+/// NOTE: this does NOT enforce [`MAX_CARDINALITY`] - new keys always enter
 /// the map. Prefer [`bump_capped`] for aggregate maps that later flow into
 /// [`SessionSummaryPayload`]; an over-cardinality map fails validation at
 /// enqueue/send time and the WHOLE event is dropped.
@@ -853,7 +853,7 @@ pub fn bump_feature(map: &mut BTreeMap<String, u32>, feature: Feature) {
 
 /// Build a fully VALID envelope with synthetic, safe content (zeroed
 /// aggregates, placeholder ids). `#[doc(hidden)]`: test and documentation
-/// helper only — production code builds envelopes from real, validated
+/// helper only - production code builds envelopes from real, validated
 /// aggregates through [`EventEnvelope::new`].
 #[doc(hidden)]
 pub fn synthetic(event_type: EventType) -> EventEnvelope {
@@ -1026,7 +1026,7 @@ mod tests {
         assert_eq!(payload.reason(), Some("missing a feature"));
         assert!(payload.reason_provided());
         assert!(payload.validate());
-        // The helper builds with all cleanup flags true — assert the new
+        // The helper builds with all cleanup flags true - assert the new
         // keyring field made it through the constructor too.
         assert!(payload.keyring_removed());
 
@@ -1087,7 +1087,7 @@ mod tests {
         assert_eq!(payload.reason(), None);
         assert!(
             payload.reason_provided(),
-            "the user DID answer — flag must stay"
+            "the user DID answer - flag must stay"
         );
         assert!(payload.validate());
     }

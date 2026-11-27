@@ -1,8 +1,8 @@
 //! The pending-queue strip: the band of queued messages that rises above the
 //! prompt (the chat's) or above a pane's bottom edge (an `/agents` pane's).
 //!
-//! One renderer serves BOTH surfaces because they carry the same thing — the
-//! two queues of a [`PendingQueues`] — and the user must read them the same
+//! One renderer serves BOTH surfaces because they carry the same thing - the
+//! two queues of a [`PendingQueues`] - and the user must read them the same
 //! way wherever they are: a lighter wash of the surface's hue per message,
 //! each band ending in a full-strength color cap labeled `NEXT` (the message
 //! joins the very next request of the running loop) or `CLOSURE` (it waits
@@ -35,7 +35,7 @@ pub enum PendingQueueRow {
     /// `(queue_index, message_index)` so hover/click on the pad resolve
     /// to the message it belongs to.
     Pad(usize, usize),
-    /// A text line: `(queue_index, message_index, line)` — exactly ONE per
+    /// A text line: `(queue_index, message_index, line)` - exactly ONE per
     /// message, already truncated to the strip's width.
     Text(usize, usize, String),
 }
@@ -75,9 +75,9 @@ pub fn cap_width(width: u16) -> Option<u16> {
 /// per drawn row, so the renderer, the height reservation and the mouse
 /// hit-testing all agree.
 ///
-/// Each queued message yields exactly ONE `Text` row — truncated to the
+/// Each queued message yields exactly ONE `Text` row - truncated to the
 /// columns available outside the end cap, never word-wrapped (the full text
-/// still goes to the model; only the strip's preview is cut) — bracketed by
+/// still goes to the model; only the strip's preview is cut) - bracketed by
 /// its own `Pad` rows, in `next loop` then `next request` order.
 #[must_use]
 pub fn layout(queues: &PendingQueues, width: u16) -> Vec<PendingQueueRow> {
@@ -117,7 +117,7 @@ pub fn layout(queues: &PendingQueues, width: u16) -> Vec<PendingQueueRow> {
     rows
 }
 
-/// How many rows [`render`] will paint for `queues` at `width` — the height
+/// How many rows [`render`] will paint for `queues` at `width` - the height
 /// a caller reserves before laying out the rest of its surface.
 #[must_use]
 pub fn height(queues: &PendingQueues, width: u16) -> u16 {
@@ -127,7 +127,7 @@ pub fn height(queues: &PendingQueues, width: u16) -> u16 {
 /// Band background for the ~80% of each message's band outside the color
 /// cap: the cap color lightened toward white (~15% blend). The full color
 /// stays in the cap, so the cap reads as a slightly deeper chip on a lighter
-/// band of the same hue. RGB channels only — alpha comes back opaque,
+/// band of the same hue. RGB channels only - alpha comes back opaque,
 /// matching every other band fill.
 fn lightened_band(color: RGBA) -> RGBA {
     const T: f32 = 0.15; // share of white mixed in
@@ -139,7 +139,7 @@ fn lightened_band(color: RGBA) -> RGBA {
 /// The queue label carried by a message's end cap: queue 1 ("next request",
 /// injected into the very next request of the running loop) reads `NEXT`;
 /// queue 0 ("next agent loop", sent only when a fresh loop starts) reads
-/// `CLOSURE` — it closes out the current loop's run.
+/// `CLOSURE` - it closes out the current loop's run.
 fn cap_label(queue_idx: usize) -> &'static str {
     if queue_idx == 0 { "CLOSURE" } else { "NEXT" }
 }
@@ -150,7 +150,7 @@ fn cap_label(queue_idx: usize) -> &'static str {
 /// `hover` is the `(queue_index, message_index)` under the pointer, when the
 /// caller routes a pointer at all: that message's whole band lights up.
 /// `cap_color` fills each band's end cap and carries the `NEXT`/`CLOSURE`
-/// label — see the module docs for what each surface passes.
+/// label - see the module docs for what each surface passes.
 pub fn render(
     buf: &mut Buffer,
     area: Rect,
@@ -172,7 +172,7 @@ pub fn render(
     );
 }
 
-/// Paint an ALREADY COMPUTED strip layout (see [`layout`]) — for callers
+/// Paint an ALREADY COMPUTED strip layout (see [`layout`]) - for callers
 /// that laid the strip out once for this frame and must not re-truncate it
 /// in the painter (the chat's geometry, height computation and hit-testing
 /// all share the same rows).
@@ -238,7 +238,7 @@ pub fn render_rows(
         // `│`): fills every row of the message's band so it reads as one
         // solid block, and carries the queue label bold on the band's
         // middle row. The cap keeps its color even while the band is
-        // hovered — it is the identity chip, not part of the highlight.
+        // hovered - it is the identity chip, not part of the highlight.
         if let Some(cap_w) = cap_w {
             let cap_right = area.x + area.width - 1;
             let cap_x = cap_right - cap_w;
@@ -276,7 +276,7 @@ pub fn render_rows(
 /// read as the same element) on the neutral panel background, the band color
 /// as the background of the rest of the row (starting right after the border,
 /// at `x + 1`, so it never covers the `│` glyph), and the (already
-/// truncated) message text starting 3 columns in — like a normal user
+/// truncated) message text starting 3 columns in - like a normal user
 /// message, so queued rows stay visually consistent with the chat.
 #[allow(clippy::too_many_arguments)]
 fn draw_row(
@@ -307,7 +307,7 @@ fn draw_row(
         cell.set_char('│');
         cell.set_style(rail_style);
     }
-    // Band-colored background for the rest of the row — it stops one column
+    // Band-colored background for the rest of the row - it stops one column
     // short of the right edge so the right `│` sits on the panel background.
     let band_style = Style::default().bg(bg_color);
     for cx in x + 1..x + width - 1 {

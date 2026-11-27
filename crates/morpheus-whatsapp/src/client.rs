@@ -37,7 +37,7 @@ pub struct SentMessage {
 ///
 /// Call [`close`](WhatsApp::close) (or [`logout`](WhatsApp::logout)) to stop
 /// the link: that is the graceful path, which flushes the device store and
-/// lets the engine disconnect. Dropping the last clone is only a safety net —
+/// lets the engine disconnect. Dropping the last clone is only a safety net -
 /// it aborts the engine's run loop mid-flight, so nothing is flushed. A
 /// long-running host should close explicitly.
 #[derive(Clone, Debug)]
@@ -60,7 +60,7 @@ struct Inner {
 /// something the user typed on their phone if such a stanza were ever
 /// delivered back here: both are `from_me`, and the text may come back
 /// reformatted. The engine excludes the sending device from a direct
-/// message's fan-out, so a normal send is not redelivered today — this set is
+/// message's fan-out, so a normal send is not redelivered today - this set is
 /// the guard that keeps the self chat from answering its own reply (forever)
 /// should that invariant ever change, and it costs a few hundred ids.
 const SENT_IDS: usize = 256;
@@ -96,8 +96,8 @@ impl SentIds {
 /// The account's own address forms.
 ///
 /// A WhatsApp account answers to two ids: the phone-number JID
-/// (`…@s.whatsapp.net`) and the LID (`…@lid`) that newer conversations — the
-/// "Message yourself" chat included — are addressed by. Both are matched, so
+/// (`…@s.whatsapp.net`) and the LID (`…@lid`) that newer conversations - the
+/// "Message yourself" chat included - are addressed by. Both are matched, so
 /// the self chat is recognized whichever form its chat id carries.
 #[derive(Debug)]
 struct Account {
@@ -113,8 +113,7 @@ impl Account {
     /// Whether `chat` is this account's own conversation.
     fn is_self(&self, chat: &ChatId) -> bool {
         chat.is_direct()
-            && (self.pn.as_deref() == Some(chat.user())
-                || self.lid.as_deref() == Some(chat.user()))
+            && (self.pn.as_deref() == Some(chat.user()) || self.lid.as_deref() == Some(chat.user()))
     }
 }
 
@@ -266,7 +265,7 @@ impl WhatsApp {
     /// sends `paused`.
     ///
     /// Not every client renders it for every chat kind (a group or the self
-    /// chat may hide it), and a failure here is never fatal to a reply — the
+    /// chat may hide it), and a failure here is never fatal to a reply - the
     /// message can still be sent.
     pub async fn set_typing(&self, chat: &ChatId, typing: bool) -> Result<()> {
         let jid = chat.to_jid()?;
@@ -288,13 +287,13 @@ impl WhatsApp {
     /// as `from_me` and is addressed to the account's own chat, which is what
     /// `Account::is_self` recognises.
     ///
-    /// The agent's own replies are not delivered back here — the engine
-    /// excludes the sending device from a direct message's fan-out — so the
+    /// The agent's own replies are not delivered back here - the engine
+    /// excludes the sending device from a direct message's fan-out - so the
     /// ids [`WhatsApp::send_text`] reserves are a guard for that invariant
     /// (see `SentIds`), not the mechanism the self chat relies on.
     ///
-    /// Everything else `from_me` — the user's messages to contacts and groups
-    /// — is left alone, as are status/broadcast posts, channels, protocol
+    /// Everything else `from_me` - the user's messages to contacts and groups
+    /// - is left alone, as are status/broadcast posts, channels, protocol
     /// chatter and reactions.
     pub fn is_prompt(&self, message: &IncomingMessage) -> bool {
         is_prompt(
@@ -400,7 +399,7 @@ fn is_prompt(message: &IncomingMessage, account: Option<&Account>, sent: &SentId
     // wrote it (the phone, usually). Only the self chat is addressed to the
     // agent; what the user sends to contacts and groups is not ours to answer.
     let Some(account) = account else {
-        // No identity to compare the chat against — the link is not paired, or
+        // No identity to compare the chat against - the link is not paired, or
         // the device store has not learned one of its two ids. A silent drop
         // is what makes a dead self chat look like a bot ignoring you, so say
         // why.
@@ -423,7 +422,7 @@ fn own_user(jid: Option<Jid>) -> Option<String> {
 /// This account's own address forms, read on demand.
 ///
 /// `Client::pn` and `Client::lid` read the engine's in-memory device snapshot
-/// (an `Arc` clone), so there is nothing worth caching — and a form the engine
+/// (an `Arc` clone), so there is nothing worth caching - and a form the engine
 /// learns later, the LID usually, is picked up by the next message instead of
 /// being frozen at first use. `None` until pairing gives the link an identity.
 fn account(client: &Client) -> Option<Account> {
@@ -609,7 +608,7 @@ mod tests {
     fn a_pn_only_identity_cannot_match_the_lid_chat() {
         // Pairing can store an empty LID, and the self chat is usually
         // addressed by LID. Until the engine learns it, that chat is
-        // indistinguishable from a stranger's, so it is not answered — but
+        // indistinguishable from a stranger's, so it is not answered - but
         // nothing is frozen: every message re-reads the identity, so the LID
         // is honoured as soon as the engine knows it.
         let pn_only = Account {

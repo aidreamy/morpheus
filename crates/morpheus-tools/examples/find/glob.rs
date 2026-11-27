@@ -1,5 +1,5 @@
-//! Demonstrate `find::glob`: the ways a target shapes a search — bare glob,
-//! scoped glob, directory literal, file literal — plus `file_type` filtering,
+//! Demonstrate `find::glob`: the ways a target shapes a search - bare glob,
+//! scoped glob, directory literal, file literal - plus `file_type` filtering,
 //! `tree` formatting, and multi-target search.
 //!
 //! Run with:
@@ -38,7 +38,7 @@ fn show(label: &str, result: Result<morpheus_tools::find::GlobOutput, String>) {
 // output order depend on write timestamps. Most demos pin `sort_by_mtime:
 // false` so the output is stable and path-sorted; the first demo shows the
 // default. Note that `size`/`mtime` metadata is only populated when
-// `sort_by_mtime` is true (the default) — the sorted demos print "size n/a".
+// `sort_by_mtime` is true (the default) - the sorted demos print "size n/a".
 fn sorted() -> GlobCallOptions {
     GlobCallOptions {
         sort_by_mtime: Some(false),
@@ -66,7 +66,7 @@ fn main() {
 
     let find = Find::new().cwd(&project);
 
-    // 1. Bare glob as a target: recurses from the working directory — every
+    // 1. Bare glob as a target: recurses from the working directory - every
     //    `.rs` file at every depth under the project root. (Default sort:
     //    most recently modified first.)
     show(
@@ -80,7 +80,7 @@ fn main() {
         ),
     );
 
-    // 2. Plain directory target + bare `pattern`: SHALLOW — only the direct
+    // 2. Plain directory target + bare `pattern`: SHALLOW - only the direct
     //    children of `src` named *.rs. `src/util/helper.rs` is NOT matched.
     show(
         "pattern `*.rs` over dir target `src`",

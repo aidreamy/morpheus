@@ -12,7 +12,7 @@
 //! A timeout raised mid-walk is not an error: the entries collected so far are
 //! kept and returned with [`GlobResult::timed_out`] set, so the caller can
 //! surface partial results instead of forcing a blind retry. A timeout that
-//! elapses BEFORE a fresh scan starts still propagates as an error — nothing
+//! elapses BEFORE a fresh scan starts still propagates as an error - nothing
 //! was found, so there is nothing to salvage. When the entry list comes from a
 //! populated scan cache (no walk ran this call), an expired deadline is still
 //! not an error: the cached entries are matched and returned with
@@ -80,7 +80,7 @@ pub struct GlobResult {
     pub total_matches: u32,
     /// `true` when the scan was cut short by the timeout and `matches` only
     /// holds the partial results found up to that point. The scan is
-    /// INCOMPLETE — an empty `matches` with `timed_out: true` is not proof of
+    /// INCOMPLETE - an empty `matches` with `timed_out: true` is not proof of
     /// absence.
     pub timed_out: bool,
 }
@@ -211,7 +211,7 @@ fn apply_file_type_filter(entry: &GlobMatch, config: &GlobConfig) -> Option<File
 ///
 /// The scan feeding this list may itself be partial (a mid-scan timeout kept
 /// what was collected). A timeout that trips mid-filter only marks the scan
-/// incomplete — the collected entries are STILL matched and returned, so a
+/// incomplete - the collected entries are STILL matched and returned, so a
 /// partial snapshot cannot be inadvertently discarded. Non-timeout aborts
 /// keep failing the whole search. A timeout that elapses before the first
 /// entry is checked surfaces as a fully-filtered partial with `timed_out`
@@ -445,7 +445,7 @@ fn run_glob(config: &GlobConfig, ct: &task::CancelToken) -> Result<GlobResult, S
             filter_entries(&scan.entries, &glob_set, config, ct)?;
         // Empty-result recheck: if we got zero matches from a cached scan that's
         // old enough, force a rescan and try once more before returning empty.
-        // Never recheck when the scan OR the filter already timed out — the
+        // Never recheck when the scan OR the filter already timed out - the
         // result is partial, so a fresh scan would be a whole new timeout.
         if filtered.is_empty()
             && !scan_timed_out
@@ -600,7 +600,7 @@ mod tests {
 
     /// A timeout is not an error: the entries the scan already collected are
     /// STILL matched and returned with `timed_out: true`, so the partial
-    /// snapshot is never discarded. An empty partial is an incomplete scan —
+    /// snapshot is never discarded. An empty partial is an incomplete scan -
     /// never a hard failure.
     #[test]
     fn filter_entries_timeout_keeps_collected_entries() {

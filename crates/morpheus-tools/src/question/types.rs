@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 use serde_json::Value as JsonValue;
 
 /// Virtual option the TUI appends to every single-select question so the
-/// user can always give a free-text answer. Never sent by the model — the
+/// user can always give a free-text answer. Never sent by the model - the
 /// tool description explicitly tells it NOT to invent its own custom/other
 /// entry, and [`crate::question::Question::validate_and_normalize`] rejects
 /// payloads whose options collide with this reserved label (the TUI renders
@@ -18,7 +18,7 @@ pub const RECOMMENDED_SUFFIX: &str = "(Recommended)";
 
 /// The kind of answer a question renders as, derived from the wire shape:
 /// `multiSelect: true` → multi-select; any non-empty `options` → single
-/// select; otherwise free text. Internal — never part of the model-facing
+/// select; otherwise free text. Internal - never part of the model-facing
 /// schema.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, JsonSchema)]
 pub enum QuestionType {
@@ -60,7 +60,7 @@ impl QuestionOption {
 
 /// A single question to ask the user.
 ///
-/// Wire format — the industry-standard shape used by Claude Code's
+/// Wire format - the industry-standard shape used by Claude Code's
 /// `AskUserQuestion` and its ports (Qwen Code, OpenCode, Crush):
 ///
 /// ```json
@@ -82,7 +82,7 @@ pub struct QuestionItem {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub header: Option<String>,
     /// The available choices for this question (2-4 options). Omit for a
-    /// free-text question. Do NOT add an "Other" option — free text is
+    /// free-text question. Do NOT add an "Other" option - free text is
     /// always offered automatically.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub options: Option<Vec<QuestionOption>>,
@@ -188,7 +188,7 @@ const fn default_required() -> bool {
 /// - `options` as a JSON-encoded string (double-encoded emission)
 /// - `multiple` as an alias of `multiSelect`
 /// - an item with only `header` and no `question` (the header carries the
-///   prompt — same relaxation OpenCode shipped for its question tool)
+///   prompt - same relaxation OpenCode shipped for its question tool)
 ///
 /// Returns `None` when there is neither a `question` nor a `header` to show.
 fn question_item_from_wire(value: &JsonValue) -> Option<QuestionItem> {
@@ -245,7 +245,7 @@ fn decode_options(value: Option<&JsonValue>) -> Option<Vec<QuestionOption>> {
 }
 
 /// Decode one option entry: a bare string or a `{label, description}` object.
-/// Blank labels are rejected — they would render as empty selectable rows.
+/// Blank labels are rejected - they would render as empty selectable rows.
 fn decode_option_item(item: &JsonValue) -> Option<QuestionOption> {
     match item {
         JsonValue::String(label) => {
@@ -300,11 +300,11 @@ pub struct QuestionInput {
 }
 
 impl QuestionInput {
-    /// Internal: derive the canonical fields the wire leaves implicit — the
+    /// Internal: derive the canonical fields the wire leaves implicit - the
     /// per-question kind (from `multiSelect`/options presence), stable ids
     /// (from position, never colliding with ids already present), and the
     /// recommendation (from a [`RECOMMENDED_SUFFIX`] label, wherever it
-    /// appears — models often place it on a non-first option).
+    /// appears - models often place it on a non-first option).
     pub(crate) fn finalize(&mut self) {
         let mut used: std::collections::HashSet<String> = self
             .questions
@@ -361,7 +361,7 @@ pub struct QuestionOutput {
     /// The questions that were asked (echoed back so the TUI can render them).
     pub questions: Vec<QuestionItem>,
     /// The user's answers, in the same order as the questions.
-    /// Empty when the tool is first called — the TUI captures answers and
+    /// Empty when the tool is first called - the TUI captures answers and
     /// returns them on a subsequent invocation.
     pub answers: Vec<AnswerItem>,
 }

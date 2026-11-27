@@ -1,4 +1,4 @@
-//! Demonstrate `computer_act` — the SEMANTIC action pipeline: instead of
+//! Demonstrate `computer_act` - the SEMANTIC action pipeline: instead of
 //! synthesizing clicks, it invokes the element's accessibility action layer
 //! (press, focus, toggle, expand, set_value, select_text, …). The target is
 //! an element matched by `selector` under an app scope (`name`/`pid`) or a
@@ -6,13 +6,13 @@
 //!
 //! Choose `computer_act` over `computer_control` when the intent is
 //! semantic ("check this checkbox", "set this field") and the control
-//! exposes an accessibility action — it auto-waits for actionability and
+//! exposes an accessibility action - it auto-waits for actionability and
 //! never depends on pointer position. Reach for `computer_control` when
 //! you need a REAL OS click (moving keyboard focus between fields) or raw
 //! coordinate work.
 //!
 //! What runs offline here: step construction and the tool's own semantic
-//! validation (`touch::validate` — touch.rs IS the act engine). Dispatch
+//! validation (`touch::validate` - touch.rs IS the act engine). Dispatch
 //! needs a desktop session.
 //!
 //! Run with:
@@ -30,7 +30,7 @@ fn main() {
         name: Some("Reports".into()),
         selector: Some("button[name='Export']".into()),
         action: Some(ActAction::Press), // the default
-        // Actions AUTO-WAIT for the app AND a visible+enabled match —
+        // Actions AUTO-WAIT for the app AND a visible+enabled match -
         // unlike snapshot/screenshot, which capture immediately.
         timeout_ms: Some(5000),
         ..Default::default()
@@ -68,7 +68,7 @@ fn main() {
     // NOTE the validator split: `touch::validate` validates SEMANTIC steps
     // (they carry a selector); keyboard/wait steps are validated by the
     // shared keyboard engine when the chain walks. So a keyboard step fed
-    // to the semantic validator is itself an error — with guidance naming
+    // to the semantic validator is itself an error - with guidance naming
     // the right engine:
     let select_all = ComputerAct {
         key: Some("a".into()),
@@ -104,7 +104,7 @@ fn main() {
 
     // ── Shell-surface targeting ──
     //
-    // `surface` replaces `name`/`pid` — the target is part of the DESKTOP,
+    // `surface` replaces `name`/`pid` - the target is part of the DESKTOP,
     // not any app (the menu bar, the taskbar, an open flyout). See the
     // computer-surface example for the full tour.
     let press_taskbar_item = ComputerAct {
@@ -118,7 +118,7 @@ fn main() {
     // computer::act(&fill_and_export).await
 }
 
-/// Append `next` to the END of the chain. A local extension trait —
+/// Append `next` to the END of the chain. A local extension trait -
 /// `ComputerAct` comes from another crate, so an inherent `impl` there
 /// would be illegal (orphan rule).
 trait Chain: Sized {

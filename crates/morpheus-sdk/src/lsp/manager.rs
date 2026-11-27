@@ -3,26 +3,26 @@
 //! Owns discovery and lifecycle for every language server serving a
 //! workspace:
 //!
-//! * **Keying** — clients are keyed by `(root_path, server_name)`, so the
+//! * **Keying** - clients are keyed by `(root_path, server_name)`, so the
 //!   same server can run against nested projects and several servers can
 //!   serve one file. opencode's fix for crush's single-server bug (#1751).
 //!   Workspace-aware specs ([`ServerSpec::workspace_aware`]) relax the
 //!   nesting: they anchor at the outermost matching directory so one
 //!   rust-analyzer serves a whole Cargo workspace instead of one per crate.
-//! * **Root resolution** — walks up from the touched file toward the
+//! * **Root resolution** - walks up from the touched file toward the
 //!   workspace root matching the spec's root markers; specs without markers
 //!   always use the workspace root. A spec whose markers appear nowhere in
-//!   the ancestry is skipped entirely — starting a server rooted somewhere
+//!   the ancestry is skipped entirely - starting a server rooted somewhere
 //!   unrelated is how crush fired a Lua server inside a TS repo (#1746).
-//! * **Lazy spawn** — nothing starts until a file is touched. The first
+//! * **Lazy spawn** - nothing starts until a file is touched. The first
 //!   caller for a key inserts a `Pending` placeholder under the lock and a
 //!   detached driver task resolves it; concurrent callers share the outcome
 //!   through a watch channel. Drivers hold `Weak` state so manager drop is
 //!   never blocked (the phase-2 deadlock lesson applied at this layer).
-//! * **Backoff** — failed spawns park their key for [`SPAWN_BACKOFF`];
+//! * **Backoff** - failed spawns park their key for [`SPAWN_BACKOFF`];
 //!   retries inside the window fail fast with [`LspError::Unavailable`]
 //!   (crush's lesson against hot-looping dead binaries).
-//! * **Soft skips** — binaries missing from `PATH` surface as
+//! * **Soft skips** - binaries missing from `PATH` surface as
 //!   [`LspError::Unavailable`] and never mask other servers that did answer;
 //!   auto-discovery stays quiet about languages you never installed.
 //!
@@ -216,7 +216,7 @@ impl Manager {
     /// auto-discovery of the workspace's language server *before* any file is
     /// touched.
     ///
-    /// Only *distinctive* markers count — generic placeholders shared by many
+    /// Only *distinctive* markers count - generic placeholders shared by many
     /// languages (`.git`, `Makefile`) never act as a positive signal, so a
     /// bare git repo does not start one server per catalog entry.
     pub fn matches_for_root(&self, dir: &Path) -> Vec<ClientKey> {
@@ -405,7 +405,7 @@ impl Manager {
     /// Lock discipline: decision AND placeholder publication happen inside one
     /// critical section (`tokio::spawn` is synchronous, nothing here awaits).
     /// Splitting them would open a TOCTOU window where two tasks both decide
-    /// `Start` and the second silently replaces the first's placeholder — two
+    /// `Start` and the second silently replaces the first's placeholder - two
     /// drivers, one untracked process.
     async fn ensure_client(&self, key: &ClientKey) -> Result<Arc<LanguageServer>, LspError> {
         enum Action {
@@ -448,7 +448,7 @@ impl Manager {
                     // Detached on purpose: completion belongs to the task, not
                     // to the caller's future, so caller cancellation cannot
                     // strand the placeholder. The task holds Weak state plus
-                    // its own sender — nothing that pins the manager.
+                    // its own sender - nothing that pins the manager.
                     tokio::spawn(async move {
                         let outcome = drive_spawn(&state, &driver_key, spec).await;
                         let _ = outcome_tx.send(outcome);
@@ -549,7 +549,7 @@ async fn drive_spawn(inner: &Weak<Inner>, key: &ClientKey, spec: ServerSpec) -> 
     };
 
     let outcome = match binary {
-        // Missing binary: published below WITHOUT a backoff timestamp — the
+        // Missing binary: published below WITHOUT a backoff timestamp - the
         // next touch re-runs the (cheap) PATH lookup, so installing the
         // binary recovers immediately instead of staying parked.
         None => failed("not found on PATH", true),
@@ -605,7 +605,7 @@ async fn drive_spawn(inner: &Weak<Inner>, key: &ClientKey, spec: ServerSpec) -> 
             SpawnOutcome::Ready(_) => {
                 // Lost the race against stop_all: discard quietly.
                 log::info!(
-                    "discarding freshly started `{}` — manager stopped meanwhile",
+                    "discarding freshly started `{}` - manager stopped meanwhile",
                     spec.name
                 );
             }
@@ -646,7 +646,7 @@ fn failed(detail: &str, missing_binary: bool) -> SpawnOutcome {
 /// fresh one. Weak-held: cannot outlive or pin the manager.
 ///
 /// Identity-checked: the map entry is only removed if it still points at THIS
-/// exact client (`Arc::ptr_eq`) — without that, a slow evictor could evict a
+/// exact client (`Arc::ptr_eq`) - without that, a slow evictor could evict a
 /// healthy respawn that replaced the dead one in the meantime.
 fn spawn_exit_evictor(inner: &Arc<Inner>, key: &ClientKey, client: &Arc<LanguageServer>) {
     let mut state_rx = client.subscribe_state();
@@ -690,7 +690,7 @@ fn spawn_exit_evictor(inner: &Arc<Inner>, key: &ClientKey, client: &Arc<Language
 
 /// Forward raw client events to the owner, tagging them with identity.
 ///
-/// Plain channels only — holding client state here would reintroduce the
+/// Plain channels only - holding client state here would reintroduce the
 /// teardown cycle the Weak design removed.
 fn spawn_event_relay(
     mut events_rx: mpsc::UnboundedReceiver<Event>,
@@ -732,7 +732,7 @@ fn is_generic_root_marker(marker: &str) -> bool {
 ///
 /// The walk is purely lexical (no symlink/canonicalization): a file reached
 /// through a link pointing outside the workspace simply finds no markers and
-/// is skipped — the safe direction. The *returned* root is canonicalized
+/// is skipped - the safe direction. The *returned* root is canonicalized
 /// (see [`canonical_root`]) so the key is stable across lexical aliases; a
 /// symlinked project directory may therefore surface as its real path.
 fn resolve_project_root(path: &Path, spec: &ServerSpec, workspace_root: &Path) -> Option<PathBuf> {
@@ -767,7 +767,7 @@ fn resolve_project_root(path: &Path, spec: &ServerSpec, workspace_root: &Path) -
 /// `Path::starts_with` tuned for the host filesystem's case semantics:
 /// exact on Unix, per-component ASCII case-insensitive on Windows (the
 /// range Windows applies case-insensitively for ASCII path components).
-/// Non-ASCII case pairs stay distinct here — harmless for drive letters
+/// Non-ASCII case pairs stay distinct here - harmless for drive letters
 /// and the ASCII-dominant paths this walk sees. A differently-cased
 /// workspace root or drive letter (`C:\` vs `c:\`) must not exclude every
 /// spec from the marker walk.
@@ -800,7 +800,7 @@ fn starts_with_fs(path: &Path, base: &Path) -> bool {
 ///
 /// Without it, the same directory reached through different lexical paths
 /// (a symlink into the tree, a non-canonical workspace root) produces
-/// distinct `ClientKey`s — and thus two processes of one server for one
+/// distinct `ClientKey`s - and thus two processes of one server for one
 /// project. When the path cannot be canonicalized (it may not exist yet),
 /// the lexical path is kept: distinct-but-equal keys degrade to a redundant
 /// server, never to a missing one.
@@ -810,7 +810,7 @@ pub(crate) fn canonical_root(path: &Path) -> PathBuf {
 }
 
 /// Windows `canonicalize` returns verbatim (`\\?\C:\…`) paths. Servers and
-/// `uri_from_path` expect plain drive paths, so strip the prefix — keeping
+/// `uri_from_path` expect plain drive paths, so strip the prefix - keeping
 /// the `\\?\UNC\` form mapped back to its `\\server\share` spelling.
 #[cfg(windows)]
 fn strip_windows_verbatim(path: &Path) -> PathBuf {

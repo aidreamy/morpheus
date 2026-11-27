@@ -54,7 +54,7 @@ const REHYDRATE_SUBAGENT_KEEP_PER_AGENT: usize = 3;
 
 /// One persisted subagent call collected during rehydration:
 /// (agent CLI, verbatim input prompt, task description, review flag,
-/// output text, whether the call failed). A named record — the raw tuple
+/// output text, whether the call failed). A named record - the raw tuple
 /// it replaced tripped `clippy::type_complexity` at six fields.
 type RehydratedSubagent = (String, Option<String>, Option<String>, bool, String, bool);
 
@@ -62,7 +62,7 @@ type RehydratedSubagent = (String, Option<String>, Option<String>, bool, String,
 /// cells). During streaming, chunks arrive far more often than the eye can
 /// track; rebuilding the whole accumulated body on EVERY chunk re-parses up
 /// to 60k chars per frame and stalls the TUI (especially in debug builds).
-/// Rebuilds are coalesced to at most one per interval — frames in between
+/// Rebuilds are coalesced to at most one per interval - frames in between
 /// serve the previous cells, stale by less than one interval, which is
 /// invisible in a streaming panel.
 pub(crate) const SUBAGENT_REBUILD_INTERVAL: Duration = Duration::from_millis(100);
@@ -77,7 +77,7 @@ pub(crate) const MIN_WINDOW_ROWS: i32 = 3;
 /// rows that all fit the box's text width: the FIRST row carries the
 /// marker/spinner, the rest draw indented under it. `Message`/`Thought`
 /// are whole markdown BLOCKS whose row count comes from
-/// [`activity_block_height`] — the renderer and the height math share that
+/// [`activity_block_height`] - the renderer and the height math share that
 /// helper, so they can never disagree.
 #[derive(Debug, Clone, PartialEq)]
 pub(crate) enum SubagentActivityLine {
@@ -95,7 +95,7 @@ pub(crate) enum SubagentActivityLine {
     /// box paints): the diff panel alone, indented under its tool row like
     /// every other tool artifact (the compact `path +N −M` summary line
     /// right above labels it). Sized by [`subagent_diff_rows`] and drawn
-    /// from [`subagent_diff_block`]'s cell grid — the shared
+    /// from [`subagent_diff_block`]'s cell grid - the shared
     /// `DiffRenderable` wrappers both subagent surfaces use. `path` picks
     /// the syntax language (the chat's `lang_name_from_path`); `index` is
     /// the timeline position: the cell cache's key.
@@ -110,32 +110,32 @@ pub(crate) enum SubagentActivityLine {
         rows: Vec<String>,
     },
     /// One markdown block of the sub-agent's message text (normal text
-    /// color, not dimmed — it is the agent speaking). `index` is the
+    /// color, not dimmed - it is the agent speaking). `index` is the
     /// timeline position: the block render cache's key.
     Message { index: usize, text: String },
     /// One markdown block of the sub-agent's thinking (dimmed).
     Thought { index: usize, text: String },
-    /// One markdown block of the USER's own message — the replay echo,
+    /// One markdown block of the USER's own message - the replay echo,
     /// rendered like any other message block. Only the history replay
     /// produces these (see `morpheus_agents::acp::replay`): a live
     /// pane's prompt echoes through the pane input instead, so a live
     /// timeline never carries one.
     UserMessage { index: usize, text: String },
-    /// One markdown block of an AGENT's input to the pane — a message
+    /// One markdown block of an AGENT's input to the pane - a message
     /// another agent sent through `agents_call`. Rendered like any other
     /// message block; the RAIL distinguishes it from the user's echo.
     AgentMessage { index: usize, text: String },
     /// One blank breathing row emitted right after a user message (the
     /// gap between the user's input and the agent's output). Derived at
-    /// render time — never stored — and only when something FOLLOWS the
+    /// render time - never stored - and only when something FOLLOWS the
     /// user message: a trailing gap would reserve an unpainted row.
     Gap,
 }
 
 /// The short, lowercase tool marker shown before the title (user decision:
-/// no icons — just the tool name, small and direct). A call that carries
-/// its REAL tool name (`fs_edit`, `find_grep`, …) renders that instead —
-/// the same names the main chat's compact renderer shows — so `/agents`
+/// no icons - just the tool name, small and direct). A call that carries
+/// its REAL tool name (`fs_edit`, `find_grep`, …) renders that instead -
+/// the same names the main chat's compact renderer shows - so `/agents`
 /// and the panel never relabel a tool the way the category kind does.
 pub(crate) fn tool_row_name(call: &SubagentToolCall) -> &str {
     match &call.tool {
@@ -145,7 +145,7 @@ pub(crate) fn tool_row_name(call: &SubagentToolCall) -> &str {
 }
 
 /// The row budget of ONE embedded diff block at `width` columns:
-/// `DiffRenderable::painted_rows` capped at 30 — the SAME cap the chat's
+/// `DiffRenderable::painted_rows` capped at 30 - the SAME cap the chat's
 /// edit box enforces (`edit_box_rows`), so a huge file edit degrades to a
 /// truncated panel here exactly like it does in the chat. Shared by the
 /// height math and both renderers, so they can never disagree.
@@ -162,7 +162,7 @@ pub(crate) fn subagent_diff_rows(unified: &str, width: u16) -> u16 {
 }
 
 /// Render ONE embedded diff block into a fresh row-major cell grid
-/// (`rows * width` cells, exactly `subagent_diff_rows` rows) — the shared
+/// (`rows * width` cells, exactly `subagent_diff_rows` rows) - the shared
 /// `DiffRenderable` configured EXACTLY like the chat's `render_edit`
 /// (line numbers, the theme's diff palette, split view at ≥100 columns,
 /// markdown-palette syntax highlighting) so the agent-view diff and the
@@ -232,7 +232,7 @@ fn tool_kind_name(kind: ToolKind) -> &'static str {
 }
 
 /// The total visual rows the sub-agent's live activity occupies at
-/// `wrap_w` — the height math in [`RightPanelState::subagent_section_rows`]
+/// `wrap_w` - the height math in [`RightPanelState::subagent_section_rows`]
 /// and the renderer must agree, so both derive from [`activity_lines`]:
 /// single-row lines cost 1, `Message`/`Thought` markdown blocks cost
 /// [`activity_block_height`].
@@ -244,7 +244,7 @@ pub(crate) fn activity_visual_rows(activity: &SubagentActivity, wrap_w: u16) -> 
 }
 
 impl SubagentActivityLine {
-    /// Visual rows this drawable unit occupies at `wrap_w` — the height
+    /// Visual rows this drawable unit occupies at `wrap_w` - the height
     /// math ([`activity_visual_rows`]) and the renderer both consume this,
     /// so they can never disagree. `Tool`/`Diff`/`Plan` arrive pre-wrapped
     /// (one row per element); `Message`/`Thought` are markdown blocks
@@ -259,7 +259,7 @@ impl SubagentActivityLine {
             SubagentActivityLine::EditDiff { unified, .. } => {
                 // The diff panel alone (the compact summary line above it
                 // is the tool row's own artifact), sized at the 2-col
-                // indented width — the SAME width every renderer paints
+                // indented width - the SAME width every renderer paints
                 // the panel at. The shared helper keeps the height math
                 // and the renderers in lockstep.
                 subagent_diff_rows(unified, wrap_w.saturating_sub(2)).max(1)
@@ -277,7 +277,7 @@ impl SubagentActivityLine {
 
 /// The extra rows an INPUT line (the user's echo, an `agents_call` input)
 /// reserves around its markdown block IN THE PANE'S layout: the sent box's
-/// breathing (one pad row above, one below — the chat's border+padding
+/// breathing (one pad row above, one below - the chat's border+padding
 /// rows). The right panel's window paints inputs WITHOUT the frame, so
 /// this growth belongs to the pane's own height math (the pane's render
 /// adds it per input line; the shared `visual_rows` stays content-height).
@@ -286,7 +286,7 @@ pub(crate) const INPUT_BOX_PAD_ROWS: u16 = 2;
 /// The drawable activity lines of one sub-agent session, in
 /// CHRONOLOGICAL order (mini-chat): transcript entries render in arrival
 /// order, so tool calls, thoughts and message text climb upward as new
-/// content arrives — the same flow as the main chat. A RUNNING session
+/// content arrives - the same flow as the main chat. A RUNNING session
 /// grows the transcript live; a finished one keeps its SEALED transcript
 /// (`SubagentActivity::seal`) rendering permanently under the echoed
 /// prompt. Tool/plan/diff lines are pre-wrapped with
@@ -323,7 +323,7 @@ pub(crate) fn activity_lines(
             }
             SubagentTimelineEntry::UserMessage { text } => {
                 // The replayed user turn, rendered EXACTLY like any other
-                // message block — plain markdown, full text color, no
+                // message block - plain markdown, full text color, no
                 // invented prefix or tint (the pane mirrors how a direct
                 // message reads, not a separate visual dialect). A blank
                 // replayed message renders nothing (same empty-guard as
@@ -336,7 +336,7 @@ pub(crate) fn activity_lines(
             }
             SubagentTimelineEntry::AgentMessage { text } => {
                 // An agent's input to the pane (`agents_call`): rendered like
-                // any other message block — the RAIL distinguishes it (a
+                // any other message block - the RAIL distinguishes it (a
                 // distinct tone from the user's), never a prefix or tint.
                 // Same empty-guard as the other blocks.
                 let clean = sanitize_subagent_text(text);
@@ -349,7 +349,7 @@ pub(crate) fn activity_lines(
                 let name = tool_row_name(call);
                 let detail = call.detail.clone().unwrap_or_else(|| call.title.clone());
                 // The marker/spinner occupies the leading 2 columns and the
-                // text starts at x+2 on EVERY row — wrap at the indented
+                // text starts at x+2 on EVERY row - wrap at the indented
                 // width so continuation rows fit their drawing area.
                 out.push(SubagentActivityLine::Tool {
                     id: call.id.clone(),
@@ -364,7 +364,7 @@ pub(crate) fn activity_lines(
                     // The REAL unified diff, when the event source carried
                     // one: an extra block painting the same panel the
                     // chat's edit box renders (the summary line above stays
-                    // the compact magnitude — it labels the block).
+                    // the compact magnitude - it labels the block).
                     if let Some(unified) = diff
                         .unified
                         .as_deref()
@@ -394,7 +394,7 @@ pub(crate) fn activity_lines(
     // has visible content after it (the gap between the input and the
     // pane's output), and one blank line BEFORE each input that follows
     // other content (the gap between the previous answer and the next
-    // prompt — the output must never stick to the input above it). A
+    // prompt - the output must never stick to the input above it). A
     // trailing input gets no gap after it, and a leading input none before
     // it: a gap with nothing on its outer side would reserve an unpainted
     // row, which the deterministic fuzz invariant forbids. Consecutive
@@ -427,7 +427,7 @@ pub(crate) fn activity_block_height(text: &str, wrap_w: u16) -> u16 {
 
 /// Filter control characters (keeping `\n`) so raw bytes can never reach
 /// ratatui buffer cells (cell_width panic). Same contract as the chat's
-/// markdown rendering — both the height estimate and the render use the
+/// markdown rendering - both the height estimate and the render use the
 /// sanitized body so they stay in lockstep.
 pub(crate) fn sanitize_subagent_text(text: &str) -> String {
     text.chars()
@@ -452,7 +452,7 @@ pub(crate) fn subagent_visible_body(body: &str) -> &str {
 ///
 /// The THREE render paths for `subagent_call` output (live PTY stream,
 /// completed PTY window, chat + rehydration) MUST agree on how to interpret
-/// a tool result — the leak bugs happened exactly when one path lacked the
+/// a tool result - the leak bugs happened exactly when one path lacked the
 /// unwrapping the others had. This classifier is the single source of that
 /// interpretation; never inline a `serde_json::from_str::<SubAgentCallOutput>`
 /// at a render site.
@@ -462,7 +462,7 @@ pub(crate) enum SubagentOutputShape {
     Spawned(String),
     /// A finished report, unwrapped from its `SubAgentCallOutput` envelope
     /// or stripped of its push-notification wrapper. `agent` is the agent
-    /// the notification was about (`None`: no routing hint — envelopes and
+    /// the notification was about (`None`: no routing hint - envelopes and
     /// plain reports belong to the window they arrive at). The hint routes
     /// a completion to the RIGHT window when several background sub-agents
     /// run in parallel and the last-Running window is a different call.
@@ -480,7 +480,7 @@ fn classify_subagent_output(chunk: &str) -> SubagentOutputShape {
     //               (agent={agent}) failed{reason}.\nLast available
     //               output:\n{body}"
     // The wrapper sentence is transport framing; the report body is the
-    // payload. BOTH variants must be stripped here — the failed variant
+    // payload. BOTH variants must be stripped here - the failed variant
     // used to leak verbatim into the subagent window (its marker sentence
     // differs), and the agent hint must survive for routing.
     if let Some(rest) = chunk
@@ -492,7 +492,7 @@ fn classify_subagent_output(chunk: &str) -> SubagentOutputShape {
         let agent = agent.trim().to_string();
         // Status-first matching: a failed note's free-form reason sits
         // entirely BEFORE its marker, so a reason imitating the completed
-        // marker can only break its own (already-failed) delivery — it can
+        // marker can only break its own (already-failed) delivery - it can
         // never be mistaken for a completed note.
         if after_agent.starts_with(" completed.")
             && let Some((_, body)) = after_agent.split_once("Final report:\n")
@@ -510,7 +510,7 @@ fn classify_subagent_output(chunk: &str) -> SubagentOutputShape {
                 agent: Some(agent),
             };
         }
-        // Header parsed but no known marker sentence: a malformed note —
+        // Header parsed but no known marker sentence: a malformed note -
         // deliberately NOT classified (fall through to Plain rather than
         // guess at the payload).
     }
@@ -531,7 +531,7 @@ fn classify_subagent_output(chunk: &str) -> SubagentOutputShape {
 /// parses as one. Routing aid for `HarnessEvent::ToolOutput` with
 /// `tool == "subagent_status"`: the notification must finish the spawning
 /// agent's window, which (parallel background spawns) need not be the
-/// last-Running one. `None` for everything else — the caller then keeps
+/// last-Running one. `None` for everything else - the caller then keeps
 /// its default window choice.
 pub(crate) fn subagent_notification_agent(chunk: &str) -> Option<String> {
     match classify_subagent_output(chunk) {
@@ -554,7 +554,7 @@ pub(crate) fn subagent_display_output(output: String) -> String {
         SubagentOutputShape::Plain => {
             // Defense in depth: a bare spawn receipt (`{"task_id": ...}`, the
             // pre-envelope shape that older persisted sessions still carry)
-            // would otherwise render as raw JSON in the panel — replace it
+            // would otherwise render as raw JSON in the panel - replace it
             // with the same human-readable line the current receipts envelop.
             if let Ok(receipt) = serde_json::from_str::<serde_json::Value>(&output)
                 && receipt.get("task_id").is_some()
@@ -617,7 +617,7 @@ pub const TODO_STRIKE_REVEAL_FRAMES: u32 = 12;
 pub const TODO_STRIKE_TOTAL_FRAMES: u32 = TODO_STRIKE_HOLD_FRAMES + TODO_STRIKE_REVEAL_FRAMES;
 
 /// Wrap one logical line into visual rows of at most `wrap_w` columns,
-/// breaking at SPACES with whole-word moves — the same word semantics as
+/// breaking at SPACES with whole-word moves - the same word semantics as
 /// the chat's markdown renderer: a word that doesn't fit next to the
 /// current content starts a fresh row, and a word wider than the column
 /// breaks at character level; a space that would overflow is dropped
@@ -694,7 +694,7 @@ pub(crate) fn wrap_chars(line: &str, wrap_w: u16) -> Vec<String> {
     rows
 }
 
-/// Number of visual rows a logical line occupies at `wrap_w` — derived
+/// Number of visual rows a logical line occupies at `wrap_w` - derived
 /// from [`wrap_chars`] itself so height estimates can never diverge from
 /// what the renderer draws.
 fn wrap_count(line: &str, wrap_w: u16) -> u16 {
@@ -706,10 +706,10 @@ fn wrap_count(line: &str, wrap_w: u16) -> u16 {
 /// renderer over the whole (up to 60k-char) body every frame.
 #[derive(Debug, Clone)]
 pub(crate) struct SubagentBodyCache {
-    /// Session id the entry belongs to — entries are matched by id, not
+    /// Session id the entry belongs to - entries are matched by id, not
     /// index, so session eviction never serves stale cells.
     pub(crate) id: String,
-    /// `subagent_layout_gen` the cells were rendered for — the shared layout
+    /// `subagent_layout_gen` the cells were rendered for - the shared layout
     /// generation that keeps heights and bodies consistent (see
     /// [`RightPanelState::subagent_layout_gen`]).
     pub(crate) layout_gen: u64,
@@ -717,18 +717,18 @@ pub(crate) struct SubagentBodyCache {
     pub(crate) wrap_w: u16,
     /// Body rows (`cells.len() == wrap_w as usize * h as usize`).
     pub(crate) h: u16,
-    /// Theme colors the cells were styled with (fg + box bg) — the palette
+    /// Theme colors the cells were styled with (fg + box bg) - the palette
     /// derives from these, so a live theme switch must invalidate.
     pub(crate) theme_key: u64,
     /// The area tint (default box background, or the verdict's severity
-    /// blended over it) the body was rendered on — cached cells carry
+    /// blended over it) the body was rendered on - cached cells carry
     /// concrete colors, so a different tint must re-render.
     pub(crate) bg: RGBA,
     /// Row-major rendered cells, `wrap_w` × `h`.
     pub(crate) cells: Vec<Cell>,
 }
 
-/// Cached styled cells of ONE `EditDiff` activity line — the rendered diff
+/// Cached styled cells of ONE `EditDiff` activity line - the rendered diff
 /// panel (row-major, `wrap_w - 2` wide). Frames between timeline edits blit
 /// these cells instead of re-running the diff renderer (parse + tree-sitter
 /// highlight) every frame; the same pattern as the body's `SubagentBodyCache`.
@@ -736,7 +736,7 @@ pub(crate) struct SubagentBodyCache {
 pub(crate) struct SubagentDiffCells {
     /// Wrap width the panel was laid out at (the panel itself is `wrap_w - 2`).
     pub(crate) wrap_w: u16,
-    /// Theme colors the cells were styled with — a live theme switch must
+    /// Theme colors the cells were styled with - a live theme switch must
     /// re-render (rendered cells carry concrete colors).
     pub(crate) theme_key: u64,
     /// Hash of the unified diff + path the cells were rendered from: a
@@ -759,7 +759,7 @@ pub(crate) fn subagent_diff_content_key(path: &str, unified: &str) -> u64 {
 }
 
 /// Persistent renderer of ONE live-activity block (a `Message`/`Thought`
-/// timeline entry) of a running subagent window — the per-block counterpart
+/// timeline entry) of a running subagent window - the per-block counterpart
 /// of the chat's streaming `MarkdownRenderable`: the renderer instance
 /// PERSISTS across frames, so `set_content` re-parses only the changed tail
 /// and its per-block render cache survives, instead of a fresh cold-cache
@@ -768,17 +768,17 @@ pub(crate) fn subagent_diff_content_key(path: &str, unified: &str) -> u64 {
 pub(crate) struct SubagentBlockRenderer {
     /// Wrap width the renderer is laid out at.
     pub(crate) wrap_w: u16,
-    /// Theme colors the renderer is styled with — a live theme switch must
+    /// Theme colors the renderer is styled with - a live theme switch must
     /// rebuild it (rendered cells carry concrete colors).
     pub(crate) theme_key: u64,
     /// The area tint the block is rendered on (default box background, or
-    /// the verdict's severity blended over it) — a different tint must
+    /// the verdict's severity blended over it) - a different tint must
     /// rebuild.
     pub(crate) bg: RGBA,
     /// Whether the block is a `Thought` (dimmed fg) rather than a `Message`
-    /// — a different fg must rebuild.
+    /// - a different fg must rebuild.
     pub(crate) dimmed: bool,
-    /// The text the renderer currently holds — the exact invalidation key
+    /// The text the renderer currently holds - the exact invalidation key
     /// for streaming edits (a length check alone could miss same-length
     /// rewrites).
     pub(crate) text: String,
@@ -790,7 +790,7 @@ pub(crate) struct SubagentBlockRenderer {
 }
 
 /// Manual `Debug`: `MarkdownRenderable` is not `Debug` (it holds an LRU of
-/// rendered cells), and [`RightPanelState`] derives `Debug` — report the
+/// rendered cells), and [`RightPanelState`] derives `Debug` - report the
 /// layout inputs instead of the opaque renderer.
 impl std::fmt::Debug for SubagentBlockRenderer {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -839,13 +839,13 @@ pub struct PtySession {
     /// Live structured sub-agent activity (Phase 3a). Empty for bash
     /// sessions; only the currently RUNNING subagent accumulates events.
     /// On completion/failure the timeline is SEALED, not wiped
-    /// (`SubagentActivity::seal`) — reasoning and tool narration stay as
+    /// (`SubagentActivity::seal`) - reasoning and tool narration stay as
     /// the window's permanent transcript; the final report body renders
     /// below it from the tool-result text as before.
     pub(crate) subagent_activity: SubagentActivity,
     /// Review outcome declared by the report's `<!-- severity: ... -->`
     /// header (Phase 3b.1). `None` for bash sessions, non-review tasks and
-    /// reports without a header — the box keeps the section's default
+    /// reports without a header - the box keeps the section's default
     /// color. Consumed at completion (live) or rehydration (persisted);
     /// the header itself is stripped at render time, never shown.
     pub(crate) severity: Option<morpheus_agents::severity::Severity>,
@@ -855,7 +855,7 @@ pub struct PtySession {
     /// review call that omitted it. `None` for bash sessions and for
     /// persisted calls that predate the argument.
     pub(crate) description: Option<String>,
-    /// Whether this subagent task was flagged CODE REVIEW — the TUI-side
+    /// Whether this subagent task was flagged CODE REVIEW - the TUI-side
     /// record of the review decision, used to reconstruct the inferred
     /// `code-review-NN` numbering for the list entries.
     pub(crate) code_review: bool,
@@ -863,13 +863,13 @@ pub struct PtySession {
     /// marker line, no decoration): the linear-chat prompt rendered as
     /// direct text above the body, wearing the `│` input rail at paint
     /// time. The split between input and body is STATE, not string
-    /// parsing — the output carries only the sub-agent's side. `None` for
+    /// parsing - the output carries only the sub-agent's side. `None` for
     /// bash sessions and windows without an echoed prompt (empty/absent
     /// input).
     pub(crate) input_echo: Option<String>,
     /// Per-call routing identity (the `ToolCall` event's `call_ref`): binds
     /// THIS window to the EXACT dispatching call. Streams, reports and
-    /// completion notifications carry the same ref back and route HERE —
+    /// completion notifications carry the same ref back and route HERE -
     /// two parallel spawns of the same agent CLI share the agent name but
     /// never the ref, so input1 can never pair with output2. `None` for
     /// bash sessions and rehydrated ones (no live routing).
@@ -889,13 +889,13 @@ pub struct PtySession {
     /// like `bound` windows), never superseded (the per-CLI sweep skips
     /// it), and NEVER listed: it is the Subagent section's sole owner, so
     /// the list builders and `resolve_visible_subagents` ranking skip it
-    /// entirely — the section renders exactly this one window expanded.
+    /// entirely - the section renders exactly this one window expanded.
     pub(crate) main_mirror: bool,
     /// This window is a `/agents` PANE MIRROR: it was opened by the
     /// split-screen mode (pane `agents_pane`) to surface its agent in the
     /// shared subagent list, not spawned by a `subagent_call`. Mirrors are
     /// fed ONLY by the pane-sync (`RightPanelState::sync_agents_pane`,
-    /// pane-index routed — never the `call_ref`/last-Running paths, which
+    /// pane-index routed - never the `call_ref`/last-Running paths, which
     /// must not graft normal subagent traffic into them), they are never
     /// superseded (each pane index is its own stable window), and they
     /// render the agent's full-color brand logo in the list (the marker
@@ -931,14 +931,14 @@ impl PtySession {
     }
 
     /// The right-panel LIST entry text of this subagent session:
-    /// `<agent> <description> <tool> <spinner>` — the CLI name, the task
+    /// `<agent> <description> <tool> <spinner>` - the CLI name, the task
     /// description the main agent passed (inferred `code-review-NN` for
     /// review tasks), the tool the subagent is currently running and the
     /// spinner glyph. Finished entries freeze their last tool label; the
     /// spinner slot becomes the terminal marker instead.
     ///
     /// The tool label comes from the LAST timeline tool entry (`detail` if
-    /// present, else the title — the same preference `activity_lines` uses).
+    /// present, else the title - the same preference `activity_lines` uses).
     #[must_use]
     pub fn list_entry_text(&self, spinner: char) -> String {
         let agent = self.subagent_agent().unwrap_or("internal");
@@ -966,21 +966,21 @@ impl PtySession {
     /// The task description for the list entry: the RESOLVED value stored
     /// at spawn time (explicit description, or the inferred `code-review-NN`
     /// label for a review call that omitted one). The neutral fallback only
-    /// covers sessions created before the description plumbing existed —
+    /// covers sessions created before the description plumbing existed -
     /// "code-review" would MISLABEL a pre-argument non-review call.
     ///
     /// A BOUND pane mirror has no task description by design (its label is
     /// the `#k` instance marker, set when the same CLI runs in several
-    /// panes): an EMPTY string instead of the "—" filler, so a lone mirror
+    /// panes): an EMPTY string instead of the "-" filler, so a lone mirror
     /// reads `kilo <tool> <spinner>` instead of the noisy
-    /// `kilo — <tool> <spinner>`.
+    /// `kilo - <tool> <spinner>`.
     #[must_use]
     pub fn description_text(&self) -> String {
         self.description
             .as_deref()
             .map(str::trim)
             .filter(|d| !d.is_empty())
-            .unwrap_or(if self.bound { "" } else { "—" })
+            .unwrap_or(if self.bound { "" } else { "-" })
             .to_string()
     }
 
@@ -1009,11 +1009,11 @@ pub(crate) enum SubagentTimelineEntry {
     Message { text: String },
     /// The sub-agent's thinking (rendered dimmed).
     Thought { text: String },
-    /// A chunk (or run) of the USER's own message — history replay only
+    /// A chunk (or run) of the USER's own message - history replay only
     /// (`SubagentEvent::UserMessage`): a live pane's prompt echoes through
     /// the pane input, so a live timeline never carries one.
     UserMessage { text: String },
-    /// A chunk (or run) of an AGENT's input to the pane — a message another
+    /// A chunk (or run) of an AGENT's input to the pane - a message another
     /// agent sent through `agents_call` (live-only, like `UserMessage`).
     /// Rendered with the agent rail (a distinct tone from the user's) so
     /// the user sees who is speaking.
@@ -1026,11 +1026,11 @@ pub(crate) enum SubagentTimelineEntry {
     Plan { entries: Vec<PlanEntry> },
 }
 
-/// Live structured activity of one sub-agent session — the chronological
+/// Live structured activity of one sub-agent session - the chronological
 /// transcript the sub-agent box renders as a mini chat. Display-only
 /// plumbing (Phase 3a): Phase 3b draws it inside the sub-agent box. A
 /// RUNNING session grows it live; on completion it is SEALED into the
-/// permanent transcript (see [`Self::seal`]) — reasoning, tool
+/// permanent transcript (see [`Self::seal`]) - reasoning, tool
 /// rows and narration survive, only the final report text is dropped (the
 /// window's markdown body below carries it). Persisted sessions keep
 /// rendering from the final JSON envelope (3a.3).
@@ -1054,8 +1054,8 @@ pub(crate) struct SubagentToolCall {
     pub(crate) kind: ToolKind,
     /// The tool's REAL name (`fs_edit`, `find_grep`, …) when the event
     /// source carries one (the internal sub-agent does; an ACP harness's
-    /// protocol has no tool name). The row labels itself with THIS — the
-    /// same names the main chat's compact renderer shows — instead of the
+    /// protocol has no tool name). The row labels itself with THIS - the
+    /// same names the main chat's compact renderer shows - instead of the
     /// kind's generic short form. `None`: label by kind.
     pub(crate) tool: Option<String>,
     /// Lifecycle status (drives the spinner/✓/✗ marker in Phase 3b).
@@ -1067,14 +1067,14 @@ pub(crate) struct SubagentToolCall {
     /// (file edits): rendered as one `path +N −M` line under the call.
     pub(crate) diff: Option<morpheus_agents::events::ToolDiffSummary>,
     /// The one input detail worth showing under the tool line (path, query,
-    /// URL, command) — extracted from the announcement's raw input and NOT
+    /// URL, command) - extracted from the announcement's raw input and NOT
     /// replaced by updates. Generic over CLIs; `None` when no common key
     /// matched.
     pub(crate) detail: Option<String>,
 }
 
 /// Keep a text tail bounded, cutting at a char boundary (`max` bytes of the
-/// TAIL survive — the panel shows the most recent activity).
+/// TAIL survive - the panel shows the most recent activity).
 fn bounded_tail(text: &str, max: usize) -> String {
     if text.len() <= max {
         return text.to_string();
@@ -1090,25 +1090,25 @@ fn bounded_tail(text: &str, max: usize) -> String {
 const SUBAGENT_TOOL_TAIL_BYTES: usize = 4_000;
 /// Maximum bytes kept of one timeline text entry (message or thought) in
 /// its ARCHIVAL phase. Chunks coalesce into one growing LIVE entry that is
-/// deliberately NOT bounded here — the growing block must grow in HEIGHT
+/// deliberately NOT bounded here - the growing block must grow in HEIGHT
 /// so the scroll follows its tail exactly like the main chat's reasoning
 /// (see [`SubagentActivity::coalesce_stream_chunk`], the "sliding window"
 /// regression note). The archival bound applies when the entry STOPS
 /// streaming: demoted from the tail by a newer entry
 /// ([`SubagentActivity::push_entry`]) or sealed at turn end
 /// ([`SubagentActivity::seal`]). The bound applies to a freshly started
-/// entry too (a single chunk may itself exceed the cap — ACP does not
+/// entry too (a single chunk may itself exceed the cap - ACP does not
 /// bound `ContentBlock::Text`).
 const SUBAGENT_TEXT_ENTRY_BYTES: usize = 8_000;
 /// Maximum bytes kept of the echoed main-agent prompt (`PtySession
 /// ::input_echo`). The old in-string echo was implicitly capped by the
 /// output's own truncation budget; the dedicated field carries the bound
-/// itself — one wrap-width row is ~200 chars, so 8k keeps any sane prompt
+/// itself - one wrap-width row is ~200 chars, so 8k keeps any sane prompt
 /// fully scrollable while bounding pathological inputs (a prompt this
 /// large is noise, not context the user scrolls to re-read).
 const SUBAGENT_INPUT_ECHO_BYTES: usize = 8_000;
 /// Maximum transcript entries kept live. A very long turn drops its OLDEST
-/// entries — the box is a live mini-chat window, not a full archive.
+/// entries - the box is a live mini-chat window, not a full archive.
 const SUBAGENT_TIMELINE_MAX_ENTRIES: usize = 200;
 
 /// Extract the one input detail worth showing under a tool line from a
@@ -1116,10 +1116,10 @@ const SUBAGENT_TIMELINE_MAX_ENTRIES: usize = 200;
 ///
 /// Generic over CLIs (no per-agent coupling): tool inputs across the ACP
 /// agents consistently carry the interesting value under one of a small set
-/// of common keys — a path (`path`/`file_path`/`file`), a search query
+/// of common keys - a path (`path`/`file_path`/`file`), a search query
 /// (`query`/`pattern`), a URL (`url`), or a command (`command`). Values are
 /// single-line-trimmed and capped; nested values render compact. `None`
-/// when the input is not a JSON object or none of the keys matched — the
+/// when the input is not a JSON object or none of the keys matched - the
 /// compact JSON tail already shows in that case.
 fn tool_input_detail(raw_input: &serde_json::Value) -> Option<String> {
     const DETAIL_KEYS: [&str; 7] = [
@@ -1157,7 +1157,7 @@ fn tool_input_detail(raw_input: &serde_json::Value) -> Option<String> {
 
 /// Which of the three chunk streams a coalescing chunk belongs to. The
 /// coalescer (see [`SubagentActivity::coalesce_stream_chunk`]) merges a
-/// chunk ONLY into a tail entry of the same stream — any other shape opens
+/// chunk ONLY into a tail entry of the same stream - any other shape opens
 /// a fresh entry at the tail, keeping the timeline chronological like the
 /// chat. Four input kinds keep the agent narration, the dimmed reasoning,
 /// the user's turns and other agents' inputs in separate growing rows.
@@ -1169,7 +1169,7 @@ pub(crate) enum StreamKind {
     Thought,
     /// The user's own message (history replay only).
     User,
-    /// An AGENT's input to the pane (`agents_call` — live only). Coalesces
+    /// An AGENT's input to the pane (`agents_call` - live only). Coalesces
     /// like the other input streams; renders with the agent rail.
     AgentInput,
 }
@@ -1180,10 +1180,10 @@ impl SubagentActivity {
     ///
     /// The timeline is chronological (mini-chat): message and thought
     /// chunks COALESCE into the NEAREST matching entry (a stream of
-    /// chunks is one growing transcript row, not one row per chunk —
+    /// chunks is one growing transcript row, not one row per chunk -
     /// see [`Self::coalesce_stream_chunk`]), tool
     /// calls patch their announcement-position entry by id, and the plan
-    /// replaces its existing entry in place — arrival order never changes.
+    /// replaces its existing entry in place - arrival order never changes.
     /// Apply one typed sub-agent event to the timeline. Returns whether the
     /// event changed any VISIBLE state: the caller auto-follows the scroll
     /// only then (a no-op event such as `Mode` must not yank the viewport).
@@ -1224,7 +1224,7 @@ impl SubagentActivity {
                 };
                 // A re-announcement of a known id patches in place; a new id
                 // appends at the current position. The patch must NOT
-                // discard progress accumulated by earlier ToolCallUpdates —
+                // discard progress accumulated by earlier ToolCallUpdates -
                 // the output tail and the diff are the UPDATES' data.
                 if let Some(existing) = self.timeline.iter_mut().rev().find_map(|entry| match entry
                 {
@@ -1358,26 +1358,26 @@ impl SubagentActivity {
     /// Seal the live timeline into the window's PERMANENT transcript:
     /// completion and failure no longer wipe it. Wiping erased the
     /// sub-agent's reasoning and tool narration the moment its report
-    /// arrived — exactly when the user tried to re-read them. The sealed
+    /// arrived - exactly when the user tried to re-read them. The sealed
     /// transcript keeps rendering under the echoed prompt, above the body,
     /// on every finished window.
     ///
     /// `completed` picks the two per-path details:
     /// - The final Message entry. On completion the report body rendered
-    ///   below usually IS that text (the `TurnClosure` contract — the
+    ///   below usually IS that text (the `TurnClosure` contract - the
     ///   report is the last message segment), so keeping it would print
     ///   the answer twice: the entry is dropped WHEN its text is actually
     ///   contained in `report_body`. A body that does not carry it keeps
-    ///   the entry — a background failure notification ("no output was
+    ///   the entry - a background failure notification ("no output was
     ///   produced"), a report truncated past the message, a turn that
     ///   ended right after a tool call (the closure's `previous`
     ///   fallback). On failure the body is the harness error and the
-    ///   transcript is all that remains of the sub-agent's work — every
+    ///   transcript is all that remains of the sub-agent's work - every
     ///   entry stays.
     /// - Calls still `InProgress` never received their result update
     ///   before the turn ended; they seal `Completed` on success (the
-    ///   result usually raced behind the report event — the harness pairs
-    ///   every call with a result) and `Failed` on failure — either way
+    ///   result usually raced behind the report event - the harness pairs
+    ///   every call with a result) and `Failed` on failure - either way
     ///   they stop spinning on a finished window. Plan entries keep their
     ///   last status: one left InProgress at turn end reflects the
     ///   sub-agent's own final state, and fabricating a Completed mark
@@ -1390,12 +1390,12 @@ impl SubagentActivity {
                 .rposition(|e| matches!(e, SubagentTimelineEntry::Message { .. }))
         {
             // Same raw stream on both sides: the entry holds the message's
-            // UNCLAMPED live text (the flow contract — no demotion happened
+            // UNCLAMPED live text (the flow contract - no demotion happened
             // since it streamed), the body its full text, so containment
-            // holds on the normal path — and degrades to KEEPING the entry,
+            // holds on the normal path - and degrades to KEEPING the entry,
             // never to losing content. A body carrying only the entry's
             // eventual 8k tail would flip the check to "kept" (the answer
-            // would print twice): no current caller does that —
+            // would print twice): no current caller does that -
             // `seal_completed` receives the full final output before any
             // truncation.
             let in_body = match (&self.timeline[pos], report_body) {
@@ -1418,7 +1418,7 @@ impl SubagentActivity {
             }
             // Archival phase: the turn ended, every entry stops streaming.
             // The live tail grew UNBOUNDED while it streamed (the flow
-            // contract); now it compresses to its 8k archival tail — a
+            // contract); now it compresses to its 8k archival tail - a
             // discrete, one-time layout step, the same shape every other
             // entry already carries. Idempotent (a no-op under the cap).
             Self::clamp_entry_text(entry);
@@ -1426,7 +1426,7 @@ impl SubagentActivity {
     }
 
     /// `seal(true, body)` at the completion path: the report body carries
-    /// the final message, so the transcript seals without it — unless the
+    /// the final message, so the transcript seals without it - unless the
     /// body does not actually contain that text (see [`Self::seal`]).
     pub(crate) fn seal_completed(&mut self, report_body: &str) {
         self.seal(true, Some(report_body));
@@ -1442,31 +1442,31 @@ impl SubagentActivity {
     ///
     /// The mini-chat contract is CHRONOLOGICAL: a stream chunk coalesces
     /// into the timeline's TAIL entry only when it is the same kind (a run
-    /// of deltas of one stream is one growing row); anything else — a
-    /// different stream kind, a tool/plan entry, a turn input — opens a
+    /// of deltas of one stream is one growing row); anything else - a
+    /// different stream kind, a tool/plan entry, a turn input - opens a
     /// FRESH entry at the tail. The newest content is always the LAST
     /// entry, and the box scrolls in arrival order exactly like the chat.
     ///
     /// The coalescer once scanned BACK to the nearest same-kind entry,
     /// because a model that interleaves reasoning and text deltas inside
     /// one response then opened a new sub-block per alternation (the
-    /// "reasoning in columns" report — rows using a fraction of the
+    /// "reasoning in columns" report - rows using a fraction of the
     /// width). But the backscan let a new reasoning chunk cross the
     /// narration that followed the previous reasoning burst and merge into
     /// the OLD thought block ABOVE it: the conclusion stayed pinned low
-    /// while newer reasoning rendered higher — the mini-chat read
+    /// while newer reasoning rendered higher - the mini-chat read
     /// backwards. Chronological order is the contract the chat itself
     /// keeps; per-alternation entries are the faithful transcript of an
     /// interleaved stream, each wrapped full-width.
     ///
-    /// A whitespace-only chunk NEVER opens a fresh entry — it may only
+    /// A whitespace-only chunk NEVER opens a fresh entry - it may only
     /// merge into a matching tail. This is the same rule the chat's
     /// `Token` handler applies ("leading whitespace before any text must
     /// never open a blank bubble"): providers emit stray blank chunks
     /// BEFORE the reasoning starts, and the invisible entry opened by one
     /// let a later merge capture the answer's text INTO that
     /// pre-reasoning row. A newline-carrying whitespace delta still
-    /// MERGES into a matching tail — paragraph breaks mid-stream are real
+    /// MERGES into a matching tail - paragraph breaks mid-stream are real
     /// content (the chat keeps the same distinction).
     ///
     /// Returns whether VISIBLE text changed: `false` for a whitespace-only
@@ -1474,8 +1474,8 @@ impl SubagentActivity {
     /// viewport on an invisible no-op.
     fn coalesce_stream_chunk(&mut self, text: &str, kind: StreamKind) -> bool {
         // TAIL-ONLY coalescing: only the timeline's LAST entry may absorb a
-        // chunk, and only when it is the same stream kind. Any other shape —
-        // a different kind, a tool/plan entry, a turn input — opens a fresh
+        // chunk, and only when it is the same stream kind. Any other shape -
+        // a different kind, a tool/plan entry, a turn input - opens a fresh
         // entry at the tail. The newest content is therefore always the last
         // entry, and the box scrolls in arrival order like the chat.
         if let Some(acc) = self.timeline.last_mut().and_then(|entry| match entry {
@@ -1495,21 +1495,21 @@ impl SubagentActivity {
             // The LIVE tail is NEVER bounded here: the growing entry must
             // keep growing in HEIGHT, exactly like the chat's `Reasoning`
             // part (the whole text is kept and re-measured every frame).
-            // Bounding a coalescing entry turns it into a SLIDING WINDOW —
+            // Bounding a coalescing entry turns it into a SLIDING WINDOW -
             // every delta cuts the head and appends the tail, the block's
             // height stays capped, the scroll stops moving, the content
             // above stays static, and the reasoning text slides UP inside
             // its own constant-height band and vanishes at the block's top
             // edge instead of expurging the flow above it (the "reasoning
             // rolando e sumindo" pane bug). The 8k archival bound applies
-            // when the entry STOPS streaming — see `push_entry` and `seal`.
+            // when the entry STOPS streaming - see `push_entry` and `seal`.
             return true;
         }
         // Whitespace-only chunks never OPEN an entry: an invisible blank row
         // would sit before the reasoning it precedes and a later merge would
         // capture the answer text into it, inverting the displayed order. A
         // newline-carrying whitespace delta must still MERGE into an open
-        // tail entry — paragraph breaks mid-stream are real content (the
+        // tail entry - paragraph breaks mid-stream are real content (the
         // chat keeps the same distinction). Nothing visible changed, so the
         // caller must not auto-scroll for it.
         if text.trim().is_empty() {
@@ -1539,11 +1539,11 @@ impl SubagentActivity {
 
     /// Apply the archival 8k bound to ONE timeline entry's text payload.
     /// Tool/plan entries carry no free text to bound. The bound marks the
-    /// entry's ARCHIVAL phase — see [`Self::push_entry`] and [`Self::seal`]
+    /// entry's ARCHIVAL phase - see [`Self::push_entry`] and [`Self::seal`]
     /// for where it applies; the LIVE tail is never clamped here.
     ///
     /// The asymmetry is intentional: stream chunks open their entry
-    /// UNCLAMPED at birth ([`Self::coalesce_stream_chunk`] — the growing
+    /// UNCLAMPED at birth ([`Self::coalesce_stream_chunk`] - the growing
     /// block must grow in height like the chat) and clamp only when they
     /// STOP streaming, while `open_turn_input`'s inputs arrive WHOLE (never
     /// streamed, never coalesced) and are clamped at birth directly there.
@@ -1566,8 +1566,8 @@ impl SubagentActivity {
     fn push_entry(&mut self, entry: SubagentTimelineEntry) {
         // The entry being DEMOTED from the tail position ends its streamed
         // phase at this exact moment: whatever it accumulated live (and
-        // grew unbounded — the flow contract above) compresses to its
-        // 8k tail here, ONCE, as a discrete step — the same archive shape
+        // grew unbounded - the flow contract above) compresses to its
+        // 8k tail here, ONCE, as a discrete step - the same archive shape
         // every other entry in the timeline carries. The NEW entry is NOT
         // clamped at birth: it is the live tail now and must keep its full
         // first chunk (a single oversized delta included) so the block
@@ -1588,8 +1588,8 @@ impl SubagentActivity {
     /// mismatch, so the fresh entry ALSO shields the previous turn: the
     /// next answer's chunks stop at it instead of merging into the older
     /// block (a plain `apply` here
-    /// would merge consecutive tool-less turns' inputs into a single row —
-    /// "foobar" for prompts "foo" then "bar" — and the following answer
+    /// would merge consecutive tool-less turns' inputs into a single row -
+    /// "foobar" for prompts "foo" then "bar" - and the following answer
     /// would join them). A later chunk of the SAME turn still merges into
     /// this entry through the normal `apply` path. Whitespace-only input
     /// opens nothing (the same invisible-row guard `coalesce_stream_chunk`
@@ -1607,14 +1607,14 @@ impl SubagentActivity {
     }
 
     /// Close a turn: seal the live timeline, then append the turn's terminal
-    /// report as its LAST entry — the single turn-closing implementation for
+    /// report as its LAST entry - the single turn-closing implementation for
     /// BOTH render surfaces that show an agent conversation:
     ///
     /// - the `/agents` live pane (`AgentPane::finish_turn`), and
     /// - the right panel's pane mirror, which inherits the CLOSED timeline
     ///   through the pane sync and must never re-derive the closure itself
     ///   (a mirror that rewrote the report into a separate window body
-    ///   rendered that body below the NEXT turn's input — the read order
+    ///   rendered that body below the NEXT turn's input - the read order
     ///   inverted: input above the previous turn's output. Keeping the
     ///   report inside the chronological timeline is what makes the
     ///   multi-turn mirror read like the chat).
@@ -1623,18 +1623,18 @@ impl SubagentActivity {
     /// `AgentsPaneDone` applies):
     /// - `failed` = `error` | `cancelled`. On failure the body is the
     ///   harness error and the transcript is all that remains of the
-    ///   agent's work — every entry stays, and the report lands prefixed
+    ///   agent's work - every entry stays, and the report lands prefixed
     ///   with `[turn <reason>]`.
     /// - On success the streamed report usually IS the last Message entry
     ///   (the `TurnClosure` contract), so `seal` drops that entry when its
-    ///   text is contained in `output` — otherwise the answer would print
+    ///   text is contained in `output` - otherwise the answer would print
     ///   twice. A body that does not carry it (a turn that ended right
     ///   after a tool call, a truncated report) keeps the entry: degrades
     ///   to keeping, never to losing content. Calls still `InProgress` seal
     ///   `Completed` on success / `Failed` on failure.
     ///
     /// The appended entry is bounded like every timeline text entry (a
-    /// single chunk may itself exceed the cap — see
+    /// single chunk may itself exceed the cap - see
     /// [`bounded_tail`]/`SUBAGENT_TEXT_ENTRY_BYTES`).
     pub(crate) fn close_turn(&mut self, output: &str, end: AgentCoworkerTurnEnd) {
         let failed = end.is_failure();
@@ -1642,7 +1642,7 @@ impl SubagentActivity {
         // A `partial` report is NOT a failure (its text already streamed and
         // must dedupe above) but it IS marked: the reader has to be able to
         // tell "the pane finished" from "the pane was cut off and this is
-        // what it had". `end_turn` stays bare — the normal case carries no
+        // what it had". `end_turn` stays bare - the normal case carries no
         // noise.
         let marker = if end.is_marked() {
             format!("\n\n[turn {}] {output}", end.as_str())
@@ -1653,12 +1653,12 @@ impl SubagentActivity {
     }
 }
 
-/// Function-key hint of the mixed button — the bare lowercase "f4",
+/// Function-key hint of the mixed button - the bare lowercase "f4",
 /// drawn italic inside the maximized box's top-right corner.
 pub const HEADER_MIXED_HINT: &str = "f4";
 
 /// Button hints for each section kind, drawn italic lowercase in the
-/// top-right corner INSIDE each section's own box — Subagent FIRST.
+/// top-right corner INSIDE each section's own box - Subagent FIRST.
 /// Each hint maximizes its section when clicked.
 pub const HEADER_SECTION_LABELS: [(SectionKind, &str); 3] = [
     (SectionKind::Subagent, "f1"),
@@ -1666,7 +1666,7 @@ pub const HEADER_SECTION_LABELS: [(SectionKind, &str); 3] = [
     (SectionKind::Todo, "f3"),
 ];
 
-/// Lowercase hint drawn for `kind` — the single lookup shared by the button
+/// Lowercase hint drawn for `kind` - the single lookup shared by the button
 /// builder and the painter, so the two can never disagree on a label.
 pub fn hint_label(kind: SectionKind) -> &'static str {
     HEADER_SECTION_LABELS
@@ -1723,7 +1723,7 @@ pub(crate) struct AgentNav {
     pub(crate) index: Option<usize>,
     /// When the user last manually navigated this queue. Drives the
     /// eviction heuristic: when display space must be reclaimed among
-    /// PINNED windows, the ones navigated longest ago are hidden first —
+    /// PINNED windows, the ones navigated longest ago are hidden first -
     /// the most recently visited is the one the user was last looking at.
     pub(crate) last_nav: Option<Instant>,
 }
@@ -1799,7 +1799,7 @@ pub struct RightPanelState {
     bash_cache_gen: u64,
     /// Width the bash buffer was wrapped at (cache key alongside gen).
     bash_cache_w: u16,
-    /// Wrap width of the bash section as of the last layout pass — lets
+    /// Wrap width of the bash section as of the last layout pass - lets
     /// scroll math (`section_max_scroll`) match the renderer without a
     /// width parameter.
     pub(crate) bash_wrap_w: u16,
@@ -1819,7 +1819,7 @@ pub struct RightPanelState {
     /// Cached per-session STATIC content rows (optional FULL-prompt input
     /// echo + markdown body rows) for the subagent section,
     /// keyed to `subagent_layout_gen` and the wrap width. Rebuilt only when
-    /// output or width changes — `estimate_height` (a pulldown_cmark parse)
+    /// output or width changes - `estimate_height` (a pulldown_cmark parse)
     /// is too expensive to run on every frame. The LIVE activity rows are
     /// deliberately NOT part of this cache (see `subagent_rows_combined`).
     subagent_rows_cache: Vec<u16>,
@@ -1828,22 +1828,22 @@ pub struct RightPanelState {
     /// `(has_input_echo, has_visible_body)`. The overlay recomputes the
     /// input gap from these plus the live activity rows: the gap separates
     /// the echoed prompt from WHATEVER follows it (transcript first, then
-    /// the body), and during a stream the body does not exist yet — the
+    /// the body), and during a stream the body does not exist yet - the
     /// static build counted no gap, the renderer still draws one in front
     /// of the live activity, so the overlay must add the missing row.
     subagent_rows_meta: Vec<(bool, bool)>,
     /// The rows CALLERS see: the static cache plus the live activity rows,
     /// which are recounted fresh on every call (outside the throttle) so the
-    /// section height — and the scroll clamp derived from it — always
+    /// section height - and the scroll clamp derived from it - always
     /// matches the timeline the renderer paints this frame. Aligned with
     /// `subagent_rows_cache` (one entry per subagent session).
     subagent_rows_combined: Vec<u16>,
     /// The `pty_gen` the subagent layout caches (rows + rendered body cells)
     /// were last rebuilt for. When `pty_gen` moves ahead but the rebuild is
     /// throttled, BOTH caches keep serving their previous values, so heights
-    /// and bodies always agree — they are never rebuilt on different gens.
+    /// and bodies always agree - they are never rebuilt on different gens.
     pub(crate) subagent_layout_gen: u64,
-    /// When the last subagent layout rebuild happened — rebuilds are
+    /// When the last subagent layout rebuild happened - rebuilds are
     /// coalesced to at most one per [`Self::subagent_rebuild_interval`].
     last_subagent_rebuild: Instant,
     /// Minimum gap between subagent layout rebuilds (default
@@ -1852,15 +1852,15 @@ pub struct RightPanelState {
     pub(crate) subagent_rebuild_interval: Duration,
     /// Cached RENDERED cells of each subagent body, keyed to the session id,
     /// the shared layout generation, the wrap width and the theme colors
-    /// (see [`SubagentBodyCache`]). Frames between streamed chunks — the
-    /// common case — blit these cells instead of re-parsing and re-rendering
+    /// (see [`SubagentBodyCache`]). Frames between streamed chunks - the
+    /// common case - blit these cells instead of re-parsing and re-rendering
     /// the whole body, which was the right-panel frame bottleneck. Entries
     /// are matched by session id, so evicted sessions never serve stale
     /// cells.
     pub(crate) subagent_body_cache: Vec<Option<SubagentBodyCache>>,
     /// Persistent per-entry markdown renderers of the LIVE activity blocks
     /// (running subagent windows), keyed by `{session_id}:{timeline index}`
-    /// — the per-block counterpart of `subagent_body_cache` for the
+    /// - the per-block counterpart of `subagent_body_cache` for the
     /// `Message`/`Thought` entries drawn by `draw_activity_lines`. The
     /// renderer instance survives across frames (chat-style `set_content`
     /// incremental parsing; closed sub-blocks come back from its internal
@@ -1870,14 +1870,14 @@ pub struct RightPanelState {
     /// blit and the layout agree by construction.
     pub(crate) subagent_activity_cache: HashMap<String, SubagentBlockRenderer>,
     /// Cached rendered diff cells per `EditDiff` activity line, keyed
-    /// `"{session_id}:{index}"` — pruned by the same live-key pass that
+    /// `"{session_id}:{index}"` - pruned by the same live-key pass that
     /// retires the markdown block renderers, so a sealed/evicted line's
     /// cells do not pin memory.
     pub(crate) subagent_diff_cells: HashMap<String, SubagentDiffCells>,
     /// Reusable scratch buffer for blitting the visible slice of a session's
     /// markdown body: the markdown renderer lays out from content row 0, so
     /// the full body is rendered here, copied into the body cache, and only
-    /// the visible rows are copied into the panel. Kept across frames —
+    /// the visible rows are copied into the panel. Kept across frames -
     /// `Buffer::resize` retains the allocation, so streaming never allocates
     /// a large buffer per frame.
     pub(crate) subagent_scratch: Option<Buffer>,
@@ -1911,22 +1911,22 @@ pub struct RightPanelState {
     /// chronological listing), when the list is active.
     pub(crate) subagent_list_selected: Option<usize>,
     /// Set by selection-changing actions so the next list render scrolls
-    /// the selected row into view. Wheel scrolling does NOT set it — the
+    /// the selected row into view. Wheel scrolling does NOT set it - the
     /// viewport may deliberately drift away from the selection.
     pub(crate) subagent_list_follow_pending: bool,
     /// Scroll offset of the subagent list (list-mode only, rows).
     pub(crate) subagent_list_scroll: i32,
     /// Screen bands of each list entry from the last render
-    /// (`session index in pty_sessions`, top, bottom exclusive) — maps
+    /// (`session index in pty_sessions`, top, bottom exclusive) - maps
     /// clicks/hovers to list entries. An entry may span SEVERAL rows
     /// (wrapped description), so bottom - top is its full row span.
     pub(crate) subagent_list_layouts: Vec<(usize, i32, i32)>,
     /// Flat `(content row, text)` of every wrapped list row from the last
-    /// render — the selection-region builder mirrors EXACTLY what the
+    /// render - the selection-region builder mirrors EXACTLY what the
     /// renderer drew (same wrap, same spinner frame).
     pub(crate) subagent_list_region_rows: Vec<(i32, String)>,
     /// Shared spinner animation of the list rows (one frame per row is
-    /// enough — the rows animate in lockstep, like the F-keys' hint row).
+    /// enough - the rows animate in lockstep, like the F-keys' hint row).
     subagent_list_spinner: SpinnerState,
     /// Subagent sessions displayed this frame (indices into
     /// `pty_sessions`), resolved by [`Self::resolve_visible_subagents`]
@@ -1934,7 +1934,7 @@ pub struct RightPanelState {
     /// this set.
     pub(crate) visible_subagents: Vec<usize>,
     /// Screen bands of each rendered subagent window from the last frame
-    /// (`session index in pty_sessions`, top, bottom exclusive) — resolves
+    /// (`session index in pty_sessions`, top, bottom exclusive) - resolves
     /// which AGENT queue a click targeted.
     pub(crate) subagent_window_layouts: Vec<(usize, i32, i32)>,
     /// Section currently maximized over the whole panel (`None` = the mixed
@@ -1959,7 +1959,7 @@ pub struct RightPanelState {
     /// Set to `true` when the user scrolls UP (away from the live edge);
     /// cleared when a scroll-down reaches the bottom again or by
     /// `scroll_to_bottom()`. Used by `is_scrolled_up()` to decide whether to
-    /// auto-follow on new output — the chat's sticky-bottom rule: a
+    /// auto-follow on new output - the chat's sticky-bottom rule: a
     /// scroll-down mid-content keeps the follow paused, reaching the bottom
     /// re-arms it. (Panel-wide flag: one section reaching the bottom re-arms
     /// the follow for all of them.)
@@ -1995,7 +1995,7 @@ pub struct RightPanelState {
     pub(crate) subagent_text_regions: Vec<TextRegion>,
     /// `pty_gen` the text regions were last rebuilt for.
     pub(crate) text_regions_gen: u64,
-    /// Wrap width of the SUBAGENT section as of the last layout pass —
+    /// Wrap width of the SUBAGENT section as of the last layout pass -
     /// lets scroll math (`section_max_scroll`) match the renderer's
     /// `max_w − LEFT_PAD − RIGHT_PAD` without a width parameter.
     pub(crate) subagent_wrap_w: u16,
@@ -2094,7 +2094,7 @@ impl RightPanelState {
     }
 
     /// Remove this instance's spilled files. Best-effort: failures (already
-    /// gone, permission) are ignored — temp dirs are expendable.
+    /// gone, permission) are ignored - temp dirs are expendable.
     fn remove_spill_dir(dir: &Path) {
         let _ = std::fs::remove_dir_all(dir);
     }
@@ -2119,7 +2119,7 @@ impl RightPanelState {
     /// is never overridden by auto-follow).
     pub fn panel_left(&mut self) {
         // EXPANDED subagent view (a clicked row): ← walks the subagent
-        // entries WITHOUT folding back to the list — the spec's "navigate
+        // entries WITHOUT folding back to the list - the spec's "navigate
         // list items without leaving expanded mode". In the automatic LIST
         // mode (and every other focus) the pre-existing queue-stepping
         // below applies unchanged.
@@ -2199,8 +2199,8 @@ impl RightPanelState {
     /// (alphabetical order, wrapping). Switching also hands the
     /// DISPLAY to the newly focused queue: its NEWEST entry takes over
     /// immediately (nav reset → auto-follow), replacing whatever was on
-    /// screen. This is how HIDDEN queues — those with no window on screen,
-    /// unreachable by plain ←/→ which navigate only the focused queue — are
+    /// screen. This is how HIDDEN queues - those with no window on screen,
+    /// unreachable by plain ←/→ which navigate only the focused queue - are
     /// reached. Works from any panel focus. (Alt+← / Alt+→ were removed:
     /// subagents are presented as ONE list, not per-CLI groups.)
     pub fn cycle_agent_queue(&mut self, dir: i32) -> bool {
@@ -2289,9 +2289,9 @@ impl RightPanelState {
 
     /// Whether the subagent section currently renders as a LIST: forced
     /// `Some(true)`, or automatic when >= 2 subagent sessions exist (a
-    /// single subagent always renders expanded — the classic window view).
+    /// single subagent always renders expanded - the classic window view).
     /// The MAIN-AGENT mirror overrides BOTH: while it exists the section is
-    /// ALWAYS the expanded window view — the mirror is the sole owner and
+    /// ALWAYS the expanded window view - the mirror is the sole owner and
     /// never appears in the list (the list builders exclude it), so neither
     /// the pane mirrors' count nor a stale forced flag may flip the section
     /// into a list that cannot display the main agent at all.
@@ -2309,7 +2309,7 @@ impl RightPanelState {
     }
 
     /// The chronological subagent list entries: `(pty_sessions index, is
-    /// selected)`, oldest first (matches the chat flow — the newest work
+    /// selected)`, oldest first (matches the chat flow - the newest work
     /// is at the bottom, next to the live edge). The MAIN-AGENT mirror is
     /// excluded: it never appears in the list (it owns the section as the
     /// one expanded window instead).
@@ -2357,7 +2357,7 @@ impl RightPanelState {
     }
 
     /// Expand the SELECTED list row: leave list mode and display that
-    /// session as the classic full window (the pre-list behavior — an
+    /// session as the classic full window (the pre-list behavior - an
     /// expanded subagent looks exactly like the single synchronous one).
     /// Returns whether a row was expanded.
     pub(crate) fn subagent_list_expand_selected(&mut self) -> bool {
@@ -2385,7 +2385,7 @@ impl RightPanelState {
     }
 
     /// The `pty_sessions` indices of every subagent session, in list order
-    /// (chronological, oldest first). The MAIN-AGENT mirror is excluded —
+    /// (chronological, oldest first). The MAIN-AGENT mirror is excluded -
     /// it never appears in the list.
     pub(crate) fn subagent_session_indices(&self) -> Vec<usize> {
         self.pty_sessions
@@ -2397,14 +2397,14 @@ impl RightPanelState {
     }
 
     /// The list's drawn rows as `(content row, text)`, recorded by the
-    /// renderer each frame — the selection-region builder mirrors EXACTLY
+    /// renderer each frame - the selection-region builder mirrors EXACTLY
     /// what was drawn (same wrap, same spinner frame).
     pub(crate) fn subagent_list_row_texts(&self) -> Vec<(i32, String)> {
         self.subagent_list_region_rows.clone()
     }
 
     /// Total CONTENT rows of the list: every entry wrapped to `wrap_w`
-    /// columns (the same wrap the renderer applies — a long description
+    /// columns (the same wrap the renderer applies - a long description
     /// WRAPS instead of pushing the tool name and spinner off-screen).
     pub(crate) fn subagent_list_total_rows(&self, wrap_w: u16) -> i32 {
         let spin = self.subagent_list_spinner_char();
@@ -2461,7 +2461,7 @@ impl RightPanelState {
 
     /// Click on the subagent list: select the row under `y` and expand it
     /// (the classic single-subagent window view). Returns whether the click
-    /// hit a row — otherwise the caller proceeds with drag selection.
+    /// hit a row - otherwise the caller proceeds with drag selection.
     pub(crate) fn subagent_list_click_at(&mut self, y: u16) -> bool {
         if !self.subagent_list_active() {
             return false;
@@ -2483,7 +2483,7 @@ impl RightPanelState {
 
     /// Return from an expanded subagent to the list (Ctrl+Alt+L, or Esc
     /// with the panel focused on the subagent section). No-op when the
-    /// list is already active — the caller decides whether Esc falls
+    /// list is already active - the caller decides whether Esc falls
     /// through to its other meanings. ALSO a no-op while the MAIN-AGENT
     /// mirror owns the section: the mirror never appears in the list (the
     /// list builders exclude it), so a forced list view here would render
@@ -2494,11 +2494,11 @@ impl RightPanelState {
             return false;
         }
         self.subagent_list_mode = Some(true);
-        // Seed the selection on the RUNNING session (the work in flight —
+        // Seed the selection on the RUNNING session (the work in flight -
         // exactly what the expanded view was showing); the newest entry
         // when nothing runs. `subagent_list_selected` counts POSITIONS
         // among subagent sessions (the `subagent_list_entries` index
-        // space), never raw `pty_sessions` indices — a bash session
+        // space), never raw `pty_sessions` indices - a bash session
         // before the last subagent would otherwise desync the selection.
         let indices = self.subagent_session_indices();
         self.subagent_list_selected = indices
@@ -2516,7 +2516,7 @@ impl RightPanelState {
     }
 
     /// Clamp list selection/scroll when the list shrinks (entries finish
-    /// but are never removed — the count only grows — this is a safety
+    /// but are never removed - the count only grows - this is a safety
     /// net for rehydration trimming).
     pub(crate) fn subagent_list_clamp(&mut self) {
         let count = self
@@ -2547,7 +2547,7 @@ impl RightPanelState {
         code_review: bool,
     ) {
         // The inferred label's sequence number counts this session's prior
-        // review calls WITHOUT an explicit description — the same rule the
+        // review calls WITHOUT an explicit description - the same rule the
         // harness's inference uses, so both agree on the numbering. Those
         // prior sessions carry their INFERRED label in `description`
         // (`code-review-NN`), so matching on `description.is_none()` alone
@@ -2588,14 +2588,14 @@ impl RightPanelState {
 
     /// Store the input echo of the last subagent window (the `ToolCall`'
     /// `input`, routed to `agent`'s window like `set_last_subagent_meta`):
-    /// the FULL prompt verbatim — the linear-chat prompt rendered above the
+    /// the FULL prompt verbatim - the linear-chat prompt rendered above the
     /// body, wearing the `│` input rail at paint time. Bounded to
     /// `SUBAGENT_INPUT_ECHO_BYTES` (tail kept) so a pathological prompt
     /// cannot balloon the wrap math. A window without an echo (empty/absent
     /// input) keeps `input_echo = None`.
     ///
     /// Height-relevant without its own `pty_gen` bump: correct only while
-    /// the caller runs RIGHT AFTER `start_pty` (which bumped) — the sole
+    /// the caller runs RIGHT AFTER `start_pty` (which bumped) - the sole
     /// caller does. A future second caller must bump `pty_gen` itself.
     pub(crate) fn set_last_subagent_input_echo(&mut self, agent: &str, input: Option<&str>) {
         let Some(session) = self
@@ -2612,7 +2612,7 @@ impl RightPanelState {
     }
 
     /// Move the list selection to the row under screen row `y` WITHOUT
-    /// expanding it — the same hover-follow contract as the model picker
+    /// expanding it - the same hover-follow contract as the model picker
     /// and the internal-tools list. Returns whether the pointer hit a row.
     pub(crate) fn subagent_list_hover_at(&mut self, y: u16) -> bool {
         if !self.subagent_list_active() {
@@ -2648,8 +2648,8 @@ impl RightPanelState {
     /// EXPANDED mode is EXCLUSIVE: exactly ONE window occupies the
     /// subagent section, sharing the panel only with the OTHER sections
     /// (TODO, bash). A click or ←/→ navigation focuses an agent queue,
-    /// and THAT queue's current window — its pinned entry, else its
-    /// newest — is shown ALONE: even while other subagents run, and even
+    /// and THAT queue's current window - its pinned entry, else its
+    /// newest - is shown ALONE: even while other subagents run, and even
     /// after it finished. Expansion is a deep-dive into the chosen
     /// session; the LIST mode is where the others stay visible. Without
     /// an agent focus (the automatic single-session view) the same
@@ -2657,9 +2657,9 @@ impl RightPanelState {
     /// FINISHED, newest first. The chosen window scrolls internally when
     /// it alone exceeds the budget (`_budget_rows` survives only for
     /// call-site compatibility). Superseded sessions never enter the
-    /// display — they are reachable only via navigation.
+    /// display - they are reachable only via navigation.
     pub(crate) fn resolve_visible_subagents(&mut self, _wrap_w: u16, _budget_rows: i32) {
-        // SOLE OWNER: while the main-agent mirror exists it IS the section —
+        // SOLE OWNER: while the main-agent mirror exists it IS the section -
         // exactly one window (itself), outranking every normal candidate
         // and never entering the ranking below (a normal subagent spawn or
         // user focus must not displace it while the `/agents` mode holds
@@ -2692,7 +2692,7 @@ impl RightPanelState {
         };
 
         // EXCLUSIVE expanded view: a click or manual navigation put an
-        // agent queue in focus — ITS window occupies the section alone.
+        // agent queue in focus - ITS window occupies the section alone.
         // Finished or running, it is what the user asked to look at; the
         // other subagents remain in the list (fold) and never reclaim the
         // area mid-inspection.
@@ -2707,7 +2707,7 @@ impl RightPanelState {
         // No agent focus (the automatic single-session view): rank
         // candidates best-first and display ONLY the top one. A
         // focused/pinned window keeps its top priority ONLY while its
-        // session is alive — a finished one ranks below every RUNNING
+        // session is alive - a finished one ranks below every RUNNING
         // session, so live work is what shows once the focus is gone:
         //   0. FOCUSED/pinned windows while their sessions are RUNNING.
         //   1. Live RUNNING sessions (not superseded), newest first.
@@ -2734,7 +2734,7 @@ impl RightPanelState {
             ranked.push((class, u64::MAX, idx));
         }
 
-        // Pinned queues — most recent manual navigation first. A pinned
+        // Pinned queues - most recent manual navigation first. A pinned
         // queue contributes exactly ONE candidate: its selected entry. The
         // focused queue is already represented above.
         let focused_agent = match &self.panel_focus {
@@ -2784,7 +2784,7 @@ impl RightPanelState {
         }
         ranked.sort_by(|a, b| a.0.cmp(&b.0).then(b.1.cmp(&a.1)));
 
-        // ONE window only — the top-ranked candidate (expanded
+        // ONE window only - the top-ranked candidate (expanded
         // exclusivity; the multi-window sharing this function used to do
         // is gone along with the per-agent grouping).
         let Some(&(_, _, top)) = ranked.first() else {
@@ -2806,7 +2806,7 @@ impl RightPanelState {
 
     /// Rows of ALL subagent sessions aligned with `pty_sessions` indices
     /// (0 for non-subagent entries). Only the sessions currently DISPLAYED
-    /// have their spill files reloaded — reloading everything would defeat
+    /// have their spill files reloaded - reloading everything would defeat
     /// the memory window every frame. Unloaded entries contribute a
     /// header-only height for fitting; once a session becomes visible,
     /// [`Self::session_output`] loads it and bumps `pty_gen`, rebuilding
@@ -2851,13 +2851,13 @@ impl RightPanelState {
     }
 
     /// The clickable corner hints of the last render (empty when the mixed
-    /// view shows fewer than two sections — the hints only exist when there
+    /// view shows fewer than two sections - the hints only exist when there
     /// is something to prioritize).
     pub fn header_buttons(&self) -> &[HeaderButton] {
         &self.header_buttons
     }
 
-    /// Hit-test corner-hint rects: the hint covering screen cell `(x, y)` —
+    /// Hit-test corner-hint rects: the hint covering screen cell `(x, y)` -
     /// shared by the click path, the hover path and the renderer so all
     /// three agree on what counts as "on the hint".
     pub(crate) fn hit_hint_at(buttons: &[HeaderButton], x: u16, y: u16) -> Option<HeaderButton> {
@@ -2937,7 +2937,7 @@ impl RightPanelState {
 
     /// Focus the panel slot at screen row `y` (called on mouse-down):
     /// bash focuses the bash toggle; a subagent window focuses THAT
-    /// window's agent queue — each CLI navigates independently. Returns
+    /// window's agent queue - each CLI navigates independently. Returns
     /// whether a focusable slot was hit.
     pub fn focus_at(&mut self, y: u16) -> bool {
         let Some(kind) = self.section_at(y) else {
@@ -3026,7 +3026,7 @@ impl RightPanelState {
     /// A raw `+ delta` would overflow and panic in debug builds.
     ///
     /// Auto-follow rule (the chat's sticky-bottom behavior): only scrolling
-    /// UP — toward older content — pauses the follow; a scroll that moves or
+    /// UP - toward older content - pauses the follow; a scroll that moves or
     /// stays at the bottom keeps it, and scrolling back down to the bottom
     /// re-arms it. A no-op scroll (already at the clamp) changes nothing, so
     /// wheel-up against the top never kills the live view either.
@@ -3071,8 +3071,8 @@ impl RightPanelState {
             self.user_scrolled_away = true;
         } else {
             // Scrolling toward newer content: pinning at (or past) the
-            // bottom — `next` may transiently exceed `max_scroll` and is
-            // clamped by the next render — means the user is back at the
+            // bottom - `next` may transiently exceed `max_scroll` and is
+            // clamped by the next render - means the user is back at the
             // live edge, so follow re-arms. Between bottom and the viewport
             // top the user is deliberately reading: follow stays paused.
             let max_scroll = self.section_max_scroll(kind);
@@ -3360,7 +3360,7 @@ impl RightPanelState {
         // insert/remove), arms a fresh hold-then-sweep counter (it just
         // flipped to `completed`, in place or re-entering the list), or
         // strikes permanently (arrived done in the very first snapshot).
-        // Rebuilding also drops stale counters for free — no orphaned
+        // Rebuilding also drops stale counters for free - no orphaned
         // position key can outlive its item or leak onto a neighbor that
         // slides into its slot.
         let mut frames: HashMap<u64, u64> = HashMap::new();
@@ -3380,7 +3380,7 @@ impl RightPanelState {
                 _ if !first_snapshot => Some(0),
                 // Very first update this panel sees: a snapshot arriving
                 // already done (restored session / first result carries
-                // completions) strikes instantly — nothing to animate
+                // completions) strikes instantly - nothing to animate
                 // from, matching oh-my-pi's first-snapshot behavior. No
                 // counter is stored, so the item renders fully crossed.
                 _ => None,
@@ -3408,7 +3408,7 @@ impl RightPanelState {
     /// Advance the strike animation by `ticks` 30 fps frames, called once per
     /// rendered frame from `App::render`. Counters past the animation's total
     /// are dropped (the strike is permanent; a `None` frame then renders).
-    /// Returns whether any counter is still live — the caller keeps the
+    /// Returns whether any counter is still live - the caller keeps the
     /// render loop in live mode while it is.
     pub fn advance_todo_strikes(&mut self, ticks: u32) -> bool {
         if self.todo_strike_frames.is_empty() {
@@ -3437,7 +3437,7 @@ impl RightPanelState {
     /// Bind the NEWEST PTY session to a call's routing identity. Called
     /// right after `start_pty` for a `subagent_call` (the ToolCall handler
     /// created the window): every stream, report and notification carrying
-    /// this `call_ref` routes to THIS window — the exact input↔output
+    /// this `call_ref` routes to THIS window - the exact input↔output
     /// pairing that the agent-name fallback could cross-pair.
     pub fn bind_last_pty_call_ref(&mut self, call_ref: Option<String>) {
         if let Some(session) = self.pty_sessions.last_mut() {
@@ -3463,7 +3463,7 @@ impl RightPanelState {
                 // Pane mirrors and the main-agent mirror are OUT: a `/agents`
                 // pane is a stable per-pane slot (its own routing identity)
                 // and the main-agent mirror is the Subagent section's sole
-                // owner — a normal subagent spawn of the same agent must
+                // owner - a normal subagent spawn of the same agent must
                 // never evict either from the default display.
                 if s.command == prefix && s.is_finished() && !s.bound && !s.main_mirror {
                     s.superseded = true;
@@ -3504,14 +3504,14 @@ impl RightPanelState {
 
     /// Open (or re-target) the MIRROR WINDOW of `/agents` pane `pane`: the
     /// split-screen mode surfaces each of its agents in the shared subagent
-    /// list, so a pane owns one stable session here — `agents_pane`-keyed,
+    /// list, so a pane owns one stable session here - `agents_pane`-keyed,
     /// opened on demand, NEVER superseded (the pane index is the routing
     /// identity; a normal subagent spawn of the same CLI must not steal it)
     /// and invisible to the per-CLI supersede sweep (closed below). The
     /// `bound` flag marks it for the full-color brand logo in the list.
     pub(crate) fn open_agents_pane_window(&mut self, pane: usize, agent: &str) {
         // Retarget on an agent change: a fresh picker confirm can put a
-        // DIFFERENT agent at a pane index the mirror already follows — the
+        // DIFFERENT agent at a pane index the mirror already follows - the
         // mirror is the pane's slot, so it follows the pane (the activity
         // is overwritten by the next sync either way; the label must not
         // lag behind a swap).
@@ -3524,7 +3524,7 @@ impl RightPanelState {
                 session.command = format!("subagent: {agent}");
                 // The pane is a NEW agent's slot: drop the previous agent's
                 // report body and description so the list never shows a
-                // swapped pane still wearing its predecessor's transcript —
+                // swapped pane still wearing its predecessor's transcript -
                 // the next sync rebuilds the activity from scratch. The
                 // status/severity reset too: a sealed `Completed`/`Failed`
                 // marker (or a review verdict tint) on an EMPTY body would
@@ -3550,14 +3550,14 @@ impl RightPanelState {
         // The new pane mirror must not retroactively supersede finished
         // NORMAL windows of the same CLI: the mirror is a stable per-pane
         // slot, not a newer turn of that queue (this runs BEFORE the push
-        // order matters — see the sweep exclusion below, mirrored here by
+        // order matters - see the sweep exclusion below, mirrored here by
         // construction: mirrors never enter the normal supersede logic).
         self.mark_activity(SectionKind::Subagent);
     }
 
     /// Sync one pane mirror with the pane's live state: apply the pane's
     /// `SubagentActivity` timeline (message/thought chunks, tool calls,
-    /// plans — the SAME coalescing state machine both sides run) and copy
+    /// plans - the SAME coalescing state machine both sides run) and copy
     /// the running/finished flags. Pane-index routed, so the `call_ref` and
     /// last-Running paths of normal subagent traffic can never reach a
     /// mirror. `label` is the mirror's list description, owned by the
@@ -3575,12 +3575,12 @@ impl RightPanelState {
 
     /// The DONE variant: the pane's turn ended, so the mirror takes the
     /// pane's ALREADY-CLOSED timeline (`SubagentActivity::close_turn` ran
-    /// in the pane before this sync — the report is its LAST entry) and
+    /// in the pane before this sync - the report is its LAST entry) and
     /// flips its terminal marker. The mirror never re-derives the closure:
     /// re-sealing here would treat the just-appended report entry as the
     /// streamed duplicate and DELETE it, and writing the report into a
     /// separate window body rendered that body below the NEXT turn's
-    /// input — the read order inverted on every multi-turn mirror (the
+    /// input - the read order inverted on every multi-turn mirror (the
     /// right-panel scramble). Keeping the report inside the chronological
     /// timeline is what makes the mirror read like the chat.
     /// `failed` marks the window `Failed`.
@@ -3631,7 +3631,7 @@ impl RightPanelState {
                     changed = true;
                 }
             } else if closed || matches!(session.status, PtyStatus::Running) {
-                // The turn ENDED — through the Done event (`closed`) or an
+                // The turn ENDED - through the Done event (`closed`) or an
                 // un-signaled stop (the pane's set was superseded mid-turn).
                 // The timeline arrives ALREADY closed (sealed + report
                 // appended by `SubagentActivity::close_turn` in the pane):
@@ -3647,7 +3647,7 @@ impl RightPanelState {
                 // Un-signaled stop only: the pane's activity never got
                 // closed (its Done was epoch-dropped), so InProgress tool
                 // rows would land frozen mid-spinner in this finished
-                // mirror — the mirror freezes its OWN copy here (the pane
+                // mirror - the mirror freezes its OWN copy here (the pane
                 // keeps its raw state; this is display projection).
                 // `seal(true, None)` keeps every entry and just completes
                 // the stuck rows; the failure flavor fails them.
@@ -3680,7 +3680,7 @@ impl RightPanelState {
             .retain(|s| !(s.bound && s.agents_pane.is_some()));
         if self.pty_sessions.len() != before {
             self.pty_gen = self.pty_gen.wrapping_add(1);
-            // Selection/pins index absolute positions — clamp defensively.
+            // Selection/pins index absolute positions - clamp defensively.
             self.subagent_list_selected = None;
             for nav in self.agent_navs.values_mut() {
                 nav.index = None;
@@ -3688,7 +3688,7 @@ impl RightPanelState {
         }
     }
 
-    /// Drop only the mirrors of panes at or beyond `count` — a fresh picker
+    /// Drop only the mirrors of panes at or beyond `count` - a fresh picker
     /// confirm SHRANK the pane set, and stale mirrors of removed indexes
     /// must not linger in the list (they would never sync again).
     pub(crate) fn prune_agents_pane_beyond(&mut self, count: usize) {
@@ -3722,7 +3722,7 @@ impl RightPanelState {
     //   it like `bound`).
     //
     // Closing resets the projection: the next open starts a fresh
-    // timeline from the then-current conversation (no backfill — the
+    // timeline from the then-current conversation (no backfill - the
     // full transcript is the chat's job).
 
     /// Absolute `pty_sessions` index of the main-agent mirror, if open.
@@ -3731,7 +3731,7 @@ impl RightPanelState {
     }
 
     /// Open (idempotently) the main-agent mirror window. The mirror is a
-    /// running `subagent: morpheus` window wearing the `main_mirror` marker —
+    /// running `subagent: morpheus` window wearing the `main_mirror` marker -
     /// the same shape a subagent window renders, so zero new rendering
     /// code. Never superseded, never listed, never a normal-event target.
     pub(crate) fn open_main_mirror_window(&mut self) {
@@ -3752,7 +3752,7 @@ impl RightPanelState {
     /// transition Running→finished here seals the transcript the same way
     /// a pane-mirror turn end does (no re-seal churn while idle).
     ///
-    /// Returns whether the event changed any VISIBLE mirror state — the
+    /// Returns whether the event changed any VISIBLE mirror state - the
     /// SAME signal `update_subagent_activity` feeds the normal subagent
     /// auto-follow. The mirror is the same window the subagents render,
     /// so its follow contract is the same one: the caller re-pins the
@@ -3826,7 +3826,7 @@ impl RightPanelState {
         {
             // `seal(false, _)` on failure keeps every entry and fails the
             // stuck rows; on success stuck rows complete (the result raced
-            // behind the closure) — the same rule the pane mirrors apply.
+            // behind the closure) - the same rule the pane mirrors apply.
             session.subagent_activity.seal(!failed, None);
             session.activity_rows_cache = None;
         }
@@ -3834,7 +3834,7 @@ impl RightPanelState {
         self.mark_activity(SectionKind::Subagent);
     }
 
-    /// Store (or clear) the mirror's verbatim turn input echo — the prompt
+    /// Store (or clear) the mirror's verbatim turn input echo - the prompt
     /// rendered above the timeline with the `│` input rail.
     pub(crate) fn set_main_mirror_input_echo(&mut self, input: Option<&str>) {
         let Some(idx) = self.main_mirror_index() else {
@@ -3862,10 +3862,10 @@ impl RightPanelState {
             self.pty_sessions[idx].main_mirror = false;
         }
         self.pty_gen = self.pty_gen.wrapping_add(1);
-        // Selection/pins index absolute positions — clamp defensively. A
+        // Selection/pins index absolute positions - clamp defensively. A
         // window click while the mirror was up may have left the panel
         // focused on the mirror's own queue (`Agent("morpheus")`): with the
-        // mirror gone that focus is stale — drop it with the rest.
+        // mirror gone that focus is stale - drop it with the rest.
         self.panel_focus = None;
         self.subagent_list_selected = None;
         for nav in self.agent_navs.values_mut() {
@@ -3984,7 +3984,7 @@ impl RightPanelState {
     /// Live-path unwrapping for subagent sessions: chunks and finished
     /// outputs arrive through `update_last_pty` BEFORE `complete_last_pty`
     /// gets them, so the same JSON-envelope/notification unwrapping the
-    /// other paths do must happen here too — otherwise the raw envelope
+    /// other paths do must happen here too - otherwise the raw envelope
     /// lands in the running window (the reported leak). Bash sessions pass
     /// through untouched.
     fn subagent_live_chunk(chunk: &str) -> String {
@@ -3998,13 +3998,13 @@ impl RightPanelState {
     /// True when `session` is a window of `agent`. Internal subagents have
     /// no agent CLI (the model omits `agent`, so the window's command is
     /// `subagent: ` with a BLANK name) but their background receipts and
-    /// notifications are registered under the literal name `internal` —
+    /// notifications are registered under the literal name `internal` -
     /// both spellings must match or an internal completion notification
     /// would never find its window (and the window would stay Running).
     fn is_window_of(session: &PtySession, agent: &str) -> bool {
         // Pane mirrors and the main-agent mirror are never normal subagent
         // windows: the agent-hint fallback (and every caller of this
-        // predicate — meta, stream, completion, failure) must not graft
+        // predicate - meta, stream, completion, failure) must not graft
         // `subagent_call` traffic into a `/agents` pane's mirror or into
         // the main-agent mirror. Each mirror is fed exclusively through
         // its own sync (pane-index routed / `sync_main_mirror_event`).
@@ -4020,7 +4020,7 @@ impl RightPanelState {
 
     /// `update_last_pty` scoped to BASH windows: the streaming path of a
     /// MAIN-AGENT tool must never append into a RUNNING background subagent
-    /// window — with a parallel background turn, the subagent window IS the
+    /// window - with a parallel background turn, the subagent window IS the
     /// last-Running session, and an untargeted append would graft the other
     /// tool's output into the mini-chat (the plan/stream leak family).
     /// Subagent windows are fed exclusively through the targeted
@@ -4041,7 +4041,7 @@ impl RightPanelState {
 
     /// `update_last_pty`, targeted at one agent's subagent window (see
     /// `complete_last_pty_for_agent`): a live ToolOutput of a PARALLEL
-    /// background turn must land in ITS window — the sibling's spawn
+    /// background turn must land in ITS window - the sibling's spawn
     /// receipt would otherwise collect this call's pending line.
     /// `None` keeps the default last-Running behavior (bash sessions and
     /// the single-window callers rely on it).
@@ -4050,7 +4050,7 @@ impl RightPanelState {
     }
 
     /// `update_last_pty_for_agent` with EXACT per-call routing: a `call_ref`
-    /// (bound at `ToolCall` time) identifies ONE session — the stream lands
+    /// (bound at `ToolCall` time) identifies ONE session - the stream lands
     /// in ITS window even when a sibling call of the same agent CLI is also
     /// Running. Falls back to the agent hint (and then the last-Running
     /// default for untargeted bash events) when the ref matches nothing.
@@ -4071,7 +4071,7 @@ impl RightPanelState {
                 .rposition(|s| s.call_ref.as_deref() == Some(r))
         });
         // A ref that matches nothing (pre-ref emitters, a dropped session)
-        // falls back to the agent hint, then the last-Running default —
+        // falls back to the agent hint, then the last-Running default -
         // the same contract the `_for_agent` variants implement.
         let fallback_match = if ref_match.is_none() {
             self.pty_sessions.iter().rposition(|s| match agent {
@@ -4110,7 +4110,7 @@ impl RightPanelState {
 
     /// `complete_last_pty` scoped to BASH windows: a MAIN-AGENT tool result
     /// (`bash_run`, `plan_todo_write`, …) must never close a RUNNING
-    /// background subagent window — with a parallel background turn, the
+    /// background subagent window - with a parallel background turn, the
     /// subagent window IS the last-Running session, and the untargeted
     /// completion used to (a) stamp the other tool's output into its body
     /// and (b) mark it Completed, so the later completion notification then
@@ -4137,7 +4137,7 @@ impl RightPanelState {
     /// handler in `app/events.rs`), so the default method acts on the
     /// LAST Running window. With PARALLEL background sub-agents (ACP,
     /// `run_in_background: true`) the first completion notification must
-    /// close ITS OWN window, not whichever sibling happens to be last —
+    /// close ITS OWN window, not whichever sibling happens to be last -
     /// otherwise one window finishes with the wrong agent's report and
     /// the other's report lands in the WRONG window (both leak). The
     /// agent hint comes from the notification wrapper itself
@@ -4149,7 +4149,7 @@ impl RightPanelState {
 
     /// `complete_last_pty_for_agent` with EXACT per-call routing (see
     /// `update_last_pty_routed`): the report of a `subagent_call` lands in
-    /// the window BOUND to that call — never in a sibling's, even when two
+    /// the window BOUND to that call - never in a sibling's, even when two
     /// parallel spawns share the agent CLI.
     pub fn complete_last_pty_routed(
         &mut self,
@@ -4159,7 +4159,7 @@ impl RightPanelState {
     ) {
         let mut final_output = final_output;
         // EXACT per-call routing first (see `update_last_pty_routed`): the
-        // report lands in the window BOUND to the call — at any status —
+        // report lands in the window BOUND to the call - at any status -
         // never in a sibling's. A ref that matches nothing falls back to
         // the agent hint, then the last-Running default.
         let ref_match = call_ref.and_then(|r| {
@@ -4181,7 +4181,7 @@ impl RightPanelState {
             let session = &mut self.pty_sessions[idx];
             if session.is_subagent() {
                 // The tool result of a `subagent_call` arrives JSON-wrapped
-                // (`SubAgentCallOutput`) — classification happens through the
+                // (`SubAgentCallOutput`) - classification happens through the
                 // SHARED `classify_subagent_output` (the single source of
                 // envelope/notification interpretation; the leak bugs came
                 // from render paths disagreeing). Two special shapes:
@@ -4189,9 +4189,9 @@ impl RightPanelState {
                 // - A background SPAWN RECEIPT (`stop_reason: "spawned"`):
                 //   the sub-agent's report does not exist yet, so the window
                 //   must NOT complete here. It stays Running (the live
-                //   SubagentEvent mini-chat keeps flowing) — `update_last_pty`
+                //   SubagentEvent mini-chat keeps flowing) - `update_last_pty`
                 //   already appended the readable `⏳` pending line for this
-                //   event — and the later completion notification
+                //   event - and the later completion notification
                 //   (`subagent_status` ToolOutput) finishes it with the
                 //   actual report.
                 // - A plain report: unwrap, then consume the leading
@@ -4211,12 +4211,11 @@ impl RightPanelState {
                 // green/orange/red. Extracted from the UNWRAPPED report and
                 // BEFORE the tail-only truncation below, or a large report
                 // would lose its header.
-                let (severity, _) =
-                    morpheus_agents::severity::extract_severity(&final_output);
+                let (severity, _) = morpheus_agents::severity::extract_severity(&final_output);
                 session.severity = severity;
             }
             // SEAL ON THE TRANSITION ONLY: one subagent call's completion
-            // arrives TWICE — the streamed `ToolOutput { finished: true }`
+            // arrives TWICE - the streamed `ToolOutput { finished: true }`
             // report AND the `ToolResult` JSON envelope, both routed by the
             // same call_ref (background windows get the later notification
             // on top). Sealing on every pass would delete one more
@@ -4229,17 +4228,17 @@ impl RightPanelState {
             if was_running {
                 // SEALED TRANSCRIPT: the mini-chat (reasoning, tool rows,
                 // narration) becomes the window's permanent transcript
-                // instead of being wiped — wiping erased the reasoning
+                // instead of being wiped - wiping erased the reasoning
                 // exactly when the user tried to re-read it. The final
                 // Message entry goes ONLY when the report body actually
-                // carries that text (the TurnClosure contract — the body IS
+                // carries that text (the TurnClosure contract - the body IS
                 // the last message segment); a body that does not (a
                 // background failure notification, a truncated report, the
                 // closure's fallback) keeps the entry instead of losing
                 // content. Sealed BEFORE the tail truncation: the
                 // containment reference is the sub-agent's own report, not
                 // the echoed prompt above it (that prompt lives OUTSIDE the
-                // output — `input_echo` — so it survives every replacement
+                // output - `input_echo` - so it survives every replacement
                 // by construction).
                 session.subagent_activity.seal_completed(&final_output);
                 session.activity_rows_cache = None;
@@ -4259,7 +4258,7 @@ impl RightPanelState {
 
     /// `fail_last_pty`, targeted at one agent's subagent window (same
     /// routing contract as `complete_last_pty_for_agent`). With `None` it
-    /// keeps the legacy last-Running-ANY behavior — the main-agent tool
+    /// keeps the legacy last-Running-ANY behavior - the main-agent tool
     /// paths must NOT use it (see `fail_last_bash_pty`).
     pub fn fail_last_pty_for_agent(&mut self, error: String, agent: Option<&str>) {
         self.fail_last_pty_routed(error, None, agent);
@@ -4267,7 +4266,7 @@ impl RightPanelState {
 
     /// `fail_last_pty_for_agent` with EXACT per-call routing (see
     /// `complete_last_pty_routed`): the failure lands in the window BOUND
-    /// to that call — never in a sibling's, even when two parallel spawns
+    /// to that call - never in a sibling's, even when two parallel spawns
     /// share the agent CLI.
     pub fn fail_last_pty_routed(
         &mut self,
@@ -4276,7 +4275,7 @@ impl RightPanelState {
         agent: Option<&str>,
     ) {
         let mut error = error;
-        // Ref match first (any status — a late failure still belongs to
+        // Ref match first (any status - a late failure still belongs to
         // ITS window), then the agent-hint fallback, then last-Running.
         let ref_match = call_ref.and_then(|r| {
             self.pty_sessions
@@ -4296,8 +4295,8 @@ impl RightPanelState {
         if let Some(idx) = ref_match.or(fallback_match) {
             let session = &mut self.pty_sessions[idx];
             // The error text REPLACES the streamed output. The echoed
-            // main-agent prompt is NOT in the output — it lives on
-            // `input_echo` — so it survives the replacement by construction
+            // main-agent prompt is NOT in the output - it lives on
+            // `input_echo` - so it survives the replacement by construction
             // (the old in-string marker needed a capture/re-prepend dance
             // here; the dedicated field removed that failure mode).
             Self::truncate_output(&mut error);
@@ -4311,7 +4310,7 @@ impl RightPanelState {
             if was_running {
                 // SEALED TRANSCRIPT (failure flavor): the body is the
                 // harness error, not the sub-agent's answer, so the
-                // transcript seals in FULL — reasoning, tool rows and
+                // transcript seals in FULL - reasoning, tool rows and
                 // narration are all that remains of the sub-agent's work,
                 // and every still-running call marks Failed instead of
                 // spinning forever on a finished window.
@@ -4323,7 +4322,7 @@ impl RightPanelState {
     }
 
     /// `fail_last_pty` scoped to BASH windows: a MAIN-AGENT tool error must
-    /// never fail a RUNNING background subagent window — with a parallel
+    /// never fail a RUNNING background subagent window - with a parallel
     /// background turn, the subagent window IS the last-Running session,
     /// and the untargeted failure used to stamp the other tool's error into
     /// the mini-chat and kill a live turn. Subagent windows are failed
@@ -4347,7 +4346,7 @@ impl RightPanelState {
     /// (Phase 3a plumbing). Only RUNNING subagent sessions accumulate live
     /// activity: bash sessions and finished/rehydrated windows ignore it.
     ///
-    /// Returns whether the event was applied AND changed visible state —
+    /// Returns whether the event was applied AND changed visible state -
     /// the caller auto-follows the scroll only then (a dropped event or a
     /// no-op event such as a duplicate `Usage` must not yank the viewport).
     pub(crate) fn update_subagent_activity(
@@ -4357,7 +4356,7 @@ impl RightPanelState {
     ) -> bool {
         let mut changed = false;
         // EXACT per-call routing first: the mini-chat timeline (thoughts,
-        // tool rows, plans) belongs to ONE call's window — parallel
+        // tool rows, plans) belongs to ONE call's window - parallel
         // sub-agents must never interleave each other's activity.
         let ref_target = call_ref.and_then(|r| {
             self.pty_sessions
@@ -4369,7 +4368,7 @@ impl RightPanelState {
                 // The ref matched ITS window: apply only while it is still
                 // Running. A completed/failed window must NOT spill the
                 // event into a sibling's via the fallback below (the exact
-                // cross-pairing shape this routing eliminates) — drop it.
+                // cross-pairing shape this routing eliminates) - drop it.
                 if matches!(self.pty_sessions[idx].status, PtyStatus::Running) {
                     Some(idx)
                 } else {
@@ -4378,7 +4377,7 @@ impl RightPanelState {
             }
             // The ref matched nothing at all (pre-ref emitters, rehydrated
             // sessions): fall back to the last Running subagent. The
-            // main-agent mirror is excluded exactly like the pane mirrors —
+            // main-agent mirror is excluded exactly like the pane mirrors -
             // normal subagent traffic must never reach it.
             None => self.pty_sessions.iter().rposition(|s| {
                 matches!(s.status, PtyStatus::Running)
@@ -4424,7 +4423,7 @@ impl RightPanelState {
     /// Rebuild the panel content from a persisted session by replaying its
     /// tool parts (plan todos, bash runs, subagent calls), so the panel
     /// survives an app restart or a session switch. Everything restored is
-    /// FINISHED — live PTY processes died with the previous app instance —
+    /// FINISHED - live PTY processes died with the previous app instance -
     /// and bounded (see the `REHYDRATE_*` limits) so a long history doesn't
     /// flood the panel.
     pub fn rehydrate_from_session(&mut self, session: &Session) {
@@ -4529,7 +4528,7 @@ impl RightPanelState {
         for (agent, input, description, code_review, output, failed) in kept_subs {
             let command = format!("subagent: {agent}");
             // Same contract as the live path (events): the echo is the FULL
-            // verbatim prompt, stored on the window (`input_echo`) —
+            // verbatim prompt, stored on the window (`input_echo`) -
             // empty/absent input echoes nothing.
             self.replay_pty(
                 command,
@@ -4562,11 +4561,11 @@ impl RightPanelState {
         // A review call that omitted `description` was labeled with the
         // INFERRED `code-review-NN` in the live session; the persisted input
         // carries no description, so the label must be reconstructed here or
-        // the restored entry would show the neutral "—" fallback (the
+        // the restored entry would show the neutral "-" fallback (the
         // `code_review` flag exists exactly for this reconstruction). Counted
         // BEFORE the fresh session is touched (the `last_mut` borrow below
         // excludes it): chronological position among this session's restored
-        // review calls WITHOUT an explicit description — the same rule the
+        // review calls WITHOUT an explicit description - the same rule the
         // live inference and `set_last_subagent_meta` use.
         let inferred = if code_review {
             let len = self.pty_sessions.len();
@@ -4593,7 +4592,7 @@ impl RightPanelState {
         // The restored input echo rides the DEDICATED field (the same
         // contract the live path applies in `set_last_subagent_input_echo`):
         // the prompt renders verbatim above the body, wearing the `│` input
-        // rail — no in-string marker. Same `SUBAGENT_INPUT_ECHO_BYTES` bound.
+        // rail - no in-string marker. Same `SUBAGENT_INPUT_ECHO_BYTES` bound.
         session.input_echo = input
             .map(|i| bounded_tail(i.trim(), SUBAGENT_INPUT_ECHO_BYTES))
             .filter(|i| !i.is_empty());
@@ -4618,7 +4617,7 @@ impl RightPanelState {
     /// Derived line buffer of the bash PTY sessions (`$ command` + output
     /// lines), WRAPPED to `wrap_w` columns: long words/lines break onto the
     /// following rows instead of disappearing past the box edge. LIVE mode
-    /// (default) renders ONLY the most recent bash session — one command +
+    /// (default) renders ONLY the most recent bash session - one command +
     /// its output per view; HISTORY mode (←) shows ALL commands stacked
     /// linearly, exactly like the pre-history panel. Cached until the next
     /// PTY mutation or mode/width change: rebuilding the entire accumulated
@@ -4655,7 +4654,7 @@ impl RightPanelState {
 
     /// Derived line buffer of ALL subagent sessions (command header +
     /// output lines). WARNING: reloads every spilled output when the cache
-    /// rebuilds — do NOT wire this into the render path (the memory window
+    /// rebuilds - do NOT wire this into the render path (the memory window
     /// would be defeated); it exists for diagnostics/tests.
     /// Same-agent entries are superseded, never removed.
     /// Cached until the next PTY mutation (see [`Self::bash_buffer`]).
@@ -4683,18 +4682,18 @@ impl RightPanelState {
     /// body + live activity) per subagent session. The STATIC part is cached
     /// against `subagent_layout_gen` and `wrap_w` so the markdown parse only
     /// runs when needed; during streaming, rebuilds are coalesced to at most
-    /// one per [`SUBAGENT_REBUILD_INTERVAL`] — when throttled, the previous
+    /// one per [`SUBAGENT_REBUILD_INTERVAL`] - when throttled, the previous
     /// static rows are served (and `subagent_layout_gen` stays behind
     /// `pty_gen`, so the body cache keeps agreeing with them). A wrap-width
     /// change always rebuilds immediately.
     ///
-    /// The LIVE activity rows (tool calls, plan, thought — only RUNNING
+    /// The LIVE activity rows (tool calls, plan, thought - only RUNNING
     /// sessions have any) are added FRESH on every call, outside the
     /// throttle: the timeline grows on every event while the static cache
     /// can lag up to one interval, and a height that lags the painted
     /// content makes the scroll clamp (and the auto-follow) oscillate
     /// between the stale bottom and the real one. `activity_visual_rows` is
-    /// a cheap Vec build, not a markdown parse — recounting per frame is
+    /// a cheap Vec build, not a markdown parse - recounting per frame is
     /// fine. Mirrors the render exactly: the body width here is the same
     /// `wrap_w` the section renderer passes to
     /// [`MarkdownRenderable`](morpheus_tui::core::renderables::markdown::MarkdownRenderable).
@@ -4717,14 +4716,14 @@ impl RightPanelState {
                 }
                 // CLEAN view: the command header is NOT rendered anymore
                 // (the list row already names the agent CLI), so the
-                // height math counts only the input echo and the body —
+                // height math counts only the input echo and the body -
                 // exactly what the renderer draws. The echo lives on the
                 // DEDICATED `input_echo` field (verbatim prompt, no
                 // marker) and wraps like any text: a long one occupies
                 // multiple visual rows (same text the renderer wraps).
                 // Input echo + body = the DISPLAYED rows (the placeholder
                 // floor of 1 keeps a just-started window visible before
-                // any output arrives — applied LAST, as a floor, so it
+                // any output arrives - applied LAST, as a floor, so it
                 // never stacks on top of real content).
                 let input_rows = pty
                     .input_echo
@@ -4732,7 +4731,7 @@ impl RightPanelState {
                     .map(|input| wrap_count(input, wrap_w))
                     .unwrap_or(0);
                 // CHAT SEPARATOR: the renderer draws one blank row between
-                // the echoed prompt and the body whenever BOTH exist — a
+                // the echoed prompt and the body whenever BOTH exist - a
                 // gap with nothing after it would reserve an unpainted
                 // row (the fuzz invariant), so it is conditional on the
                 // body the same way on both sides of the lockstep.
@@ -4755,7 +4754,7 @@ impl RightPanelState {
             }
             // The overlay consumes both vecs with parallel iterators: a
             // future refactor that clears/pushes one without the other
-            // would misalign heights per-session with no signal — pin the
+            // would misalign heights per-session with no signal - pin the
             // lockstep the gap math depends on.
             debug_assert_eq!(
                 self.subagent_rows_cache.len(),
@@ -4766,13 +4765,13 @@ impl RightPanelState {
         }
         // Fresh overlay: static rows + THIS frame's live activity rows. The
         // combined vec is what every caller (layout fitting, scroll clamp,
-        // renderer) consumes. The activity counts for EVERY status now —
+        // renderer) consumes. The activity counts for EVERY status now -
         // completion seals the transcript into the permanent record instead
         // of wiping it, and the renderer draws whatever the timeline holds;
         // the old Running-only gate would desync height from paint. A
         // RUNNING session recounts fresh every call (its timeline grows on
         // every event, which invalidates the per-session cache); a SEALED
-        // one is immutable, so its cached count is served — recomputing
+        // one is immutable, so its cached count is served - recomputing
         // markdown row estimates for every finished window, every frame,
         // would be a permanent cost for content that cannot move.
         self.subagent_rows_combined.clear();
@@ -4793,11 +4792,11 @@ impl RightPanelState {
                 }
             };
             // GAP LOCKSTEP: the renderer draws one blank row between the
-            // echoed prompt and WHATEVER follows it — transcript first, then
+            // echoed prompt and WHATEVER follows it - transcript first, then
             // the body. The static build already counted the gap when the
             // body existed at build time; when it did NOT (nothing followed
             // the prompt then) but live activity does now, the missing gap
-            // row is added here — outside the throttle, exactly like the
+            // row is added here - outside the throttle, exactly like the
             // activity rows, so height and paint stay in lockstep mid-stream
             // (the internal sub-agent's report arrives only at the end: the
             // body-only condition used to glue the prompt to the live
@@ -4828,7 +4827,7 @@ impl Drop for RightPanelState {
     fn drop(&mut self) {
         // Session switched or app exited: remove this instance's spilled
         // outputs. Best-effort. NOTE: only THIS instance's directory is
-        // removed — pruning the shared parents would race with other
+        // removed - pruning the shared parents would race with other
         // instances creating their own directories (parallel tests, two
         // app processes), making their writes fail sporadically.
         Self::remove_spill_dir(&self.spill_dir);
@@ -4839,7 +4838,7 @@ impl Drop for RightPanelState {
 mod tests {
     use super::*;
 
-    /// Regression: wrapping must break at WORD boundaries — a line never
+    /// Regression: wrapping must break at WORD boundaries - a line never
     /// cuts mid-word when spaces allow the move, matching the chat's
     /// markdown renderer semantics. A space kept before a forced break
     /// trails the row invisibly (same as the markdown output).
@@ -4914,7 +4913,7 @@ mod tests {
     }
 
     /// Regression: `truncate_output` cuts at a BYTE offset (`len - cap`).
-    /// When the output contains multi-byte UTF-8 (arrows, accents, emoji —
+    /// When the output contains multi-byte UTF-8 (arrows, accents, emoji -
     /// common in bash/subagent output), that offset can land inside a char
     /// and slicing panicked with "byte index is not a char boundary". The
     /// cut must advance to the next char boundary instead.
@@ -4952,7 +4951,7 @@ mod tests {
 
     /// REGRESSION (leaked spawn envelope): a background `subagent_call`
     /// receipt arriving through the live ToolOutput path must render as the
-    /// readable ⏳ pending line — never as raw JSON — and must NOT complete
+    /// readable ⏳ pending line - never as raw JSON - and must NOT complete
     /// the window (the report does not exist yet; the completion
     /// notification finishes it later).
     #[test]
@@ -4977,7 +4976,7 @@ mod tests {
     }
 
     /// The completion notification finishing a still-Running background
-    /// window completes it with the REPORT body only — the
+    /// window completes it with the REPORT body only - the
     /// `[automated notification]` wrapper and the readable receipt line are
     /// not part of the panel's final output.
     #[test]
@@ -5003,12 +5002,12 @@ mod tests {
 
     /// REGRESSION (ACP parallel-spawn leak): with TWO background sub-agents
     /// running, the FIRST completion notification must close ITS OWN
-    /// agent's window — the last-Running choice would hand one report to
+    /// agent's window - the last-Running choice would hand one report to
     /// the sibling's window (both windows end up with the wrong body).
     #[test]
     fn complete_last_pty_for_agent_routes_parallel_completions() {
         let mut state = RightPanelState::new();
-        // Spawn order: kilo first, opencode second — opencode is the
+        // Spawn order: kilo first, opencode second - opencode is the
         // last-Running window a naive complete would close.
         state.start_pty("subagent: kilo".to_string(), None);
         state.start_pty("subagent: opencode".to_string(), None);
@@ -5041,7 +5040,7 @@ mod tests {
 
     /// LINEAR CHAT REGRESSION: the final report REPLACES the streamed
     /// output on completion, but the echoed main-agent prompt must
-    /// SURVIVE — the window stays a linear chat (prompt, then the answer)
+    /// SURVIVE - the window stays a linear chat (prompt, then the answer)
     /// and the user can still scroll up to read what was asked. The echo
     /// rides the DEDICATED `input_echo` field, so it survives every
     /// output replacement by construction.
@@ -5066,12 +5065,12 @@ mod tests {
             "echoed prompt must survive the completion replacement"
         );
         // The output carries ONLY the report (the echo is no longer part
-        // of the output string — it renders separately above it).
+        // of the output string - it renders separately above it).
         assert_eq!(state.pty_sessions[0].output, "Final report body.\n");
     }
 
     /// LINEAR CHAT REGRESSION (failure path): a failed subagent window
-    /// keeps the echoed main-agent prompt too — the error text replaces
+    /// keeps the echoed main-agent prompt too - the error text replaces
     /// the streamed output but must NOT evict the question above it.
     #[test]
     fn fail_last_pty_for_agent_preserves_the_echoed_input() {
@@ -5096,7 +5095,7 @@ mod tests {
 
     /// REGRESSION (failed-notification leak): the FAILED wrapper variant
     /// (`Last available output:` marker, free-form reason before it) must
-    /// be stripped to its body exactly like the completed one — it used to
+    /// be stripped to its body exactly like the completed one - it used to
     /// fall through the classifier verbatim and leak into the window.
     #[test]
     fn complete_last_pty_strips_failed_notification_wrapper() {
@@ -5120,7 +5119,7 @@ mod tests {
     // Routing identity: two parallel `subagent_call`s of the SAME agent CLI
     // share the agent hint but each carries a unique `call_ref`, bound to
     // its window at `ToolCall` time. Every stream/report/notification
-    // carrying that ref must land in ITS window — never a sibling's.
+    // carrying that ref must land in ITS window - never a sibling's.
 
     /// Two parallel spawns of the same CLI: streams and completions route
     /// by call_ref, so input1 pairs with output1 and input2 with output2.
@@ -5148,7 +5147,7 @@ mod tests {
         // Window 0 (call-1): its OWN input echo (on the field) and its OWN
         // report. The report REPLACES the streamed output (the linear-chat
         // contract: the echoed prompt survives on `input_echo`, the live
-        // stream does not — its content is folded into the final report the
+        // stream does not - its content is folded into the final report the
         // sub-agent produced).
         assert_eq!(
             state.pty_sessions[0].input_echo.as_deref(),
@@ -5188,7 +5187,7 @@ mod tests {
 
     /// A call_ref routes regardless of session status (a late chunk after
     /// the sibling completed still lands in ITS window), and an UNBOUND
-    /// ref falls back to the agent hint — pre-ref emitters keep working.
+    /// ref falls back to the agent hint - pre-ref emitters keep working.
     #[test]
     fn call_ref_routing_falls_back_to_agent_hint_when_unmatched() {
         let mut state = RightPanelState::new();
@@ -5233,7 +5232,7 @@ mod tests {
             Some("gemini"),
         );
 
-        // A completion note from the FIRST call (window 0) — the parsed
+        // A completion note from the FIRST call (window 0) - the parsed
         // agent hint is identical for both; only the ref disambiguates.
         let note = "[automated notification] Background sub-agent bg-1                     (agent=gemini) completed:\nfirst report";
         state.complete_last_pty_routed(note.to_string(), Some("call-7"), None);
@@ -5286,7 +5285,7 @@ mod tests {
         );
     }
 
-    /// A typed event whose ref matches a COMPLETED window is DROPPED — it
+    /// A typed event whose ref matches a COMPLETED window is DROPPED - it
     /// must never spill into a sibling's Running window via the fallback
     /// (the review's routing-consistency hardening).
     #[test]
@@ -5302,7 +5301,7 @@ mod tests {
         assert!(
             !state.update_subagent_activity(&tool_call_event("c1", "Reading a"), Some("call-1"))
         );
-        // The sibling's timeline stays EMPTY — no spill.
+        // The sibling's timeline stays EMPTY - no spill.
         assert!(state.pty_sessions[1].subagent_activity.timeline.is_empty());
         // The completed window's timeline stays empty too.
         assert!(state.pty_sessions[0].subagent_activity.timeline.is_empty());
@@ -5324,7 +5323,7 @@ mod tests {
         state.complete_last_pty("body line\n".to_string());
         assert_eq!(state.subagent_section_rows(40), &[3], "input + gap + body");
 
-        // Input only (no body yet): NO gap — nothing after it to separate.
+        // Input only (no body yet): NO gap - nothing after it to separate.
         let mut state2 = RightPanelState::new();
         state2.subagent_rebuild_interval = Duration::ZERO;
         state2.start_pty("subagent: kilo".to_string(), None);
@@ -5334,7 +5333,7 @@ mod tests {
 
     /// REGRESSION (mid-stream glue): the gap between the echoed prompt and
     /// what follows it was conditioned on the BODY only, and the internal
-    /// sub-agent's report arrives only at the END of the turn — so for the
+    /// sub-agent's report arrives only at the END of the turn - so for the
     /// whole stream the prompt sat glued to the live mini-chat transcript,
     /// and the blank row popped in only at completion. The gap separates
     /// the prompt from WHATEVER follows: live activity first, then the body.
@@ -5355,7 +5354,7 @@ mod tests {
             "input + gap + live activity row"
         );
 
-        // Completion: the body arrives and the transcript seals — the gap
+        // Completion: the body arrives and the transcript seals - the gap
         // stays exactly one row (now between input and activity; the body
         // renders after the sealed transcript). No double gap.
         state.complete_last_pty("final report\n".to_string());
@@ -5410,7 +5409,7 @@ mod tests {
         assert_eq!(state.pty_sessions[1].output, "oco chunk");
 
         // The internal sub-agent registers under the literal `internal`
-        // name while its window's CLI is blank — both spellings match.
+        // name while its window's CLI is blank - both spellings match.
         state.start_pty("subagent: ".to_string(), None);
         state.update_last_pty_for_agent("int chunk".to_string(), Some("internal"));
         assert_eq!(state.pty_sessions[2].output, "int chunk");
@@ -5433,7 +5432,7 @@ mod tests {
     /// REGRESSION (plan-JSON leak): a MAIN-AGENT tool result completing
     /// while a background subagent window is still Running must never close
     /// that window. The untargeted completion used to pick the last-Running
-    /// session — the subagent window itself — stamping the other tool's
+    /// session - the subagent window itself - stamping the other tool's
     /// output (e.g. the `plan_todo_write` JSON) into its body AND marking it
     /// Completed, so the later completion notification found no Running
     /// window and DROPPED the sub-agent's real report. The bash-scoped
@@ -5451,7 +5450,7 @@ mod tests {
         state.update_last_pty_for_agent(receipt, Some("kilo"));
 
         // The main agent's next tool result completes while the background
-        // turn is still running — exactly the leak scenario.
+        // turn is still running - exactly the leak scenario.
         let plan_json = r#"{"list":{"items":[{"id":"task-1","description":"x","status":"in_progress","depends_on":[]}]},"nags":[]}"#;
         state.complete_last_bash_pty(plan_json.to_string());
 
@@ -5535,7 +5534,7 @@ mod tests {
     /// INTERNAL subagents: the window is created with a BLANK CLI name
     /// (`subagent: `) because the model omitted `agent`. The hint `Some("")`
     /// (the normalized missing-agent form used by the app handlers) must
-    /// target THAT window — complete AND fail — and never a bash window or a
+    /// target THAT window - complete AND fail - and never a bash window or a
     /// sibling's. (Reviewer coverage gap: the blank-name routing was only
     /// exercised through the literal `internal` spelling.)
     #[test]
@@ -5699,7 +5698,7 @@ mod tests {
     /// SEALED TRANSCRIPT: completion no longer wipes the mini-chat. The
     /// reasoning and the tool rows become the window's permanent transcript;
     /// only the final Message entry goes (the report body below IS that
-    /// text — the TurnClosure contract — so keeping it would print the
+    /// text - the TurnClosure contract - so keeping it would print the
     /// answer twice), and a call still InProgress seals Completed instead
     /// of spinning forever on a finished window. A NEW subagent session
     /// still starts with an empty timeline.
@@ -5748,8 +5747,8 @@ mod tests {
     }
 
     /// SEALED TRANSCRIPT (failure flavor): the body is the harness error,
-    /// NOT the sub-agent's answer, so the transcript seals in FULL — the
-    /// final Message stays too — and a call still InProgress seals Failed.
+    /// NOT the sub-agent's answer, so the transcript seals in FULL - the
+    /// final Message stays too - and a call still InProgress seals Failed.
     #[test]
     fn subagent_activity_seals_in_full_when_the_session_fails() {
         let mut state = RightPanelState::new();
@@ -5846,7 +5845,7 @@ mod tests {
         });
 
         // The body is something else entirely (closure fallback, truncated
-        // report): no dedup — every entry stays.
+        // report): no dedup - every entry stays.
         activity.seal(true, Some("a different body"));
         assert_eq!(activity.timeline.len(), 3);
         assert!(matches!(
@@ -5939,7 +5938,7 @@ mod tests {
     /// REGRESSION (answer-above-reasoning ordering): providers emit stray
     /// whitespace-only chunks BEFORE the reasoning starts. The timeline used
     /// to open an invisible `Message` entry for the blank chunk, and the
-    /// backscan merge then captured the answer's text INTO it — the final
+    /// backscan merge then captured the answer's text INTO it - the final
     /// answer rendered ABOVE the thought that actually preceded it (the
     /// internal sub-agent's `Token` stream forwards every chunk, blank ones
     /// included; the chat filters them, the timeline did not).
@@ -5995,7 +5994,7 @@ mod tests {
 
     /// A newline-carrying whitespace delta still MERGES into an open entry:
     /// paragraph breaks mid-stream are real content (the chat keeps the
-    /// same distinction) — only the entry OPENING is suppressed.
+    /// same distinction) - only the entry OPENING is suppressed.
     #[test]
     fn newline_whitespace_merges_into_an_open_entry() {
         let mut state = RightPanelState::new();
@@ -6030,7 +6029,7 @@ mod tests {
         state.start_pty("subagent: opencode".to_string(), None);
         // Many chunks (each 15 bytes): 600 × 15 = 9000 bytes coalescing
         // into one growing LIVE entry. The live tail is deliberately NOT
-        // bounded — the block must grow in HEIGHT so the scroll follows
+        // bounded - the block must grow in HEIGHT so the scroll follows
         // its tail like the main chat's reasoning (the pane flow bug: a
         // clamped coalescing entry became a sliding window whose height
         // never changed, so the text slid up inside its own band instead
@@ -6044,7 +6043,7 @@ mod tests {
             );
         }
         let activity = &state.pty_sessions[0].subagent_activity;
-        // ONE coalesced entry, not 500 of them — and it holds the WHOLE
+        // ONE coalesced entry, not 500 of them - and it holds the WHOLE
         // stream (both ends), taller than the archival cap.
         assert_eq!(activity.timeline.len(), 1);
         let live = match &activity.timeline[0] {
@@ -6070,7 +6069,7 @@ mod tests {
             other => panic!("expected a thought entry, got {other:?}"),
         };
         assert!(archived.len() <= SUBAGENT_TEXT_ENTRY_BYTES);
-        // The TAIL survives the archival clamp — the newest chunk is kept,
+        // The TAIL survives the archival clamp - the newest chunk is kept,
         // the oldest bytes are gone.
         assert!(archived.contains("thought-000499"));
         assert!(!archived.contains("thought-000000"));
@@ -6114,7 +6113,7 @@ mod tests {
         state.start_pty("subagent: opencode".to_string(), None);
         // A single chunk LARGER than the cap opens a new entry UNBOUNDED
         // while it is the live tail (ACP does not bound
-        // `ContentBlock::Text`) — the archival clamp lands when the entry
+        // `ContentBlock::Text`) - the archival clamp lands when the entry
         // is demoted by the next one.
         state.update_subagent_activity(&tool_call_event("c1", "Reading a"), None);
         state.update_subagent_activity(
@@ -6133,7 +6132,7 @@ mod tests {
 
         // A different-kind chunk (a Thought) takes the tail: the oversized
         // message is DEMOTED and compresses to its 8k tail. (A same-kind
-        // chunk would only coalesce into it — demotion is what clamps.)
+        // chunk would only coalesce into it - demotion is what clamps.)
         state.update_subagent_activity(
             &SubagentEvent::Thought {
                 text: "seed".to_string(),
@@ -6266,7 +6265,7 @@ mod tests {
         );
         assert_eq!(state.pty_sessions[0].input_echo.as_deref(), Some("review"));
 
-        // Failed (crashed) windows stay neutral — no report was delivered.
+        // Failed (crashed) windows stay neutral - no report was delivered.
         state.replay_pty(
             "subagent: opencode".to_string(),
             None,
@@ -6366,7 +6365,7 @@ mod tests {
         let lines = activity_lines(&activity, 60);
         assert_eq!(lines.len(), 2);
         // Tool line: NO icon, just the lowercase tool name + the extracted
-        // detail (user decision) — status drives the marker, not the text.
+        // detail (user decision) - status drives the marker, not the text.
         // The line is PRE-WRAPPED: one row fits the 60-col width.
         assert_eq!(
             lines[0],
@@ -6385,7 +6384,7 @@ mod tests {
 
     /// Issue 2: the subagent's file edit must carry its REAL unified diff
     /// (an `EditDiff` line the renderers paint through the chat's
-    /// `DiffRenderable`) and the tool row must use the REAL tool name —
+    /// `DiffRenderable`) and the tool row must use the REAL tool name -
     /// the internal bridge's `fs_edit` must not degrade to `edit`, nor the
     /// edit to a summary-only block. A summary without a unified payload
     /// (older ACP agents) must NOT produce an empty `EditDiff` line.
@@ -6438,7 +6437,7 @@ mod tests {
             lines[2],
             SubagentActivityLine::EditDiff {
                 // The EditDiff shares the TOOL CALL's timeline index (the
-                // update patched the call in place — there is no separate
+                // update patched the call in place - there is no separate
                 // timeline entry), so its cache key is stable across the
                 // update stream.
                 index: 0,
@@ -6447,7 +6446,7 @@ mod tests {
             }
         );
         // The EditDiff's row budget comes from the shared helper (marker
-        // row NOT included — the summary above it is the tool's artifact):
+        // row NOT included - the summary above it is the tool's artifact):
         // panel rows at the indented width.
         assert_eq!(
             lines[2].visual_rows(60),
@@ -6562,7 +6561,7 @@ mod tests {
                 rows: vec!["pending task".to_string()],
             }
         );
-        // The thought occupies the LAST row (its tail is what is shown) —
+        // The thought occupies the LAST row (its tail is what is shown) -
         // now one whole markdown block instead of pre-wrapped rows.
         assert!(matches!(
             lines.last(),
@@ -6585,7 +6584,7 @@ mod tests {
     }
 
     /// The breathing row: `activity_lines` emits exactly one `Gap` after
-    /// each user message that has visible content after it — and NONE
+    /// each user message that has visible content after it - and NONE
     /// after a trailing user message (an unpainted reserved row would
     /// break the deterministic fuzz invariant).
     #[test]
@@ -6614,9 +6613,9 @@ mod tests {
         );
 
         // A mid-transcript user message is gapped too (two turns), while
-        // the LAST user message gets no trailing gap — but it DOES get the
+        // the LAST user message gets no trailing gap - but it DOES get the
         // before-gap separating it from the previous answer. The tool call
-        // keeps the two user turns apart — and turn inputs are backscan
+        // keeps the two user turns apart - and turn inputs are backscan
         // boundaries anyway, so even consecutive input chunks keep their
         // own entries and the gap keeps the turn boundary it sits behind.
         let mut activity = SubagentActivity::default();
@@ -6651,8 +6650,8 @@ mod tests {
             "one gap after the first input, one before the trailing input: {lines:?}"
         );
 
-        // Two full turns: every prompt is isolated — a gap below it AND a
-        // gap above the next one — so no answer ever sticks to a prompt.
+        // Two full turns: every prompt is isolated - a gap below it AND a
+        // gap above the next one - so no answer ever sticks to a prompt.
         let mut two_turns = SubagentActivity::default();
         two_turns.open_turn_input("ola?", true);
         two_turns.apply(&SubagentEvent::Message {
@@ -6685,7 +6684,7 @@ mod tests {
     /// REGRESSION (the panes' garbled order): turn inputs are coalescing
     /// boundaries. A tool-less second turn's answer used to skip over its
     /// own prompt and merge into the previous turn's block, and a replayed
-    /// history collapsed into one input blob plus one answer blob — every
+    /// history collapsed into one input blob plus one answer blob - every
     /// pane read as a single atropelada paragraph instead of a linear
     /// chronological flow like the normal chat.
     #[test]
@@ -6779,7 +6778,7 @@ mod tests {
         // The same-turn interleave no longer coalesces ACROSS kinds: the
         // tail-only contract (REGRESSION, user-visible "conclusion pinned
         // above newer reasoning") opens a fresh entry per alternation so
-        // the newest content is always the LAST entry, in arrival order —
+        // the newest content is always the LAST entry, in arrival order -
         // exactly like the chat. Reasoning and narration still coalesce
         // within their own kind when they are adjacent.
         let mut interleave = SubagentActivity::default();
@@ -6847,7 +6846,7 @@ mod tests {
             "the new reasoning must render BELOW the conclusion, never above it: {:?}",
             activity.timeline
         );
-        // The tail is the newest content — a later same-kind chunk merges
+        // The tail is the newest content - a later same-kind chunk merges
         // into IT, not into the older reasoning block above.
         activity.apply(&SubagentEvent::Thought {
             text: " ainda".to_string(),
@@ -6862,7 +6861,7 @@ mod tests {
 
     #[test]
     fn subagent_visible_body_strips_only_the_header() {
-        // Header consumed; body kept (leading blanks trimmed — the 3b.0
+        // Header consumed; body kept (leading blanks trimmed - the 3b.0
         // `extract_severity` contract).
         assert_eq!(
             subagent_visible_body("<!-- severity: red -->\n\n## Findings\n"),
@@ -6891,7 +6890,7 @@ mod tests {
 
         // Completing the session SEALS the activity (the timeline becomes
         // the window's permanent transcript): the height does not shrink,
-        // the tool row stays — only its InProgress spinner resolves to the
+        // the tool row stays - only its InProgress spinner resolves to the
         // plain Completed marker, at the same single-row cost.
         state.complete_last_pty("final".to_string());
         let rows_done = state.subagent_section_rows_for_display(wrap_w)[0];
@@ -7154,7 +7153,7 @@ mod tests {
         assert_eq!(state.bash_scroll_y, i32::MAX - 5);
     }
 
-    /// Same overflow applies to the subagent and todo sections — the
+    /// Same overflow applies to the subagent and todo sections - the
     /// `i32::MAX` sentinel from `scroll_to_bottom()` survives the render
     /// when content fits, so scrolling must saturate on those branches too.
     #[test]
@@ -7185,7 +7184,7 @@ mod tests {
 
     /// Regression: ANY manual scroll used to set `user_scrolled_away`, so a
     /// single wheel-down mid-stream permanently killed the right panel's
-    /// auto-follow — new output stopped yanking the viewport and the user
+    /// auto-follow - new output stopped yanking the viewport and the user
     /// had to keep scrolling manually to catch up. The chat's sticky-bottom
     /// rule holds now: only scrolling UP pauses the follow; a scroll-down
     /// while reading mid-content keeps it paused, and reaching the bottom
@@ -7214,8 +7213,8 @@ mod tests {
         assert!(state.is_scrolled_up(), "scroll-up pauses auto-follow");
 
         // Scroll-down MID-content stays paused: the user is reading, not
-        // returning to the live edge (offsets set directly — the render
-        // normally clamps them — to exercise the branch deterministically).
+        // returning to the live edge (offsets set directly - the render
+        // normally clamps them - to exercise the branch deterministically).
         state.bash_scroll_y = 4;
         state.user_scrolled_away = true;
         state.scroll_down_at(5, 3);
@@ -7430,7 +7429,7 @@ mod tests {
 
     /// The subagent rows account for the wrapped input echo, so the box
     /// never clips a window whose prompt is long. (The command header is
-    /// NOT rendered anymore — the list row already names the agent CLI —
+    /// NOT rendered anymore - the list row already names the agent CLI -
     /// and the echo rides the dedicated `input_echo` field.)
     #[test]
     fn subagent_rows_include_wrapped_header_and_input() {
@@ -7537,7 +7536,7 @@ mod tests {
             state.resolve_visible_subagents(38, 1000);
             state.visible_subagents.clone()
         };
-        // Expanded mode is EXCLUSIVE: ONE window — the newest entry
+        // Expanded mode is EXCLUSIVE: ONE window - the newest entry
         // (opencode v2, newest among the finished candidates). The kilo
         // session stays visible in the LIST, not beside the window.
         assert_eq!(visible, vec![2]);
@@ -7555,7 +7554,7 @@ mod tests {
 
     /// Auto-follow: sessions of OTHER queues never move a manual selection,
     /// but the same-CLI spawn that SUPERSEDES the pinned entry releases the
-    /// pin — the new RUNNING session must surface, not stay hidden behind a
+    /// pin - the new RUNNING session must surface, not stay hidden behind a
     /// stale pin on an old, no-longer-running window.
     #[test]
     fn navigation_pins_queue_against_auto_follow() {
@@ -7589,7 +7588,7 @@ mod tests {
         assert!(state.pinned_session("kilo").is_none());
     }
 
-    /// REGRESSION: expanded mode is EXCLUSIVE — exactly ONE window. The
+    /// REGRESSION: expanded mode is EXCLUSIVE - exactly ONE window. The
     /// pinned window IS the display; a newly spawned RUNNING session of
     /// the SAME queue stays in the list (it is reachable by → /
     /// Ctrl+Alt+L) and must NOT squeeze in beside the pinned window. (The
@@ -7612,7 +7611,7 @@ mod tests {
 
         // A new kilo session spawns (running): the pin survives (its target
         // is not superseded) and the pinned window REMAINS the only one on
-        // display — the new session waits in the list.
+        // display - the new session waits in the list.
         state.start_pty("subagent: kilo".to_string(), None);
         state.update_last_pty("v2 streaming".to_string());
         assert!(state.queue_is_pinned("kilo"), "running pin target survives");
@@ -7632,7 +7631,7 @@ mod tests {
         );
     }
 
-    /// Expanded mode is EXCLUSIVE — exactly ONE window. A FINISHED window
+    /// Expanded mode is EXCLUSIVE - exactly ONE window. A FINISHED window
     /// held by FOCUS keeps the section to itself: running sessions stay
     /// in the LIST and do not reclaim the area the user is inspecting.
     /// (The old budget-demotion rule made sense when several windows
@@ -7691,7 +7690,7 @@ mod tests {
     }
 
     /// Expanded mode is EXCLUSIVE even when space is plentiful: a huge
-    /// budget must NOT bring a second window back — exactly one subagent
+    /// budget must NOT bring a second window back - exactly one subagent
     /// occupies the section, the rest stay in the list.
     #[test]
     fn expanded_mode_never_shows_two_windows_even_with_plenty_of_space() {
@@ -7715,7 +7714,7 @@ mod tests {
     }
 
     /// NO-TRADEOFF guard: an ALIVE focused/pinned window keeps its top
-    /// priority — it wins the scarce space against another queue's RUNNING
+    /// priority - it wins the scarce space against another queue's RUNNING
     /// session exactly as before. Focus/pin on live work is never demoted.
     #[test]
     fn running_focused_window_keeps_priority_over_other_running() {
@@ -7737,7 +7736,7 @@ mod tests {
     }
 
     /// When space is reclaimed among PINNED windows, the ones with the
-    /// OLDEST manual navigation are hidden first — the most recently
+    /// OLDEST manual navigation are hidden first - the most recently
     /// visited is the one the user was last looking at.
     #[test]
     fn pinned_eviction_prefers_most_recently_navigated() {
@@ -7754,7 +7753,7 @@ mod tests {
             state.panel_focus = Some(PanelFocus::Agent(agent.to_string()));
             state.panel_left();
         }
-        // Deterministic recency: a oldest … d most recent (no sleeps —
+        // Deterministic recency: a oldest … d most recent (no sleeps -
         // equal Instants would fall back to HashMap iteration order).
         let base = Instant::now();
         for (k, agent) in ["a", "b", "c", "d"].iter().enumerate() {
@@ -7773,8 +7772,8 @@ mod tests {
         assert_eq!(kept, "subagent: d", "most recently navigated wins");
     }
 
-    /// Shift+B / Shift+N cycle focus across agent queues — including HIDDEN
-    /// queues that have no window to click — without ever mixing entries
+    /// Shift+B / Shift+N cycle focus across agent queues - including HIDDEN
+    /// queues that have no window to click - without ever mixing entries
     /// from different CLIs into one queue's navigation.
     #[test]
     fn alt_arrows_cycle_agent_queues() {
@@ -7815,7 +7814,7 @@ mod tests {
     }
 
     /// REGRESSION: switching queues (Shift+B/N) must hand the
-    /// DISPLAY to the newly focused queue — its NEWEST entry takes the
+    /// DISPLAY to the newly focused queue - its NEWEST entry takes the
     /// visible window immediately, replacing the previous queue's window,
     /// even when only one window fits.
     #[test]
@@ -7855,12 +7854,12 @@ mod tests {
             "the new queue's newest session must replace the old window"
         );
 
-        // The abandoned queue keeps its own place — a queue switch never
+        // The abandoned queue keeps its own place - a queue switch never
         // disturbs OTHER queues' navigation state.
         assert_eq!(state.queue_nav_index("kilo"), Some(0));
     }
 
-    /// REGRESSION: arrow navigation is 100% confined to the focused queue —
+    /// REGRESSION: arrow navigation is 100% confined to the focused queue -
     /// stepping past either end clamps in place and NEVER touches another
     /// CLI's nav state or entries.
     #[test]
@@ -7891,7 +7890,7 @@ mod tests {
         assert!(state.queue_nav_index("kilo").is_none());
     }
 
-    /// REGRESSION: cycling with a SINGLE queue is a no-op — re-selecting
+    /// REGRESSION: cycling with a SINGLE queue is a no-op - re-selecting
     /// the already-focused queue must not drop its navigation pin.
     #[test]
     fn cycling_sole_queue_keeps_its_pin() {
@@ -7919,7 +7918,7 @@ mod tests {
 
     /// The echoed prompt lives on the DEDICATED `input_echo` field
     /// (verbatim, no storage marker): a blank/whitespace-only prompt stores
-    /// NOTHING, a real prompt is trimmed but never truncated — the window
+    /// NOTHING, a real prompt is trimmed but never truncated - the window
     /// is a linear chat (prompt, then the answer) and the user SCROLLS to
     /// read long prompts. No `…` may ever appear.
     #[test]
@@ -7946,8 +7945,8 @@ mod tests {
 
     /// REGRESSION (oscillating viewport): the live activity rows used to be
     /// counted INSIDE the throttled static cache, so while the cache lagged
-    /// a rebuild interval behind the timeline the section height — and the
-    /// scroll clamp derived from it — alternated between the stale bottom
+    /// a rebuild interval behind the timeline the section height - and the
+    /// scroll clamp derived from it - alternated between the stale bottom
     /// and the real one. The rows must be recounted FRESH on every call,
     /// even when the static cache is served stale.
     #[test]
@@ -7997,7 +7996,7 @@ mod tests {
         let rows = state.subagent_section_rows(w);
         assert_eq!(rows.len(), 1, "one subagent session");
         // CLEAN view: NO command header. The input displays as direct
-        // prompt text, then ONE separator row (the chat gap — input and
+        // prompt text, then ONE separator row (the chat gap - input and
         // body both present), then the markdown body.
         let expected = 1 + 1 + estimate_height(&sanitize_subagent_text(body), w);
         assert_eq!(
@@ -8249,7 +8248,7 @@ mod tests {
 
     /// A pane mirror opens ONCE per pane index (idempotent), retargets its
     /// label when the pane's agent swaps, and is NEVER superseded by a
-    /// normal subagent spawn of the same CLI — the pane index is its own
+    /// normal subagent spawn of the same CLI - the pane index is its own
     /// stable routing identity.
     #[test]
     fn pane_mirrors_are_stable_per_index_and_immune_to_supersede() {
@@ -8266,8 +8265,8 @@ mod tests {
             "re-opening the same pane must not stack mirrors"
         );
         // A normal spawn of the same CLI: the sweep must skip the mirror.
-        // The mirror is FINISHED here — exactly the shape the per-CLI
-        // supersede sweep targets — so without the `bound` guard it would
+        // The mirror is FINISHED here - exactly the shape the per-CLI
+        // supersede sweep targets - so without the `bound` guard it would
         // be evicted from the default display by a normal turn. The
         // (empty) activity arrives ALREADY closed by the pane.
         state.finish_agents_pane(0, &SubagentActivity::default(), false);
@@ -8283,7 +8282,7 @@ mod tests {
 
     /// The sync is pane-index routed and carries the label; the DONE sync
     /// takes the pane's ALREADY-CLOSED timeline (the report is its LAST
-    /// chronological entry — never a separate window body) and flips the
+    /// chronological entry - never a separate window body) and flips the
     /// terminal marker.
     #[test]
     fn pane_mirror_sync_applies_activity_and_finishes_on_the_closed_timeline() {
@@ -8337,7 +8336,7 @@ mod tests {
             "the report is the timeline's LAST entry"
         );
         // The pane's close_turn froze the tool rows (none InProgress left)
-        // — the mirror's marker flip adds no sealing of its own.
+        // - the mirror's marker flip adds no sealing of its own.
         assert!(mirror.subagent_activity.timeline.iter().all(|e| !matches!(
             e,
             SubagentTimelineEntry::Tool(c) if c.status == ToolCallStatus::InProgress
@@ -8358,7 +8357,7 @@ mod tests {
         assert_eq!(state.pty_gen, gen_before, "an idle re-sync churns nothing");
 
         // A NEW turn re-engages the spinner (and only the Running status
-        // changed — the closed timeline stays).
+        // changed - the closed timeline stays).
         state.sync_agents_pane(1, &closed, true, Some("#2"));
         let mirror = state
             .pty_sessions
@@ -8369,11 +8368,11 @@ mod tests {
         assert_eq!(mirror.output, "");
     }
 
-    /// REGRESSION (issue 1 — the mirror's scrambled read order): a
+    /// REGRESSION (issue 1 - the mirror's scrambled read order): a
     /// multi-turn mirror must read like the chat. The pane's turn INPUT
     /// echoed for turn 2 lands in the mirror's timeline; the PREVIOUS
     /// turn's report lives in that same chronological timeline (its own
-    /// last entry) — never in a separate window body that renders below
+    /// last entry) - never in a separate window body that renders below
     /// every timeline entry, which displayed the new input ABOVE the old
     /// output. The sync itself stays closure-free: it inherits whatever
     /// timeline the pane closed and flips the marker.
@@ -8406,7 +8405,7 @@ mod tests {
             .iter()
             .find(|s| s.bound && s.agents_pane == Some(0))
             .unwrap();
-        // Every text entry in chronological order — no body blob below the
+        // Every text entry in chronological order - no body blob below the
         // timeline carrying an older turn's answer.
         let texts: Vec<String> = mirror
             .subagent_activity

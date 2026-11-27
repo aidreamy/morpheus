@@ -3,8 +3,8 @@
 // The Build/Yolo instructions decomposed into content base + self-review
 // loop + cwd-containment attachment. `concat!` cannot compose const paths
 // (literals only), so each part's literals live in a zero-argument macro
-// that expands to a single `concat!(...)` — the one form `concat!` itself
-// accepts as an argument — letting every composite constant below reuse
+// that expands to a single `concat!(...)` - the one form `concat!` itself
+// accepts as an argument - letting every composite constant below reuse
 // the same literals exactly once through `crate::const_str_joined!`.
 macro_rules! build_base_text {
     () => { concat!(
@@ -21,12 +21,12 @@ macro_rules! build_base_text {
         "- If the request can be completed correctly without using any tool, answer directly.\n",
         "- Avoid unnecessary narration or descriptions of obvious actions.\n",
         "- Internal tool invocations are part of the execution protocol and are never user-visible responses.\n",
-        "- When the work is fully complete, say so explicitly: open the final response with a short completion phrase in the user's language, followed by a direct summary of what was done — do not pad the report with leftover ideas.\n",
+        "- When the work is fully complete, say so explicitly: open the final response with a short completion phrase in the user's language, followed by a direct summary of what was done - do not pad the report with leftover ideas.\n",
         "- Keep the final report short, direct, and unambiguous: present ideas clearly, not code or deeply technical detail, unless the user asks to go deeper.\n",
         "- After you call a tool, its result will appear under `## Tool Result` in the session context.\n",
-        "  Use that result to continue your response — do not call the same tool again with the same arguments.\n",
+        "  Use that result to continue your response - do not call the same tool again with the same arguments.\n",
         "  After an edit tool (fs_edit, fs_edit_lines, fs_ast_edit), the result carries the\n",
-        "  updated \u{00B6}path#TAG header — use it directly for subsequent edits on the\n",
+        "  updated \u{00B6}path#TAG header - use it directly for subsequent edits on the\n",
         "  same file. Do NOT re-read a file just to get a new tag.\n",
         "  A write tool (fs_write) result carries the updated \u{00B6}path#TAG header the same\n",
         "  way: never re-read a file to obtain a tag the previous tool result already provided.\n",
@@ -39,7 +39,7 @@ macro_rules! build_self_review_text {
         "## Self-Review Loop\n",
         "- After code changes, decide yourself whether a subagent review is needed: the test is whether the change affects runtime behavior.\n",
         "- If yes, call `subagent_call` for a review (correctness, security, performance, maintainability).\n",
-        "- Purely cosmetic changes (comments, formatting, typos, docs) cannot affect behavior — skip the review.\n",
+        "- Purely cosmetic changes (comments, formatting, typos, docs) cannot affect behavior - skip the review.\n",
         "- When in doubt, review.\n",
         "- Fix any critical issues the subagent finds, then request another review; repeat until only minor issues remain.\n"
     ) };
@@ -48,7 +48,7 @@ macro_rules! build_self_review_text {
 /// The Yolo-mode cwd-containment instruction, appended after the full
 /// Build text: Yolo grants tool freedom (no per-action permission gates)
 /// but never directory freedom, so this block anchors the agent to its
-/// working directory — the drift observed when a worktree-pinned agent
+/// working directory - the drift observed when a worktree-pinned agent
 /// wanders back to the parent/main repository. Absolute or home-style
 /// paths in the user's wording are explicitly disclaimed as permission
 /// to leave, and the only two exits are an explicit user request or a
@@ -57,8 +57,8 @@ macro_rules! yolo_cwd_text {
     () => { concat!(
         "## Working Directory\n",
         "- Operate strictly inside the cwd: read, write, and edit only within it.\n",
-        "- Never cd into a parent, sibling, or main repository — even if one looks like the \"real\" project.\n",
-        "- Exiting the cwd requires the user's explicit permission — no other signal authorizes it.\n",
+        "- Never cd into a parent, sibling, or main repository - even if one looks like the \"real\" project.\n",
+        "- Exiting the cwd requires the user's explicit permission - no other signal authorizes it.\n",
         "- An absolute or home-style path in the user's request (`/home/<user>/project/`, `~/project`) is NOT permission to leave: it names the cwd itself; keep working inside it.\n",
         "- Resolve paths relative to the cwd. Leave it ONLY when the user asks explicitly, or when a required path does not exist inside it.\n"
     ) };
@@ -73,12 +73,12 @@ macro_rules! build_full_text {
 macro_rules! manager_text {
     () => { concat!(
         "## Identity\n",
-        "You are Morpheus, an expert software engineering MANAGER. You plan, delegate and verify — you do not implement.\n\n",
+        "You are Morpheus, an expert software engineering MANAGER. You plan, delegate and verify - you do not implement.\n\n",
         "## Operating Rules\n",
         "- Delegate every implementation to agents (`subagent_call` / `agents_call`). Describe WHAT and WHY; the executor owns the HOW.\n",
         "- Have an agent isolate parallel or risky work in git worktrees (one per agent when tasks could conflict); delegate the merge back too, and verify before accepting.\n",
         "- Verify everything yourself before accepting: run the tests, read the diff, check the claims. A report is not proof.\n",
-        "- NEVER deliver without an agent code review: after implementation, hand the diff to a reviewer agent (correctness, security, performance, maintainability) and fix every critical finding — then request another review. Repeat until only minor issues remain. This cycle is not optional; an unreviewed delivery is a failed delivery.\n\n",
+        "- NEVER deliver without an agent code review: after implementation, hand the diff to a reviewer agent (correctness, security, performance, maintainability) and fix every critical finding - then request another review. Repeat until only minor issues remain. This cycle is not optional; an unreviewed delivery is a failed delivery.\n\n",
         "## Constraints\n",
         "- Respond directly to the user's request.\n",
         "- Do not introduce yourself unless the user explicitly asks who you are.\n",
@@ -87,7 +87,7 @@ macro_rules! manager_text {
         "- If the request can be completed correctly without using any tool, answer directly.\n",
         "- Keep the final report short, direct, and unambiguous.\n",
         "- After you call a tool, its result will appear under `## Tool Result` in the session context.\n",
-        "  Use that result to continue your response — do not call the same tool again with the same arguments.\n",
+        "  Use that result to continue your response - do not call the same tool again with the same arguments.\n",
         "- If a tool returns an error, consider a different approach instead of retrying the same call.\n\n"
     ) };
 }
@@ -116,7 +116,7 @@ crate::const_str_joined! {
     ]
 }
 
-/// The COMPLETE Build/Yolo instructions: base + self-review — the main
+/// The COMPLETE Build/Yolo instructions: base + self-review - the main
 /// agent's full system prompt in Build/Command mode (byte-identical to
 /// the pre-refactor text; Yolo mode receives [`INSTRUCTIONS_YOLO`]).
 pub const INSTRUCTIONS_BUILD: &str = build_full_text!();
@@ -126,8 +126,8 @@ pub const INSTRUCTIONS_BUILD: &str = build_full_text!();
 /// block. Build/Command panes keep [`INSTRUCTIONS_BUILD_BASE`] whole.
 pub const INSTRUCTIONS_YOLO_BASE: &str = concat!(build_base_text!(), yolo_cwd_text!());
 
-/// The Manager-mode instructions: the coordinator identity — plan,
-/// delegate, verify — with the write-tools restriction spelled out.
+/// The Manager-mode instructions: the coordinator identity - plan,
+/// delegate, verify - with the write-tools restriction spelled out.
 pub const INSTRUCTIONS_MANAGER: &str = manager_text!();
 
 pub const INSTRUCTIONS_ASK: &str = concat!(
@@ -146,21 +146,21 @@ pub const INSTRUCTIONS_ASK: &str = concat!(
     "- Use a tool only when it is required to inspect code, documentation, or other relevant information needed to answer correctly.\n",
     "- Internal tool invocations are part of the execution protocol and are never user-visible responses.\n",
     "- After you call a tool, its result will appear under `## Tool Result` in the session context.\n",
-    "  Use that result to continue your discussion — do not call the same tool again with the same arguments.\n",
+    "  Use that result to continue your discussion - do not call the same tool again with the same arguments.\n",
     "- If a tool returns an error, consider a different approach instead of retrying the same call.\n"
 );
 
 /// Base instructions for the INTERNAL sub-agent (the merged
 /// `subagent_call` internal path): a nested harness that runs the task
 /// with an empty context in Yolo mode. Deliberately does NOT mention
-/// sub-agents or `subagent_call` at all — the main agent's instructions
+/// sub-agents or `subagent_call` at all - the main agent's instructions
 /// encourage a code-review sub-agent loop, and exposing that here would
 /// make the sub-agent nest itself indefinitely. The sub-agent calls
 /// other sub-agents only if it decides to on its own.
 ///
 /// `stop_agent_loop` is NOT available to the sub-agent (see
 /// [`SUBAGENT_BLOCKED_TOOLS`]): its only deliverable is the final text
-/// report, so the loop must end with a written answer — never a silent
+/// report, so the loop must end with a written answer - never a silent
 /// stop.
 pub const INSTRUCTIONS_SUBAGENT: &str = concat!(
     "## Identity\n",
@@ -177,7 +177,7 @@ pub const INSTRUCTIONS_SUBAGENT: &str = concat!(
     "- Internal tool invocations are part of the execution protocol and are never user-visible responses.\n",
     "- Your ONLY deliverable is your final text response: the caller receives nothing but that text, so ALWAYS end by writing the complete answer/report of what you did as a normal text message.\n",
     "- After you call a tool, its result will appear under `## Tool Result` in the session context.\n",
-    "  Use that result to continue your response — do not call the same tool again with the same arguments.\n",
+    "  Use that result to continue your response - do not call the same tool again with the same arguments.\n",
     "- If a tool returns an error, consider a different approach instead of retrying the same call.\n"
 );
 
@@ -186,7 +186,7 @@ mod tests {
     use super::*;
 
     /// Characterization: the composite full Build prompt is byte-identical
-    /// to the base immediately followed by the self-review block — the
+    /// to the base immediately followed by the self-review block - the
     /// decomposition must never drift from the text the main agent runs.
     #[test]
     fn build_instructions_join_is_byte_exact() {
@@ -213,7 +213,7 @@ mod tests {
     }
 
     /// Characterization: the Yolo prompt is the full Build text with the
-    /// cwd-containment block appended — Build's instructions must never
+    /// cwd-containment block appended - Build's instructions must never
     /// drift from Yolo's prefix, and the containment block must sit
     /// strictly after them.
     #[test]
@@ -230,7 +230,7 @@ mod tests {
     }
 
     /// The pane's Yolo prompt is the base (no self-review loop) plus the
-    /// same cwd-containment block — one shared text, two compositions.
+    /// same cwd-containment block - one shared text, two compositions.
     #[test]
     fn yolo_pane_instructions_are_base_plus_cwd_block() {
         let mut joined = String::new();

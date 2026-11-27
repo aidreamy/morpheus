@@ -1,7 +1,7 @@
 //! Single-owner, synchronous conversation timeline that feeds the LLM.
 //!
-//! The [`ContextManager`] owns every conversation item — user prompts,
-//! assistant outputs, tool calls and tool results — in display order. Content
+//! The [`ContextManager`] owns every conversation item - user prompts,
+//! assistant outputs, tool calls and tool results - in display order. Content
 //! is rendered through a recoverable layered view. The model can request that
 //! a tool result be replaced by a typed reference (tail masking, see
 //! [`ContextManager::mask_newest_tool_result`]), a recent token window stays
@@ -80,7 +80,7 @@ pub enum ContextItem {
     /// the LLM compaction folds it into the general summary.
     ///
     /// `synthetic` marks PROVENANCE: `false` is a turn the user actually
-    /// typed; `true` is a turn the harness injected on the user's behalf —
+    /// typed; `true` is a turn the harness injected on the user's behalf -
     /// currently the `[automated notification]` background sub-agent
     /// completions (`add_synthetic_user`). Consumers that need the USER'S
     /// intent (e.g. the termination checkup's request thread) filter
@@ -100,14 +100,14 @@ pub enum ContextItem {
         /// a [`ContextItem::Closure`] by [`ContextManager::close_loop`]. An
         /// output that carried a tool call is structural (never closable).
         closable: bool,
-        /// The model's reasoning that preceded the text in THIS response —
+        /// The model's reasoning that preceded the text in THIS response -
         /// captured per attempt from the harness's reasoning stream.
         ///
         /// STRICTLY DISPLAY-ONLY and WRITE-ONCE: set at the item's birth
         /// (never mutated in place afterwards), read only by display
         /// projections (the agents manager coworker). It NEVER enters
-        /// `build_messages` — the model must not see its own thinking as
-        /// assistant prose — and `tokens()` must never count it (the
+        /// `build_messages` - the model must not see its own thinking as
+        /// assistant prose - and `tokens()` must never count it (the
         /// compaction budget must not inflate with text the model will
         /// never receive again). `None`/absent for every provider without
         /// a separate reasoning channel and for contexts persisted before
@@ -117,34 +117,34 @@ pub enum ContextItem {
         #[serde(default, skip_serializing_if = "Option::is_none")]
         reasoning: Option<String>,
     },
-    /// A tool CALL — structural, never prose-compressed. Renders as an
+    /// A tool CALL - structural, never prose-compressed. Renders as an
     /// `assistant` message with native `tool_calls`.
     ToolCall {
         id: u64,
         call_id: String,
         name: String,
         arguments: String,
-        /// Gemini 3.x thought signature of the native `functionCall` —
+        /// Gemini 3.x thought signature of the native `functionCall` -
         /// replayed verbatim in the next request's history (the API rejects
         /// the call without it). Empty for inline-JSON calls and for every
         /// other provider. Defaults for contexts persisted before this field.
         #[serde(default)]
         thought_signature: String,
         /// Claude extended-thinking blocks that preceded this tool call in the
-        /// original response — replayed VERBATIM (text + signature) at the
+        /// original response - replayed VERBATIM (text + signature) at the
         /// start of the assistant message in the next request (the API rejects
         /// modified/missing blocks with 400). Empty for every other provider.
         /// Defaults for contexts persisted before this field.
         #[serde(default)]
         thinking_blocks: Vec<ClaudeThinkingBlock>,
-        /// The model's reasoning that preceded this tool call — replayed as
+        /// The model's reasoning that preceded this tool call - replayed as
         /// `reasoning_content` for OpenAI-compatible reasoning models that
         /// require it (e.g. DeepSeek). `None` for every other provider and
         /// for contexts persisted before this field.
         #[serde(default, skip_serializing_if = "Option::is_none")]
         reasoning: Option<String>,
     },
-    /// A tool RESULT — structural, never prose-compressed. Renders as a
+    /// A tool RESULT - structural, never prose-compressed. Renders as a
     /// `tool` message with the matching `tool_call_id`.
     ToolResult {
         id: u64,
@@ -154,10 +154,10 @@ pub enum ContextItem {
         /// search). Such a result served its purpose the moment the model
         /// reacted to it, so its chain is dead weight: the automatic sweep in
         /// [`Self::run`] removes it without waiting for a budget overflow.
-        /// The newest chain is kept until the model reacts — an explicit
+        /// The newest chain is kept until the model reacts - an explicit
         /// `mask_tool_result` call counts as that reaction.
         useless: bool,
-        /// Inline images attached to this result (multimodal channel —
+        /// Inline images attached to this result (multimodal channel -
         /// e.g. a `computer_screenshot` PNG). Internal transport detail for
         /// the CURRENT run's provider requests only: never serialized to
         /// the session JSONL (the base64 bytes would bloat every delta) and
@@ -168,7 +168,7 @@ pub enum ContextItem {
     },
     /// The final text response of a completed agent loop. Replaces the raw
     /// assistant text in place, carrying the draft's reasoning (the same
-    /// DISPLAY-ONLY, WRITE-ONCE payload — see
+    /// DISPLAY-ONLY, WRITE-ONCE payload - see
     /// [`ContextItem::Assistant::reasoning`]).
     Closure {
         id: u64,
@@ -201,7 +201,7 @@ pub enum ContextItem {
     },
     /// A terminal API/runtime error surfaced to the user. DISPLAY-ONLY:
     /// [`ContextManager::build_messages`] skips it (an API failure must never
-    /// reach the LLM as if it were assistant output — the live loop keeps the
+    /// reach the LLM as if it were assistant output - the live loop keeps the
     /// same contract), it costs zero tokens, and the summarizers never see it.
     /// It exists in the timeline solely so the persisted transcript restores
     /// the error line with its own display semantics (the TUI's styled error
@@ -209,7 +209,7 @@ pub enum ContextItem {
     Error { id: u64, content: String },
     /// A shell command typed by the USER in Command mode (the TUI as a plain
     /// terminal). DISPLAY-ONLY, like [`ContextItem::Error`]: zero tokens,
-    /// skipped by [`ContextManager::build_messages`] and the summarizers —
+    /// skipped by [`ContextManager::build_messages`] and the summarizers -
     /// the model never sees it. Named `UserCommand` (not `Command`) because
     /// the agent itself has a separate notion of shell commands (bash tool
     /// calls) and there must be no ambiguity. Persisted so the transcript
@@ -311,7 +311,7 @@ pub fn display_groups(state: &ContextManagerState) -> Vec<Vec<&ContextItem>> {
 
 /// Snapshot of context manager state, carried by the harness events
 /// (`Done`/`Stopped`/`Error`/`ContextSnapshot`) and handed to the TUI for
-/// persistence. Nothing is in-flight between save and restore — the snapshot
+/// persistence. Nothing is in-flight between save and restore - the snapshot
 /// is a plain clone. `overflow_model` records the stuck context-window
 /// overflow, `map_reduce` the current checkpoint-construction staging, and
 /// `split` any legacy split-and-concatenate staging, plus the model-view
@@ -320,7 +320,7 @@ pub fn display_groups(state: &ContextManagerState) -> Vec<Vec<&ContextItem>> {
 /// The timeline is APPEND-ONLY: nothing is ever removed by compaction, the
 /// useless-chain sweep or the abandoned-input cleanup. Those events only move
 /// the VISIBILITY markers (`visible_from` boundary + `hidden` set), so the
-/// full history stays on disk for revert/fork at any point of the session —
+/// full history stays on disk for revert/fork at any point of the session -
 /// the model's view is exactly what the markers say.
 ///
 /// Persistence is the session store's concern (`session::store`): it compares this
@@ -336,7 +336,7 @@ pub struct ContextManagerState {
     pub max_tokens: usize,
     /// The model whose context window overflowed the LLM compaction and
     /// could not be relieved by the split. While set (same model), the
-    /// harness skips the doomed summarizer call and only re-notifies — until
+    /// harness skips the doomed summarizer call and only re-notifies - until
     /// the user switches the model or starts a new session. `None` = no known
     /// stuck overflow.
     pub overflow_model: Option<String>,
@@ -359,7 +359,7 @@ pub struct ContextManagerState {
     pub hidden: HashSet<u64>,
     /// Tool result IDs whose full payload remains in `items` and immutable
     /// history, but whose model-facing projection is a small typed reference.
-    /// Only the model's explicit `mask_tool_result` requests land here —
+    /// Only the model's explicit `mask_tool_result` requests land here -
     /// masking is never applied deterministically, because a mid-history
     /// mutation would invalidate the providers' exact-prefix caches.
     #[serde(default)]
@@ -410,7 +410,7 @@ pub struct ContextDisplayInfo {
 /// or the harness must run the LLM compaction.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum RunOutcome {
-    /// The total is below the 80% trigger — nothing else to do.
+    /// The total is below the 80% trigger - nothing else to do.
     Resolved,
     /// The total is over the trigger: the harness must run the LLM
     /// compaction (the last-resort fallback).
@@ -510,7 +510,7 @@ pub struct ContextManager {
     /// Token budget before the 80% compaction trigger.
     max_tokens: usize,
     /// tiktoken encoding matching the active model (set by the harness via
-    /// [`Self::set_model`]). Defaults to [`TokenEncoding::Cl100k`] — the
+    /// [`Self::set_model`]). Defaults to [`TokenEncoding::Cl100k`] - the
     /// generic cross-provider estimate.
     encoding: TokenEncoding,
     /// The model whose context window overflowed the LLM compaction and
@@ -538,25 +538,25 @@ pub struct ContextManager {
     /// Tool results the model explicitly asked to mask (the harness
     /// `mask_tool_result` tool): represented by small typed placeholders in
     /// the model view. The original result remains untouched in `items`.
-    /// Never filled deterministically — see the `masked` state field note.
+    /// Never filled deterministically - see the `masked` state field note.
     masked: HashSet<u64>,
     /// Derived coverage of the newest base-visible checkpoint. Rebuilt from
     /// immutable checkpoint metadata on restore; never persisted separately.
     checkpoint_coverage: Vec<ContextItemRange>,
     /// The dedicated protected TODO block: mirrors the tools' `Plan` list and
     /// renders it as a protected block at the END of the messages (merged into
-    /// the trailing `user` turn when there is one — block first, steering
-    /// after — so no two consecutive `user` messages ever reach the provider).
+    /// the trailing `user` turn when there is one - block first, steering
+    /// after - so no two consecutive `user` messages ever reach the provider).
     /// The tail placement keeps the stable `[system → history]` prefix cached
-    /// across `plan_*` re-renders. Never summarized — see [`todo_ctxt`] for
+    /// across `plan_*` re-renders. Never summarized - see [`todo_ctxt`] for
     /// the protection and removal rules.
     todo: TodoContext,
     /// Transient tail block with the tool-correction memory, mirrored by the
     /// harness before every request. Corrections churn constantly (new
     /// failure, duplicate reordering, eviction), so they must NEVER live in
     /// the system prompt: any change there invalidates the exact-prefix cache
-    /// of the WHOLE conversation. Rendered at the tail — before the TODO
-    /// block — a change only costs the block itself. Like the TODO block, it
+    /// of the WHOLE conversation. Rendered at the tail - before the TODO
+    /// block - a change only costs the block itself. Like the TODO block, it
     /// is not an item: it is re-mirrored per request and never compacted.
     /// Never persisted; a restored manager starts with an empty block.
     correction_block: Option<String>,
@@ -567,7 +567,7 @@ pub struct ContextManager {
     /// `format_header_context` (the same per-request mirror contract as
     /// [`Self::correction_block`]). Rendered in [`Self::build_messages`]'s
     /// tail BETWEEN the corrections and the TODO block. Why the tail and
-    /// not the system prompt: the system prompt is prefix position 0 — a
+    /// not the system prompt: the system prompt is prefix position 0 - a
     /// coworker binding/unbinding re-renders this block mid-session, and any
     /// byte change at position 0 invalidates the provider's exact-prefix
     /// cache for the WHOLE conversation (system → history). At the tail a
@@ -593,12 +593,12 @@ pub struct ContextManager {
     /// Rebuilt wholesale on restore and on encoding change. There is NO
     /// per-item map: a removal re-tokenizes the doomed item (removals are
     /// rare and bounded), which keeps the cache-to-items sync trivial and
-    /// drift — the failure mode that motivated a debug-only O(n) invariant —
+    /// drift - the failure mode that motivated a debug-only O(n) invariant -
     /// structurally out of reach.
     cached_items_tokens: usize,
     /// Manual-compaction mode (`/compact`): while set, [`Self::trigger`]
     /// returns zero so [`Self::run`] hands off to the LLM summary regardless
-    /// of how much budget is free. Scheduling-only — never persisted; a
+    /// of how much budget is free. Scheduling-only - never persisted; a
     /// restored manager is never left mid-manual because the harness brackets
     /// the whole manual pass with
     /// `begin_manual_compaction`/`end_manual_compaction`.
@@ -732,10 +732,10 @@ impl ContextManager {
         }
     }
 
-    /// Resolve a discovered window to its budget: the EFFECTIVE value — the
+    /// Resolve a discovered window to its budget: the EFFECTIVE value - the
     /// "sweet spot" below the model's degradation zone (see
-    /// [`effective_context_window`]) — when `effective` is set, or the full
-    /// window as-is otherwise. Pure — no I/O.
+    /// [`effective_context_window`]) - when `effective` is set, or the full
+    /// window as-is otherwise. Pure - no I/O.
     pub fn resolve_window(window: usize, effective: bool) -> usize {
         if effective {
             effective_context_window(window)
@@ -745,7 +745,7 @@ impl ContextManager {
     }
 
     /// Build a manager from an ALREADY-RESOLVED window (or `None` when
-    /// discovery failed). Pure — no I/O. A REAL discovered window is resized
+    /// discovery failed). Pure - no I/O. A REAL discovered window is resized
     /// to its EFFECTIVE value when `effective` is set; the fallback stays
     /// [`MAX_CONTEXT_TOKENS`] because the default is not a real window.
     /// [`Self::with_discovered_context`] resolves the window through
@@ -794,7 +794,7 @@ impl ContextManager {
             return;
         }
         self.encoding = new;
-        // A different tokenizer changes EVERY item's estimated cost — the
+        // A different tokenizer changes EVERY item's estimated cost - the
         // cached total is stale.
         self.recompute_cached_tokens();
     }
@@ -806,7 +806,7 @@ impl ContextManager {
     /// default that is far below it.
     ///
     /// Callers passing a DISCOVERED window should pass its effective value
-    /// ([`effective_context_window`]) — the advertised window is not what the
+    /// ([`effective_context_window`]) - the advertised window is not what the
     /// model can reason over. The default budget ([`MAX_CONTEXT_TOKENS`]) is
     /// never resized; a restored snapshot passes back the already-effective
     /// value it persisted.
@@ -839,8 +839,8 @@ impl ContextManager {
     /// Replace the mirrored tool TODO list. The harness syncs it from the
     /// tools' `Plan` state at loop start and after every `plan_*` dispatch.
     /// The dedicated [`TodoContext`] renders it as a protected block at the
-    /// END of the messages — after the history, merged into a trailing `user`
-    /// turn — structurally immune to every compaction phase and placed at the
+    /// END of the messages - after the history, merged into a trailing `user`
+    /// turn - structurally immune to every compaction phase and placed at the
     /// tail so a re-render never invalidates the provider's prefix cache (see
     /// [`todo_ctxt`] for the removal rules: all tasks terminal, or the model
     /// empties the plan).
@@ -960,7 +960,7 @@ impl ContextManager {
     }
 
     /// The user-typed turns of the CURRENT loop cycle, oldest first, VISIBLE
-    /// only — the provenance-filtered thread the termination checkup reviews
+    /// only - the provenance-filtered thread the termination checkup reviews
     /// against. The cycle starts after the last [`ContextItem::Closure`]
     /// (the previous loop ended there) or [`ContextItem::Compaction`] (the
     /// history was folded there); without either boundary the whole timeline
@@ -969,11 +969,11 @@ impl ContextManager {
     ///
     /// Returns at most [`TURN_THREAD_MAX_TURNS`]: the FIRST turn (the
     /// original intent) and the LAST turn (the most recent instruction) are
-    /// always kept, the middle is truncated first — the two ends carry the
+    /// always kept, the middle is truncated first - the two ends carry the
     /// discrimination the checkup needs.
     pub fn turn_user_thread(&self) -> Vec<String> {
         // The cycle boundary: the LAST visible Closure/Compaction item. A
-        // prior cycle's requests are not this cycle's task — a request from
+        // prior cycle's requests are not this cycle's task - a request from
         // an unrelated task 40 minutes ago must never sit next to the
         // current one inside the decision state.
         let cycle_start = self
@@ -1006,7 +1006,7 @@ impl ContextManager {
             // Up to the cap, the whole thread goes through untouched.
             0..=TURN_THREAD_MAX_TURNS => visible.into_iter().map(str::to_string).collect(),
             // Over the cap: keep the FIRST turn (the original intent) and
-            // the LAST MAX-1 turns (the most recent instructions) — never
+            // the LAST MAX-1 turns (the most recent instructions) - never
             // the middle, and never a duplicate of the first.
             n => {
                 let mut kept: Vec<String> = Vec::with_capacity(TURN_THREAD_MAX_TURNS);
@@ -1031,12 +1031,12 @@ impl ContextManager {
     /// Like [`Self::add_assistant`], carrying the model's reasoning that
     /// preceded the text in the SAME response. The reasoning is DISPLAY-ONLY
     /// timeline data: it never enters `build_messages` (the model must not
-    /// see its own thinking as assistant prose) and costs zero tokens — but
+    /// see its own thinking as assistant prose) and costs zero tokens - but
     /// it persists with the item so a restored session renders its Thought
     /// blocks again (the same contract the main chat's `Part::Reasoning`
     /// keeps). `None` for every reasoning-less response. WRITE-ONCE: set at
     /// the item's birth, never mutated in place afterwards (the context
-    /// deltas serialize whole changed items — incremental appends would
+    /// deltas serialize whole changed items - incremental appends would
     /// re-emit the item on every save).
     ///
     /// A whitespace-only text is NOT recorded (same guard as
@@ -1081,7 +1081,7 @@ impl ContextManager {
         });
     }
 
-    /// The most recent assistant TEXT in the history — the last thing the
+    /// The most recent assistant TEXT in the history - the last thing the
     /// model said. Used by the termination checkup to audit heuristic guard
     /// stops (MAX_TOOL_RETRIES / MAX_ITERATIONS / loop detection): unlike
     /// [`Self::final_answer`], this works before `close_loop`, scanning back
@@ -1100,7 +1100,7 @@ impl ContextManager {
     /// display-only timeline item: persisted to the session JSONL for the
     /// user, but immediately registered in the `hidden` set so
     /// [`Self::build_messages`], the token budget and every summarizer skip
-    /// it — the model never sees it. Returns the item id.
+    /// it - the model never sees it. Returns the item id.
     pub fn add_hidden_user_command(&mut self, text: &str) -> u64 {
         let id = self.next_id();
         self.push_item(ContextItem::UserCommand {
@@ -1159,8 +1159,8 @@ impl ContextManager {
     }
 
     /// Add a tool CALL carrying the Claude extended-thinking blocks that
-    /// preceded it in the original response (replayed verbatim — text +
-    /// signature — in the next request's history; the API rejects modified or
+    /// preceded it in the original response (replayed verbatim - text +
+    /// signature - in the next request's history; the API rejects modified or
     /// missing blocks with 400). Structural, never prose-compressed. Every
     /// non-Claude path passes an empty list.
     pub fn add_tool_call_with_thinking(
@@ -1220,7 +1220,7 @@ impl ContextManager {
         self.add_tool_result_with_images(call_id, content, useless, Vec::new());
     }
 
-    /// Add a tool RESULT carrying inline images (multimodal channel — e.g.
+    /// Add a tool RESULT carrying inline images (multimodal channel - e.g.
     /// a `computer_screenshot` PNG delivered as base64 `ImageBlock`s).
     /// Structural, never prose-compressed. The images ride ONLY on the
     /// provider requests built by [`Self::build_messages`]; they are never
@@ -1264,7 +1264,7 @@ impl ContextManager {
     /// Drop ABANDONED input turns: when the timeline ends with two or more
     /// consecutive `User` turns with NO output between them (assistant text,
     /// tool work, Closure or summary), every turn but the newest is an input
-    /// the user gave up on — the run ended without the LLM producing anything
+    /// the user gave up on - the run ended without the LLM producing anything
     /// (typically cancelled with Esc), and a new input followed. Each older
     /// turn of the run is removed, so the model only ever sees the newest
     /// input. A turn that produced ANY output after it is never touched.
@@ -1273,11 +1273,11 @@ impl ContextManager {
     /// matching `ToolResult` sitting between an older user turn and the new
     /// input is the debris of a run cancelled mid-execution. Such an orphan
     /// would be rejected by providers that validate the native
-    /// `tool_call → tool` pairing, so it is removed too — which then lets the
+    /// `tool_call → tool` pairing, so it is removed too - which then lets the
     /// older user turn behind it be recognized as abandoned. A completed
     /// chain (call WITH result) is never touched, and an orphan at the very
     /// END of the timeline (a call whose result is still pending) is never
-    /// touched — only orphans followed by a new user turn.
+    /// touched - only orphans followed by a new user turn.
     ///
     /// Called by the harness at loop start right after the fresh input is
     /// added, so an abandoned prompt never survives into the request.
@@ -1304,13 +1304,13 @@ impl ContextManager {
     /// result, followed by NEW input, is debris from a cancelled run (a
     /// pending call of a live run is never followed by a user turn). The zone
     /// is scanned back to front until the first non-tool item; completed
-    /// chains inside it (call WITH result — including mixed parallel runs
+    /// chains inside it (call WITH result - including mixed parallel runs
     /// where only some results arrived) are preserved whole. Append-only:
     /// the debris STAYS in the timeline, hidden from the model. Returns
     /// whether anything was hidden.
     fn drop_orphan_calls_before_trailing_users(&mut self) -> bool {
         // Everything below works on VISIBLE items only: a hidden item is "not
-        // there" for both the model and this scan — treating it otherwise
+        // there" for both the model and this scan - treating it otherwise
         // would re-hide the same debris forever (the caller loops until
         // quiescence). Indexes are the raw timeline positions.
         let mut trailing_users = 0usize;
@@ -1329,7 +1329,7 @@ impl ContextManager {
         if trailing_users == 0 {
             return false;
         }
-        // All `call_id`s that have a VISIBLE result in the timeline — a call
+        // All `call_id`s that have a VISIBLE result in the timeline - a call
         // holding one of these is a completed chain, never orphan debris.
         let paired: HashSet<String> = self
             .items
@@ -1345,7 +1345,7 @@ impl ContextManager {
         while idx > 0 {
             idx -= 1;
             if self.is_hidden(&self.items[idx]) {
-                // Hidden debris from an earlier pass — not part of the zone.
+                // Hidden debris from an earlier pass - not part of the zone.
                 continue;
             }
             let doomed = match &self.items[idx] {
@@ -1364,11 +1364,11 @@ impl ContextManager {
     }
 
     /// Hide every trailing `User` turn but the newest (the abandoned-input
-    /// rule) — append-only: they stay in the timeline, never shown to the
+    /// rule) - append-only: they stay in the timeline, never shown to the
     /// model. Returns whether anything was hidden.
     fn drop_abandoned_user_runs(&mut self) -> bool {
         // Count the trailing consecutive VISIBLE User turns (a hidden one is
-        // "not there" — skipping it, not breaking, so an already-hidden run
+        // "not there" - skipping it, not breaking, so an already-hidden run
         // below the visible frontier never trips the quiescence loop).
         let mut user_indices: Vec<usize> = Vec::new();
         for (idx, item) in self.items.iter().enumerate().rev() {
@@ -1417,7 +1417,7 @@ impl ContextManager {
         let draft_id = *id;
         let content = original.clone();
         // Carry the draft's reasoning into the promoted Closure (DISPLAY-ONLY
-        // payload — see `ContextItem::Assistant::reasoning`). The promotion
+        // payload - see `ContextItem::Assistant::reasoning`). The promotion
         // must not silently drop the thinking the item was born with.
         let draft_reasoning = reasoning.clone();
         // Swap the draft in place for a Closure (SAME id, immediate). This is
@@ -1476,11 +1476,11 @@ impl ContextManager {
 
     /// Hide every tool chain whose result is marked `useless`. Runs at the
     /// start of every [`Self::run`], regardless of the budget. The newest
-    /// chain is preserved — the model has not reacted to it yet — EXCEPT when
+    /// chain is preserved - the model has not reacted to it yet - EXCEPT when
     /// its result was explicitly masked by a model `mask_tool_result` call:
     /// that call IS the reaction, so it is the one case where the newest
     /// chain may be hidden. The chains
-    /// STAY in the timeline (append-only) — only their visibility flips, so
+    /// STAY in the timeline (append-only) - only their visibility flips, so
     /// revert/fork keep reaching them.
     fn sweep_useless_chains(&mut self) {
         // The newest chain (the one the model has not seen yet) is preserved:
@@ -1738,14 +1738,14 @@ impl ContextManager {
     /// excluded and remains verbatim after the checkpoint is committed.
     ///
     /// A [`ContextItem::Compaction`] item (the previous summary) switches the
-    /// prompt to update mode: the summary is NOT embedded in the instruction —
+    /// prompt to update mode: the summary is NOT embedded in the instruction -
     /// it stays in the timeline as the first line of the transcript
     /// (`[Previous summary]: …`), and the instruction references it by that
     /// label so the model merges the new facts into the anchor instead of
     /// re-summarizing from scratch (avoiding summary-of-summary quality loss).
     ///
     /// Returns `None` when there is nothing to compact (empty timeline, or
-    /// the total is already below the trigger — defensive, the harness only
+    /// the total is already below the trigger - defensive, the harness only
     /// calls this after [`RunOutcome::NeedsLlmCompaction`]).
     pub fn llm_compaction_request(&self) -> Option<LlmCompactionRequest> {
         if self.items.is_empty() || self.total_tokens() < self.trigger() {
@@ -1885,7 +1885,7 @@ impl ContextManager {
     /// previous overflow could not be relieved by the split and the total
     /// still exceeds the window. The harness then skips the doomed summarizer
     /// call (it would only burn a paid request per dispatch) and re-surfaces
-    /// the notification until the user switches the model. Keyed by MODEL —
+    /// the notification until the user switches the model. Keyed by MODEL -
     /// the stuck constraint is the model's window, not the provider's API.
     pub fn overflow_stuck(&self, model: &str) -> bool {
         self.overflow_model.as_deref() == Some(model)
@@ -1897,7 +1897,7 @@ impl ContextManager {
         self.overflow_model = Some(model.to_string());
     }
 
-    /// The current token budget — the discovered window or the default. The
+    /// The current token budget - the discovered window or the default. The
     /// harness uses it (with the error-reported window) to detect the
     /// context-exceeds-window split trigger.
     #[must_use]
@@ -1905,7 +1905,7 @@ impl ContextManager {
         self.max_tokens
     }
 
-    /// Forget a recorded stuck overflow — called when the model changes
+    /// Forget a recorded stuck overflow - called when the model changes
     /// (model switch) or a compaction succeeds, so the next overflow starts
     /// fresh.
     fn clear_overflow(&mut self) {
@@ -1913,7 +1913,7 @@ impl ContextManager {
     }
 
     /// Called by the harness at loop start with the ACTIVE model: when it
-    /// differs from a recorded stuck model, the user switched the model —
+    /// differs from a recorded stuck model, the user switched the model -
     /// clear the stuck state and retry from scratch.
     pub fn sync_model(&mut self, model: &str) {
         if self.overflow_model.as_deref() != Some(model) {
@@ -1934,7 +1934,7 @@ impl ContextManager {
     pub fn build_messages(&self, current_input: &str) -> Vec<ChatMessage> {
         let mut messages = Vec::with_capacity(self.items.len() + 1);
         // Token-source breakdown (file log, target `morpheus::harness::context`):
-        // per-item-type counts and estimated tokens over the VISIBLE window —
+        // per-item-type counts and estimated tokens over the VISIBLE window -
         // the exact material this request is about to send. The point of the
         // log is answering "what is eating the budget" from the wire side:
         // if the request carries far more than the session shows, the delta
@@ -1945,7 +1945,7 @@ impl ContextManager {
             // (`cached_items_tokens`) exists precisely to avoid an
             // O(session-tokens) re-encode per request, and this diagnostic
             // must not defeat it. Bytes are free (they are already in
-            // memory) and sufficient to spot what is eating the request —
+            // memory) and sufficient to spot what is eating the request -
             // the provider bills tokens, and bytes track them linearly.
             let mut counts = [0usize; 8];
             let mut bytes = [0usize; 8];
@@ -1996,9 +1996,9 @@ impl ContextManager {
                 largest_tool_result,
             );
         }
-        // Visibility filter FIRST (O(1) per item — boundary compare + hash
+        // Visibility filter FIRST (O(1) per item - boundary compare + hash
         // lookup): pre-compaction and individually hidden items never reach
-        // the model. Then skip leading tool results — a `tool` message right
+        // the model. Then skip leading tool results - a `tool` message right
         // after `system` is rejected by some providers (e.g. Mistral).
         // Orphans should not exist thanks to chain-aware hiding, but a
         // restored snapshot could still hold them.
@@ -2143,7 +2143,7 @@ impl ContextManager {
             messages.push(user_message(current_input));
         }
         // Tail blocks in order: the tool-correction block first, then the
-        // protected TODO block. Corrections churn on every tool failure —
+        // protected TODO block. Corrections churn on every tool failure -
         // rendering them at the TAIL keeps that churn away from the cached
         // `[system → history]` prefix (a header placement would invalidate
         // the WHOLE conversation on every new correction, exactly like the
@@ -2163,7 +2163,7 @@ impl ContextManager {
         }
         // The /agents coworkers listing sits BETWEEN the corrections and the
         // TODO block: coworker set/bind changes churn per coworker lifecycle, so
-        // they must never touch the system prompt (prefix position 0 — the
+        // they must never touch the system prompt (prefix position 0 - the
         // exact-prefix cache of the WHOLE conversation dies with any byte
         // change there). At the tail a change only costs the tail itself.
         if let Some(coworkers) = self.coworkers_block.as_deref() {
@@ -2322,7 +2322,7 @@ impl ContextManager {
     }
 
     /// Mirror the tool-correction memory block for the next request (tail
-    /// rendering — see the field docs). An empty/blank text clears the block.
+    /// rendering - see the field docs). An empty/blank text clears the block.
     pub fn set_correction_block(&mut self, text: String) {
         self.correction_block = if text.trim().is_empty() {
             None
@@ -2336,7 +2336,7 @@ impl ContextManager {
     }
 
     /// Mirror the /agents coworkers listing block for the next request (tail
-    /// rendering — see the field docs). `None`/empty clears the block: a
+    /// rendering - see the field docs). `None`/empty clears the block: a
     /// session without coworkers renders nothing (byte-identical tail with
     /// the pre-feature one).
     pub fn set_coworkers_block(&mut self, text: Option<String>) {
@@ -2372,7 +2372,7 @@ impl ContextManager {
         self.next_id = state.next_id;
         self.max_tokens = state.max_tokens;
         self.overflow_model = state.overflow_model.clone();
-        // Split progress is REAL progress (the buffer + cursor) — a restored
+        // Split progress is REAL progress (the buffer + cursor) - a restored
         // session resumes the split exactly where it stopped.
         self.split = state.split.clone();
         self.map_reduce = state.map_reduce.clone();
@@ -2394,7 +2394,7 @@ impl ContextManager {
             None => self.todo.clear(),
         }
         self.last_tool_set = state.last_tool_set.clone();
-        // The items were replaced wholesale — rebuild the cached total.
+        // The items were replaced wholesale - rebuild the cached total.
         self.recompute_cached_tokens();
     }
 
@@ -2454,7 +2454,7 @@ impl ContextManager {
 
     /// Rebuild the cached token total from scratch. Called when the encoding
     /// changes (every item's estimated cost changes), on restore and on
-    /// compaction. Counts ONLY model-visible items — the cache represents
+    /// compaction. Counts ONLY model-visible items - the cache represents
     /// what the provider would be sent, never the hidden append-only history.
     fn recompute_cached_tokens(&mut self) {
         self.cached_items_tokens = self
@@ -2476,7 +2476,7 @@ impl ContextManager {
     }
 
     /// Token count at which the 80% compaction trigger fires: 80% of the
-    /// budget normally, ZERO while the manual `/compact` mode is active — so
+    /// budget normally, ZERO while the manual `/compact` mode is active - so
     /// [`Self::run`] hands off to the LLM summary regardless of how much
     /// budget is free. The LLM-side guards ([`Self::llm_compaction_request`],
     /// [`Self::apply_llm_summary`]) keep their normal semantics (see those).
@@ -2507,7 +2507,7 @@ impl ContextManager {
 
     /// True when there is anything worth compacting: at least one VISIBLE
     /// item that is not itself the (newest) compaction summary. Append-only
-    /// means the timeline grows forever — the check is on visibility, never
+    /// means the timeline grows forever - the check is on visibility, never
     /// on the raw length.
     pub fn has_compactable_content(&self) -> bool {
         self.items
@@ -2519,8 +2519,8 @@ impl ContextManager {
         // Debug-only invariant: the incremental cache has a handful of sync
         // points, so a future mutation that forgets to update it would
         // silently corrupt compaction timing (saturating arithmetic masks
-        // underflow). Every call to `total_tokens` — which the whole test
-        // suite makes constantly — cross-checks the cached total against a
+        // underflow). Every call to `total_tokens` - which the whole test
+        // suite makes constantly - cross-checks the cached total against a
         // brute-force recompute in debug builds, failing fast on drift.
         // Compiled out in release: zero cost.
         #[cfg(debug_assertions)]
@@ -2578,7 +2578,7 @@ impl ContextManager {
 
     /// Hide the item at `idx`: it stays in the timeline (revert/fork can
     /// still reach it) but is never sent to the model. The item's cost
-    /// leaves the cached token total — the doomed item is re-tokenized here
+    /// leaves the cached token total - the doomed item is re-tokenized here
     /// (hiding is rare and bounded, so this is the cheap side of not keeping
     /// a per-item cost map in sync).
     fn hide_at(&mut self, idx: usize) {
@@ -2615,7 +2615,7 @@ impl ContextManager {
                 self.hide_at(idx.max(p));
                 self.hide_at(idx.min(p));
             }
-            // No partner (orphan) — hide just this item.
+            // No partner (orphan) - hide just this item.
             None => self.hide_at(idx),
         }
     }

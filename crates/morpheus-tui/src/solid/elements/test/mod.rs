@@ -314,7 +314,7 @@ mod extras_tests {
         let dynamic = DynamicRenderable::try_new("span").unwrap();
         let mut buf = ratatui::buffer::Buffer::empty(ratatui::layout::Rect::new(0, 0, 10, 1));
         dynamic.render_self(&mut buf, ratatui::layout::Rect::new(0, 0, 10, 1));
-        // inner SpanRenderable has no text, renders nothing — but doesn't panic
+        // inner SpanRenderable has no text, renders nothing - but doesn't panic
     }
 
     #[test]

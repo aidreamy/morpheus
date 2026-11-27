@@ -28,7 +28,7 @@ mod ambiguity_tests {
         assert!(note.contains("`nth`"), "the note must name the fix: {note}");
     }
 
-    /// An explicit `nth` is the caller's decision — no note.
+    /// An explicit `nth` is the caller's decision - no note.
     #[test]
     fn explicit_nth_stays_silent() {
         let locator = app_locator("button");
@@ -71,7 +71,7 @@ mod target_state_tests {
         assert_eq!(line, format!("`{SELECTOR}` now visible"));
     }
 
-    /// Disabled is the state that explains a swallowed click — it must survive
+    /// Disabled is the state that explains a swallowed click - it must survive
     /// into the report.
     #[test]
     fn disabled_target_is_named() {
@@ -81,7 +81,7 @@ mod target_state_tests {
     }
 
     /// A control that really disappeared (a closed dialog, a replaced row) is
-    /// reported as gone — the wait only says this after the whole window.
+    /// reported as gone - the wait only says this after the whole window.
     #[test]
     fn missing_target_is_reported_as_gone() {
         let provider: Arc<dyn Provider> = build_provider();
@@ -153,7 +153,7 @@ mod fuzzy_name_tests {
         assert_eq!(unique_fuzzy_name("chrome", ["   ", "Firefox"]), None);
     }
 
-    /// An empty needle is not a name — the exact lookup is the only path.
+    /// An empty needle is not a name - the exact lookup is the only path.
     #[test]
     fn blank_needle_resolves_to_nothing() {
         assert_eq!(unique_fuzzy_name("  ", ["Firefox"]), None);

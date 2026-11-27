@@ -65,7 +65,7 @@ impl ServerHandler for IntegrityChecker {
     }
 }
 
-/// A server that always fails on `call_tool` — simulates server-side crash.
+/// A server that always fails on `call_tool` - simulates server-side crash.
 #[derive(Clone)]
 struct CrashOnCall {
     tool_name: String,
@@ -341,14 +341,14 @@ async fn dispatch_next_preserves_item_on_server_error() {
         thought_signature: String::new(),
     });
 
-    // Dispatch fails — server returned error
+    // Dispatch fails - server returned error
     let err = h.dispatch_next().await.unwrap_err();
     assert!(
         err.contains("server crashed"),
         "expected server error, got: {err}"
     );
 
-    // Item should be removed from queue — dispatch_next pops even on failure
+    // Item should be removed from queue - dispatch_next pops even on failure
     // to avoid infinite loops in Phase 2.
     let err2 = h.dispatch_next().await.unwrap_err();
     assert!(
@@ -625,7 +625,7 @@ async fn argument_rejection_echoes_the_expected_schema_shape() {
         "serde error surfaces: {err}"
     );
     assert!(
-        err.contains("Expected `fs_write` arguments — minimal shape:"),
+        err.contains("Expected `fs_write` arguments - minimal shape:"),
         "rejection must teach the shape: {err}"
     );
     // The advertised shape is the flat single-file form (same shape the
@@ -1093,7 +1093,7 @@ fn handoff_notice_lists_each_stale_tool_once() {
 /// dispatch arm refuses pane-originated calls as defense in depth. This
 /// test drives the dispatch arm directly with a pushed call (simulating a
 /// stale/re-added tool) and asserts the pane-call refusal fires BEFORE the
-/// registry is touched — no queue entry, no self-call error shape.
+/// registry is touched - no queue entry, no self-call error shape.
 #[tokio::test]
 async fn agents_call_is_refused_from_a_pane_loop() {
     let mut h = Harness::new_test()
@@ -1117,7 +1117,7 @@ async fn agents_call_is_refused_from_a_pane_loop() {
 /// `agents_compact` tool at build time, and the dispatch arm refuses
 /// pane-originated calls as defense in depth (the same shape the
 /// `agents_call` refusal test pins). The refusal fires BEFORE the registry
-/// is touched — nothing parks for a pane the coordinator never asked.
+/// is touched - nothing parks for a pane the coordinator never asked.
 #[tokio::test]
 async fn agents_compact_is_refused_from_a_pane_loop() {
     let mut h = Harness::new_test()
@@ -1139,7 +1139,7 @@ async fn agents_compact_is_refused_from_a_pane_loop() {
 
 /// Manager mode hides the file-write tools at registration: the model never
 /// even sees a schema for them (defense in depth with the guardrail denial),
-/// while every management tool — including `fs_rollback` — stays exposed.
+/// while every management tool - including `fs_rollback` - stays exposed.
 #[test]
 fn manager_mode_registration_hides_the_write_tools() {
     use aiface::connector::Connector;

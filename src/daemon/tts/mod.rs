@@ -6,11 +6,11 @@
 //! utterance to the path the client asks for and returns the real bass
 //! envelope of the generated audio for the TUI equalizer.
 //!
-//! - [`protocol`] — the wire schema (methods, params, results, error codes).
-//! - [`server`] — accept loop, routing, the resident model and single
+//! - [`protocol`] - the wire schema (methods, params, results, error codes).
+//! - [`server`] - accept loop, routing, the resident model and single
 //!   synthesis slot, drain.
-//! - [`client`] — the TUI-facing [`TtsClient`].
-//! - `main` (the binary) — bind the socket, serve, idle-exit.
+//! - [`client`] - the TUI-facing [`TtsClient`].
+//! - `main` (the binary) - bind the socket, serve, idle-exit.
 //!
 //! Playback deliberately does NOT live here: the TUI plays the WAV through
 //! the system player so it can pause/resume it, which an in-flight IPC
@@ -54,7 +54,7 @@ pub fn run() -> i32 {
 
     // The voice settings are read once at startup: they describe how the
     // model loads, and the client sends per-request voice/speed overrides.
-    // A broken setup.json must not take the daemon down — it starts with the
+    // A broken setup.json must not take the daemon down - it starts with the
     // defaults and the first synthesis reports the model error.
     let voice = crate::setup::Setup::load().voice;
     let settings = server::Settings {

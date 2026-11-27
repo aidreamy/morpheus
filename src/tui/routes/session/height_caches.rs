@@ -5,7 +5,7 @@ impl SessionView {
     /// if terminal width changed or config changed. If only message count grew
     /// (new messages appended), extends the cache incrementally without touching
     /// existing entries. Otherwise, incrementally updates only the last message
-    /// if its content changed (streaming — tool status, output, reasoning, text).
+    /// if its content changed (streaming - tool status, output, reasoning, text).
     /// Returns cache update details so callers can clear render caches and
     /// distinguish remote content growth from local expand/collapse layout.
     pub(super) fn ensure_height_caches_fresh(
@@ -37,7 +37,7 @@ impl SessionView {
         // content here would mutate the shared caches and desynchronize the
         // hover/click geometry from the screen (the highlight used to jump
         // onto the block above a freshly injected queued message while the
-        // agent streamed). Structural staleness still rebuilds below — the
+        // agent streamed). Structural staleness still rebuilds below - the
         // old layout cannot be mapped onto different content safely.
         if mode == HeightCacheMode::PaintedOnly && !cache_stale {
             return HeightCacheUpdate::default();
@@ -50,7 +50,7 @@ impl SessionView {
             // rebuild for the opposite width happened. If that snapshot still
             // describes this exact session/config/expansion/message-count/
             // width, swap it in O(1) instead of re-estimating every message and
-            // re-rendering the visible viewport from scratch — the ~60-80ms
+            // re-rendering the visible viewport from scratch - the ~60-80ms
             // toggle frame (→ a second on a real 10h transcript) that froze the
             // header animation. The outgoing active set was in steady state
             // this frame, so it is healthy and gets parked back in the snapshot
@@ -90,7 +90,7 @@ impl SessionView {
             }
             // An invalid snapshot was `take`n and dropped (its validation keys
             // no longer describe this session/config/expansion/messages/width)
-            // or no snapshot existed — either way, continue to the ordinary
+            // or no snapshot existed - either way, continue to the ordinary
             // rebuild/extend path below.
 
             let config_or_width_changed =
@@ -121,13 +121,13 @@ impl SessionView {
                 self.msg_height_cache.clear();
                 self.part_heights_cache.clear();
                 // Parallel cold build (rayon): every message's height
-                // estimation is pure and independent — `estimate_part_height`
+                // estimation is pure and independent - `estimate_part_height`
                 // reads only `tool_state` (immutable here) plus message data,
                 // and the markdown estimator memoizes its work in global
                 // `Mutex`-guarded LRU caches. On a unique-content transcript
                 // (the real 10-hour case) this is the single dominant cost of
-                // the first reflow at a new width — ~645ms sequential for 800
-                // messages, ~145ms across 12 cores — so splitting it across
+                // the first reflow at a new width - ~645ms sequential for 800
+                // messages, ~145ms across 12 cores - so splitting it across
                 // cores is the one change that moves the user-visible "first
                 // open" wall. The per-frame incremental paths below stay
                 // sequential: they touch a handful of messages, where thread
@@ -269,7 +269,7 @@ impl SessionView {
                 let added_heights: i32 = self.msg_height_cache[prev_len..].iter().sum();
                 self.cached_total_height += added_heights + new_count as i32;
                 // Extend prefix_y: the previous last entry is the OLD total
-                // (= the end of the last old message) — pop it, then each new
+                // (= the end of the last old message) - pop it, then each new
                 // message starts one row below its predecessor's end (the
                 // 1-row gap, except for the very first message of the
                 // timeline) and ends after its own height. The final pushed
@@ -286,11 +286,11 @@ impl SessionView {
                     y += h; // its end
                 }
                 self.prefix_y.push(y); // new total (no trailing gap)
-                // Sync actual_total_height using .max() — see note above.
+                // Sync actual_total_height using .max() - see note above.
                 self.actual_total_height = self.actual_total_height.max(self.cached_total_height);
                 // The injection frame lands HERE (count grew): the pinned
                 // streaming message is NOT one of the new messages, so the
-                // loop above skipped it. Re-estimate it now — its deltas
+                // loop above skipped it. Re-estimate it now - its deltas
                 // since the last build would otherwise be clipped by the
                 // stale height on this very frame, AND the walk would save
                 // cells carrying the FRESH content token rendered with the
@@ -407,7 +407,7 @@ impl SessionView {
                         && let Some((s_height, s_part_hs)) = stream_last.as_ref()
                     {
                         // Streaming message: use the cache's heights without
-                        // hashing. The stored token is the cache height — a
+                        // hashing. The stored token is the cache height - a
                         // cheap monotonic stand-in; once streaming ends the
                         // normal `msg_change_token` path re-estimates once and
                         // replaces it.
@@ -470,7 +470,7 @@ impl SessionView {
             }
             if any_changed {
                 // The changed message's height moved, so every start position
-                // after the first changed message shifts — rebuild the whole
+                // after the first changed message shifts - rebuild the whole
                 // prefix_y (O(n) sums) and the cached total.
                 self.cached_total_height = self.rebuild_prefix_y();
                 self.last_msg_change_token = if let Some((s_height, _)) = stream_last.as_ref() {
@@ -481,7 +481,7 @@ impl SessionView {
                 };
                 self.last_session_id = Some(session.id.clone());
                 self.last_tool_state_version = self.tool_state.version;
-                // Sync actual_total_height using .max() — see note above.
+                // Sync actual_total_height using .max() - see note above.
                 self.actual_total_height = self.actual_total_height.max(self.cached_total_height);
                 if self.render_frame.is_multiple_of(30) {
                     log::debug!(

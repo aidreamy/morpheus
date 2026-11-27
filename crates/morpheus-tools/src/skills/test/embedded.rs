@@ -1,4 +1,4 @@
-//! Tests for embedded (in-memory) skill sources — no filesystem needed.
+//! Tests for embedded (in-memory) skill sources - no filesystem needed.
 
 use super::super::{EmbeddedSkill, SkillAction, SkillOutput, SkillSchema, SkillSource, execute};
 

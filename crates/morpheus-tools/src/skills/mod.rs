@@ -3,7 +3,7 @@
 //! Discovers `SKILL.md` capability packs from caller-supplied sources
 //! (directories or embedded data) and exposes them via a typed schema.
 //!
-//! [`Skills`] wraps the schema and action dispatch in a single builder —
+//! [`Skills`] wraps the schema and action dispatch in a single builder -
 //! configure sources once and call the desired operation.
 //!
 //! # Example
@@ -175,7 +175,7 @@ impl Skills {
         self
     }
 
-    /// Allowlist — when non-empty, only skills whose name appears here are returned.
+    /// Allowlist - when non-empty, only skills whose name appears here are returned.
     #[must_use]
     pub fn include(mut self, names: Vec<String>) -> Self {
         self.include = names;

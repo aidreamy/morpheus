@@ -96,7 +96,7 @@ fn recall_with_description_preserves_name_and_schema() {
     assert!(names.contains(&"query"));
 }
 
-// Input validation — structural (search is async, integration test only)
+// Input validation - structural (search is async, integration test only)
 //
 #[test]
 fn recall_search_input_serde_roundtrip() {

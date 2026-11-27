@@ -3,7 +3,7 @@
 //! [`PatchSection`]s, each rooted at a `¶PATH#HASH` header, then exposes a
 //! [`Patch`] struct that gives lazy access to the parsed edits per section.
 //!
-//! The splitter is purely lexical — it doesn't know whether a section's path
+//! The splitter is purely lexical - it doesn't know whether a section's path
 //! actually exists. That's the patcher's job.
 use std::fmt;
 use std::path::Path;
@@ -18,7 +18,7 @@ use super::parser::{parse_patch, parse_patch_streaming};
 use super::tokenizer::{Token, Tokenizer};
 use super::types::{ApplyResult, BlockResolver, Edit, ResolveAction, SplitOptions};
 
-// Pure classification — single shared tokenizer is safe.
+// Pure classification - single shared tokenizer is safe.
 static TOKENIZER: LazyLock<Tokenizer> = LazyLock::new(Tokenizer::new);
 
 fn unquote_hashline_path(path_text: &str) -> &str {
@@ -385,7 +385,7 @@ impl PatchSection {
     ///
     /// Returns an error when the resolved edits are malformed (unresolved block,
     /// out-of-bounds anchor) or a boundary echo cannot be placed without
-    /// ambiguity — such an edit is never applied.
+    /// ambiguity - such an edit is never applied.
     pub fn apply_to(
         &self,
         text: &str,
@@ -457,7 +457,7 @@ impl PatchSection {
     }
 }
 
-/// A parsed hashline patch — zero or more [`PatchSection`]s, each rooted
+/// A parsed hashline patch - zero or more [`PatchSection`]s, each rooted
 /// at a `¶PATH#HASH` header. Construct via [`Patch::parse`].
 ///
 /// `Patch` is pure data: parsing is line-anchored and does not look at the

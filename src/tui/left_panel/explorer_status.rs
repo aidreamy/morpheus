@@ -1,30 +1,30 @@
 //! Git + LSP status for the file explorer tree (Ctrl+F).
 //!
 //! A single "status index" the explorer's render loop consults, built from
-//! two inputs that already exist in the project — no parallel tracking is
+//! two inputs that already exist in the project - no parallel tracking is
 //! introduced:
 //!
-//! * **LSP diagnostics** — the process-wide singleton engine
+//! * **LSP diagnostics** - the process-wide singleton engine
 //!   ([`morpheus::harness::lsp::global_lsp`], the same store the `lsp_*` tools and
 //!   the passive tool findings read). Peeked read-only via
 //!   [`morpheus::harness::lsp::peek_global_lsp`]: the explorer never starts a
 //!   server, it only shows what servers have already published.
-//! * **Git status** — one `git status --porcelain=v1 -z` call per second in a
+//! * **Git status** - one `git status --porcelain=v1 -z` call per second in a
 //!   background thread. The project's git utilities read branch state
 //!   directly from `.git` (see [`morpheus::git::branch`]), but porcelain status
 //!   cannot be reproduced that way without reimplementing git; shelling out
 //!   is what VS Code and Zed do. Missing `git` binary / non-repo simply means
-//!   no git colors — never an error surface.
+//!   no git colors - never an error surface.
 //!
 //! Files map to their own state; every directory aggregates the states of
 //! everything below it, so a collapsed directory lights up before it is
 //! expanded (VS Code/Zed-style decorations):
 //!
-//! * file name colored by git state — modified `warning`, added/untracked
+//! * file name colored by git state - modified `warning`, added/untracked
 //!   `diff_added`, deleted `diff_removed` (the diff palette the transcript
 //!   already uses);
 //! * a trailing `✗`/`⚠` marker in the theme's `error`/`warning` color for
-//!   LSP diagnostics — the same glyphs the passive LSP notes render with;
+//!   LSP diagnostics - the same glyphs the passive LSP notes render with;
 //! * directories keep the `primary` name color and carry a trailing marker
 //!   for the strongest state below them.
 //!
@@ -86,7 +86,7 @@ struct GitSnapshot {
 /// Parse `git status --porcelain=v1 -z --untracked-files=all` output into
 /// per-path states under `root` (absolute). Each record is `XY PATH\0`; a
 /// rename/copy record is followed by an extra `\0`-separated origin path,
-/// which is consumed and ignored — the destination is what the tree shows.
+/// which is consumed and ignored - the destination is what the tree shows.
 fn parse_porcelain(stdout: &str, root: &Path) -> HashMap<PathBuf, GitFileStatus> {
     let mut entries = HashMap::new();
     let mut records = stdout.split('\0');
@@ -106,7 +106,7 @@ fn parse_porcelain(stdout: &str, root: &Path) -> HashMap<PathBuf, GitFileStatus>
             GitFileStatus::Added
         } else {
             // Everything else (M, conflicts, typechanges) reads as a
-            // modification — the state a user thinks of as "not committed".
+            // modification - the state a user thinks of as "not committed".
             GitFileStatus::Modified
         };
         entries.insert(root.join(path), state);
@@ -146,7 +146,7 @@ fn scope_git_entries(
 }
 
 /// Run `git status` for the repository governing `dir`. Soft-fails to an
-/// empty snapshot (no git, no repo, error) — git color is simply absent.
+/// empty snapshot (no git, no repo, error) - git color is simply absent.
 fn git_status(dir: &Path) -> GitSnapshot {
     let run = |args: &[&str]| {
         std::process::Command::new("git")
@@ -254,7 +254,7 @@ pub struct StatusIndex {
     /// The root the index was built for (directory aggregation stops
     /// below it; the root itself is not an explorer row).
     explorer_root: PathBuf,
-    /// Git axis cache, keyed by the root it was scoped to — re-read only
+    /// Git axis cache, keyed by the root it was scoped to - re-read only
     /// when the git snapshot revision or the root moves, so an LSP-only
     /// change never pays for another pass over the git state.
     git_files: HashMap<PathBuf, EntryStatus>,
@@ -280,7 +280,7 @@ impl StatusIndex {
     /// the LSP singleton lookup. Returns whether a rebuild happened.
     ///
     /// The LSP side is a pure peek: only an already-running engine bound to
-    /// this root is read — the explorer never starts a server. No engine
+    /// this root is read - the explorer never starts a server. No engine
     /// yet means the LSP axis is simply absent (version 0).
     pub fn refresh(&mut self, explorer_root: &Path, watcher: &GitWatcher) -> bool {
         // One peek per refresh: the engine is resolved once and used both
@@ -296,7 +296,7 @@ impl StatusIndex {
         }
 
         // Git axis: re-read (and scope to the tree's root) only when the
-        // snapshot revision or the root moved — an LSP-only change reuses
+        // snapshot revision or the root moved - an LSP-only change reuses
         // the cached entries.
         if git_revision != self.git_revision || self.git_root != explorer_root {
             let git = watcher.snapshot();
@@ -309,7 +309,7 @@ impl StatusIndex {
             files.insert(path.clone(), *status);
         }
 
-        // LSP: only what the (already running) engine has published — a pure
+        // LSP: only what the (already running) engine has published - a pure
         // peek, never creating the engine or starting a server.
         if let Some(lsp) = lsp {
             let engine = lsp.diagnostics_engine();
@@ -327,7 +327,7 @@ impl StatusIndex {
                     .max();
                 if let Some(lsp_status) = severity {
                     // Fresh file: default + lsp. Git-tracked file: the two
-                    // axes merge — the map entry keeps its git state.
+                    // axes merge - the map entry keeps its git state.
                     files.entry(path).or_default().lsp = Some(lsp_status);
                 }
             }

@@ -1,4 +1,4 @@
-//! Semantic (accessibility-action) component — validation and dispatch of
+//! Semantic (accessibility-action) component - validation and dispatch of
 //! element-action steps.
 //!
 //! This is a COMPONENT, not a tool: it knows how to validate and execute
@@ -10,7 +10,7 @@
 //! reuse it without carrying the pipelines along.
 //!
 //! Exception kept from the former `computer_touch`: `scroll_into_view`
-//! waits only for the element to EXIST — its purpose is to bring a
+//! waits only for the element to EXIST - its purpose is to bring a
 //! not-yet-visible element into view, so visibility would deadlock it.
 use std::time::Duration;
 
@@ -26,7 +26,7 @@ use super::types::{ActAction, ComputerAct};
 /// # Errors
 ///
 /// Returns `Err` for a missing/blank `selector`, `name` and `pid`
-/// together, no app scope at all, a 0-based `nth`, or a missing payload —
+/// together, no app scope at all, a 0-based `nth`, or a missing payload -
 /// `set_value`/`type_text`/`perform_action` need `value`,
 /// `set_numeric_value` needs `numeric_value`, `select_text` needs a
 /// well-formed `range` (exactly two numbers, start <= end).
@@ -51,7 +51,7 @@ pub fn validate(step: &ComputerAct, tool: &str) -> Result<(), String> {
     }
     if step.held.is_some() {
         return Err(format!(
-            "{tool}: `held` applies to keyboard and pointer steps — a semantic action \
+            "{tool}: `held` applies to keyboard and pointer steps - a semantic action \
              carries no chord; chain a keyboard step via `then` if you need one"
         ));
     }
@@ -120,7 +120,7 @@ pub fn run_step(step: &ComputerAct, tool: &str) -> Result<String, String> {
     dispatch_action(&locator, action, step, app.name.clone(), tool)
 }
 
-/// Run a validated semantic step against an ALREADY-RESOLVED surface —
+/// Run a validated semantic step against an ALREADY-RESOLVED surface -
 /// shared by the production path (singleton provider) and the tests (mock
 /// provider handle built via `ShellSurface::by_kind_with`).
 pub(crate) fn run_step_on_surface(
@@ -143,7 +143,7 @@ pub(crate) fn run_step_on_surface(
 }
 
 /// Invoke the action on an already-built locator and format the report
-/// fragment — shared by the app and surface paths.
+/// fragment - shared by the app and surface paths.
 fn dispatch_action(
     locator: &xa11y::Locator,
     action: ActAction,
@@ -170,7 +170,7 @@ fn dispatch_action(
         ActAction::SetValue => {
             let value = step.value.as_deref().unwrap_or_default();
             // A slider/spinner rejects text input (no ValuePattern), but the
-            // model's value may still be numeric — retry through the
+            // model's value may still be numeric - retry through the
             // RangeValue path `set_numeric_value` uses before giving up.
             match locator.set_value(value) {
                 Err(xa11y::Error::TextValueNotSupported) => match value.trim().parse::<f64>() {
@@ -196,7 +196,7 @@ fn dispatch_action(
             // Insertion happens at the caret of the FOCUSED element: focusing
             // the target first keeps a successful call from typing into
             // whatever happened to hold focus. A platform that cannot focus
-            // still gets its chance — the insertion error says what to do.
+            // still gets its chance - the insertion error says what to do.
             let _ = locator.focus();
             locator.type_text(value)
         }
@@ -214,12 +214,12 @@ fn dispatch_action(
             let data = element.data();
             if !data.actions.is_empty() {
                 message.push_str(&format!(
-                    " — declared actions: [{}]",
+                    " - declared actions: [{}]",
                     data.actions.join(", ")
                 ));
             }
             if let Some(description) = data.description.as_deref() {
-                message.push_str(&format!(" — description: {description:?}"));
+                message.push_str(&format!(" - description: {description:?}"));
             }
         }
         message

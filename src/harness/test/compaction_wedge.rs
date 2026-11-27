@@ -4,14 +4,14 @@
 //!
 //! Two coupled mechanisms, both proven here:
 //!
-//! 1. THE TURN LATCH. Any single failed compaction attempt — including the
-//!    silent `Interrupted` classification — sets
+//! 1. THE TURN LATCH. Any single failed compaction attempt - including the
+//!    silent `Interrupted` classification - sets
 //!    `automatic_compaction_failed` in `run_agent_loop_inner`, which skips
 //!    the 80% trigger for the REST OF THE TURN. Tool dispatches keep growing
 //!    the context every iteration, so the budget climbs past 80%, 85% … and
 //!    over 100% with zero further summarization attempts.
 //! 2. THE ESC-WEDGED STOP FLAG. The TUI flips the shared `stop_signal` on
-//!    ESC/Interrupt and the harness side never cleared it — only
+//!    ESC/Interrupt and the harness side never cleared it - only
 //!    `start_agent_loop` did, on the direct-send path. `/compact` cloned
 //!    the flag WITHOUT clearing it (`start_manual_compaction` →
 //!    `compact_on_demand`), so a flag wedged by an earlier ESC handed the
@@ -19,11 +19,11 @@
 //!    that flag BEFORE connecting (`tokio::select!` against
 //!    `wait_for_stop_signal`, 50 ms poll): an already-set flag won the race
 //!    immediately → `CompactionErr::Interrupted` → the manual pass failed no
-//!    matter how often it was retried. A REBOOT created a fresh flag —
+//!    matter how often it was retried. A REBOOT created a fresh flag -
 //!    exactly why the mechanism came back after restarting the app.
 //!
 //!    THE FIX, covered here: both sides of the handoff now clear the flag
-//!    before the compaction starts — the TUI in `start_manual_compaction`
+//!    before the compaction starts - the TUI in `start_manual_compaction`
 //!    (its own copy) and the harness in `compact_on_demand` (whatever
 //!    arrives through the API), mirroring the `start_agent_loop` contract.
 //!    `fixed_compact_on_demand_clears_the_wedged_flag` proves the manual
@@ -31,7 +31,7 @@
 //!
 //! The race is proven against the REAL SDK streaming path (a local
 //! HTTP/SSE server): the test-only mock response short-circuits before the
-//! select, so mocks cannot reproduce it — production always can, because
+//! select, so mocks cannot reproduce it - production always can, because
 //! the connect future is pending while the wait arm is ready on first poll.
 //!
 //! `repro_summarizer_dies_silently_to_orphan_stop_signal` proves the wedged
@@ -63,8 +63,8 @@ fn over_trigger_harness() -> Harness {
 }
 
 /// A real local HTTP/SSE summarizer endpoint. The response is delayed so the
-/// `wait_for_stop_signal` arm of the pre-connect `tokio::select!` — ready on
-/// FIRST poll when the shared flag is already set — deterministically wins
+/// `wait_for_stop_signal` arm of the pre-connect `tokio::select!` - ready on
+/// FIRST poll when the shared flag is already set - deterministically wins
 /// the race, exactly like a wedged production session.
 async fn streaming_server() -> (std::net::SocketAddr, tokio::task::JoinHandle<()>) {
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
@@ -82,7 +82,7 @@ async fn streaming_server() -> (std::net::SocketAddr, tokio::task::JoinHandle<()
                     // Stopping at the header terminator (the old logic) left
                     // the ~9 KB summarizer prompt mid-flight: the socket
                     // closed under the client, which got an RST and failed
-                    // the request with "error sending request" — before the
+                    // the request with "error sending request" - before the
                     // 200 ms reply window below ever mattered.
                     let header_end = bytes
                         .windows(4)
@@ -126,7 +126,7 @@ async fn streaming_server() -> (std::net::SocketAddr, tokio::task::JoinHandle<()
     (address, server)
 }
 
-/// A connector pointed at the local server — the production streaming path
+/// A connector pointed at the local server - the production streaming path
 /// (`stream_chat_with_system_no_tools`) with no test mocks in the way.
 fn local_connector(address: std::net::SocketAddr) -> aiface::connector::Connector {
     aiface::connector::Connector::new("openrouter")
@@ -169,7 +169,7 @@ async fn repro_summarizer_dies_silently_to_orphan_stop_signal() {
     server.abort();
 
     // Silent death: the summarizer never produced a response (no tokens were
-    // streamed to the TUI — the call died before the server ever answered)…
+    // streamed to the TUI - the call died before the server ever answered)…
     assert!(
         !events.iter().any(|e| matches!(
             e,
@@ -199,13 +199,13 @@ async fn repro_summarizer_dies_silently_to_orphan_stop_signal() {
         "and died at the race; events={events:?}"
     );
     // …and NOTHING tells the user why: no toast of any variant. That is the
-    // "sem motivo óbvio" of the report — an Interrupted classification emits
+    // "sem motivo óbvio" of the report - an Interrupted classification emits
     // no toast on the automatic path.
     assert!(
         !events
             .iter()
             .any(|e| matches!(e, HarnessEvent::Toast { .. })),
-        "the death must be unexplained — that is the bug; events={events:?}"
+        "the death must be unexplained - that is the bug; events={events:?}"
     );
     // The turn does not recover the context: still over the trigger, no
     // checkpoint committed.
@@ -224,15 +224,15 @@ async fn repro_summarizer_dies_silently_to_orphan_stop_signal() {
 }
 
 /// PROVES the turn-level latch: once one compaction attempt failed (here the
-/// silent `Interrupted` classification — e.g. ESC during the Summarizing
-/// box), the 80% trigger is abandoned for the REST of the turn — even when a
+/// silent `Interrupted` classification - e.g. ESC during the Summarizing
+/// box), the 80% trigger is abandoned for the REST of the turn - even when a
 /// perfectly working summarizer is queued. Repeated dispatches push the
 /// budget past 100% with zero further attempts: "o budget passou dos 100%".
 #[tokio::test]
 async fn repro_budget_climbs_past_100pct_after_one_silent_death() {
     let mut h = over_trigger_harness();
     // First summarizer attempt fails as Interrupted; everything after would
-    // succeed — but the turn is already poisoned.
+    // succeed - but the turn is already poisoned.
     h = h
         .with_mock_chats(vec![
             Err(INTERRUPTED_MARKER),
@@ -278,7 +278,7 @@ async fn repro_budget_climbs_past_100pct_after_one_silent_death() {
     }
 
     // Exactly ONE summarizer call was made (the aborted one). The later
-    // over-trigger dispatches — where a working summarizer was queued —
+    // over-trigger dispatches - where a working summarizer was queued -
     // never ran: the turn-level latch ate them.
     assert_eq!(
         h.mock_compaction_calls().len(),
@@ -306,7 +306,7 @@ async fn repro_budget_climbs_past_100pct_after_one_silent_death() {
         info.budget_pct, 100,
         "the bar clamps at 100% while overflowing"
     );
-    // The only compaction event is the one dead call (Failed) — nothing
+    // The only compaction event is the one dead call (Failed) - nothing
     // ongoing explains the climbing budget.
     let failures = events
         .iter()
@@ -329,7 +329,7 @@ async fn repro_budget_climbs_past_100pct_after_one_silent_death() {
 /// set from an earlier ESC, `compact_on_demand` now clears it before the
 /// summarizer's pre-connect race, so the manual pass reaches the real SDK
 /// streaming path and commits the checkpoint. "Ao tentar forçar a
-/// sumarização usando o /compact, a sumarização não funcionava" — agora
+/// sumarização usando o /compact, a sumarização não funcionava" - agora
 /// funciona na primeira tentativa, sem depender do chamador ter limpado.
 #[tokio::test]
 async fn fixed_compact_on_demand_clears_the_wedged_flag() {
@@ -338,7 +338,7 @@ async fn fixed_compact_on_demand_clears_the_wedged_flag() {
     h = h.with_connector(local_connector(address));
     h = h.with_mock_stream(Ok(vec!["final answer"]));
 
-    // The TUI's shared flag — still set from the ESC wedge. The TUI clears
+    // The TUI's shared flag - still set from the ESC wedge. The TUI clears
     // its copy in `start_manual_compaction`; this test passes it NOT cleared
     // to pin the harness-side half of the contract on its own.
     let stop_signal = Arc::new(AtomicBool::new(true));
@@ -385,7 +385,7 @@ async fn fixed_compact_on_demand_clears_the_wedged_flag() {
 /// PROVES the reboot is what revives the mechanism: a FRESH flag (what an
 /// app restart produces) makes the very same over-trigger history compact
 /// successfully through the same real streaming path. The wedge was never
-/// about the context or the model — it was the orphaned process-global flag.
+/// about the context or the model - it was the orphaned process-global flag.
 #[tokio::test]
 async fn repro_fresh_flag_after_reboot_revives_summarization() {
     let (address, server) = streaming_server().await;
@@ -393,7 +393,7 @@ async fn repro_fresh_flag_after_reboot_revives_summarization() {
     h = h.with_connector(local_connector(address));
     h = h.with_mock_stream(Ok(vec!["final answer"]));
 
-    // The reboot: a brand-new flag, cleared — exactly what a process restart
+    // The reboot: a brand-new flag, cleared - exactly what a process restart
     // hands the next turn.
     let stop_signal = Arc::new(AtomicBool::new(false));
     let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
@@ -439,7 +439,7 @@ async fn repro_fresh_flag_after_reboot_revives_summarization() {
 
 /// PROVES the harness contract that makes the TUI wedge dangerous: ANY loop
 /// or compaction entry that starts with the shared flag already set runs
-/// summarizer-dead from its first millisecond — no user keypress anywhere
+/// summarizer-dead from its first millisecond - no user keypress anywhere
 /// near it. Today `start_manual_compaction` is exactly such an entry (it
 /// clones the flag without clearing it); the contract pins what every entry
 /// point must guarantee.

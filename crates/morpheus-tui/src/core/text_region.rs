@@ -10,7 +10,7 @@
 //! Region `text` must be **content-only**: `text` char 0 corresponds to
 //! screen column `x1`, char 1 to `x1 + 1`, and so on. Builders that sample
 //! full-width rows (message borders, margins, scrollbar gutters) MUST strip
-//! those columns before labeling the region with the content `x1` — sampling
+//! those columns before labeling the region with the content `x1` - sampling
 //! from column 0 while labeling `x1 = content_start` injects ghost leading
 //! columns and shifts every copy three-plus characters off the painted
 //! selection. The helpers in this module enforce that contract by taking the
@@ -48,7 +48,7 @@ impl TextRegion {
     /// Build a one-row region (`y2 = y1 + 1`).
     ///
     /// `text` char 0 maps to screen column `x1`, char 1 to `x1 + 1`, and so
-    /// on — the content-only contract. The text may legitimately be a little
+    /// on - the content-only contract. The text may legitimately be a little
     /// wider than the labeled span: builders that sample a window wider than
     /// the content width trim trailing blanks, but a gutter glyph in the last
     /// sampled column can survive; the extractor clamps at `x2`, so it is
@@ -93,7 +93,7 @@ pub fn text_from_cell_row(cells: &[Cell], w: usize) -> String {
 /// `border_cols` columns (message border, margin, gutter) are STRIPPED so
 /// the region text is content-only, and the region is labeled with the
 /// content origin the caller renders at. `row_y` pairs each grid row index
-/// with the content row it occupies — pass `(0..rows).zip(first_content_y..)`
+/// with the content row it occupies - pass `(0..rows).zip(first_content_y..)`
 /// for an unclipped grid, or a clipped pair for a straddling one.
 ///
 /// This is the single place that knows the border-strip arithmetic. A row
@@ -152,7 +152,7 @@ pub fn regions_from_wrapped_lines(
 
 /// Sample a flattened row-major cell grid (`w` columns, `h` rows) into one
 /// region per row, labeled `x1 = x_off`, `x2 = x_off + text_max_w`. The grid
-/// must already be content-only — pre-slice full-width grids with the
+/// must already be content-only - pre-slice full-width grids with the
 /// `border_cols` strip of [`regions_from_full_width_cells`] or an equivalent
 /// `base + border_cols` offset before calling. Rows are pushed even when
 /// empty so vertical pairing stays positional; the extractor skips them.
@@ -187,7 +187,7 @@ pub fn cells_to_text_regions(
 ///
 /// Column bounds are INCLUSIVE on both ends: the glyph under the focus cell
 /// is part of the selection, matching what both highlight painters draw
-/// (`lx1..=lx2`). A same-cell band is a valid selection too — it copies
+/// (`lx1..=lx2`). A same-cell band is a valid selection too - it copies
 /// exactly that one glyph. Distinguishing a drag from a bare click is the
 /// event layer's job (mouse-down followed by drag events vs. a plain
 /// down+up release); this extractor never second-guesses geometry.
@@ -219,7 +219,7 @@ pub fn extract_text_in_region(
         // `lx2` is the drag's focus column. Selection painters highlight
         // `lx1..=lx2` INCLUSIVELY, so the character the user sees painted
         // under the release point must be copied too. The old exclusive slice
-        // dropped it — releasing on the last glyph of a word copied the word
+        // dropped it - releasing on the last glyph of a word copied the word
         // minus its final character. Full-width rows (middle rows and the top
         // row) are unaffected: lx2 = region.x2 there, and the +1 clamps back
         // to region.x2.
@@ -241,7 +241,7 @@ pub fn extract_text_in_region(
         let sliced: String = chars[col_start..end].iter().collect();
         // Defensive: builders pre-trim region text, so this is a no-op today;
         // it guards the inclusive focus column against future builders that
-        // preserve trailing padding. Per-row only — interior indentation is
+        // preserve trailing padding. Per-row only - interior indentation is
         // untouched.
         let sliced = sliced.trim_end();
         if !sliced.is_empty() {
@@ -364,7 +364,7 @@ mod tests {
     #[test]
     fn extract_inclusive_focus_and_click_behavior() {
         let region = TextRegion::one_row(0, 0, 10, "hello world".to_string());
-        // Inclusive focus: releasing ON the 'o' (column 4) copies it too —
+        // Inclusive focus: releasing ON the 'o' (column 4) copies it too -
         // the contract that fixed the "...visible_ro" bug.
         assert_eq!(
             extract_text_in_region(std::slice::from_ref(&region), 0, 0, 0, 4),
@@ -377,7 +377,7 @@ mod tests {
         );
         // A same-cell band copies exactly that glyph: a drag that starts and
         // ends on one cell selects the single character under it (bare
-        // clicks never reach the extractor — the event layer filters them).
+        // clicks never reach the extractor - the event layer filters them).
         assert_eq!(extract_text_in_region(&[region], 0, 0, 3, 3), "l");
     }
 }

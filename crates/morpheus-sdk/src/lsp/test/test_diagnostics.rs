@@ -118,7 +118,7 @@ async fn empty_publish_clears_publisher_then_path() {
     assert!(engine.snapshot_all(None).is_empty());
 }
 
-/// Identical re-publishes (tsserver/clangd churn) must not bump the version —
+/// Identical re-publishes (tsserver/clangd churn) must not bump the version -
 /// settle-wait depends on a stable version meaning "nothing changed".
 #[tokio::test]
 async fn identical_republish_does_not_bump_version() {

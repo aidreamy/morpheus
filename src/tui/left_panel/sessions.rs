@@ -86,7 +86,7 @@ impl SessionsView {
             return SessionsAction::RequestDeleteAll;
         }
 
-        // Compute which item was clicked, accounting for scroll offset —
+        // Compute which item was clicked, accounting for scroll offset -
         // None outside the list rows (header, separator, footer, past
         // bottom).
         let Some(clicked_idx) =
@@ -104,7 +104,7 @@ impl SessionsView {
             self.selection.selected_index = clicked_idx;
         }
 
-        // 🗑 hit-test: exactly the columns the glyph occupies — never a
+        // 🗑 hit-test: exactly the columns the glyph occupies - never a
         // half-row region.
         let trash_hit = SessionListLayout::trash_span(area, &summary.title)
             .is_some_and(|span| span.contains(&mx));
@@ -115,7 +115,7 @@ impl SessionsView {
 
         // Switch hit-test: only the visible title text enters the session.
         // The span is the string clamped to what the renderer actually
-        // displays — the string's own length is irrelevant once the panel
+        // displays - the string's own length is irrelevant once the panel
         // truncates it. Clicks on the row outside the string (selection
         // prefix, gap, the pad past the glyph) do nothing.
         let title_hit = SessionListLayout::title_span(area, &summary.title)
@@ -130,7 +130,7 @@ impl SessionsView {
     }
 
     /// Move the visual selection to the row under the pointer WITHOUT
-    /// switching to it — the same hover-follow contract as the model picker
+    /// switching to it - the same hover-follow contract as the model picker
     /// and the internal-tools list. The row comes from
     /// [`SessionListLayout::item_index_at`], the same hit-test the click
     /// path above uses, so hover and click can never disagree about which
@@ -155,7 +155,7 @@ impl SessionsView {
             return false;
         };
         // Mirror the click path: the selection only moves onto a real row
-        // while idle — never past the end, never while the agent is working.
+        // while idle - never past the end, never while the agent is working.
         if summaries.get(idx).is_some() && *status == SessionStatus::Idle {
             self.selection.selected_index = idx;
             true
@@ -239,7 +239,7 @@ impl SessionsView {
         let selected_fg = Style::default().fg(primary_color);
         let normal_fg = Style::default().fg(text_color);
 
-        // Layout: left_pad + prefix + text + gap + 🗑 + clear + right_pad —
+        // Layout: left_pad + prefix + text + gap + 🗑 + clear + right_pad -
         // the full column budget lives in SessionListLayout.
         let left_pad = SessionListLayout::LEFT_PAD;
         let prefix_w = SessionListLayout::PREFIX_W;
@@ -261,9 +261,9 @@ impl SessionsView {
             let style = if is_selected { selected_fg } else { normal_fg };
             let px = area.x + left_pad;
 
-            // Prefix indicator — drawn manually to avoid draw_text_line breaking wide emoji
+            // Prefix indicator - drawn manually to avoid draw_text_line breaking wide emoji
             if is_selected {
-                // 🞴 emoji at px (takes 2 cols — don't touch px+1)
+                // 🞴 emoji at px (takes 2 cols - don't touch px+1)
                 if let Some(cell) = buf.cell_mut((px, y)) {
                     cell.set_char('\u{1F7B4}');
                     cell.set_style(style);
@@ -284,7 +284,7 @@ impl SessionsView {
             let label = &summary.title;
             draw_text_line(buf, label, text_x, y, max_text_w, style);
 
-            // 🗑 + cleared cell — one span drives both writes and the
+            // 🗑 + cleared cell - one span drives both writes and the
             // hit-test, so a visible glyph is always clickable and vice
             // versa.
             if let Some(span) = SessionListLayout::trash_span(area, label) {
@@ -302,7 +302,7 @@ impl SessionsView {
 
         // ── Footer: delete all ──
         // Deletes every session of the current working directory (the
-        // store's sessions dir is cwd-scoped by construction) — never other
+        // store's sessions dir is cwd-scoped by construction) - never other
         // directories' sessions. The whole panel-wide row is painted red
         // with white text on the label; only the label span is clickable.
         if let Some(span) = SessionListLayout::footer_span(area) {

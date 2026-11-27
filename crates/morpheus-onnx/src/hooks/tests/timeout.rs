@@ -1,6 +1,6 @@
-//! Ported tests: the hooks_timeout sections of `tests/test_hooks.py` —
+//! Ported tests: the hooks_timeout sections of `tests/test_hooks.py` -
 //! overrunning hooks, raise-disabled continuation, per-call overrides, the
-//! mutation write-back — plus the review edges (infinity, panics, timeout
+//! mutation write-back - plus the review edges (infinity, panics, timeout
 //! under lock).
 
 use super::*;

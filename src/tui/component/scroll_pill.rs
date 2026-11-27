@@ -1,6 +1,6 @@
 //! Scroll-to-bottom pill (`⮟`): shared by the session chat and the
 //! `/agents` panes. Pure view over `(scroll_y, max_scroll)` plus its own
-//! slide/fade animation state — no dependency on markdown, streaming or
+//! slide/fade animation state - no dependency on markdown, streaming or
 //! chat layout. The caller supplies the anchor row; the pill centers
 //! itself on the given area and reports its hit rect while active.
 

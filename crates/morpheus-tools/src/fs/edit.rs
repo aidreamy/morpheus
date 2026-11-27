@@ -20,7 +20,7 @@ use std::sync::LazyLock;
 
 /// Marker appended to a dry-run result's warnings so the model cannot
 /// mistake a preview for an applied edit.
-const DRY_RUN_WARNING: &str = "Dry run: nothing was written — reissue without \
+const DRY_RUN_WARNING: &str = "Dry run: nothing was written - reissue without \
      `dry_run` to apply this exact edit.";
 
 /// Lines of context shown either side of an error-referenced line.
@@ -39,7 +39,7 @@ static ERROR_LINE_REF_RE: LazyLock<Regex> =
 /// can re-issue the corrected edit without a re-read round trip.
 ///
 /// A successful edit returns a fresh `¶path#TAG`, but the error path used to
-/// return bare prose — the model then had no valid tag to retry with and
+/// return bare prose - the model then had no valid tag to retry with and
 /// burned rounds re-reading the file just to mint one. Every failure carries
 /// the live `¶path#TAG` plus (when the error references line numbers) the
 /// current content of those lines, so the next attempt is informed.
@@ -61,13 +61,13 @@ fn enrich_edit_error(display_path: &str, read_path: &str, err: &str) -> String {
     let lines: Vec<&str> = text.split('\n').collect();
 
     let mut out = format!(
-        "{err}\n\nCurrent anchor: {HL_FILE_PREFIX}{display_path}#{hash} — the file has {} \
+        "{err}\n\nCurrent anchor: {HL_FILE_PREFIX}{display_path}#{hash} - the file has {} \
          lines. Re-issue the corrected edit with THIS tag; no re-read is needed.",
         lines.len(),
     );
 
     // When the error names line numbers (out-of-range anchors, parse failures
-    // at `line N:`, boundary rejections), show the live content around them —
+    // at `line N:`, boundary rejections), show the live content around them -
     // the model authored the ops against stale or elided output.
     let anchors: BTreeSet<u32> = ERROR_LINE_REF_RE
         .captures_iter(err)
@@ -106,7 +106,7 @@ fn enrich_edit_error(display_path: &str, read_path: &str, err: &str) -> String {
     }
     if truncated {
         out.push_str(&format!(
-            "... ({} more referenced line(s) omitted — re-anchor from the tag above)\n",
+            "... ({} more referenced line(s) omitted - re-anchor from the tag above)\n",
             anchors.len() - MAX_ERROR_ANCHORS
         ));
     }
@@ -127,7 +127,7 @@ pub struct EditResult {
     /// nothing was found.
     #[serde(skip_serializing_if = "Option::is_none")]
     pub lsp_notes: Option<super::types::LspNotes>,
-    /// `Some(true)` when the result came from a preview (`dry_run`) — the
+    /// `Some(true)` when the result came from a preview (`dry_run`) - the
     /// edit was validated in memory but NOT written.
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub dry_run: Option<bool>,
@@ -141,15 +141,15 @@ pub struct EditResult {
 /// deliberately NOT attempted ([`skipped`](Self::skipped)) because their
 /// edits may depend on N succeeding first.
 ///
-/// Only the failing target is reported as the cause — the targets that follow
+/// Only the failing target is reported as the cause - the targets that follow
 /// are reported as skipped *as a consequence*, never as independent failures.
 #[derive(Debug)]
 pub struct EditBatchError {
-    /// Path of the target that failed — the root cause of the batch abort.
+    /// Path of the target that failed - the root cause of the batch abort.
     pub failed_path: String,
     /// The underlying error reported for the failing target.
     pub cause: String,
-    /// Results of targets applied before the failure — already committed to disk.
+    /// Results of targets applied before the failure - already committed to disk.
     pub applied: Vec<EditResult>,
     /// Paths of targets after the failure that were never attempted.
     pub skipped: Vec<String>,
@@ -273,7 +273,7 @@ pub(crate) async fn edit_target(
     // Content-anchored callers pass the exact post-edit text they expect.
     // The hashline engine's boundary-echo and indent-repair heuristics may
     // legitimately rewrite a hand-authored `ops` payload, but for an exact
-    // replacement they would silently corrupt the contract — reject instead,
+    // replacement they would silently corrupt the contract - reject instead,
     // before anything is written (prepare is in-memory only).
     if let Some(expected) = expected_after
         && prepared.apply_result.text != expected
@@ -294,7 +294,7 @@ pub(crate) async fn edit_target(
     // Dry run: stop after the in-memory apply. The model gets the diff and
     // the syntax-probe verdict (the applier pushes `edit_broke_parse_warning`
     // into the warnings when the result no longer parses) without anything
-    // touching the disk — no commit, no rollback record, no LSP pull. The
+    // touching the disk - no commit, no rollback record, no LSP pull. The
     // warnings merge mirrors `commit` (parse warnings + apply warnings) so
     // the preview reports exactly what the real edit would.
     if dry_run {

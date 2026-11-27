@@ -11,7 +11,7 @@ use serde::{Deserialize, Serialize};
 /// but they are NOT interchangeable: a template's `uri` is its raw RFC 6570
 /// form and `is_template` is true. Callers must expand it with
 /// [`expand_resource_template`] (or match with [`match_resource_template`])
-/// before reading — sending the raw `{var}` form to `resources/read` will
+/// before reading - sending the raw `{var}` form to `resources/read` will
 /// be rejected by the server.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct ResourceInfo {
@@ -93,7 +93,7 @@ pub const fn is_tool_error(result: &CallToolResult) -> bool {
 }
 
 /// Expose one MCP resource to morpheus: the identity, naming, and hints the TUI
-/// and header need. Contents never appear here — those arrive per read.
+/// and header need. Contents never appear here - those arrive per read.
 pub fn resource_to_info(resource: &Resource) -> ResourceInfo {
     ResourceInfo {
         uri: resource.uri.clone(),
@@ -127,7 +127,7 @@ pub fn template_to_info(template: &ResourceTemplate) -> ResourceInfo {
 /// form works; value encoding per operator is out of scope (values
 /// substitute raw). Any other operator form (path/query operators like
 /// `{/x}` or `{?x}`, modifiers, composite values) is left as-is, as is a
-/// placeholder whose key is missing — the caller can detect an unexpanded
+/// placeholder whose key is missing - the caller can detect an unexpanded
 /// URI instead of sending a silently wrong one.
 pub fn expand_resource_template(
     uri_template: &str,
@@ -191,7 +191,7 @@ fn template_expr_allows_slash(expr: &str) -> bool {
 /// `resource_owner_of` can route an expanded URI to the server that
 /// advertised its template. Adjacent placeholders with no anchoring
 /// literal (`{a}{b}`) are inherently ambiguous (RFC 6570 §1.4; the MCP SDK
-/// rejects them at parse time) and match leniently here — the surrounding
+/// rejects them at parse time) and match leniently here - the surrounding
 /// checks still apply.
 pub fn match_resource_template(uri_template: &str, uri: &str) -> bool {
     if !uri_template.contains('{') {
@@ -290,7 +290,7 @@ pub fn prompt_to_info(prompt: &Prompt) -> PromptInfo {
 /// Flatten a prompt result into `role: text` lines. Only text blocks map:
 /// images, audio, resource links, and embedded resources are out of scope
 /// for the text-first MVP and are skipped. An empty result renders empty by
-/// design — the caller decides how to present it. NOTE: `""` is ambiguous
+/// design - the caller decides how to present it. NOTE: `""` is ambiguous
 /// (empty result vs all-non-text skipped); no truncation guard is applied
 /// (MVP: prompts are small, large ones are caller-truncated).
 pub fn prompt_to_text(result: &GetPromptResult) -> String {

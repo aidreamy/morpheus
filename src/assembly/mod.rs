@@ -1,10 +1,10 @@
 //! THE harness assembly.
 //!
 //! One place builds every loop-bearing [`Harness`]: the main agent loop and
-//! the `/agents` morpheus pane both assemble through [`assemble`] — the same
+//! the `/agents` morpheus pane both assemble through [`assemble`] - the same
 //! connector resolution, the same prompt-cache headers, the same MCP boot,
 //! the same RAG wiring, the same effective-context budget and the same
-//! skills — with the caller's differences declared as explicit parameters
+//! skills - with the caller's differences declared as explicit parameters
 //! (mode, instructions, disabled tools, cache key, checkup, queued input),
 //! never as a re-implemented subset. The assembly used to live twice in the
 //! TUI (once for the main loop, a hand-cut subset in
@@ -12,7 +12,7 @@
 //! (`effective_context`, MCP, cache headers, tool-call mode never reached
 //! the pane).
 //!
-//! This is the assembly ONLY — the loop execution and every caller side
+//! This is the assembly ONLY - the loop execution and every caller side
 //! effect (session bookkeeping, transcript, spinner, queue resets) stay
 //! with the caller, and the caller owns how an assembly failure surfaces
 //! (the main loop toasts an `Error` event; the pane closes its turn with
@@ -50,14 +50,14 @@ pub struct HarnessAssembly {
     /// User-chosen reasoning effort, mapped onto the closest level each
     /// model accepts (never sent where it would 400 or be ignored).
     pub reasoning: Option<String>,
-    /// The user's tool-call delivery mode (native / inline) — respected
+    /// The user's tool-call delivery mode (native / inline) - respected
     /// for every loop assembled here.
     pub tool_call_mode: ToolCallMode,
     /// Base URL override for the PRIMARY provider only (the local-server
     /// map below covers the fallback providers).
     pub base_url: Option<String>,
     pub local_base_urls: std::collections::HashMap<String, String>,
-    /// The full fallback list (provider, model) — the assembly splits it
+    /// The full fallback list (provider, model) - the assembly splits it
     /// into primary + remaining for `auto`, or uses it as the harness's
     /// fallback chain for a concrete model.
     pub fallbacks: Vec<(String, String)>,
@@ -70,7 +70,7 @@ pub struct HarnessAssembly {
     pub instructions: Option<&'static str>,
     // Session-level prompt-cache settings: the user's TTL/retention
     // choices (Settings screen) and the CALLER'S session id as the
-    // cache-affinity key — a routing hint, never user data. The pane
+    // cache-affinity key - a routing hint, never user data. The pane
     // passes ITS OWN session id: a shared key would make the main loop
     // and the pane compete for the same cache-warm backend.
     pub anthropic_ttl_1h: bool,
@@ -80,13 +80,13 @@ pub struct HarnessAssembly {
     /// before the header snapshot with per-server failure toasts.
     pub mcp_config: crate::mcp::McpConfig,
     pub skills_config: crate::setup::SkillsConfig,
-    /// The effective-context budget toggle (Settings screen) — the SAME
+    /// The effective-context budget toggle (Settings screen) - the SAME
     /// knob for every loop; a loop assembled without it silently runs on
     /// the raw window even when the user turned the budget on.
     pub effective_context: bool,
     /// The decision-model audit config, `Some` only for loops that run
     /// the audit (the main loop). `None` (the pane) assembles without the
-    /// audit — a declared deviation, not an omission.
+    /// audit - a declared deviation, not an omission.
     #[cfg(feature = "onnx")]
     pub checkup: Option<crate::setup::DecisionConfig>,
     /// RAG recall wiring (tool-doc suffix + DB registry), `Some` only when
@@ -104,7 +104,7 @@ pub struct HarnessAssembly {
     /// Empty for loops that carry no image (the common case).
     pub user_images: Vec<aiface::connector::ImageBlock>,
     /// Bind this loop to the `/agents` pane it runs in (its registry id):
-    /// strips the `agents_call` tool and the panes context block — the
+    /// strips the `agents_call` tool and the panes context block - the
     /// mechanical anti-replication invariant (a pane never coordinates).
     /// `None` for the main loop: it owns no pane and keeps the tool.
     pub own_coworker_id: Option<String>,
@@ -114,8 +114,8 @@ pub struct HarnessAssembly {
 /// `x-session-affinity` on every LLM request of the chat session.
 ///
 /// Gateways that load-balance across backends (e.g. Charm Hyper) use these
-/// headers to pin a session's requests — and the backend prompt-cache
-/// entries they created — to one node. Without affinity, each turn's full
+/// headers to pin a session's requests - and the backend prompt-cache
+/// entries they created - to one node. Without affinity, each turn's full
 /// context resend can land on a cache-cold node and bill uncached input.
 ///
 /// The chat session id is hashed (XXH64, same family as Crush's XXH3
@@ -132,7 +132,7 @@ pub fn session_affinity_id(session_id: &str) -> String {
 /// Build the connector this loop's requests ride: the user's tool-call
 /// mode, the reasoning effort resolved per model, the local-server URL
 /// and the session-level prompt-cache settings on EVERY connector the
-/// loop may build (primary and fallbacks alike — each field is only read
+/// loop may build (primary and fallbacks alike - each field is only read
 /// by the caller that implements it, so applying unconditionally is safe
 /// across fallback families).
 ///
@@ -157,7 +157,9 @@ fn build_connector(a: &HarnessAssembly) -> Result<(Connector, Vec<(String, Strin
     if a.model.as_deref() == Some("auto") {
         let mut last_err = String::new();
         for (i, (fb_provider, fb_model)) in a.fallbacks.iter().enumerate() {
-            match Connector::new(fb_provider).map(|c| c.with_service_keyring(crate::KEYRING_SERVICE)) {
+            match Connector::new(fb_provider)
+                .map(|c| c.with_service_keyring(crate::KEYRING_SERVICE))
+            {
                 Ok(c) => {
                     let mut c = c.with_model(fb_model).with_tool_call_mode(a.tool_call_mode);
                     // Honor a configured local server URL for this
@@ -165,7 +167,7 @@ fn build_connector(a: &HarnessAssembly) -> Result<(Connector, Vec<(String, Strin
                     if let Some(url) = a.local_base_urls.get(fb_provider) {
                         c = c.with_base_url(url.clone());
                     }
-                    // The user chose a reasoning effort for auto mode —
+                    // The user chose a reasoning effort for auto mode -
                     // apply it, mapped onto the closest level THIS model
                     // accepts (a model without the knob drops it). The
                     // harness re-resolves per model on every fallback
@@ -203,12 +205,12 @@ fn build_connector(a: &HarnessAssembly) -> Result<(Connector, Vec<(String, Strin
     } else {
         with_model
     };
-    // Apply the user's tool-call mode (native / inline) — the two
+    // Apply the user's tool-call mode (native / inline) - the two
     // delivery paths are mutually exclusive at the request level.
     let with_model = with_model.with_tool_call_mode(a.tool_call_mode);
     let with_model = if let Some(ref r) = a.reasoning {
         // Map the chosen level onto the closest one the model actually
-        // accepts (e.g. "medium" on a low/high-only model) — never send
+        // accepts (e.g. "medium" on a low/high-only model) - never send
         // a knob that would 400 or be silently ignored.
         let effective = a
             .model
@@ -281,7 +283,7 @@ pub async fn assemble(
         // The audit's kind resolves through the WEIGHTS MIRROR: the
         // Download router fills the shared hf-hub cache; the daemon's
         // loader probes that snapshot. The daemon kind is `Custom` over
-        // the mirror checkpoint, NOT the configured kind — the named kinds
+        // the mirror checkpoint, NOT the configured kind - the named kinds
         // name the MIRROR's subfolders now.
         let attach_kind = |kind: Kind, harness: Harness| -> Harness {
             let checkup = IpcCheckup::new(kind);
@@ -291,7 +293,7 @@ pub async fn assemble(
         };
         let invalid_setup = || {
             // Invalid config is a broken SETUP, not a turn failure: toast
-            // and assemble WITHOUT the audit (fail-open) — never abort
+            // and assemble WITHOUT the audit (fail-open) - never abort
             // the turn.
             let _ = event_tx.send(HarnessEvent::Toast {
                 message: "Termination checkup enabled but the model config \
@@ -311,7 +313,7 @@ pub async fn assemble(
                 } else {
                     let _ = event_tx.send(HarnessEvent::Toast {
                         message: format!(
-                            "Termination checkup needs {} — run /download to fetch it. \
+                            "Termination checkup needs {} - run /download to fetch it. \
                              The audit is disabled until then.",
                             target.display_name
                         ),
@@ -343,7 +345,7 @@ pub async fn assemble(
             variant: ToastVariant::Warning,
         });
     }
-    // Per-server connection failures are isolated by the manager —
+    // Per-server connection failures are isolated by the manager -
     // surface them: a failed server used to show only as a silent footer
     // count with no explanation. Detail (including which credential
     // failed and why) lives in the snapshot's `last_error`; this toast is
@@ -376,7 +378,7 @@ pub async fn assemble(
     }
 
     // Restore the authoritative context from the session file's context
-    // records. No context — no history; the display transcript is never
+    // records. No context - no history; the display transcript is never
     // fed to the model.
     if let Some(ref state) = a.ctx_state {
         harness.context_manager.restore_state(state);
@@ -393,13 +395,13 @@ pub async fn assemble(
 /// One tokio runtime for the whole process, shared by the agent loop, the
 /// Command-mode executor and background device sign-ins: the LSP
 /// singleton's ingestion/auto-discovery tasks and the language servers'
-/// transport tasks must outlive individual turns — a per-turn runtime
+/// transport tasks must outlive individual turns - a per-turn runtime
 /// would kill them (and, via `kill_on_drop`, the server processes) the
 /// moment a turn ends.
 pub static AGENT_RUNTIME: std::sync::OnceLock<tokio::runtime::Runtime> = std::sync::OnceLock::new();
 
 /// The shared process-wide runtime accessor: every loop-bearing assembly
-/// runs on THIS runtime (see [`AGENT_RUNTIME`] for why — LSP and MCP
+/// runs on THIS runtime (see [`AGENT_RUNTIME`] for why - LSP and MCP
 /// transports must outlive individual turns).
 pub fn agent_runtime() -> &'static tokio::runtime::Runtime {
     AGENT_RUNTIME.get_or_init(|| tokio::runtime::Runtime::new().expect("shared agent runtime"))
@@ -407,7 +409,7 @@ pub fn agent_runtime() -> &'static tokio::runtime::Runtime {
 
 /// Run the assembled loop with the caller's queued-input choice: the main
 /// loop shares its queue with the TUI (`Some`), the pane runs one-input-
-/// per-turn (`None` — nobody pumps a pane queue, so a shared queue there
+/// per-turn (`None` - nobody pumps a pane queue, so a shared queue there
 /// would only strand messages).
 pub async fn run_assembled_loop(
     harness: &mut Harness,

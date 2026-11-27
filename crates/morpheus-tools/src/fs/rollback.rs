@@ -1,4 +1,4 @@
-//! Rollback tool — restores a file to a previously recorded session version.
+//! Rollback tool - restores a file to a previously recorded session version.
 //!
 //! Wraps [`morpheus_sdk::rollback::restore`] with write-permission enforcement
 //! via [`FsMetadata`].

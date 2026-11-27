@@ -1,11 +1,11 @@
 //! Daemon lifecycle: socket activation, the bind-as-lock, idle shutdown.
 //!
-//! **Socket activation** — the client-side flow that makes the daemon exist
+//! **Socket activation** - the client-side flow that makes the daemon exist
 //! only when it is needed:
 //!
 //! 1. try to connect to the daemon's socket;
 //! 2. on failure, spawn the daemon binary (`current_exe()` of the running
-//!    app, so the daemon always ships with the app — no PATH lookup, no
+//!    app, so the daemon always ships with the app - no PATH lookup, no
 //!    install step) and poll until the socket appears or the activation
 //!    window closes.
 //!
@@ -13,13 +13,13 @@
 //! lock**: the loser's `bind` gets `EADDRINUSE` and falls through to
 //! connecting, which is the only correct outcome for both.
 //!
-//! **Idle shutdown** — the daemon-side counterpart: when no client activity
+//! **Idle shutdown** - the daemon-side counterpart: when no client activity
 //! happened for the idle budget, the serve loop returns and the process
 //! exits. Nothing is orphaned, nothing runs when the feature is unused, and
 //! the next request pays one activation instead of a resident process
 //! nobody is talking to.
 //!
-//! **Client liveness** — the idle budget alone leaves the daemon resident for
+//! **Client liveness** - the idle budget alone leaves the daemon resident for
 //! up to [`IDLE`] after the last client exits, and on Windows a resident
 //! daemon holds `morpheus-ttsd.exe` open (a `cargo clean`/rebuild gets
 //! "access denied"). Each `hello` carries the client pid, so the serve loop
@@ -37,7 +37,7 @@ use super::transport::{self, Stream};
 /// (some containers drop it, and Windows has no runtime dir at all).
 ///
 /// Under `XDG_RUNTIME_DIR` the path is tmpfs, user-owned and wiped at
-/// logout — the right home for a per-user socket with `0600` perms. The
+/// logout - the right home for a per-user socket with `0600` perms. The
 /// fallback is the LOCAL data dir, which is the closest Windows equivalent:
 /// per-user, not roaming, and its inherited ACL is user-only.
 pub(crate) fn socket_dir() -> PathBuf {
@@ -120,7 +120,7 @@ pub(crate) fn connect_or_activate(
     }
 
     // Nothing is listening: spawn, then poll for the socket. The spawn
-    // loses races the same way it wins them — a second binder gets
+    // loses races the same way it wins them - a second binder gets
     // EADDRINUSE and its socket file is simply the winner's.
     activate()?;
     let deadline = std::time::Instant::now() + ACTIVATION_WINDOW;
@@ -146,7 +146,7 @@ pub(crate) fn connect_or_activate(
 
 /// Total wait for an activating daemon to become reachable. Model loads run
 /// on first `decide`, not at startup, so activation only waits for a socket
-/// bind — fast even on a cold machine.
+/// bind - fast even on a cold machine.
 const ACTIVATION_WINDOW: Duration = Duration::from_secs(2);
 const ACTIVATION_BACKOFF_CAP: Duration = Duration::from_millis(250);
 
@@ -155,14 +155,14 @@ const ACTIVATION_BACKOFF_CAP: Duration = Duration::from_millis(250);
 ///
 /// The review found the bind's probe→remove→bind sequence racy (M1): two
 /// processes could both probe a stale socket, both conclude "dead", and the
-/// loser would then unlink the winner's LIVE socket and bind its own — two
+/// loser would then unlink the winner's LIVE socket and bind its own - two
 /// live daemons, the path pointing at only one. `flock` closes the window:
 /// the probe/remove/bind critical section runs under the lock, and the
 /// winner HOLDS the lock for its lifetime, so any later binder finds the
-/// lock held and knows a live daemon owns the path — it exits 0 as the
+/// lock held and knows a live daemon owns the path - it exits 0 as the
 /// loser instead of ever touching the socket file.
 ///
-/// The lock file persists when a daemon crashes (locks do not — the OS
+/// The lock file persists when a daemon crashes (locks do not - the OS
 /// releases them on process death), which is exactly the property a pidfile
 /// lacks.
 ///
@@ -187,7 +187,7 @@ pub(crate) fn acquire_activation_lock(name: &str) -> ActivationLock {
         Ok(file) => file,
         Err(e) => {
             log::warn!("activation lock unavailable at {}: {e}", path.display());
-            // Racy fallback rather than refusal — fail-open, like the rest
+            // Racy fallback rather than refusal - fail-open, like the rest
             // of the layer.
             return ActivationLock::Held(None);
         }
@@ -238,10 +238,10 @@ fn try_lock(file: &std::fs::File) -> bool {
 /// (`current_exe()`), so there is exactly one artifact to install and the
 /// spawned daemon is always the version the app was built with. It
 /// detaches into its own process group with stdio null: it must survive
-/// the spawning app (that is the point — other instances share it) and
+/// the spawning app (that is the point - other instances share it) and
 /// never write to the app's terminal.
 pub(crate) fn spawn_sibling(name: &'static str) -> Result<(), Lifecycle> {
-    // The real daemon name in both error paths (m4) — "cannot spawn the
+    // The real daemon name in both error paths (m4) - "cannot spawn the
     // daemon daemon" was the old hardcoded-report bug.
     let exe = std::env::current_exe().map_err(|e| Lifecycle::Spawn { name, source: e })?;
     let daemon_exe = exe.with_file_name(format!("morpheus-{name}d"));

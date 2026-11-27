@@ -1,7 +1,7 @@
 //! Tests for the user-triggered `/compact`
 //! ([`Harness::compact_on_demand`]): the deterministic funnel runs across
 //! every segment even far below the 80% trigger, then the LLM summary folds
-//! the remainder — reusing the automatic compaction's events end to end.
+//! the remainder - reusing the automatic compaction's events end to end.
 
 use super::super::core::Harness;
 use crate::harness::context::{ContextItem, ContextManager, RunOutcome};
@@ -32,7 +32,7 @@ async fn compact_on_demand_grinds_then_summarizes_below_the_trigger() {
     let outcome = h.compact_on_demand(&tx, stop_signal).await;
 
     assert_eq!(outcome, ManualCompactionOutcome::Compacted);
-    // Append-only: the timeline is retained behind the new anchor — the model
+    // Append-only: the timeline is retained behind the new anchor - the model
     // sees only the summary.
     let items = h.context_manager.items_snapshot();
     assert!(

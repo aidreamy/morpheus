@@ -1,4 +1,4 @@
-//! Edit history (undo/redo) shared by text-entry surfaces — the Ctrl+Z /
+//! Edit history (undo/redo) shared by text-entry surfaces - the Ctrl+Z /
 //! Ctrl+Y feature. Extracted from the chat prompt so other editable
 //! fields reuse the exact same mechanism instead of reimplementing it.
 //!
@@ -7,22 +7,22 @@
 //! 1. **Plain editing** (`Ctrl+Z`): undo steps follow the standard
 //!    *time-based coalescing of continuous typing*, the same criterion
 //!    mainstream editors use. Consecutive `Type`/`Delete` operations
-//!    closer than [`COALESCE_WINDOW`] apart (500ms — ProseMirror's
+//!    closer than [`COALESCE_WINDOW`] apart (500ms - ProseMirror's
 //!    `newGroupDelay` default; Quip uses ~1s, Google Docs ~2s, per the
 //!    Lexical history docs) AND moving the caret by at most one character
-//!    merge into ONE undo step — one `Ctrl+Z` removes the chunk of text
+//!    merge into ONE undo step - one `Ctrl+Z` removes the chunk of text
 //!    typed without a pause, not char by char and not the whole draft.
 //!    Switching between typing and backspace keeps the session (users fix
 //!    typos mid-flow); a longer pause, a caret jump (selection replace,
 //!    word delete) or any atomic operation closes it.
 //! 2. **Prompt correction** (`Ctrl+Z` right after the corrector rewrote the
 //!    draft): the correction is recorded as ONE atomic step, so a single
-//!    `Ctrl+Z` jumps back to the exact pre-correction text — never to some
+//!    `Ctrl+Z` jumps back to the exact pre-correction text - never to some
 //!    mid-correction state. A [`Marker`] on the snapshot detects the
 //!    transition so the app can toast "original restored" (and `Ctrl+Y`
 //!    toasts "correction reapplied").
 //! 3. **Simple text fields** (question dialog answers, registration
-//!    fields): the same stacks and coalescing via [`Self::record_text`] —
+//!    fields): the same stacks and coalescing via [`Self::record_text`] -
 //!    a `record` variant without the prompt's compressed-paste mappings.
 //!
 //! # Shape
@@ -147,7 +147,7 @@ pub struct EditHistory {
     /// true and each edit lands within the coalescing window and moves
     /// the caret by at most one character.
     typing_open: bool,
-    /// When the last edit was recorded — the coalescing clock.
+    /// When the last edit was recorded - the coalescing clock.
     last_edit_at: Option<Instant>,
 }
 
@@ -177,7 +177,7 @@ impl EditHistory {
     /// state; the pre-edit mirror becomes the undo target.
     ///
     /// Consecutive typing-flow edits (`Type`/`Delete`) merge into ONE undo
-    /// step — one `Ctrl+Z` removes the chunk typed without a pause — while
+    /// step - one `Ctrl+Z` removes the chunk typed without a pause - while
     /// each edit lands within [`COALESCE_WINDOW`] of the previous one and
     /// moves the caret by at most one character. A longer pause, a caret
     /// jump (selection replace, word delete) or an atomic kind
@@ -205,7 +205,7 @@ impl EditHistory {
         // The caret delta of THIS edit relative to the mirrored state: the
         // signature of the typing flow (+1 typed, −1 backspace, 0 forward
         // delete). Anything wider is a discrete gesture, not typing. The
-        // delta is measured in CHARS — cursors are byte offsets, and a
+        // delta is measured in CHARS - cursors are byte offsets, and a
         // multibyte char (é, ç) would otherwise look like a caret jump and
         // wrongly close the typing session.
         let char_at =
@@ -279,7 +279,7 @@ impl EditHistory {
         // Classify by the state LEFT BEHIND: a marker means the undone-away
         // state was a correction result, so `current` now holds the original
         // pre-correction draft. (The restored state itself never carries a
-        // marker — corrections are atomic, so undoing past one always lands
+        // marker - corrections are atomic, so undoing past one always lands
         // directly on its "before" snapshot.)
         if leaving_marker.is_some() {
             UndoOutcome::OriginalBeforeCorrection
@@ -315,7 +315,7 @@ impl EditHistory {
         }
     }
 
-    /// The mirrored `(text, cursor, parts)` state — what an undo/redo
+    /// The mirrored `(text, cursor, parts)` state - what an undo/redo
     /// restored. `PromptView` applies it back to the real input.
     pub fn snapshot(&self) -> (&str, usize, &PartsSnapshot) {
         (&self.current.text, self.current.cursor, &self.current.parts)
@@ -391,7 +391,7 @@ mod tests {
 
         // Standard editor behavior: one Ctrl+Z removes the WHOLE chunk
         // typed without a pause (keystrokes 10ms apart, well inside the
-        // 500ms window) — not char by char, not the whole draft history.
+        // 500ms window) - not char by char, not the whole draft history.
         assert_eq!(history.undo(), UndoOutcome::Step);
         assert_eq!(text_of(&history), "");
         // One step = one redo back to the full text.
@@ -425,7 +425,7 @@ mod tests {
         clock.deleted_from(&mut history, &mut "abc".to_string(), 2);
 
         // Kind switches do NOT break the session (the Lexical history doc:
-        // users type, backspace and retype in one continuous flow) — the
+        // users type, backspace and retype in one continuous flow) - the
         // whole session is ONE step back to the pre-typing state.
         assert_eq!(history.undo(), UndoOutcome::Step);
         assert_eq!(text_of(&history), "");
@@ -437,7 +437,7 @@ mod tests {
         let mut history = EditHistory::new();
         clock.typed(&mut history, "abc ");
         // Ctrl+W deletes the word before the cursor: the caret jumps from
-        // 4 to 0 — a discrete gesture, not the typing flow.
+        // 4 to 0 - a discrete gesture, not the typing flow.
         history.record_text(String::new(), 0, EditKind::Delete);
 
         // The word delete is its own step...

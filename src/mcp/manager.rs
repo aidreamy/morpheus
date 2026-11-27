@@ -32,7 +32,7 @@ const HANDSHAKE_TIMEOUT_MS: u64 = 60_000;
 ///
 /// Per the spec's transport bindings (versioning page, "Backward
 /// Compatibility"): on stdio, "the probe returns a non-modern error **or
-/// times out**" — a silent legacy server is a legitimate legacy signal. On
+/// times out**" - a silent legacy server is a legitimate legacy signal. On
 /// Streamable HTTP, only the 4xx-body classification identifies legacy; a
 /// network timeout says nothing about the era, so HTTP never flips on
 /// timeout (the client would otherwise retry legacy against an unreachable
@@ -72,7 +72,7 @@ struct RunningServer {
     /// server's own order. Snapshots only: re-listing on every read would
     /// double the round trips, and change notifications are a follow-up.
     /// Empty when the server lacks the resources capability (lists are
-    /// skipped for it — calling `resources/list` unrequested is a spec
+    /// skipped for it - calling `resources/list` unrequested is a spec
     /// violation on our side).
     resources: Vec<Resource>,
     resource_templates: Vec<ResourceTemplate>,
@@ -96,7 +96,7 @@ pub struct McpManager {
     /// Cached protocol era per server (see `era`). The spec says era is a
     /// property of the server (stdio process or HTTP origin), not of a
     /// connection: a reconnect must not re-probe. In-memory only, so an app
-    /// restart re-probes once — deliberately trading a probe for never
+    /// restart re-probes once - deliberately trading a probe for never
     /// serving from stale on-disk state.
     eras: HashMap<String, era::Era>,
 }
@@ -115,7 +115,7 @@ impl McpManager {
         validate_mcp_config(config)?;
         // Reconcile first: clients absent from the new config are dropped so
         // no orphan serves tools invisible to snapshots and routing. Their
-        // cached eras are evicted too — a reused name with a different
+        // cached eras are evicted too - a reused name with a different
         // URL/transport must re-probe instead of inheriting a stale era.
         // (Plain `disconnect` keeps the era: `connect_one` calls it before
         // every reconnect, where the cache is load-bearing.)
@@ -296,7 +296,7 @@ impl McpManager {
 
     /// Registered name of the server providing `tool`, if any. First match
     /// in config order wins, so duplicate tool names resolve deterministically.
-    /// A duplicate logs a `warn!` (once per call — call sites are infrequent)
+    /// A duplicate logs a `warn!` (once per call - call sites are infrequent)
     /// because shadowing is almost always a config mistake.
     pub fn owner_of(&self, tool: &str) -> Option<&str> {
         self.owner_name("tool", "provided by", tool, |server| {
@@ -308,7 +308,7 @@ impl McpManager {
     /// typed errors; transport failures carry the server name. A server-side
     /// error flag becomes `Err`: tool failures must feed the harness
     /// correction loop, never render as success. Cancellation is client-side
-    /// only — the server may keep running the timed-out call.
+    /// only - the server may keep running the timed-out call.
     pub async fn call_tool(
         &self,
         tool: &str,
@@ -335,7 +335,7 @@ impl McpManager {
 
     /// Every resource and template of every connected server, in config
     /// order (concretes before templates within each server).
-    /// Templates carry their raw RFC 6570 `uri` with `is_template: true` —
+    /// Templates carry their raw RFC 6570 `uri` with `is_template: true` -
     /// expand before reading; they are listed uniformly so the TUI can
     /// offer completion, not because they are directly readable.
     pub fn all_resources(&self) -> Vec<ResourceInfo> {
@@ -358,7 +358,7 @@ impl McpManager {
     /// config mistake). Concrete URIs match exactly; expanded URIs
     /// (e.g. `file:///docs/42`) match a server whose template
     /// (`file:///docs/{id}`) covers them via [`match_resource_template`].
-    /// Raw templates match only themselves — expand with
+    /// Raw templates match only themselves - expand with
     /// [`super::bridge::expand_resource_template`] before reading.
     pub fn resource_owner_of(&self, uri: &str) -> Option<&str> {
         self.owner_name("resource", "advertised by", uri, |server| {
@@ -420,7 +420,7 @@ impl McpManager {
 
     /// Read one resource on its owning server. `uri` must be concrete:
     /// expand templates with [`super::bridge::expand_resource_template`]
-    /// first — a raw `{var}` URI is rejected as `UnknownResource` without
+    /// first - a raw `{var}` URI is rejected as `UnknownResource` without
     /// an RPC (no server resolves the literal placeholder). Expanded URIs
     /// route via template match (see [`Self::resource_owner_of`]).
     /// Snapshots are connect-time only (no live re-list); a resource added
@@ -475,10 +475,10 @@ impl McpManager {
     ///
     /// One connection attempt in a known era.
     ///
-    /// - `Modern`: rmcp's `Discover` lifecycle — a `server/discover` round
+    /// - `Modern`: rmcp's `Discover` lifecycle - a `server/discover` round
     ///   trip negotiates the version, then every request carries per-request
     ///   metadata.
-    /// - `Legacy`: rmcp's `Initialize` lifecycle — the classic handshake.
+    /// - `Legacy`: rmcp's `Initialize` lifecycle - the classic handshake.
     ///
     /// A correlated JSON-RPC rejection while dialing is mapped to
     /// [`McpError::EraStale`] (flip evidence); see `map_initialize_error`.
@@ -515,7 +515,7 @@ impl McpManager {
             // A modern-mode dial that gets no answer in time is a typed
             // outcome: the caller decides per transport policy whether
             // silence means "legacy" or "unreachable". A legacy dial
-            // timing out is a plain failure — a legacy server answers
+            // timing out is a plain failure - a legacy server answers
             // `initialize` or it is down.
             if era == era::Era::Modern {
                 McpError::ProbeTimedOut(entry_name.to_string(), millis_u64(budget))
@@ -628,14 +628,14 @@ impl McpManager {
     /// attempt sidesteps that and keeps each attempt's session era-pure.
     ///
     /// - Unknown server: dial modern (`server/discover` probe). A correlated
-    ///   non-modern rejection — the legacy signature — falls back to one
+    ///   non-modern rejection - the legacy signature - falls back to one
     ///   legacy dial. On stdio, a silent server (probe timeout) does the
     ///   same, per the spec's stdio binding. A modern-identified rejection
     ///   (reserved -3202x codes, no compatible version) is a hard failure:
     ///   the server *is* modern, there is nothing to fall back to.
     /// - Cached era: dial directly in it. A correlated rejection
     ///   ([`McpError::EraStale`]) refutes the assumption, so retry once in
-    ///   the other era — the spec's "re-probe if the cached assumption later
+    ///   the other era - the spec's "re-probe if the cached assumption later
     ///   fails". Transport failures and timeouts carry no era evidence and
     ///   keep the cache.
     ///
@@ -704,7 +704,7 @@ impl McpManager {
             // entirely). It also heals a stale Modern cache pointing at a
             // server that was replaced by a silent legacy one; if the
             // server is merely hung, the legacy dial fails too and the
-            // cache is cleared — one extra dial, same outcome. HTTP never
+            // cache is cleared - one extra dial, same outcome. HTTP never
             // flips on a timeout: a network timeout says nothing about
             // which dialect the remote speaks.
             (McpError::ProbeTimedOut(..), era::Era::Modern) if probe_policy.flip_on_timeout => {
@@ -715,7 +715,7 @@ impl McpManager {
                 Some(era::Era::Legacy)
             }
             // Modern-identified rejections (reserved codes, no compatible
-            // version) prove the server *is* modern — no fall-back mechanism
+            // version) prove the server *is* modern - no fall-back mechanism
             // exists per the spec. HTTP probe timeouts and transport
             // failures carry no era evidence at all.
             _ => None,
@@ -829,7 +829,7 @@ fn millis_u64(duration: Duration) -> u64 {
 /// assumption is also flip evidence: a legacy server that cannot parse the
 /// `server/discover` request replies with a JSON-RPC error whose `id` does
 /// not echo ours (mem0 answers `-32602` that way), so rmcp hides the
-/// payload — but a server that answers *anything* malformed to a discover
+/// payload - but a server that answers *anything* malformed to a discover
 /// request is not speaking the modern dialect. Transport errors, timeouts,
 /// and closing handshakes carry no era evidence and stay
 /// [`McpError::Connect`].
@@ -842,7 +842,7 @@ pub(crate) fn map_initialize_error(
         ClientInitializeError::JsonRpcError(data) => match assumed {
             // Modern dial refused with a modern-reserved code: the server
             // *is* modern but rejected this dial (version mismatch, missing
-            // capabilities). Not a legacy signal — there is nothing to
+            // capabilities). Not a legacy signal - there is nothing to
             // fall back to.
             era::Era::Modern if era::is_modern_error(&data) => {
                 McpError::Connect(entry_name.to_string(), data.to_string())
@@ -853,13 +853,13 @@ pub(crate) fn map_initialize_error(
             era::Era::Modern => {
                 McpError::EraStale(entry_name.to_string(), assumed.label(), data.to_string())
             }
-            // Legacy dial refused at all — with any correlated error: a
+            // Legacy dial refused at all - with any correlated error: a
             // legacy server accepts `initialize` from a legacy-revision
             // client, so a rejection identifies a modern server. This
             // includes UnsupportedProtocolVersionError, which is how a
             // modern-only server answers an initialize naming an old
             // version (no fall-forward exists, so flip instead).
-            // NOTE (MCP-B6, accepted): this is deliberately over-broad —
+            // NOTE (MCP-B6, accepted): this is deliberately over-broad -
             // a permanently-broken legacy server rejecting `initialize`
             // with e.g. InvalidParams costs one extra modern dial before
             // the cache clears. Narrowing risks missing real upgrades.
@@ -874,7 +874,7 @@ pub(crate) fn map_initialize_error(
         // speaking the modern dialect, and one extra legacy dial is cheaper
         // than a permanently failed connection. A legacy dial gains nothing
         // from flipping on garbage (the modern era was already tried once
-        // in the same cycle) — it stays a plain failure.
+        // in the same cycle) - it stays a plain failure.
         ClientInitializeError::UncorrelatedErrorResponse { expected, received }
             if assumed == era::Era::Modern =>
         {
@@ -963,7 +963,7 @@ fn spawn_stdio(label: &str, stdio: &StdioTransport) -> std::io::Result<TokioChil
 }
 
 /// Build the HTTP transport config for `http`, attaching the resolved
-/// credential (if any) as `Authorization: Bearer <key>` — the spec's access
+/// credential (if any) as `Authorization: Bearer <key>` - the spec's access
 /// token usage (RFC 6750): the token rides in the header on every request,
 /// never in the URI. `key` was already resolved by the caller via
 /// [`super::auth::resolve_key`].

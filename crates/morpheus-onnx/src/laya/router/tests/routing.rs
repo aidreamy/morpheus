@@ -935,7 +935,7 @@ fn undecided_follows_the_default() {
 // `detect_script` counts an alphabetic character only when one of the
 // script ranges claims it. An unclaimed character used to be counted
 // nowhere, so text written only in such a script produced a total of 0, was
-// reported as "unknown", and `analyse` treats "unknown" as English — routed
+// reported as "unknown", and `analyse` treats "unknown" as English - routed
 // to the English checkpoint, which has no tokens for it at all, with the
 // reason "no letters detected in state" for text that plainly has letters.
 #[test]

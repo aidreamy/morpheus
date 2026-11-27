@@ -328,7 +328,7 @@ async fn edit_returns_error_when_file_not_found() {
 async fn edit_stops_at_failed_target_keeps_applied_and_skips_the_rest() {
     // Targets are applied in order; a failure in the middle aborts the batch.
     // Targets applied before the failure are kept, the failing target is the
-    // root cause, and the remaining targets are skipped as a consequence —
+    // root cause, and the remaining targets are skipped as a consequence -
     // never reported as independent failures.
     let root = TempRoot::new("cascade");
     let path_a = root.file("morpheus_test_edit_cascade_a.txt");
@@ -381,7 +381,7 @@ async fn edit_stops_at_failed_target_keeps_applied_and_skips_the_rest() {
     assert!(msg.contains("edit failed for"), "got: {msg}");
     assert!(msg.contains("Applied before the failure"), "got: {msg}");
     assert!(msg.contains("Not applied (skipped because"), "got: {msg}");
-    // The chain is named as consequence — never as a third independent failure.
+    // The chain is named as consequence - never as a third independent failure.
     assert!(!msg.contains("GAMMA"), "got: {msg}");
     // The applied target's fresh hashline tag is surfaced so the model can
     // keep editing it without re-reading.
@@ -525,7 +525,7 @@ async fn edit_error_carries_current_anchor_and_line_context() {
                 path: path.clone(),
                 file_hash: hash_file(&path),
                 // `replace block N:` on a plain-text file resolves to no
-                // tree-sitter block — a deterministic rejection whose message
+                // tree-sitter block - a deterministic rejection whose message
                 // names the in-range line (`... beginning on line 1 ...`).
                 ops: "replace block 1:\n+X".to_string(),
             }],
@@ -560,8 +560,8 @@ async fn edit_error_carries_current_anchor_and_line_context() {
 async fn edit_error_without_line_refs_shows_anchor_only() {
     // An out-of-range anchor on an otherwise valid tag is rejected by the
     // bounds check without a recoverable line to show: the error still
-    // carries the current anchor — the model's minimum for an informed
-    // retry — but no live-content block (there is no line 99 to display).
+    // carries the current anchor - the model's minimum for an informed
+    // retry - but no live-content block (there is no line 99 to display).
     let root = TempRoot::new("enrichparse");
     let path = root.file("morpheus_test_edit_enrich_parse.txt");
     std::fs::write(&path, "one\ntwo\n").unwrap();

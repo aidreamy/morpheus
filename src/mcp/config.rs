@@ -40,7 +40,7 @@ pub struct StdioTransport {
 #[serde(deny_unknown_fields)]
 pub struct HttpTransport {
     pub url: String,
-    /// Extra request headers, e.g. `Authorization` (static values only —
+    /// Extra request headers, e.g. `Authorization` (static values only -
     /// never put a credential here; use [`Self::api_key_env`] or the
     /// registration wizard so the key lives in the OS keyring). A resolved
     /// keyring/`api_key_env` credential replaces any static `Authorization`
@@ -201,7 +201,7 @@ fn is_env_var_name(candidate: &str) -> bool {
 
 /// The registration wizard's API-key field, classified. A `$VAR` reference
 /// names an environment variable (kept in the config); anything else is a
-/// directly typed key (returned to the caller for keyring storage — it
+/// directly typed key (returned to the caller for keyring storage - it
 /// never enters the config).
 #[derive(Clone, PartialEq, Eq)]
 pub enum CredentialInput {
@@ -213,7 +213,7 @@ pub enum CredentialInput {
     Secret(String),
 }
 
-// Manual Debug: `Secret` values are credentials — a stray `{:?}` on a
+// Manual Debug: `Secret` values are credentials - a stray `{:?}` on a
 // draft or form state must never print the key itself.
 impl std::fmt::Debug for CredentialInput {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -227,7 +227,7 @@ impl std::fmt::Debug for CredentialInput {
 
 /// Classify the registration wizard's API-key field. Blank means none;
 /// `$NAME` names an environment variable (validated); anything else is a
-/// secret — trimmed, and rejected outright when it contains control
+/// secret - trimmed, and rejected outright when it contains control
 /// characters, which could never survive as a header value anyway.
 pub fn parse_mcp_credential(input: &str) -> Result<CredentialInput, String> {
     let trimmed = input.trim();
@@ -276,7 +276,7 @@ pub fn parse_mcp_endpoint(endpoint: &str) -> Result<McpTransport, String> {
 }
 
 /// One validated server draft plus any directly typed secret. `entry` is
-/// config-safe (no secret inside — serialize and persist it freely);
+/// config-safe (no secret inside - serialize and persist it freely);
 /// `secret` must go to the OS keyring via [`super::auth::store_key`] and is
 /// then dropped, never written to `setup.json`.
 #[derive(Clone, PartialEq)]
@@ -285,7 +285,7 @@ pub struct McpEntryDraft {
     pub secret: Option<String>,
 }
 
-// Manual Debug: `secret` is a credential — never print it.
+// Manual Debug: `secret` is a credential - never print it.
 impl std::fmt::Debug for McpEntryDraft {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         f.debug_struct("McpEntryDraft")
@@ -311,7 +311,7 @@ pub fn build_mcp_entry(
     }
     // The name keys the keyring entry (`mcp:<name>`), shows up in toasts,
     // logs and error messages, and must survive a round-trip through
-    // setup.json — so control characters are rejected outright (they could
+    // setup.json - so control characters are rejected outright (they could
     // forge log lines or toast line breaks; a trimmed non-empty name is
     // otherwise free-form).
     if name.chars().any(char::is_control) {

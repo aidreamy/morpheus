@@ -27,8 +27,8 @@
 //! [`crate::acp::open_session`], [`crate::acp::session_snapshot`] and
 //! [`crate::acp::replay`]; those functions route an `opencode` call here
 //! when [`is_native`] holds and use ACP for every other agent (and for
-//! OpenCode when the native path is disabled). Callers — the TUI, the
-//! WhatsApp bridge, the `subagent_call` tool — therefore need no change and
+//! OpenCode when the native path is disabled). Callers - the TUI, the
+//! WhatsApp bridge, the `subagent_call` tool - therefore need no change and
 //! receive the same types they always did.
 //!
 //! Set `MORPHEUS_OPENCODE_TRANSPORT=acp` to force the generic ACP transport

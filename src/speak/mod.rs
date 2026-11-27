@@ -4,13 +4,13 @@
 //! The module owns one loaded model and turns text into playable audio
 //! without leaving the machine. Everything native lives in the backend:
 //! `sherpa-onnx` resolves the model files and synthesizes, while this module
-//! keeps the parts that do not depend on a model — the speaker catalog, the
+//! keeps the parts that do not depend on a model - the speaker catalog, the
 //! stopwatch-free playback handoff and the optional external phonemizer.
 //!
 //! [`Backend`] selects the model family and carries its own settings;
 //! [`Speak`] dispatches to it and works the same for every backend. Adding a
 //! model family means a new file under `backend/`, one enum variant and one
-//! match arm — see the `backend` module docs.
+//! match arm - see the `backend` module docs.
 //!
 //! # Enabling
 //!
@@ -42,14 +42,14 @@
 //! `tokens.txt`, `voices.bin` and (for the lexicon frontend) at least one
 //! `lexicon-*.txt`. When the recommended v1.1 bundle is not installed,
 //! [`default_model_dir`] falls back to another complete bundle found beside
-//! it — v1.0 is the only release with Brazilian Portuguese, Spanish, French,
+//! it - v1.0 is the only release with Brazilian Portuguese, Spanish, French,
 //! Hindi, Italian and Japanese voices.
 //!
 //! # Languages
 //!
 //! sherpa-onnx 2.x dropped its embedded espeak-ng. Its own text frontend is
 //! the lexicon table, which is why the multilingual bundles cover **Chinese
-//! and English** — the only languages they ship lexicons for. Voices for the
+//! and English** - the only languages they ship lexicons for. Voices for the
 //! other Kokoro languages are still present in `voices.bin`; driving them
 //! needs the optional external phonemizer (espeak-ng for Spanish, French,
 //! Hindi, Italian and Brazilian Portuguese; a dictionary-based frontend for

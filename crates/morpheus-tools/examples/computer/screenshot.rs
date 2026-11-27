@@ -1,4 +1,4 @@
-//! Demonstrate `computer_screenshot` — capture the desktop (or an app /
+//! Demonstrate `computer_screenshot` - capture the desktop (or an app /
 //! shell-surface region), optionally annotating matched elements with
 //! numbered boxes and returning a legend of copy-ready selectors.
 //!
@@ -7,8 +7,8 @@
 //! the image maps to a selector (`button[name='Export']:nth(7)`) that
 //! `computer_control`/`computer_act` accept directly.
 //!
-//! This example runs the IMAGE-MATH offline — the coordinate mapping every
-//! consumer of a screenshot needs — using the exact output struct the tool
+//! This example runs the IMAGE-MATH offline - the coordinate mapping every
+//! consumer of a screenshot needs - using the exact output struct the tool
 //! returns. The capture itself needs a desktop session.
 //!
 //! Run with:
@@ -29,10 +29,10 @@ fn main() {
     //     box on every matching element (selector defaults to "*" when
     //     annotating) + a legend mapping each tag to a selector
     //
-    // ANNOTATION REQUIRES `annotate: true` — a bare selector is an element
+    // ANNOTATION REQUIRES `annotate: true` - a bare selector is an element
     // CAPTURE (just those pixels) and annotation is mutually exclusive with
     // `region`. With `annotate: true` the selector selects WHICH elements
-    // get boxes; `nth` does not apply (the legend covers every match —
+    // get boxes; `nth` does not apply (the legend covers every match -
     // narrow the selector instead). Comma alternations are rejected up
     // front: `:nth(k)` would bind to the last clause only, so the legend
     // would name a different element than the box it labels.
@@ -44,7 +44,7 @@ fn main() {
     };
     println!("annotated capture input: {annotated:?}");
 
-    // The input IS the wire payload the MCP tool receives — deserialize
+    // The input IS the wire payload the MCP tool receives - deserialize
     // this shape to show the schema advertises exactly these fields:
     let annotated_wire = r#"{"app": "Reports", "selector": "button", "annotate": true}"#;
     let parsed: ComputerScreenshot =
@@ -63,7 +63,7 @@ fn main() {
     );
 
     // Suppose the model spots the Export button's box at image pixel
-    // (410, 252) — the legend says the box is tag B7 — but this tool call
+    // (410, 252) - the legend says the box is tag B7 - but this tool call
     // needs desktop pixels (e.g. a coordinate click on a canvas):
     let image_coord = (410.0_f64, 252.0_f64);
     let desktop = (
@@ -78,7 +78,7 @@ fn main() {
     // ── The legend: image tags become selectors ──
     //
     // One entry per drawn box. Prefer the element form (selector) over
-    // mapped coordinates — the element resolves from CURRENT bounds; the
+    // mapped coordinates - the element resolves from CURRENT bounds; the
     // coordinate form is only for node-less canvas targets.
     for entry in &out.legend {
         println!(

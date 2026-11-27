@@ -1,6 +1,6 @@
 //! Shared-state wrapper for web tool operations.
 //!
-//! [`Web`] holds configuration — such as result count — so callers don't
+//! [`Web`] holds configuration - such as result count - so callers don't
 //! have to construct [`WebFetch`] / [`WebSearch`] on every invocation.
 //!
 //! # Example

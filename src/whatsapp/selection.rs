@@ -168,7 +168,7 @@ pub struct AgentSummary {
 #[must_use]
 pub fn render_list(summaries: &[AgentSummary], installed: &[String]) -> String {
     let mut text = String::from("*External agents*\n\n");
-    text.push_str("Main: *morpheus* — always available, no prefix.\n\n");
+    text.push_str("Main: *morpheus* - always available, no prefix.\n\n");
     text.push_str(&render_summaries(summaries));
     text.push('\n');
 
@@ -206,7 +206,7 @@ pub fn render_summaries(summaries: &[AgentSummary]) -> String {
             "new session"
         };
         text.push_str(&format!(
-            "• *{}* — {model}, {session}\n",
+            "• *{}* - {model}, {session}\n",
             instance_label(&summary.agent, summary.index, summary.total)
         ));
     }
@@ -233,7 +233,7 @@ pub fn render_all(
         } else {
             "not installed"
         };
-        text.push_str(&format!("• {agent} — {mark}\n"));
+        text.push_str(&format!("• {agent} - {mark}\n"));
     }
     text.trim_end().to_string()
 }
@@ -601,11 +601,11 @@ mod tests {
         );
 
         assert!(
-            text.contains("• *claude* — model `sonnet-4`, session saved"),
+            text.contains("• *claude* - model `sonnet-4`, session saved"),
             "{text}"
         );
         assert!(
-            text.contains("• *codex* — default model, new session"),
+            text.contains("• *codex* - default model, new session"),
             "{text}"
         );
     }
@@ -625,8 +625,8 @@ mod tests {
             &installed(&["claude"]),
             &installed(&["claude", "gemini"]),
         );
-        assert!(text.contains("• claude — installed"), "{text}");
-        assert!(text.contains("• gemini — not installed"), "{text}");
+        assert!(text.contains("• claude - installed"), "{text}");
+        assert!(text.contains("• gemini - not installed"), "{text}");
         assert!(text.contains("• *claude*"), "{text}");
     }
 

@@ -1,4 +1,4 @@
-//! Telemetry for morpheus — privacy-first, default-on (opt-out), server-economical.
+//! Telemetry for morpheus - privacy-first, default-on (opt-out), server-economical.
 //!
 //! Design lives in `docs/telemetry-plan.md`. The rules that matter here:
 //!
@@ -54,7 +54,7 @@ impl Telemetry {
     /// 1. `MORPHEUS_TELEMETRY=off` → disabled (off wins over everything, incl. on).
     /// 2. `CI` env set → disabled (hard-off in CI).
     /// 3. `MORPHEUS_TELEMETRY=on` → enabled.
-    /// 4. Otherwise the persisted user config decides (default ON — opt-out;
+    /// 4. Otherwise the persisted user config decides (default ON - opt-out;
     ///    users disable via Settings or `MORPHEUS_TELEMETRY=off`).
     pub fn resolve(consented_in_config: bool) -> Self {
         let env = std::env::var("MORPHEUS_TELEMETRY").unwrap_or_default();
@@ -78,7 +78,7 @@ impl Telemetry {
 
     /// Enqueue an event after the final sanitize guard. Silently drops the
     /// event when telemetry is disabled or the envelope fails validation
-    /// (typed field checks + payload denylist — see [`EventEnvelope::validate`]).
+    /// (typed field checks + payload denylist - see [`EventEnvelope::validate`]).
     pub fn enqueue(&self, envelope: &EventEnvelope) -> bool {
         if !self.enabled {
             return false;
@@ -96,7 +96,7 @@ impl Telemetry {
 
     /// CONSENT-AWARE flush: uploads queued events to
     /// the ingest endpoint only when telemetry is currently enabled. This is
-    /// the ONLY supported way to transmit — the queue, the sender and the
+    /// the ONLY supported way to transmit - the queue, the sender and the
     /// hardened client stay crate-internal, and consent is re-checked HERE,
     /// at call time, then sealed into an unforgeable `sink::Consent` token
     /// the sender requires. A queue that outlives its enabling decision can
@@ -118,7 +118,7 @@ impl Telemetry {
 
 /// The persistent install id: a random UUIDv4 created on first use and
 /// stored in the telemetry data dir (a LOCAL random identifier, never
-/// derived from hostname/MAC/user — plan §4.1). `None` when entropy or the
+/// derived from hostname/MAC/user - plan §4.1). `None` when entropy or the
 /// filesystem fails: callers drop the event (fail closed).
 pub fn install_id() -> Option<events::UuidId> {
     let dir = queue_dir();

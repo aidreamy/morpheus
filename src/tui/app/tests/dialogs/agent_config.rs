@@ -5,9 +5,7 @@
 
 use super::super::{App, HOME_LOCK, isolate_home};
 use crate::routes::session::agent_command_map::ConfigTarget;
-use morpheus_agents::events::{
-    AgentConfigOption, AgentConfigValue, SubagentEvent, ToolCallStatus,
-};
+use morpheus_agents::events::{AgentConfigOption, AgentConfigValue, SubagentEvent, ToolCallStatus};
 
 /// A model option as a harness advertises one: a select with two values, one
 /// current.
@@ -59,7 +57,7 @@ fn split_app_with_model_option(current: &str) -> App {
 /// record: the same user action that updates the pane's cache also seeds the
 /// global surface a FUTURE session's fresh pane reads. The pick rides
 /// through the real confirm path (open the box, select a different value,
-/// Enter) — not through a setter.
+/// Enter) - not through a setter.
 #[tokio::test]
 async fn confirming_a_model_pick_persists_it_per_agent() {
     let _guard = HOME_LOCK.lock();
@@ -71,7 +69,7 @@ async fn confirming_a_model_pick_persists_it_per_agent() {
 
     app.open_agent_config_dialog(ConfigTarget::ById("model"));
     assert!(app.is_agent_config_dialog_visible(), "the box opened");
-    // Move to the second row (Model B) and confirm — the pane's current is
+    // Move to the second row (Model B) and confirm - the pane's current is
     // `model-a`, so the pick is a REAL change, not a no-op re-apply.
     app.process_key_event(crossterm::event::KeyEvent::new(
         crossterm::event::KeyCode::Down,
@@ -102,7 +100,7 @@ async fn confirming_a_model_pick_persists_it_per_agent() {
         pane.picked_config_ids.iter().any(|id| id == "model"),
         "the pick is recorded as USER-picked"
     );
-    // The persisted record reached DISK too — the in-memory map alone would
+    // The persisted record reached DISK too - the in-memory map alone would
     // pass a regression that never writes (e.g. a wrong directory composed
     // at `App::new`), and the whole point of the store is surviving the
     // session it was made in.
@@ -120,7 +118,7 @@ async fn confirming_a_model_pick_persists_it_per_agent() {
 
 /// A completed call and a non-model pick never write the record: ONLY a real
 /// user model pick touches the store (defaults and unrelated options stay
-/// out — the file's whole point is a faithful "what the user chose").
+/// out - the file's whole point is a faithful "what the user chose").
 #[tokio::test]
 async fn non_model_picks_and_defaults_never_persist() {
     let _guard = HOME_LOCK.lock();
@@ -179,7 +177,7 @@ async fn non_model_picks_and_defaults_never_persist() {
     app.open_agent_config_dialog(ConfigTarget::ById("reasoning"));
     // The reasoning box opened (one value is still selectable).
     assert!(app.is_agent_config_dialog_visible(), "the box opened");
-    // The current is already selected; Enter re-applies it — a reasoning
+    // The current is already selected; Enter re-applies it - a reasoning
     // pick, never a model write.
     app.process_key_event(crossterm::event::KeyEvent::new(
         crossterm::event::KeyCode::Enter,
@@ -194,10 +192,10 @@ async fn non_model_picks_and_defaults_never_persist() {
 }
 
 /// The /models dot's seed: the persisted pick rides OVER the harness default
-/// (which a real `session/new` reports as a NON-empty current — guarding on
+/// (which a real `session/new` reports as a NON-empty current - guarding on
 /// emptiness would skip the seed and the dot would lie), a persisted value
 /// the option no longer offers leaves the report alone, and a SIBLING
-/// pane's own pick outranks the global record — the same precedence
+/// pane's own pick outranks the global record - the same precedence
 /// `pane_turn_picks` applies at dispatch.
 #[tokio::test]
 async fn config_options_report_seeds_the_persisted_dot() {
@@ -225,7 +223,7 @@ async fn config_options_report_seeds_the_persisted_dot() {
         .expect("cached");
     assert_eq!(option.current, "model-a", "no record, no seed");
 
-    // A persisted pick rides over the harness default — even though the
+    // A persisted pick rides over the harness default - even though the
     // default is a NON-empty current.
     app.agents_model_picks
         .set("claude", "model-b")
@@ -281,7 +279,7 @@ async fn config_options_report_seeds_the_persisted_dot() {
 
     // The pane's OWN pick outranks the global record: a sibling pane's
     // confirm rewrites the store, but THIS pane picked fresher and dispatch
-    // serves ITS pick — the dot must show what the turn will really serve.
+    // serves ITS pick - the dot must show what the turn will really serve.
     app.agents_model_picks
         .set("claude", "model-a")
         .expect("persist");

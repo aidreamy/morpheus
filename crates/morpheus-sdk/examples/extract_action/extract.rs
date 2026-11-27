@@ -164,7 +164,7 @@ fn main() {
         .items,
     );
 
-    // ── 8. find_json_objects — the standalone scanner ───────────────────────
+    // ── 8. find_json_objects - the standalone scanner ───────────────────────
     let spans = find_json_objects(r#"a {"x": 1} b {"y": {"z": 2}} c"#);
     println!("== find_json_objects ==  {spans:?}\n");
 

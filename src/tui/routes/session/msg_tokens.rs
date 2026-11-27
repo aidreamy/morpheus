@@ -2,13 +2,13 @@ use super::*;
 
 /// Generous in-memory budget for the per-message render cache (cells +
 /// text regions). Once the total exceeds this, the oldest entries outside a
-/// guard around the viewport are evicted LRU-style — the transcript on disk
+/// guard around the viewport are evicted LRU-style - the transcript on disk
 /// keeps the full session, so scroll-back simply re-renders the evicted
 /// message. Bounding this cache keeps the TUI fluid on very long sessions.
 ///
 /// This bounds the ACTIVE cache set only. The parked width snapshot (see
 /// [`WidthCacheSnapshot`], kept so a left-panel toggle restores the other
-/// width's caches in O(1)) holds its own copy — gated at capture/swap time to
+/// width's caches in O(1)) holds its own copy - gated at capture/swap time to
 /// the low-water mark below, so while a snapshot is parked the peak is at
 /// most `RENDER_CACHE_BUDGET + RENDER_CACHE_LOW_WATER`.
 pub(super) const RENDER_CACHE_BUDGET: usize = 64 * 1024 * 1024; // 64 MB
@@ -18,7 +18,7 @@ pub(super) const RENDER_CACHE_BUDGET: usize = 64 * 1024 * 1024; // 64 MB
 pub(super) const RENDER_CACHE_LOW_WATER: usize = 48 * 1024 * 1024; // 48 MB
 
 /// Row margin (in content rows) above/below the viewport that is never
-/// evicted — ordinary scrolling within a few screens stays re-render-free.
+/// evicted - ordinary scrolling within a few screens stays re-render-free.
 pub(super) const RENDER_CACHE_GUARD_ROWS: i32 = 400;
 
 /// Convert a `ToolStatus` to a single byte for hashing.
@@ -36,7 +36,7 @@ pub(super) fn msg_change_token(msg: &Message) -> u64 {
     hash_parts(msg)
 }
 
-/// True when the message contains a still-running compaction line — its
+/// True when the message contains a still-running compaction line - its
 /// stopwatch ticks every frame, so the per-message cell cache must be
 /// bypassed (the stored part data does not change while running, only the
 /// rendered elapsed time does).
@@ -46,7 +46,7 @@ pub(super) fn msg_has_running_compaction(msg: &Message) -> bool {
         .any(|p| matches!(p, Part::Compaction(c) if c.is_running()))
 }
 
-/// True when the message contains a still-running install line — same
+/// True when the message contains a still-running install line - same
 /// contract as the compaction stopwatch: the part data does not change
 /// while running, only the rendered elapsed time does, so the per-message
 /// cell cache must be bypassed for the counter to tick every frame.
@@ -61,7 +61,7 @@ pub(super) fn msg_has_running_install(msg: &Message) -> bool {
 /// grows / its status transitions) or a `Running` compaction (it finalizes
 /// once). Every other message is immutable once set, so re-hashing its full
 /// content every frame would pay O(whole transcript) per frame for nothing.
-/// The scan is a cheap O(parts) status pass — no content hashing.
+/// The scan is a cheap O(parts) status pass - no content hashing.
 pub(super) fn mutable_msg_indices(session: &crate::types::Session) -> Vec<usize> {
     session
         .messages
@@ -87,7 +87,7 @@ pub(super) fn msg_content_token(
     let mut h = hash_parts(msg);
     // Expansion toggles must invalidate the per-message render cache. The
     // `version` counter is incremented on every expand/collapse toggle, so
-    // hashing it (O(1)) is sufficient — `ensure_height_caches_fresh` already
+    // hashing it (O(1)) is sufficient - `ensure_height_caches_fresh` already
     // forces a full cache rebuild (clearing `msg_cache_tokens`) whenever the
     // version changes, so the per-part expansion state never needs to be
     // hashed individually.
@@ -100,7 +100,7 @@ pub(super) fn msg_content_token(
 /// Cheap per-part change stamp for the streaming render cache's identity
 /// check. The streaming cache patches only the LAST `Text` part
 /// incrementally; every OTHER part must force a fresh rebuild when its
-/// render-relevant content changes — the part COUNT alone cannot see an
+/// render-relevant content changes - the part COUNT alone cannot see an
 /// in-place change, and `push_reasoning` deliberately keeps the count fixed
 /// (interleaved thinking folds each delta into the Reasoning part that
 /// precedes the answer). Lengths are enough because the mutable parts only

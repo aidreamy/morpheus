@@ -48,11 +48,11 @@ pub(super) fn default_harness_tools() -> Vec<HarnessTool> {
             name: "stop_agent_loop".into(),
             // ABORT, not completion: the loop's natural end is a plain
             // final-text response (the provider's finish reason closes the
-            // turn) — this tool is for stopping EARLY, abandoning the rest
+            // turn) - this tool is for stopping EARLY, abandoning the rest
             // of the plan mid-turn. Never reference it as the way to finish.
             description: "Stop the agent loop early: abandon the remaining \
                           work of this turn. Do NOT call this when the task \
-                          is complete — just deliver the final answer as text."
+                          is complete - just deliver the final answer as text."
                 .into(),
             input_schema: serde_json::json!({
                 "type": "object",
@@ -65,7 +65,7 @@ pub(super) fn default_harness_tools() -> Vec<HarnessTool> {
         // call to an EVENT (a tool result just turned out to be irrelevant),
         // not to a judgment, and encourages batching it with the next tool
         // call to avoid extra round-trips. No reminder block in front of the
-        // context: forgetting to mask is harmless (fail-open — the LLM
+        // context: forgetting to mask is harmless (fail-open - the LLM
         // compaction stays the structural fallback), while a persistent
         // salient block would be re-paid full-price on every request.
         HarnessTool {

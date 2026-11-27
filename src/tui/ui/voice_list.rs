@@ -3,8 +3,8 @@
 //! One entry per speaker of the installed Kokoro bundle, carrying the
 //! metadata the list renders and searches: the voice name, its language
 //! (code and label), gender and the bundle. The picker itself is the shared
-//! [`list_dialog`](crate::component::list_dialog) box — the same component
-//! `/models` uses — so this module only owns the rows and the filter.
+//! [`list_dialog`](crate::component::list_dialog) box - the same component
+//! `/models` uses - so this module only owns the rows and the filter.
 
 use std::collections::BTreeMap;
 use std::path::PathBuf;

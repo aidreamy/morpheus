@@ -7,11 +7,11 @@ pub(super) const MAX_TOOL_RETRIES: usize = 10;
 /// the harness stops the loop as a safety net against runaway tool-calling.
 ///
 /// 20 was too low for real multi-step work (editing files, running tests,
-/// searching) — the loop force-stopped mid-task with a misleading `Done`.
+/// searching) - the loop force-stopped mid-task with a misleading `Done`.
 pub(crate) const MAX_ITERATIONS: u64 = 100;
 
 /// How many times the MAX_ITERATIONS guard may RENEW the iteration budget.
-/// The hard limit exists to kill a RUNAWAY loop — and the loop detectors
+/// The hard limit exists to kill a RUNAWAY loop - and the loop detectors
 /// (tool-signature window, textual repetition) already cover runaway: a loop
 /// whose recent window shows no stuck repetition is making real progress, and
 /// long multi-step work is legitimate. When the guard fires while the window
@@ -23,18 +23,18 @@ pub(crate) const ITERATION_RENEWALS: u32 = 2;
 /// Natural-stop gate budget: how many continuations the deterministic veto
 /// layer (reasoning-only retry, empty-response retry) may grant per agent
 /// loop. An agent loop runs for hours and each veto is a REAL provider cut
-/// the model must recover from — 3 proved too tight: a model prone to
+/// the model must recover from - 3 proved too tight: a model prone to
 /// reasoning-only `stop` streams (e.g. glm-5.3-flash) exhausts the budget
 /// mid-task and the loop then accepts the bare `stop` silently (Done with
 /// `checkup_verdict: None`, no toast, no trace). 10 is the measured starting
 /// point: generous enough to absorb a streak of degenerate stops, still
 /// scarce enough that a model insisting on stopping terminates visibly
 /// instead of looping to `MAX_ITERATIONS`. If the silent-exhaustion pattern
-/// resurfaces, raise this — never remove the bound.
+/// resurfaces, raise this - never remove the bound.
 pub(crate) const STOP_NUDGE_BUDGET: u32 = 10;
 
 /// Dedicated bound on the decision model's natural-stop veto (the checkup).
-/// The veto previously answered only to `MAX_ITERATIONS` — a persistent
+/// The veto previously answered only to `MAX_ITERATIONS` - a persistent
 /// model↔checkup disagreement on text-only turns could re-send the growing
 /// context up to 100 times before the iteration bound ended it. Three vetoes
 /// keep the fail-open audit an IMPROVER (the model may stand by its
@@ -45,36 +45,36 @@ pub(crate) const STOP_NUDGE_BUDGET: u32 = 10;
 /// stands, verdict still recorded.
 pub(crate) const CHECKUP_VETO_BUDGET: u32 = 3;
 
-/// Resume budget for a `/agents` PANE turn — how many times the harness
+/// Resume budget for a `/agents` PANE turn - how many times the harness
 /// re-sends the context after a stop NOBODY asked for (the natural-stop
 /// gate's [`STOP_NUDGE_BUDGET`] exhausted on an empty completion, or the
 /// textual repetition detector firing).
 ///
 /// Why a pane needs this and a chat turn does not: a chat turn's stop is
 /// final (the user reads the answer, or asks again), while a pane turn owes a
-/// DELIVERABLE — the report its `agents_call` requester is blocked on — and the
+/// DELIVERABLE - the report its `agents_call` requester is blocked on - and the
 /// coworker ROLE has no `stop_agent_loop` ([`SUBAGENT_BLOCKED_TOOLS`] here,
 /// stripped by role in `core::build` for every `/agents` coworker), so the loop
 /// cannot end early on purpose. The only legitimate early end is the USER's
 /// stop,
-/// which is exactly observable (`self.stop` / the shared `stop_signal` — the
+/// which is exactly observable (`self.stop` / the shared `stop_signal` - the
 /// same flags `check_stop!` reads). Any other stop is an IMPROPER stop: the
 /// pane hands its requester `incomplete` while the model may have been cut one
 /// turn before writing the report.
 ///
-/// SCOPE — this budget covers the two shapes that produced the field reports
+/// SCOPE - this budget covers the two shapes that produced the field reports
 /// (an exhausted empty stop, and the repetition detector). It deliberately
 /// does NOT cover every terminal shape: `MAX_ITERATIONS`, `MAX_TOOL_RETRIES`
 /// and the tool-interaction loop detector still stop a pane (and report
 /// `incomplete` with their guard verdict). Those are cost/safety nets whose
-/// stop is a bound on RESOURCE EXHAUSTION, not a verdict on the work — the
+/// stop is a bound on RESOURCE EXHAUSTION, not a verdict on the work - the
 /// model has provably failed the task those bounds exist to catch, so
 /// granting more context re-sends would buy nothing. Widening this to them
 /// would turn a runaway model into a longer runaway.
 ///
 /// Continuing is safe because it is the SAME mechanism every other
-/// continuation in the loop uses — full history plus one steering turn, the
-/// provider-standard re-send — not a new wire shape and not a fabricated user
+/// continuation in the loop uses - full history plus one steering turn, the
+/// provider-standard re-send - not a new wire shape and not a fabricated user
 /// turn. What was missing was only the BOUND: the loop's nudges renew per
 /// ENTRY (`run_agent_loop_inner` resets `stop_nudges_left`), so without a
 /// per-loop budget a resuming pane could renew forever. Two is enough to
@@ -88,13 +88,13 @@ pub(crate) const COWORKER_RESUME_BUDGET: u32 = 2;
 /// #118647's "recover once from critical tool loops"): whether a
 /// report-owing turn's detector firing may be converted into a steering
 /// continuation instead of a stop. The recovery draws from the SAME pool
-/// the improper-stop resumes use ([`COWORKER_RESUME_BUDGET`]) — two
+/// the improper-stop resumes use ([`COWORKER_RESUME_BUDGET`]) - two
 /// continuations TOTAL per turn chain, shared across accelerators, so two
 /// detectors can never double the re-sends a blocked requester waits
-/// through — while this flag keeps the DETECTOR's share one-shot: a pane
+/// through - while this flag keeps the DETECTOR's share one-shot: a pane
 /// whose pool was spent on empty-stop resumes stops here rather than
 /// silently re-branding its last unit as a tool-loop recovery. (A second
-/// detector firing stops regardless — see `tool_loop_recovery_left`.)
+/// detector firing stops regardless - see `tool_loop_recovery_left`.)
 /// Chat turns (which owe no report) never draw from the pool: their stop
 /// is the user's to read.
 pub(crate) const TOOL_LOOP_RECOVERY_SHARE: u32 = 1;
@@ -113,7 +113,7 @@ pub(super) const LOOP_DETECTION_MAX_REPEATS: usize = 5;
 
 /// Repetition-detection threshold: consecutive iterations whose TEXTUAL
 /// output (visible answer or reasoning-only thinking) is identical stop the
-/// loop. The crush-style window above only sees TOOL interactions — it is
+/// loop. The crush-style window above only sees TOOL interactions - it is
 /// blind to a model stuck repeating the same thought with no tool call at
 /// all (observed in the field: a reasoning-only loop repeated the same
 /// paragraph for dozens of iterations while the natural-stop gate kept
@@ -133,9 +133,9 @@ pub(super) const REPETITION_MIN_TEXT_LEN: usize = 64;
 /// Tools disabled inside the internal sub-agent harness (the merged
 /// `subagent_call` internal path). The tools are removed from the
 /// sub-agent's schema AND extractor, so the model never even sees them:
-/// - `ask_questions` — needs a human in the loop; the sub-agent is headless
+/// - `ask_questions` - needs a human in the loop; the sub-agent is headless
 ///   and would hang waiting for an answer;
-/// - `stop_agent_loop` — the sub-agent's ONLY deliverable is its final text
+/// - `stop_agent_loop` - the sub-agent's ONLY deliverable is its final text
 ///   report. If it could stop the loop directly, a model might call it as
 ///   its last action without writing the report (the caller would receive
 ///   nothing). Blocked so the loop can only end with a written answer.
@@ -144,15 +144,15 @@ pub(super) const REPETITION_MIN_TEXT_LEN: usize = 64;
 pub(crate) const SUBAGENT_BLOCKED_TOOLS: &[&str] = &["ask_questions", "stop_agent_loop"];
 
 /// Chunk interpolated into the `subagent_call` tool description (via
-/// [`SubAgent::set_note`]) so the model learns — naturally, inside the
-/// description prose — that omitting `agent` routes the call to an
+/// [`SubAgent::set_note`]) so the model learns - naturally, inside the
+/// description prose - that omitting `agent` routes the call to an
 /// internal agent instead of an external CLI.
 pub(super) const SUBAGENT_INTERNAL_NOTE: &str = "When the `agent` argument is omitted or empty, an internal agent runs \
-     the task instead — it starts with an empty context, runs in auto-approve \
+     the task instead - it starts with an empty context, runs in auto-approve \
      mode, persists nothing, and returns only its final report.";
 
 /// Loop-level retries granted to a request the connector reported as a
-/// TRANSIENT failure — rate limits, HTTP 5xx, transport failures and streams
+/// TRANSIENT failure - rate limits, HTTP 5xx, transport failures and streams
 /// truncated without a `[DONE]`.
 ///
 /// aiface's request middleware already re-sends those failures (3 retries,
@@ -165,26 +165,26 @@ pub(super) const SUBAGENT_INTERNAL_NOTE: &str = "When the `agent` argument is om
 /// `ClearAssistant` reset the SDK's mid-stream retry uses).
 ///
 /// Deterministic failures (auth, malformed request, context overflow, image
-/// rejection) are NEVER retried here — see `is_retryable_error`.
+/// rejection) are NEVER retried here - see `is_retryable_error`.
 pub(crate) const LOOP_RETRY_BUDGET: u32 = 2;
 
 /// Internal marker returned by stream functions when the provider rejected
 /// the request because the conversation carries an image its model cannot
 /// read. Compared by identity, like [`CONTEXT_WINDOW_MARKER`]. Produced ONLY
 /// from aiface's typed `ConnectorError::ImageInputUnsupported`, whose
-/// classifier demands an unambiguous "text-only" body — never from a bare
+/// classifier demands an unambiguous "text-only" body - never from a bare
 /// 400.
 pub(crate) const IMAGE_UNSUPPORTED_MARKER: &str = "__morpheus_image_unsupported__";
 
 /// Internal marker returned by stream functions when the user presses Esc
 /// to stop the current generation. Compared by identity (constant), not by
-/// string value — prevents the fallback retry from misinterpreting a user
+/// string value - prevents the fallback retry from misinterpreting a user
 /// cancellation as a connector error.
 pub(crate) const INTERRUPTED_MARKER: &str = "__morpheus_interrupted__";
 
 /// Internal marker returned by a stream function when the provider rejected
 /// the request because the prompt exceeds its context window. Compared by
-/// identity (constant), like [`INTERRUPTED_MARKER`] — the harness drains one
+/// identity (constant), like [`INTERRUPTED_MARKER`] - the harness drains one
 /// tool chain and retries when it sees this. `pub(crate)` so tests can
 /// simulate the overflow through the mock paths.
 pub(crate) const CONTEXT_WINDOW_MARKER: &str = "__morpheus_context_window_exceeded__";

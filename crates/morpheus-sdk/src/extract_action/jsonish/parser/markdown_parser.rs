@@ -55,11 +55,11 @@ pub fn parse(str: &str, options: &ParseOptions) -> Result<Vec<MarkdownResult>, J
 
             for (i, end) in ends.iter().enumerate() {
                 // If there's an opening fence (```tag) between the previous closing
-                // fence and this one, we've crossed into a separate code block —
+                // fence and this one, we've crossed into a separate code block -
                 // don't try wider spans past real block boundaries.
                 //
                 // But DO allow wider spans when there's NO opening fence between
-                // consecutive closing fences — that handles ``` appearing inside
+                // consecutive closing fences - that handles ``` appearing inside
                 // JSON string values (e.g. embedded markdown content).
                 if i > 0 {
                     let between = &after_start[ends[i - 1].end()..end.start()];

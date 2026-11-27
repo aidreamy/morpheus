@@ -14,7 +14,7 @@ use super::super::types::{
 const PATH: &str = "x.rs";
 
 // Deterministic stub: the block beginning on line N spans [N, N+1]. The exact
-// shape does not matter — the unit tests only need a resolver that is not the
+// shape does not matter - the unit tests only need a resolver that is not the
 // real tree-sitter native (that is exercised by the coding-agent integration
 // test).
 fn stub_resolver(request: BlockResolverRequest) -> Option<BlockSpan> {
@@ -134,7 +134,7 @@ fn fast_path_returns_input_untouched_when_no_block_edits() {
 #[test]
 fn errors_when_no_resolver_wired() {
     let (edits, _) = parse_patch("replace block 2:\n+X").unwrap();
-    // Err, never a panic — authored-input rejection flows through the same
+    // Err, never a panic - authored-input rejection flows through the same
     // channel as every other malformed edit (parity guarantee).
     let msg = resolve_block_edits(&edits, "ignored", PATH, None, None).unwrap_err();
     assert!(msg.contains("not available here"));
@@ -159,7 +159,7 @@ fn drops_unresolvable_block_edit_in_drop_mode() {
 #[test]
 fn errors_block_unresolved_when_resolver_returns_null() {
     let (edits, _) = parse_patch("replace block 7:\n+X").unwrap();
-    // Err, never a panic — the patcher has no catch_unwind around this call,
+    // Err, never a panic - the patcher has no catch_unwind around this call,
     // so a panic here would kill the whole agent loop instead of returning
     // the diagnostic to the model.
     let msg = resolve_block_edits(
@@ -212,7 +212,7 @@ fn apply_to_errors_when_block_edit_has_no_resolver() {
         &SplitOptions::default(),
     )
     .unwrap();
-    // Clean Err, never a panic — apply_to's Throw path returns the
+    // Clean Err, never a panic - apply_to's Throw path returns the
     // diagnostic through the same channel as every other malformed edit.
     let msg = section.apply_to(text, None).unwrap_err();
     assert!(msg.contains("replace block"), "{msg}");
@@ -323,7 +323,7 @@ async fn patcher_returns_error_when_resolver_returns_null() {
         &SplitOptions::default(),
     )
     .unwrap();
-    // A clean Err carrying the diagnostic — never a panic (the patcher's
+    // A clean Err carrying the diagnostic - never a panic (the patcher's
     // apply path has no catch_unwind; a panic would kill the agent loop).
     let msg = patcher.apply(&patch).await.unwrap_err().to_string();
     assert!(msg.contains("could not resolve a syntactic block"), "{msg}");

@@ -62,7 +62,7 @@ fn rm(path: &str) {
     let _ = std::fs::remove_file(path);
 }
 
-// Permission enforcement — the tool's primary responsibility
+// Permission enforcement - the tool's primary responsibility
 
 #[tokio::test]
 async fn rollback_denied_when_path_is_outside_project_root() {
@@ -158,7 +158,7 @@ async fn rollback_allowed_outside_root_when_path_in_allowlist() {
     let _ = std::fs::remove_file(&outside);
 }
 
-// Schema conversion — hash field interpretation
+// Schema conversion - hash field interpretation
 
 #[tokio::test]
 async fn rollback_empty_hash_restores_previous_version() {
@@ -248,7 +248,7 @@ async fn rollback_explicit_hash_restores_target_version() {
     rm(&path);
 }
 
-// Result contract — shape of the output the LLM receives
+// Result contract - shape of the output the LLM receives
 
 #[tokio::test]
 async fn rollback_header_has_hashline_format() {
@@ -338,7 +338,7 @@ async fn rollback_warning_is_some_when_file_was_externally_modified() {
     write_file(&path, "session version\n");
     let h = record(&path, "session version\n").unwrap();
 
-    // Simulate external modification — write directly without record()
+    // Simulate external modification - write directly without record()
     write_file(&path, "externally changed\n");
 
     let out = rollback(&FsRollback, meta(&root), &path, &h)
@@ -358,7 +358,7 @@ async fn rollback_warning_is_some_when_file_was_externally_modified() {
     rm(&path);
 }
 
-// Error propagation — engine errors surface correctly through the tool layer
+// Error propagation - engine errors surface correctly through the tool layer
 
 #[tokio::test]
 async fn rollback_error_no_history_for_path() {
@@ -407,7 +407,7 @@ async fn rollback_error_already_at_requested_version() {
     // Restore to v1 first
     rollback(&FsRollback, meta(&root), &path, &h).await.unwrap();
 
-    // Restore again — disk already has v1
+    // Restore again - disk already has v1
     let err = rollback(&FsRollback, meta(&root), &path, &h)
         .await
         .unwrap_err();

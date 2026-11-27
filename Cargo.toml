@@ -143,7 +143,7 @@ rayon = "1"
 # crates/morpheus-tools, crates/morpheus-recall): error enums, header maps, URL
 # parsing for the MCP client. Not new crates, just newly direct.
 thiserror = "2"
-# The activation lock (`flock`) that serializes daemon bind races on Unix —
+# The activation lock (`flock`) that serializes daemon bind races on Unix -
 # see `daemon::activation`. Same crate/version morpheus-tools already carries.
 libc = "0.2"
 http = "1"
@@ -226,7 +226,7 @@ version = "0.8"
 features = ["xxh3", "xxh32", "xxh64"]
 
 # OS entropy for telemetry identifiers (audit F04): no time/address-derived
-# fallbacks — when entropy is unavailable the telemetry event is dropped.
+# fallbacks - when entropy is unavailable the telemetry event is dropped.
 [dependencies.getrandom]
 version = "0.3"
 
@@ -278,7 +278,7 @@ rustls = { version = "0.23", default-features = false, features = ["ring", "std"
 # Performance profiles
 # The TUI's hot path lives almost entirely in dependencies (tree-sitter,
 # unicode-width, ratatui, pulldown-cmark, regex, taffy). Unoptimized, those
-# make every frame 20-100x slower — a debug `target/debug/morpheus` measured
+# make every frame 20-100x slower - a debug `target/debug/morpheus` measured
 # 127ms/frame with an active tool spinner vs 2.7ms optimized, which is the
 # source of the "TUI freezes while the agent works" reports.
 #
@@ -319,7 +319,7 @@ lsp-types = "0.97"
 # validated on Windows Terminal + modern conhost, already adopted via patch
 # by helix, yazi and codex) scopes ENABLE_VIRTUAL_TERMINAL_INPUT to the
 # bracketed-paste lifetime, so pastes arrive as one `Event::Paste` exactly
-# like on Unix. Pinned by rev for reproducibility — drop this section once
+# like on Unix. Pinned by rev for reproducibility - drop this section once
 # upstream merges and releases. Consoles without VT input (legacy conhost)
 # keep the old VK-record stream, still covered by the paste-burst coalescer
 # fallback in `src/tui/app/paste_burst.rs`.

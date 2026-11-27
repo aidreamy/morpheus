@@ -67,7 +67,7 @@ fn title_span_covers_exactly_the_visible_characters() {
 #[test]
 fn title_span_clamps_to_what_the_renderer_displays_not_the_string_length() {
     // A 40-char title in a 22-wide panel: only the first max_text_w = 12
-    // chars are on screen, so the span is 4..16 — NOT 4..44. This is the
+    // chars are on screen, so the span is 4..16 - NOT 4..44. This is the
     // contract the switch hit-test relies on: the string's char count is
     // meaningless once the panel truncates it.
     let long = "x".repeat(40);
@@ -92,7 +92,7 @@ fn title_span_is_none_without_any_visible_text() {
 #[test]
 fn control_characters_do_not_count_as_visible_width() {
     // The renderer skips control chars (titles derive from user message
-    // text): "a\nb" draws 2 cells, so the span is 4..6 — not 4..7 — and the
+    // text): "a\nb" draws 2 cells, so the span is 4..6 - not 4..7 - and the
     // glyph sits one column left of what an unfiltered count would claim.
     assert_eq!(SessionListLayout::title_span(AREA, "a\nb"), Some(4..6));
     assert_eq!(
@@ -104,7 +104,7 @@ fn control_characters_do_not_count_as_visible_width() {
 #[test]
 fn footer_span_covers_exactly_the_button_label() {
     // AREA (y 10..30, width 22): footer row = 29; the 10-char label is
-    // centered — (22 - 10) / 2 = 6 -> columns 6..16.
+    // centered - (22 - 10) / 2 = 6 -> columns 6..16.
     assert_eq!(SessionListLayout::footer_row(AREA), 29);
     assert_eq!(SessionListLayout::footer_span(AREA), Some(6..16));
 }
@@ -118,7 +118,7 @@ fn footer_span_is_none_when_the_label_or_row_does_not_fit() {
     // Exactly wide enough: flush at the left edge.
     let exact = Rect::new(0, 0, 10, 10);
     assert_eq!(SessionListLayout::footer_span(exact), Some(0..10));
-    // Panel too short: the footer row would sit on the header — not drawn.
+    // Panel too short: the footer row would sit on the header - not drawn.
     let short = Rect::new(0, 0, 22, 2);
     assert_eq!(SessionListLayout::footer_span(short), None);
 }

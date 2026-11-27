@@ -7,7 +7,7 @@ use crate::theme::{Theme, rgba_color};
 use crate::util::draw::draw_text_line_wide;
 
 /// Cell width of the ` → ` separator between the running and the new
-/// version (space + arrow + space — all single-cell glyphs).
+/// version (space + arrow + space - all single-cell glyphs).
 const UPDATE_ARROW_W: u16 = 3;
 
 pub struct FooterView;
@@ -19,7 +19,7 @@ impl FooterView {
     /// `v0.1.1 → v0.1.2`) when it was drawn this frame; `None` when no
     /// update is available, the text is hidden (dialogs) or the row is too
     /// narrow. The caller stores the rect and resolves the hover state for
-    /// the NEXT frame — the same muted→text swap the header's
+    /// the NEXT frame - the same muted→text swap the header's
     /// `bug report` / `← esc` links use.
     pub fn render_with_mode(
         buf: &mut Buffer,
@@ -59,7 +59,7 @@ impl FooterView {
         // Update hint `v0.1.1 → v0.1.2`, drawn right after the running
         // version when a newer release is available. Only the new version
         // is the clickable button; the arrow stays muted. Pure display
-        // work — the hitbox handed back covers exactly the button glyphs.
+        // work - the hitbox handed back covers exactly the button glyphs.
         let button = update_version.and_then(|new_version| {
             // Release versions are plain ASCII digits/dots, so the char
             // count is the terminal-cell width.
@@ -293,7 +293,7 @@ mod tests {
     }
 
     /// The directory label describes where the MAIN AGENT works, so it must
-    /// follow the `/worktree` binding — the branch badge beside it already
+    /// follow the `/worktree` binding - the branch badge beside it already
     /// does, and a pair drawn from two different trees (the startup path next
     /// to the checkout's branch) is actively misleading. The renderer only
     /// holds `&AppState`, which is why the resolution lives on the state

@@ -1,7 +1,7 @@
 //! Route a request to the Laya checkpoint best suited to it.
 //!
 //! Three checkpoints, measured on a shared benchmark (17,416 questions, one
-//! T4, identical questions per model — see the repository's benchmark
+//! T4, identical questions per model - see the repository's benchmark
 //! notebook):
 //!
 //! ```text
@@ -12,7 +12,7 @@
 //!                                                                 workflows
 //! ```
 //!
-//! Why routing is worth it — accuracy by language family:
+//! Why routing is worth it - accuracy by language family:
 //!
 //! ```text
 //!                       english   multilingual
@@ -25,7 +25,7 @@
 //!
 //! The English checkpoint does not gently degrade off English, it collapses:
 //! on 20-option MASSIVE intent it scores 0.100 on Hindi and 0.103 on Korean,
-//! against 0.050 for random guessing — and it reports high confidence while
+//! against 0.050 for random guessing - and it reports high confidence while
 //! doing so (ECE 0.855 on Hindi). Script detection is therefore the primary
 //! routing signal.
 //!
@@ -61,11 +61,11 @@
 //! - Python `TypeError`s surface as [`Error::Value`], keeping the
 //!   message texts verbatim.
 //! - `predict_batch` calls the agent-level batch ([`AgentLike::
-//!   predict_batch`]), whose default runs one `system_one` per state — the
+//!   predict_batch`]), whose default runs one `system_one` per state - the
 //!   ONNX backend's shape. The torch `Agent.predict_batch` micro-batching is
 //!   out of scope, but the trait method is where it would slot in; the
-//!   Router-side group semantics — schema splitting, `lang` keys, routing
-//!   keys, hook cycle — are identical either way.
+//!   Router-side group semantics - schema splitting, `lang` keys, routing
+//!   keys, hook cycle - are identical either way.
 
 use std::collections::HashMap;
 use std::sync::{Arc, Mutex, MutexGuard};
@@ -85,7 +85,7 @@ use crate::lang::{Analysis, analyse};
 /// is downloaded.
 pub const BUNDLE_REPO: &str = "convaiinnovations/laya";
 
-/// `DEFAULT_MODELS` — the bundled specs, in upstream key order. Built per
+/// `DEFAULT_MODELS` - the bundled specs, in upstream key order. Built per
 /// call because a `String` cannot live in a `const` table.
 pub fn default_models() -> Vec<(&'static str, ModelSpec)> {
     vec![
@@ -125,9 +125,9 @@ pub fn standalone_models() -> Vec<(&'static str, ModelSpec)> {
 /// `(repo, subfolder)` tuple/list).
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ModelSpec {
-    /// `"some/repo"` — the repo root, or a local directory path.
+    /// `"some/repo"` - the repo root, or a local directory path.
     Repo(String),
-    /// `(repo, subfolder)` — one checkpoint out of a bundling repo.
+    /// `(repo, subfolder)` - one checkpoint out of a bundling repo.
     Bundled(String, String),
 }
 
@@ -169,10 +169,10 @@ fn alias_of(key: &str) -> Option<&'static str> {
     })
 }
 
-/// `sorted(DEFAULT_MODELS)` — for the unknown-model message.
+/// `sorted(DEFAULT_MODELS)` - for the unknown-model message.
 const KNOWN_SORTED: [&str; 3] = ["english", "multilingual", "typed-decisions"];
 
-/// `sorted(_ALIASES)` — for the unknown-model message.
+/// `sorted(_ALIASES)` - for the unknown-model message.
 const ALIASES_SORTED: [&str; 10] = [
     "decisions",
     "default",
@@ -207,7 +207,7 @@ pub fn normalise_name(name: &str) -> Result<&'static str> {
 
 /// Question-id signatures of the four typed-decisions workflows, used only
 /// when auto_task_detection is enabled (`_TYPED_DECISION_WORKFLOWS`, in
-/// upstream iteration order — the exact id-set match makes the order moot,
+/// upstream iteration order - the exact id-set match makes the order moot,
 /// but the order pins `match_typed_decisions_workflow`'s scan).
 const TYPED_DECISION_WORKFLOWS: [(&str, &[&str]); 4] = [
     (
@@ -270,15 +270,15 @@ pub(crate) fn question_schema(questions: &Map<String, Value>) -> String {
 }
 
 // Subtags that mean "the English checkpoint can read this". Routing needs
-// one bit — is this English Latin text, or something the English checkpoint
-// cannot read — not a language id, so every other code that names a language
+// one bit - is this English Latin text, or something the English checkpoint
+// cannot read - not a language id, so every other code that names a language
 // resolves to the multilingual checkpoint (`_ENGLISH_SUBTAGS`).
 const ENGLISH_SUBTAGS: [&str; 3] = ["en", "eng", "english"];
 
 // Codes that are valid `$LANG` values but name no language, so they answer
 // nothing about the state. `C`, `POSIX` and `C.UTF-8` are what minimal
-// images ship — `C.UTF-8` is the default `LANG` in the official Python
-// image, which is where `laya-serve` runs — and the ISO 639-2 special codes
+// images ship - `C.UTF-8` is the default `LANG` in the official Python
+// image, which is where `laya-serve` runs - and the ISO 639-2 special codes
 // say the same thing in the standard's own vocabulary: `und` undetermined,
 // `zxx` no linguistic content, `mul` multiple languages. They abstain, which
 // is what the blank case below already does, rather than forcing the
@@ -291,7 +291,7 @@ const LANGUAGE_AGNOSTIC_CODES: [&str; 5] = ["c", "posix", "und", "zxx", "mul"];
 /// Accepts the forms a caller is likely to have to hand: `"en"`, `"EN"`,
 /// `"en-US"`, the POSIX `"en_US"` (which `$LANG` holds), and
 /// `"en_US.UTF-8"`. `None` here means "no usable hint", which is what lets a
-/// language-identification model abstain — and it is also what a code that
+/// language-identification model abstain - and it is also what a code that
 /// names no language returns, so `LANG=C` falls through to detection instead
 /// of pinning every request to one checkpoint.
 pub fn english_from_code(value: Option<&str>) -> Option<bool> {
@@ -518,12 +518,12 @@ fn default_agent_factory(
 }
 
 /// Resident agents plus the LRU order, behind one mutex (`self._lock`,
-/// upstream an RLock — here a plain [`Mutex`] is enough because no method
+/// upstream an RLock - here a plain [`Mutex`] is enough because no method
 /// re-enters it while held: lifecycle hooks fire after the guard drops).
 #[derive(Default)]
 struct Lifecycle {
     /// Insertion-ordered residents. Upstream `self._agents` is a Python dict
-    /// whose iteration order is insertion order — `list(_agents) ==
+    /// whose iteration order is insertion order - `list(_agents) ==
     /// loaded` is asserted upstream, so the two views must agree. At most a
     /// handful of entries live here (`max_loaded`), so the linear scans are
     /// constant-sized.
@@ -801,7 +801,7 @@ impl Router {
     ///
     /// Useful when the process has a checkpoint loaded for other reasons: a
     /// demo that already built `convaiinnovations/laya` can hand it to the
-    /// router rather than pay for — and hold in memory — a duplicate 421M
+    /// router rather than pay for - and hold in memory - a duplicate 421M
     /// parameters.
     pub fn attach(&self, name: &str, agent: Box<dyn AgentLike>) -> Result<SharedAgent> {
         let key = normalise_name(name)?;
@@ -1286,7 +1286,7 @@ impl Router {
             }
         }
 
-        // The `finally` block: elapsed_ms, usage aggregation, end hooks —
+        // The `finally` block: elapsed_ms, usage aggregation, end hooks -
         // they run on the failure path too.
         ctx.elapsed_ms = Some(ctx.started_at.elapsed().as_secs_f64() * 1000.0);
         if let Some(results) = &ctx.results {
@@ -1366,7 +1366,7 @@ impl Router {
             // Upstream hands `request.get("model")` (and task/lang/lang_guess)
             // to the routing path raw: `normalise_name` and
             // `_english_from_code` both `str(...)` their argument, so a
-            // non-string value is coerced rather than rejected — an integer
+            // non-string value is coerced rather than rejected - an integer
             // model `123` reports "unknown model 123", and a list
             // `lang_guess` str()s to something that names no language and
             // abstains into detection. Python `str(v)` equals `repr(v)` for
@@ -1445,8 +1445,8 @@ impl Router {
             let mut started: Vec<(usize, PredictContext)> = Vec::new();
             let mut group_error: Option<Error> = None;
             // One context per request, built and started the way `predict`
-            // does it, so a start hook sees — and can redact, rewrite or
-            // skip — each request before it joins a shared forward pass.
+            // does it, so a start hook sees - and can redact, rewrite or
+            // skip - each request before it joins a shared forward pass.
             for i in &indices {
                 let request = &requests[*i];
                 let questions = request["questions"]
@@ -1486,7 +1486,7 @@ impl Router {
                     if let Some(results) = &mut ctx.results {
                         // A cache hit short-circuits inference; the `routing`
                         // key predict adds is set here, before any
-                        // inference, without overwriting a cached routing —
+                        // inference, without overwriting a cached routing -
                         // so a later failure in the same group still leaves
                         // the cached payload consistent.
                         for result in results.iter_mut() {
@@ -1714,7 +1714,7 @@ impl Router {
 /// One forward-pass group inside [`Router::predict_batch`]: the schema the
 /// grouping split on, kept for the call, plus the token budgets and the
 /// forwarded language. `items` holds positions into the current group's
-/// `started` vector (added in `started` order), not request indices — the
+/// `started` vector (added in `started` order), not request indices - the
 /// request index is `started[pos].0`.
 struct QuestionGroup {
     questions: Map<String, Value>,
@@ -1754,7 +1754,7 @@ impl PredictOptions<'_> {
     /// The routing subset, for the internal `route` call.
     ///
     /// Upstream `predict` forwards only `hooks=`, `hooks_raise=` and
-    /// `hooks_timeout=` to `route` — the call's `on_predict_start` /
+    /// `hooks_timeout=` to `route` - the call's `on_predict_start` /
     /// `on_predict_end` wrap the whole route+infer and do not observe the
     /// `on_route` event inside it.
     fn route_options(&self) -> RouteOptions<'_> {

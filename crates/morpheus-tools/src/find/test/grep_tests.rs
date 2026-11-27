@@ -3,7 +3,7 @@ use super::super::grep::{grep, grep_targets};
 use super::super::types::Grep;
 use morpheus_sdk::hashline::snapshots::SnapshotStore;
 
-/// Seed a Rust file with `pub fn glob` and `pub fn grep` in a scratch dir —
+/// Seed a Rust file with `pub fn glob` and `pub fn grep` in a scratch dir -
 /// the shape the grep tests need (a `.rs` tree with known symbols). Each call
 /// gets a fresh directory so tests stay independent.
 fn fixture_dir(name: &str) -> std::path::PathBuf {
@@ -518,7 +518,7 @@ fn grep_targets_dedups_overlapping_targets() {
     std::fs::write(dir.join("a.txt"), "needle only line\n").unwrap();
     let target = dir.to_string_lossy().to_string();
 
-    // The same directory twice — the second run's matches are duplicates.
+    // The same directory twice - the second run's matches are duplicates.
     let out = grep_targets(&Grep::default(), "needle", &[target.clone(), target])
         .expect("duplicate targets should succeed");
 
@@ -612,7 +612,7 @@ fn grep_with_paths_array_overrides_single_path() {
     let out = find
         .grep_with(
             "needle",
-            None, // no single path — the array drives the search
+            None, // no single path - the array drives the search
             Some(vec![
                 dir.join("a").to_string_lossy().to_string(),
                 dir.join("b").to_string_lossy().to_string(),

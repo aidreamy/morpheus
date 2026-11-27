@@ -351,7 +351,7 @@ fn rejected_malformed_question_shapes() {
             "choice with empty criteria",
             json!({"type": "choice", "instructions": "Which team?", "criteria": {}}),
         ),
-        // ("choice with a tuple of labels") — upstream passes a Python tuple,
+        // ("choice with a tuple of labels") - upstream passes a Python tuple,
         // which `isinstance(crit, (dict, list))` rejects; a tuple serialises
         // as a JSON array, which is a valid choice criteria list, so that
         // exact case cannot exist on the shared surface.

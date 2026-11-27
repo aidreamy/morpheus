@@ -1,13 +1,13 @@
 //! Provider-error catalog: context windows observed from provider API errors.
 //!
 //! A context-window overflow is the provider's OWN report of its maximum input
-//! size ("maximum context length is 128000") — more authoritative than a guess
+//! size ("maximum context length is 128000") - more authoritative than a guess
 //! from a public catalog, and worth persisting across launches. This lives
 //! HERE, in the harness, deliberately isolated from `morpheus-sdk`'s discovery: it
 //! records the user's own observed maxima (private, per-machine state), not a
 //! public model listing. It is stored at the TOP level of the data dir
 //! (`~/.local/share/morpheus`), not under the `cache/` subdir the public catalogs
-//! use — a record, not a cache.
+//! use - a record, not a cache.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -22,7 +22,7 @@ fn resolve_error_catalog_dir() -> Option<PathBuf> {
 }
 
 /// Read the provider-error catalog map from `path`. `None` when the file is
-/// missing or unparseable — a corrupted catalog is ignored, never fatal.
+/// missing or unparseable - a corrupted catalog is ignored, never fatal.
 fn load_error_catalog(path: &Path) -> Option<HashMap<String, usize>> {
     let raw = std::fs::read_to_string(path).ok()?;
     serde_json::from_str(&raw).ok()
@@ -30,7 +30,7 @@ fn load_error_catalog(path: &Path) -> Option<HashMap<String, usize>> {
 
 /// Write `catalog` to `path`, creating the directory if needed. The write is
 /// ATOMIC (temp file + rename), so a crash mid-write can never leave a
-/// truncated/corrupt catalog behind. Never fatal — a failing cache write must
+/// truncated/corrupt catalog behind. Never fatal - a failing cache write must
 /// not block the agent loop.
 fn save_error_catalog(path: &Path, catalog: &HashMap<String, usize>) {
     let Some(dir) = path.parent() else {
@@ -58,7 +58,7 @@ fn save_error_catalog(path: &Path, catalog: &HashMap<String, usize>) {
         .map(|n| n.to_string_lossy().to_string())
         .unwrap_or_else(|| API_ERROR_CATALOG_FILE.to_string());
     let tmp = path.with_file_name(format!("{file_name}.{}", std::process::id()));
-    // Write + fsync the temp file BEFORE the rename — a rename published
+    // Write + fsync the temp file BEFORE the rename - a rename published
     // without durable content could survive a crash pointing at garbage.
     let write_result = std::fs::File::create(&tmp).and_then(|mut f| {
         use std::io::Write;
@@ -102,7 +102,7 @@ fn find_window_in_error_catalog(
     })
 }
 
-/// The model's context window recorded in the provider-error catalog, if any —
+/// The model's context window recorded in the provider-error catalog, if any -
 /// a window the user's own provider reported in a previous overflow (more
 /// authoritative than a public-catalog guess, and a local read).
 pub fn error_catalog_window(model_name: &str) -> Option<usize> {
@@ -111,8 +111,8 @@ pub fn error_catalog_window(model_name: &str) -> Option<usize> {
     find_window_in_error_catalog(model_name, &catalog)
 }
 
-/// Persist a model's context window — reported by a provider context-window
-/// overflow — for future launches. Never fatal: the caller has already applied
+/// Persist a model's context window - reported by a provider context-window
+/// overflow - for future launches. Never fatal: the caller has already applied
 /// the window to its in-memory budget, and a failed write must not break the
 /// agent loop.
 pub fn save_error_catalog_window(model_name: &str, window: usize) {

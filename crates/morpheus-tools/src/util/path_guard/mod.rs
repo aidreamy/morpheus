@@ -8,7 +8,7 @@ use std::path::{Component, Path, PathBuf};
 /// Strip the prefix - mapping `\\?\UNC\server\share` back to `\\server\share` -
 /// so the resolved path keeps the plain drive spelling.
 #[cfg(windows)]
-fn strip_windows_verbatim(path: PathBuf) -> PathBuf {
+pub(crate) fn strip_windows_verbatim(path: PathBuf) -> PathBuf {
     let text = path.as_os_str().to_string_lossy();
     if let Some(stripped) = text.strip_prefix(r"\\?\UNC\") {
         PathBuf::from(format!(r"\\{stripped}"))
@@ -20,7 +20,7 @@ fn strip_windows_verbatim(path: PathBuf) -> PathBuf {
 }
 
 #[cfg(not(windows))]
-fn strip_windows_verbatim(path: PathBuf) -> PathBuf {
+pub(crate) fn strip_windows_verbatim(path: PathBuf) -> PathBuf {
     path
 }
 

@@ -537,25 +537,26 @@ pub(crate) fn input_content(input: &serde_json::Value) -> Option<String> {
         .and_then(|t| input_value(t, "text"))
 }
 
-/// True when a completed write carries warnings (e.g. missing file_hash or
-/// hash mismatch). In that case the write did NOT modify the file and the
-/// renderer falls back to the label-only view - shared by the renderer,
-/// the height estimate and `tool_is_block` so all three agree.
-pub(crate) fn write_has_warnings(part: &ToolPart) -> bool {
+/// A warning without a new file hash indicates a skipped write. Receipts with
+/// a new hash can carry advisory warnings and still render the written content.
+fn write_was_skipped(part: &ToolPart) -> bool {
     part.output
         .as_deref()
         .and_then(|o| serde_json::from_str::<serde_json::Value>(o).ok())
-        .and_then(|v| v.as_array()?.first()?.get("warnings")?.as_str().map(|_| ()))
-        .is_some()
+        .and_then(|output| {
+            let result = output.as_array()?.first()?;
+            result.get("warnings")?.as_str()?;
+            Some(result["file_hash"].as_str().is_none_or(str::is_empty))
+        })
+        .unwrap_or(false)
 }
 
 /// Number of content rows the write box draws, or `None` when `render_write`
 /// falls back to the inline label. Mirrors the renderer's predicate exactly:
-/// completed + no warnings + non-empty `input.content` (NOT `output` - the
-/// output of a successful write is a short JSON receipt, unrelated in size
-/// to the previewed content).
+/// completed write with non-empty `input.content` and a receipt that does
+/// not report a skipped write.
 pub(crate) fn write_box_lines(part: &ToolPart) -> Option<u16> {
-    if !matches!(part.status, ToolStatus::Completed) || write_has_warnings(part) {
+    if !matches!(part.status, ToolStatus::Completed) || write_was_skipped(part) {
         return None;
     }
     let content = input_content(&part.input).unwrap_or_default();
@@ -1976,10 +1977,7 @@ pub fn tool_copy_text(part: &ToolPart) -> Option<String> {
         }
         "read" => read_block_text(part),
         "write" => {
-            // The screen shows the content from the tool *input*, not the
-            // output; a warnings payload means nothing was written and the
-            // renderer falls back to the label-only view (same predicate as
-            // the renderer via `write_box_lines`).
+            // Use the same write receipt and input checks as the renderer.
             write_box_lines(part)?;
             let content = input_content(&part.input).unwrap_or_default();
             (!content.is_empty()).then(|| content.lines().take(20).collect::<Vec<_>>().join("\n"))

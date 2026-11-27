@@ -1,9 +1,11 @@
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
 
-use crate::util::path_guard::PathGuard;
+use crate::util::path_guard::{PathGuard, strip_windows_verbatim};
+
+pub(crate) const OUTSIDE_CWD_WRITE_WARNING: &str = "Modified a file outside the working directory.";
 
 /// One passive LSP finding attached to an fs operation result.
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -220,5 +222,11 @@ impl FsMetadata {
             self.blocklist.as_deref(),
         );
         guard.resolve(path)
+    }
+
+    /// Report a completed write using the resolved destination.
+    pub(crate) fn outside_cwd_write_warning(&self, written_path: &Path) -> Option<String> {
+        let root = strip_windows_verbatim(self.root.canonicalize().ok()?);
+        (!written_path.starts_with(root)).then(|| OUTSIDE_CWD_WRITE_WARNING.to_owned())
     }
 }

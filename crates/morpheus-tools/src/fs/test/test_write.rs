@@ -208,6 +208,10 @@ async fn write_allowed_outside_root_when_path_in_allowlist() {
         "header must carry the allowed path: {}",
         results[0].header
     );
+    assert_eq!(
+        results[0].warnings.as_deref(),
+        Some("Modified a file outside the working directory.")
+    );
     let _ = std::fs::remove_file(&outside);
 }
 

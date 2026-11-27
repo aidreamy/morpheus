@@ -57,9 +57,7 @@ impl RuntimeConfig {
     /// defaults, so a model/route chosen in the TUI is what WhatsApp uses.
     pub fn load(cwd: &str) -> Self {
         let setup = Setup::load();
-        // Propagate setup.json transport overrides into the process env before
-        // any harness is built; the env var always wins.
-        setup.native_transport.apply_to_env();
+        setup.native_transport.apply();
         // Process-wide registration, mirroring `App::new`: custom ACP agents
         // and custom providers must be published before any harness is
         // assembled, and the LSP switch is a process-wide flag. Doing this

@@ -15,7 +15,7 @@
 
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
-use std::sync::atomic::AtomicBool;
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use morpheus_agents::acp::{self, SessionHandle};
 use morpheus_agents::events::{
@@ -37,6 +37,20 @@ pub struct AcpTurnResult {
     pub modes: Option<Vec<AgentSessionMode>>,
     /// The config options advertised during this turn (used for model picks).
     pub config_options: Option<Vec<AgentConfigOption>>,
+}
+
+impl AcpTurnResult {
+    fn before_prompt(output: String, stop_reason: &str, failed: bool) -> Self {
+        Self {
+            output,
+            stop_reason: stop_reason.to_string(),
+            session_id: None,
+            failed,
+            denied_tools: Vec::new(),
+            modes: None,
+            config_options: None,
+        }
+    }
 }
 
 /// One live ACP instance.
@@ -103,7 +117,31 @@ pub async fn run(
     yolo: bool,
     stop: Arc<AtomicBool>,
 ) -> AcpTurnResult {
-    let mapped_mode = crate::harness::agent_mode::map_mode_to_agent(mode, &modes);
+    let native_modes = if matches!(mode, Mode::Ask | Mode::Build) {
+        match handle.native_modes(&stop).await {
+            Ok(modes) => modes,
+            Err(error) if mode == Mode::Build => {
+                log::debug!("morpheus whatsapp: could not read native modes: {error}");
+                None
+            }
+            Err(error) => {
+                return AcpTurnResult::before_prompt(
+                    format!("Could not read the agent's available modes: {error}"),
+                    "error",
+                    true,
+                );
+            }
+        }
+    } else {
+        None
+    };
+    if stop.load(Ordering::Relaxed) {
+        return AcpTurnResult::before_prompt("Turn cancelled.".to_string(), "cancelled", false);
+    }
+    let mapped_mode = match map_mode(mode, native_modes.as_deref(), &modes) {
+        Ok(mode) => mode,
+        Err(error) => return AcpTurnResult::before_prompt(error.to_string(), "error", true),
+    };
     let picks = crate::coordinator::turn::turn_picks(Some(&config_options), &[], model.as_deref());
 
     let (chunk_tx, mut chunk_rx) = mpsc::unbounded_channel::<SubagentEvent>();
@@ -166,6 +204,32 @@ pub async fn run(
     }
 }
 
+fn map_mode(
+    mode: Mode,
+    native_modes: Option<&[AgentSessionMode]>,
+    acp_modes: &[AgentSessionMode],
+) -> Result<Option<String>, &'static str> {
+    let Some(native_modes) = native_modes else {
+        return Ok(crate::harness::agent_mode::map_mode_to_agent(
+            mode, acp_modes,
+        ));
+    };
+    let find = |id| {
+        native_modes
+            .iter()
+            .find(|mode| mode.id == id)
+            .map(|mode| mode.id.clone())
+    };
+    match mode {
+        Mode::Ask => find("ask")
+            .or_else(|| find("plan"))
+            .map(Some)
+            .ok_or("The native server offers neither Ask nor Plan mode."),
+        Mode::Build => Ok(find("build").or_else(|| find("code"))),
+        _ => Ok(None),
+    }
+}
+
 /// The answer to one permission request: auto-allow in `yolo`, reject
 /// everywhere else (falling back to cancellation when no reject is offered).
 /// The boolean says whether this counted as a denied tool for the reply.
@@ -203,6 +267,43 @@ pub fn session_cwd(cwd: &str) -> PathBuf {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn native_ask_requires_an_advertised_ask_or_plan_mode() {
+        let advertised = |id: &str, description: &str| AgentSessionMode {
+            id: id.into(),
+            name: id.into(),
+            description: Some(description.into()),
+        };
+        let modes = [
+            advertised("build", "Build from a plan"),
+            advertised("plan", "Plan changes"),
+            advertised("ask", "Answer questions"),
+        ];
+        assert_eq!(
+            map_mode(Mode::Ask, Some(&modes), &[]).unwrap().as_deref(),
+            Some("ask")
+        );
+        assert_eq!(
+            map_mode(Mode::Ask, Some(&modes[..2]), &[])
+                .unwrap()
+                .as_deref(),
+            Some("plan")
+        );
+        assert_eq!(
+            map_mode(Mode::Build, Some(&modes), &[]).unwrap().as_deref(),
+            Some("build")
+        );
+        let kilo_modes = [advertised("code", "Implement changes"), modes[2].clone()];
+        assert_eq!(
+            map_mode(Mode::Build, Some(&kilo_modes), &[])
+                .unwrap()
+                .as_deref(),
+            Some("code")
+        );
+        assert!(map_mode(Mode::Ask, Some(&modes[..1]), &modes).is_err());
+        assert!(map_mode(Mode::Ask, Some(&[]), &modes).is_err());
+    }
 
     fn option(id: &str, kind: &str) -> AgentPermissionOption {
         AgentPermissionOption {

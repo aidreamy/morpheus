@@ -13,7 +13,7 @@
 //!
 //! | Module        | Responsibility                                                        |
 //! | ------------- | --------------------------------------------------------------------- |
-//! | [`api`]       | Wire types of the documented endpoints (tolerant, all fields optional) |
+//! | [`api`]       | Wire types of the documented endpoints                                  |
 //! | [`http`]      | HTTP client plus the buffered SSE decoder                              |
 //! | [`server`]    | Lifecycle of the `opencode serve` child (port, health, auth, kill)     |
 //! | [`event`]     | Server events → [`SubagentEvent`](crate::events::SubagentEvent)        |
@@ -58,8 +58,8 @@ mod snapshot;
 mod turn;
 
 use std::path::PathBuf;
-use std::sync::Arc;
 use std::sync::atomic::AtomicBool;
+use std::sync::{Arc, PoisonError, RwLock};
 
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
@@ -80,6 +80,31 @@ pub const AGENT: &str = "opencode";
 pub enum Backend {
     OpenCode,
     Kilo,
+}
+
+/// ACP overrides read from the application's startup configuration.
+#[derive(Clone, Copy, Default)]
+pub struct TransportOverrides {
+    pub opencode_acp: bool,
+    pub kilo_acp: bool,
+}
+
+static TRANSPORT_OVERRIDES: RwLock<TransportOverrides> = RwLock::new(TransportOverrides {
+    opencode_acp: false,
+    kilo_acp: false,
+});
+
+/// Set the saved transport choices used when no environment override is set.
+pub fn configure_transports(overrides: TransportOverrides) {
+    *TRANSPORT_OVERRIDES
+        .write()
+        .unwrap_or_else(PoisonError::into_inner) = overrides;
+}
+
+fn force_acp(env: Option<&str>, configured_acp: bool) -> bool {
+    env.map(str::trim)
+        .filter(|value| !value.is_empty())
+        .map_or(configured_acp, |value| value.eq_ignore_ascii_case("acp"))
 }
 
 impl Backend {
@@ -157,10 +182,15 @@ pub fn is_native(agent: &str) -> bool {
     let Some(backend) = Backend::from_agent(agent) else {
         return false;
     };
-    if std::env::var(backend.transport_env())
-        .map(|value| value.eq_ignore_ascii_case("acp"))
-        .unwrap_or(false)
-    {
+    let overrides = *TRANSPORT_OVERRIDES
+        .read()
+        .unwrap_or_else(PoisonError::into_inner);
+    let configured_acp = match backend {
+        Backend::OpenCode => overrides.opencode_acp,
+        Backend::Kilo => overrides.kilo_acp,
+    };
+    let env = std::env::var(backend.transport_env()).ok();
+    if force_acp(env.as_deref(), configured_acp) {
         return false;
     }
     crate::acp::detect_installed().contains(&backend.name())
@@ -190,8 +220,10 @@ pub async fn call(
     let cwd = prepare_session_cwd(&cwd, CwdStrictness::Strict);
     let server = server::Server::start(&cwd, backend)?;
     let outcome = async {
-        server.ensure_ready().await?;
-        let session = turn::ensure_session(&server, resume.as_deref()).await?;
+        let Some(session) = turn::prepare_session(&server, resume.as_deref(), &stop_signal).await?
+        else {
+            return Ok(turn::cancelled(resume.as_deref(), String::new()));
+        };
         turn::run(
             &server,
             &session,
@@ -199,7 +231,7 @@ pub async fn call(
             turn::model_from_picks(picks),
             mode,
             permission_rx,
-            stop_signal,
+            &stop_signal,
             &chunk_tx,
         )
         .await
@@ -255,4 +287,18 @@ pub async fn replay(
 ) -> Result<(), String> {
     let backend = Backend::from_agent(agent).expect("is_native validated the agent");
     snapshot::replay(backend, &session_id, cwd, chunk_tx).await
+}
+
+#[cfg(test)]
+mod tests {
+    use super::force_acp;
+
+    #[test]
+    fn a_nonempty_environment_override_takes_precedence() {
+        assert!(force_acp(None, true));
+        assert!(force_acp(Some(" "), true));
+        assert!(force_acp(Some(" ACP "), false));
+        assert!(!force_acp(Some("native"), true));
+        assert!(!force_acp(None, false));
+    }
 }

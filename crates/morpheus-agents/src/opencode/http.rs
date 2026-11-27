@@ -6,15 +6,14 @@
 //! buffered SSE decoder. Everything above it speaks typed values, never
 //! `reqwest` types.
 
+use std::collections::VecDeque;
 use std::time::Duration;
 
 use serde::Serialize;
 use serde::de::DeserializeOwned;
 
-/// How long a connection attempt may hang before it is reported as a
-/// failure. Requests themselves have no timeout: a prompt turn can run for
-/// a long time, and progress arrives over the SSE stream.
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(5);
+pub(super) const REQUEST_TIMEOUT: Duration = Duration::from_secs(10);
 
 /// A request against one OpenCode server.
 #[derive(Debug, Clone)]
@@ -81,10 +80,11 @@ impl Http {
     pub async fn get<T: DeserializeOwned>(&self, path: &str) -> Result<T, String> {
         let response = self
             .request(reqwest::Method::GET, path)
+            .timeout(REQUEST_TIMEOUT)
             .send()
             .await
             .map_err(|error| format!("GET {path}: {error}"))?;
-        Self::json(response, path).await
+        Self::json(response, "GET", path).await
     }
 
     /// `GET path` → JSON, with `404` mapped to `None` (the "this id no
@@ -96,13 +96,14 @@ impl Http {
     pub async fn get_optional<T: DeserializeOwned>(&self, path: &str) -> Result<Option<T>, String> {
         let response = self
             .request(reqwest::Method::GET, path)
+            .timeout(REQUEST_TIMEOUT)
             .send()
             .await
             .map_err(|error| format!("GET {path}: {error}"))?;
         if response.status() == reqwest::StatusCode::NOT_FOUND {
             return Ok(None);
         }
-        Self::json(response, path).await.map(Some)
+        Self::json(response, "GET", path).await.map(Some)
     }
 
     /// `POST path` with a JSON body → typed JSON response.
@@ -119,10 +120,11 @@ impl Http {
         let response = self
             .request(reqwest::Method::POST, path)
             .json(body)
+            .timeout(REQUEST_TIMEOUT)
             .send()
             .await
             .map_err(|error| format!("POST {path}: {error}"))?;
-        Self::json(response, path).await
+        Self::json(response, "POST", path).await
     }
 
     /// `POST path` with a JSON body, discarding the response body (`204`,
@@ -133,44 +135,35 @@ impl Http {
     /// Returns a readable message when the request fails or the status is
     /// not a success.
     pub async fn post_ack<B: Serialize>(&self, path: &str, body: &B) -> Result<(), String> {
-        let response = self
-            .request(reqwest::Method::POST, path)
-            .json(body)
-            .send()
-            .await
-            .map_err(|error| format!("POST {path}: {error}"))?;
-        let status = response.status();
-        if status.is_success() {
-            return Ok(());
-        }
-        let body = response.text().await.unwrap_or_default();
-        Err(format!(
-            "POST {path} failed with HTTP {status}: {}",
-            body.trim()
-        ))
+        Self::post_request(
+            path,
+            self.request(reqwest::Method::POST, path)
+                .json(body)
+                .timeout(REQUEST_TIMEOUT),
+        )
+        .await
     }
 
-    /// `POST path` without a body (the abort endpoint).
-    ///
-    /// # Errors
-    ///
-    /// Returns a readable message when the request fails or the status is
-    /// not a success.
+    /// The command endpoint holds its response open until the turn finishes.
+    pub async fn post_command<B: Serialize>(&self, path: &str, body: &B) -> Result<(), String> {
+        Self::post_request(path, self.request(reqwest::Method::POST, path).json(body)).await
+    }
+
     pub async fn post_empty(&self, path: &str) -> Result<(), String> {
-        let response = self
-            .request(reqwest::Method::POST, path)
+        Self::post_request(
+            path,
+            self.request(reqwest::Method::POST, path)
+                .timeout(REQUEST_TIMEOUT),
+        )
+        .await
+    }
+
+    async fn post_request(path: &str, request: reqwest::RequestBuilder) -> Result<(), String> {
+        let response = request
             .send()
             .await
             .map_err(|error| format!("POST {path}: {error}"))?;
-        let status = response.status();
-        if status.is_success() {
-            return Ok(());
-        }
-        let body = response.text().await.unwrap_or_default();
-        Err(format!(
-            "POST {path} failed with HTTP {status}: {}",
-            body.trim()
-        ))
+        Self::check_status(response, "POST", path).await.map(drop)
     }
 
     /// Open the server-sent event stream (`GET /event`).
@@ -179,40 +172,84 @@ impl Http {
     ///
     /// Returns a readable message when the connection fails or the server
     /// refuses it.
-    pub async fn open_stream(&self, path: &str) -> Result<reqwest::Response, String> {
-        let response = self
-            .request(reqwest::Method::GET, path)
-            .header(reqwest::header::ACCEPT, "text/event-stream")
-            .send()
+    pub(super) async fn open_stream(&self, path: &str) -> Result<EventStream, String> {
+        tokio::time::timeout(REQUEST_TIMEOUT, async {
+            let response = self
+                .request(reqwest::Method::GET, path)
+                .header(reqwest::header::ACCEPT, "text/event-stream")
+                .send()
+                .await
+                .map_err(|error| format!("GET {path} (SSE): {error}"))?;
+            Ok(EventStream::new(
+                Self::check_status(response, "GET", path).await?,
+            ))
+        })
+        .await
+        .map_err(|_| format!("GET {path} (SSE): timed out opening the stream"))?
+    }
+
+    async fn json<T: DeserializeOwned>(
+        response: reqwest::Response,
+        method: &str,
+        path: &str,
+    ) -> Result<T, String> {
+        Self::check_status(response, method, path)
+            .await?
+            .json::<T>()
             .await
-            .map_err(|error| format!("GET {path} (SSE): {error}"))?;
-        if !response.status().is_success() {
-            let status = response.status();
-            let body = response.text().await.unwrap_or_default();
+            .map_err(|error| format!("invalid JSON from {path}: {error}"))
+    }
+
+    async fn check_status(
+        response: reqwest::Response,
+        method: &str,
+        path: &str,
+    ) -> Result<reqwest::Response, String> {
+        let status = response.status();
+        if !status.is_success() {
+            let body = tokio::time::timeout(REQUEST_TIMEOUT, response.text())
+                .await
+                .ok()
+                .and_then(Result::ok)
+                .unwrap_or_default();
             return Err(format!(
-                "GET {path} (SSE) failed with HTTP {status}: {}",
+                "{method} {path} failed with HTTP {status}: {}",
                 body.trim()
             ));
         }
         Ok(response)
     }
+}
 
-    async fn json<T: DeserializeOwned>(
-        response: reqwest::Response,
-        path: &str,
-    ) -> Result<T, String> {
-        let status = response.status();
-        if !status.is_success() {
-            let body = response.text().await.unwrap_or_default();
-            return Err(format!(
-                "GET {path} failed with HTTP {status}: {}",
-                body.trim()
-            ));
+pub(super) struct EventStream {
+    response: reqwest::Response,
+    decoder: SseDecoder,
+    pending: VecDeque<serde_json::Value>,
+}
+
+impl EventStream {
+    fn new(response: reqwest::Response) -> Self {
+        Self {
+            response,
+            decoder: SseDecoder::default(),
+            pending: VecDeque::new(),
         }
-        response
-            .json::<T>()
-            .await
-            .map_err(|error| format!("invalid JSON from {path}: {error}"))
+    }
+
+    pub(super) async fn next(&mut self) -> Result<Option<serde_json::Value>, String> {
+        loop {
+            if let Some(event) = self.pending.pop_front() {
+                return Ok(Some(event));
+            }
+            let Some(chunk) =
+                self.response.chunk().await.map_err(|error| {
+                    format!("opencode: failed to read the event stream: {error}")
+                })?
+            else {
+                return Ok(None);
+            };
+            self.pending.extend(self.decoder.push(&chunk));
+        }
     }
 }
 

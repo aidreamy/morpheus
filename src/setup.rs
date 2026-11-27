@@ -857,26 +857,17 @@ pub struct NativeTransport {
 }
 
 impl NativeTransport {
-    /// Apply these overrides to the process environment, but only when the
-    /// corresponding environment variable is not already set (the environment
-    /// always wins, mirroring the other env-backed knobs).
-    pub fn apply_to_env(&self) {
-        let pairs = [
-            ("MORPHEUS_OPENCODE_TRANSPORT", self.opencode.as_str()),
-            ("MORPHEUS_KILO_TRANSPORT", self.kilo.as_str()),
-        ];
-        for (env, value) in pairs {
-            let env_set = std::env::var(env)
-                .map(|v| !v.trim().is_empty())
-                .unwrap_or(false);
-            if env_set {
-                continue;
-            }
-            if value.trim().eq_ignore_ascii_case("acp") {
-                // SAFETY: single-threaded at startup, before harness assembly.
-                unsafe { std::env::set_var(env, "acp") };
-            }
+    #[must_use]
+    pub fn overrides(&self) -> morpheus_agents::opencode::TransportOverrides {
+        morpheus_agents::opencode::TransportOverrides {
+            opencode_acp: self.opencode.trim().eq_ignore_ascii_case("acp"),
+            kilo_acp: self.kilo.trim().eq_ignore_ascii_case("acp"),
         }
+    }
+
+    /// Register the persisted choices. The agent crate resolves environment overrides.
+    pub fn apply(&self) {
+        morpheus_agents::opencode::configure_transports(self.overrides());
     }
 }
 
@@ -1386,6 +1377,12 @@ impl Setup {
         }
         if section_differs(&self.acp_agents, &baseline.acp_agents) {
             merged.acp_agents = self.acp_agents.clone();
+        }
+        if self.native_transport.opencode != baseline.native_transport.opencode {
+            merged.native_transport.opencode = self.native_transport.opencode.clone();
+        }
+        if self.native_transport.kilo != baseline.native_transport.kilo {
+            merged.native_transport.kilo = self.native_transport.kilo.clone();
         }
         if section_differs(&self.custom_providers, &baseline.custom_providers) {
             merged.custom_providers = self.custom_providers.clone();
@@ -2299,6 +2296,19 @@ mod tests {
                 .any(|(_, item)| bump_first_scalar(item)),
             serde_json::Value::Null => false,
         }
+    }
+
+    #[test]
+    fn transport_choices_merge_independently() {
+        let baseline = Setup::default();
+        let mut local = baseline.clone();
+        local.native_transport.opencode = "acp".to_string();
+        let mut disk = baseline.clone();
+        disk.native_transport.kilo = "acp".to_string();
+
+        let merged = local.merged_over(&baseline, disk);
+        assert!(merged.native_transport.overrides().opencode_acp);
+        assert!(merged.native_transport.overrides().kilo_acp);
     }
 
     /// SCHEMA TRIPWIRE for the save-time merge: every serialized top-level

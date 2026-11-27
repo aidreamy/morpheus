@@ -16,6 +16,7 @@ use std::path::PathBuf;
 
 use super::api;
 use super::event::Mapper;
+use super::http::Http;
 use super::server::Server;
 use crate::acp::{CwdStrictness, SessionSnapshot, prepare_session_cwd};
 use crate::events::{
@@ -71,29 +72,10 @@ async fn snapshot_from(
         }
     };
 
-    let modes = match http.get::<Vec<api::Agent>>("/agent").await {
-        Ok(agents) => agents
-            .into_iter()
-            .filter(|agent| {
-                // Only primary agents are modes a user picks. OpenCode also
-                // publishes its internal helpers (compaction, summary, title)
-                // as `primary` agents; they are background machinery, not
-                // modes, so they are kept out of the picker.
-                agent.mode == "primary"
-                    && !agent.name.is_empty()
-                    && !INTERNAL_AGENTS.contains(&agent.name.as_str())
-            })
-            .map(|agent| AgentSessionMode {
-                id: agent.name.clone(),
-                name: agent.name,
-                description: agent.description,
-            })
-            .collect(),
-        Err(error) => {
-            log::debug!("opencode: /agent probe failed: {error}");
-            Vec::new()
-        }
-    };
+    let modes = available_modes(http).await.unwrap_or_else(|error| {
+        log::debug!("opencode: /agent probe failed: {error}");
+        Vec::new()
+    });
 
     // The session records the agent and model it runs with; when it is not
     // available (no session id yet), the server's own defaults apply.
@@ -126,6 +108,23 @@ async fn snapshot_from(
         modes,
         current_mode,
     })
+}
+
+pub(super) async fn available_modes(http: &Http) -> Result<Vec<AgentSessionMode>, String> {
+    let agents = http.get::<Vec<api::Agent>>("/agent").await?;
+    Ok(agents
+        .into_iter()
+        .filter(|agent| {
+            agent.mode == "primary"
+                && !agent.name.is_empty()
+                && !INTERNAL_AGENTS.contains(&agent.name.as_str())
+        })
+        .map(|agent| AgentSessionMode {
+            id: agent.name.clone(),
+            name: agent.name,
+            description: agent.description,
+        })
+        .collect())
 }
 
 /// The `model` config option, built from the provider catalog and the

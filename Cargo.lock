@@ -5774,7 +5774,6 @@ name = "morpheus-agents"
 version = "0.1.0"
 dependencies = [
  "agent-client-protocol",
- "futures-util",
  "log",
  "morpheus-sdk",
  "reqwest 0.13.5",

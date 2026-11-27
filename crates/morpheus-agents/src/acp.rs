@@ -548,7 +548,7 @@ pub(crate) fn windows_script_launcher(args: &[String]) -> Option<Vec<String>> {
 
 /// Non-Windows no-op: Unix spawn resolves scripts through the shebang line.
 #[cfg(not(windows))]
-fn windows_script_launcher(_args: &[String]) -> Option<Vec<String>> {
+pub(crate) fn windows_script_launcher(_args: &[String]) -> Option<Vec<String>> {
     None
 }
 
@@ -1430,6 +1430,24 @@ impl SessionHandle {
         match &self.backend {
             SessionBackend::Acp(tx) => !tx.is_closed(),
             SessionBackend::OpenCode(session) => session.is_alive(),
+        }
+    }
+
+    /// Get the modes from this handle's live native server before a prompt.
+    ///
+    /// Returns `None` for ACP agents (which publish modes during the turn)
+    /// or if the caller stops the probe.
+    ///
+    /// # Errors
+    ///
+    /// Returns the native server's error if the mode catalog cannot be read.
+    pub async fn native_modes(
+        &self,
+        stop: &AtomicBool,
+    ) -> Result<Option<Vec<super::events::AgentSessionMode>>, String> {
+        match &self.backend {
+            SessionBackend::Acp(_) => Ok(None),
+            SessionBackend::OpenCode(session) => session.modes(stop).await,
         }
     }
 

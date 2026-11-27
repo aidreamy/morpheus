@@ -348,18 +348,19 @@ pub struct Todo {
     pub priority: String,
 }
 
-/// A permission request awaiting an answer (`permission.updated`).
+/// A pending permission, in either the current or legacy event format.
 #[derive(Debug, Clone, Deserialize)]
 pub struct Permission {
-    #[serde(default)]
     pub id: String,
     /// The tool category (`bash`, `edit`, `webfetch`, …).
-    #[serde(default, rename = "type")]
+    #[serde(rename = "permission", alias = "type")]
     pub kind: String,
-    #[serde(default, rename = "sessionID")]
+    #[serde(rename = "sessionID")]
     pub session_id: String,
     #[serde(default)]
     pub title: String,
+    #[serde(default)]
+    pub patterns: Vec<String>,
     #[serde(default)]
     pub metadata: serde_json::Value,
 }
@@ -445,6 +446,16 @@ pub struct PromptBody<'a> {
 #[serde(tag = "type", rename_all = "lowercase")]
 pub enum PromptPart<'a> {
     Text { text: &'a str },
+}
+
+#[derive(Debug, Serialize)]
+pub(super) struct CommandBody<'a> {
+    pub command: &'a str,
+    pub arguments: &'a str,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub agent: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub model: Option<String>,
 }
 
 /// A model addressed the way the server wants it.

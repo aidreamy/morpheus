@@ -482,10 +482,10 @@ fn is_enabled(item: &SettingsItem, setup: &Setup) -> bool {
         SettingKind::Switch(SwitchAction::WhatsAppHumanize) => setup.whatsapp.humanize,
         SettingKind::Switch(SwitchAction::VoiceAuto) => setup.voice.auto_generate,
         SettingKind::Switch(SwitchAction::OpenCodeNativeTransport) => {
-            !setup.native_transport.opencode.eq_ignore_ascii_case("acp")
+            !setup.native_transport.overrides().opencode_acp
         }
         SettingKind::Switch(SwitchAction::KiloNativeTransport) => {
-            !setup.native_transport.kilo.eq_ignore_ascii_case("acp")
+            !setup.native_transport.overrides().kilo_acp
         }
         _ => false,
     }
@@ -1429,7 +1429,7 @@ impl SettingsView {
                         return Some(SettingsAction::VoiceAutoToggled);
                     }
                     SettingKind::Switch(SwitchAction::OpenCodeNativeTransport) => {
-                        if setup.native_transport.opencode.eq_ignore_ascii_case("acp") {
+                        if setup.native_transport.overrides().opencode_acp {
                             setup.native_transport.opencode.clear();
                         } else {
                             setup.native_transport.opencode = "acp".to_string();
@@ -1438,7 +1438,7 @@ impl SettingsView {
                         return Some(SettingsAction::ToggleSaved);
                     }
                     SettingKind::Switch(SwitchAction::KiloNativeTransport) => {
-                        if setup.native_transport.kilo.eq_ignore_ascii_case("acp") {
+                        if setup.native_transport.overrides().kilo_acp {
                             setup.native_transport.kilo.clear();
                         } else {
                             setup.native_transport.kilo = "acp".to_string();

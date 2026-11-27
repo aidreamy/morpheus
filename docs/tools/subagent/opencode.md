@@ -41,8 +41,8 @@ POST /session/:id/prompt_async    (204; the answer arrives as events)
   └── message.part.updated        → Message / Thought / ToolCall(+Update)
   └── message.updated             → Usage (context window + tokens)
   └── todo.updated                → Plan
-  └── permission.updated          → PermissionRequest, answered via
-                                    POST /session/:id/permissions/:id
+  └── permission.asked             → PermissionRequest, answered via
+                                     POST /permission/:requestID/reply
   └── session.status (retry)      → a retry note in the pane
   └── session.updated             → SessionInfo (title)
   └── session.idle                → end of turn
@@ -55,14 +55,22 @@ snapshots, sometimes with a `delta` hint; the mapper remembers how much of
 each part it already emitted and forwards only the growth, so the pane and
 the report never see duplicates.
 
+Older servers can send `permission.updated`. For that event the client
+replies through `POST /session/:id/permissions/:permissionID`.
+
+Cancellation allows up to 15 seconds for the abort request and the session's
+idle event. A server whose cancellation cannot be confirmed is closed before
+the next turn.
+
 ### Commands
 
 A pane slash command (`/init`, a project command, …) is dispatched to
 `POST /session/:id/command` with the command name, its arguments, the bound
 agent and model. Only names the server actually advertises (`GET /command`)
 take that path: an unknown `/word` is ordinary text and reaches the model
-verbatim. The endpoint answers only when the turn is over, so the POST runs
-detached while the SSE stream feeds the pane.
+verbatim. The endpoint answers when the turn is over. The client reads both
+the POST response and the event stream so it can report HTTP failures even
+when the server emits no terminal event.
 
 ### Diffs
 

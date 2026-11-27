@@ -208,7 +208,9 @@ impl Server {
     /// `None` while the child runs, `Some(status)` once it exited.
     fn exit_status(&self) -> Option<String> {
         let mut slot = self.child.lock().unwrap_or_else(PoisonError::into_inner);
-        let child = slot.as_mut()?;
+        let Some(child) = slot.as_mut() else {
+            return Some("server is stopped".to_string());
+        };
         match child.try_wait() {
             Ok(None) => None,
             Ok(Some(status)) => Some(format!("exit status {status}")),

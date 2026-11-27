@@ -25,7 +25,6 @@ use std::collections::{HashMap, HashSet};
 use serde_json::Value;
 
 use super::api::{self, Part, ToolState};
-use super::http::SseDecoder;
 use crate::events::{
     AgentPermissionOption, PlanEntry, PlanEntryPriority, PlanEntryStatus, SubagentEvent,
     ToolCallStatus, ToolDiffSummary, ToolKind, ToolOutputBlock,
@@ -34,7 +33,6 @@ use crate::events::{
 /// A permission request the turn must answer before the agent continues.
 #[derive(Debug, Clone)]
 pub struct PermissionNotice {
-    /// The server-side permission id (`POST /session/:id/permissions/:id`).
     pub id: String,
     /// Human-readable summary of what is being asked.
     pub title: String,
@@ -42,6 +40,33 @@ pub struct PermissionNotice {
     pub kind: ToolKind,
     /// Raw request metadata for the TUI's detail rows.
     pub raw_input: Option<Value>,
+    legacy: bool,
+}
+
+fn is_idle_event(event: &Value, session: &str) -> bool {
+    let properties = &event["properties"];
+    properties["sessionID"].as_str() == Some(session)
+        && match event["type"].as_str() {
+            Some("session.idle") => true,
+            Some("session.status") => properties["status"]["type"] == "idle",
+            _ => false,
+        }
+}
+
+impl PermissionNotice {
+    pub(super) fn reply(&self, session: &str, answer: &str) -> (String, Value) {
+        if self.legacy {
+            (
+                format!("/session/{session}/permissions/{}", self.id),
+                serde_json::json!({ "response": answer }),
+            )
+        } else {
+            (
+                format!("/permission/{}/reply", self.id),
+                serde_json::json!({ "reply": answer }),
+            )
+        }
+    }
 }
 
 /// Token accounting of one assistant message, as reported by the server.
@@ -115,6 +140,9 @@ impl Mapper {
     /// Events from every other session (the stream is server-wide) are
     /// dropped without touching the mapper's state.
     pub fn map(&mut self, event: &Value, session: &str) -> (Vec<SubagentEvent>, Vec<Signal>) {
+        if is_idle_event(event, session) {
+            return (Vec::new(), vec![Signal::Idle]);
+        }
         let kind = event
             .get("type")
             .and_then(Value::as_str)
@@ -162,25 +190,26 @@ impl Mapper {
                 };
                 (events, Vec::new())
             }
-            "permission.updated" => {
+            "permission.asked" | "permission.updated" => {
                 let Some(permission) = decode::<api::Permission>(&properties, "") else {
                     return (Vec::new(), Vec::new());
                 };
-                if !session.is_empty()
-                    && !permission.session_id.is_empty()
-                    && permission.session_id != session
-                {
+                if permission.id.is_empty() || permission.session_id != session {
                     return (Vec::new(), Vec::new());
                 }
+                let title = if !permission.title.is_empty() {
+                    permission.title
+                } else if permission.patterns.is_empty() {
+                    permission.kind.clone()
+                } else {
+                    format!("{}: {}", permission.kind, permission.patterns.join(", "))
+                };
                 let notice = PermissionNotice {
                     id: permission.id,
-                    title: if permission.title.is_empty() {
-                        permission.kind.clone()
-                    } else {
-                        permission.title
-                    },
+                    title,
                     kind: kind_from_tool(&permission.kind),
                     raw_input: Some(permission.metadata).filter(|value| !value.is_null()),
+                    legacy: kind == "permission.updated",
                 };
                 (Vec::new(), vec![Signal::Permission(notice)])
             }
@@ -193,20 +222,12 @@ impl Mapper {
                 }
                 (Vec::new(), vec![Signal::Title(info.title)])
             }
-            "session.idle" => {
-                if self.belongs(&properties, session) {
-                    (Vec::new(), vec![Signal::Idle])
-                } else {
-                    (Vec::new(), Vec::new())
-                }
-            }
             "session.status" => {
                 if !self.belongs(&properties, session) {
                     return (Vec::new(), Vec::new());
                 }
                 let status = properties.get("status").cloned().unwrap_or(Value::Null);
                 match status.get("type").and_then(Value::as_str) {
-                    Some("idle") => (Vec::new(), vec![Signal::Idle]),
                     Some("retry") => {
                         let attempt = status.get("attempt").and_then(Value::as_u64).unwrap_or(0);
                         let message = status
@@ -601,35 +622,6 @@ pub fn permission_answer(answer: Option<&crate::events::PanePermissionAnswer>) -
     }
 }
 
-/// Pump an SSE response into a channel of decoded events.
-///
-/// The task ends when the response drops (turn over) or the channel closes;
-/// the caller drops the receiver to stop it.
-pub fn spawn_pump(response: reqwest::Response) -> tokio::sync::mpsc::UnboundedReceiver<Value> {
-    let (tx, rx) = tokio::sync::mpsc::unbounded_channel();
-    tokio::spawn(async move {
-        use futures_util::StreamExt;
-        let mut decoder = SseDecoder::default();
-        let mut stream = response.bytes_stream();
-        while let Some(chunk) = stream.next().await {
-            match chunk {
-                Ok(bytes) => {
-                    for event in decoder.push(&bytes) {
-                        if tx.send(event).is_err() {
-                            return;
-                        }
-                    }
-                }
-                Err(error) => {
-                    log::debug!("opencode: SSE stream ended: {error}");
-                    return;
-                }
-            }
-        }
-    });
-    rx
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -990,6 +982,13 @@ mod tests {
         };
         assert_eq!(notice.id, "per_1");
         assert_eq!(notice.kind, ToolKind::Execute);
+        assert_eq!(
+            notice.reply("ses_1", "always"),
+            (
+                "/session/ses_1/permissions/per_1".into(),
+                json!({ "response": "always" })
+            )
+        );
         assert_eq!(
             permission_options()
                 .iter()

@@ -197,9 +197,9 @@ the launch command with its arguments:
 
 `native_transport` forces the generic ACP transport for the two agents that
 ship a native server (OpenCode and Kilo). Empty (the default) keeps the native
-server path; set a field to `"acp"` to fall back to ACP. An environment
-variable (`MORPHEUS_OPENCODE_TRANSPORT` / `MORPHEUS_KILO_TRANSPORT`) always
-wins over this value.
+server path. Set a field to `"acp"` to use ACP. A non-empty
+`MORPHEUS_OPENCODE_TRANSPORT` or `MORPHEUS_KILO_TRANSPORT` environment variable
+takes precedence over the corresponding field.
 
 ```json
 {

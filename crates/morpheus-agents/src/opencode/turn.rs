@@ -20,48 +20,50 @@
 //! after the last tool call is returned (see [`crate::closure`]).
 
 use std::collections::HashMap;
-use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
-use serde_json::Value;
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use super::api::{self, PromptBody, PromptPart};
-use super::event::{Mapper, Signal, permission_answer, permission_options, spawn_pump};
+use super::event::{Mapper, Signal, permission_answer, permission_options};
+use super::http::{EventStream, Http, REQUEST_TIMEOUT};
 use super::server::Server;
 use crate::acp::TurnOutcome;
 use crate::closure::TurnClosure;
 use crate::events::{PanePermissionAnswer, SubagentEvent};
 
-/// How often the stop flag is inspected while waiting for the next event.
+/// How often the caller's stop flag is sampled.
 const STOP_POLL: Duration = Duration::from_millis(150);
 
-/// How long an aborted session may take to report idle before the client
-/// stops waiting for it.
+/// Deadline for the abort request and the subsequent confirmation of idle.
 const ABORT_GRACE: Duration = Duration::from_secs(15);
 
-/// Resolve the session to use: resume `resume` when the server still knows
-/// it, otherwise open a fresh one.
-///
-/// # Errors
-///
-/// Returns an error when the server cannot be reached or refuses to create a
-/// session.
-pub(super) async fn ensure_session(
+/// Prepare the server and resolve the session without dispatching input.
+pub(super) async fn prepare_session(
     server: &Server,
     resume: Option<&str>,
-) -> Result<String, String> {
+    stop: &AtomicBool,
+) -> Result<Option<String>, String> {
+    tokio::select! {
+        biased;
+        () = wait_for_stop(stop) => Ok(None),
+        result = async {
+            server.ensure_ready().await?;
+            ensure_session(server.http(), resume).await
+        } => result.map(Some),
+    }
+}
+
+async fn ensure_session(http: &Http, resume: Option<&str>) -> Result<String, String> {
     if let Some(id) = resume.filter(|id| !id.is_empty()) {
         let path = format!("/session/{id}");
-        match server.http().get_optional::<api::Session>(&path).await {
-            Ok(Some(_)) => return Ok(id.to_string()),
-            Ok(None) => log::debug!("opencode: session '{id}' is gone, opening a new one"),
-            Err(error) => log::debug!("opencode: could not probe session '{id}': {error}"),
+        if http.get_optional::<api::Session>(&path).await?.is_some() {
+            return Ok(id.to_string());
         }
+        log::debug!("opencode: session '{id}' is gone, opening a new one");
     }
-    let session: api::Session = server
-        .http()
+    let session: api::Session = http
         .post("/session", &serde_json::json!({ "title": "morpheus" }))
         .await?;
     if session.id.is_empty() {
@@ -116,157 +118,63 @@ pub(super) async fn run(
     input: &str,
     model: Option<api::ModelRef>,
     agent: Option<&str>,
-    mut permission_rx: Option<UnboundedReceiver<PanePermissionAnswer>>,
-    stop: Arc<AtomicBool>,
+    permission_rx: Option<UnboundedReceiver<PanePermissionAnswer>>,
+    stop: &AtomicBool,
     chunk_tx: &UnboundedSender<SubagentEvent>,
 ) -> Result<TurnOutcome, String> {
-    server.ensure_ready().await?;
-    seed_plan(server, session, chunk_tx).await;
-    // Subscribe first: the prompt may start streaming immediately, and the
-    // stream is server-wide, so anything not yet read is simply a part the
-    // mapper has not seen.
-    let stream = server.http().open_stream("/event").await?;
-    let mut events = spawn_pump(stream);
-    let mut mapper = Mapper::new(false);
-    let mut closure = TurnClosure::default();
-    let mut windows_cache: Option<HashMap<String, u64>> = None;
+    let http = server.http();
+    let stopped = wait_for_stop(stop);
+    tokio::pin!(stopped);
 
-    // The command endpoint takes the model as a `provider/model` string;
-    // keep that spelling before the typed value moves into the prompt body.
-    let model_value = model
-        .as_ref()
-        .map(|model| format!("{}/{}", model.provider, model.model));
-    let body = PromptBody {
-        parts: vec![PromptPart::Text { text: input }],
-        model,
-        agent: agent.filter(|agent| !agent.is_empty()),
+    let stream = tokio::select! {
+        biased;
+        () = &mut stopped => return Ok(cancelled(Some(session), String::new())),
+        result = async {
+            seed_plan(http, session, chunk_tx).await;
+            http.open_stream("/event").await
+        } => result?,
     };
-    dispatch(server, session, input, &body, agent, model_value.as_deref()).await?;
 
-    let mut cancelled = false;
-    let mut abort_deadline: Option<std::time::Instant> = None;
-    let result: Result<(), String> = 'turn: loop {
-        tokio::select! {
-            event = events.recv() => {
-                let Some(event) = event else {
-                    if cancelled {
-                        break 'turn Ok(());
-                    }
-                    break 'turn Err("opencode: the event stream closed mid-turn".to_string());
-                };
-                let (mapped, signals) = mapper.map(&event, session);
-                for event in mapped {
-                    closure.observe(&event);
-                    let _ = chunk_tx.send(event);
-                }
-                for signal in signals {
-                    match signal {
-                        Signal::Idle => break 'turn Ok(()),
-                        Signal::Error(error) => break 'turn Err(error),
-                        Signal::Permission(notice) => {
-                            let answer = match permission_rx.as_mut() {
-                                Some(rx) => {
-                                    let _ = chunk_tx.send(SubagentEvent::PermissionRequest {
-                                        call_id: notice.id.clone(),
-                                        title: notice.title.clone(),
-                                        kind: notice.kind,
-                                        raw_input: notice.raw_input.clone(),
-                                        options: permission_options(),
-                                    });
-                                    await_answer(rx, &stop).await
-                                }
-                                // Headless call: the YOLO contract, same as the
-                                // ACP path's auto-approve.
-                                None => Some(PanePermissionAnswer::Selected(
-                                    api::answer::ONCE.to_string(),
-                                )),
-                            };
-                            let response = permission_answer(answer.as_ref());
-                            let path = format!("/session/{session}/permissions/{}", notice.id);
-                            if let Err(error) = server
-                                .http()
-                                .post_ack(&path, &serde_json::json!({ "response": response }))
-                                .await
-                            {
-                                log::warn!("opencode: could not answer a permission request: {error}");
-                            }
-                        }
-                        Signal::Usage(usage) => {
-                            if windows_cache.is_none() {
-                                windows_cache = Some(fetch_context_windows(server).await);
-                            }
-                            let window = windows_cache
-                                .as_ref()
-                                .and_then(|windows| {
-                                    windows.get(&format!("{}/{}", usage.provider, usage.model))
-                                })
-                                .copied()
-                                .unwrap_or_default();
-                            // A context percentage without a declared window
-                            // would render as a permanent 0%; skip it instead.
-                            if window > 0 {
-                                let _ = chunk_tx.send(SubagentEvent::Usage {
-                                    context_window: window,
-                                    tokens_in_context: usage.in_context(),
-                                });
-                            }
-                            log::trace!(
-                                "opencode: usage provider={} model={} in={} out={} reasoning={} total={}",
-                                usage.provider,
-                                usage.model,
-                                usage.input,
-                                usage.output,
-                                usage.reasoning,
-                                usage.total
-                            );
-                        }
-                        Signal::Retry { attempt, message } => {
-                            log::debug!("opencode: provider retry #{attempt}: {message}");
-                            let _ = chunk_tx.send(SubagentEvent::Thought {
-                                text: format!("[retry {attempt}] {message}"),
-                            });
-                        }
-                        Signal::Title(title) => {
-                            let _ = chunk_tx.send(SubagentEvent::SessionInfo {
-                                title: Some(title),
-                            });
-                        }
-                    }
-                }
-            }
-            () = tokio::time::sleep(STOP_POLL) => {
-                if stop.load(Ordering::Relaxed) && !cancelled {
-                    cancelled = true;
-                    abort_deadline = Some(std::time::Instant::now() + ABORT_GRACE);
-                    let path = format!("/session/{session}/abort");
-                    if let Err(error) = server.http().post_empty(&path).await {
-                        log::warn!("opencode: abort failed: {error}");
-                    }
-                }
-                if let Some(deadline) = abort_deadline
-                    && std::time::Instant::now() >= deadline
-                {
-                    break 'turn Ok(());
-                }
-            }
-        }
+    let mut events = TurnEvents::new(session, stream, chunk_tx);
+    let mut acknowledged = false;
+    let result = tokio::select! {
+        biased;
+        () = &mut stopped => None,
+        result = finish_turn(
+            dispatch(http, session, input, model, agent),
+            consume_events(http, &mut events, permission_rx),
+            &mut acknowledged,
+        ) => Some(result),
     };
 
     match result {
-        Ok(()) => Ok(TurnOutcome {
-            output: closure.output(),
-            stop_reason: if cancelled { "cancelled" } else { "end_turn" }.to_string(),
+        None => {
+            let confirmed = abort_and_wait(http, &mut events, ABORT_GRACE).await;
+            if let Err(error) = &confirmed {
+                log::warn!("opencode: could not confirm cancellation of {session}: {error}");
+            }
+            // An unacknowledged request may still reach the server after the abort.
+            if !acknowledged || confirmed.is_err() {
+                server.shutdown();
+            }
+            Ok(cancelled(Some(session), events.closure.output()))
+        }
+        Some(Ok(())) => Ok(TurnOutcome {
+            output: events.closure.output(),
+            stop_reason: "end_turn".to_string(),
             session_id: Some(session.to_string()),
             failed: false,
         }),
-        Err(error) => {
+        Some(Err(error)) => {
+            server.shutdown();
             let error = auth_hint(error);
-            if closure.output().is_empty() {
+            let output = events.closure.output();
+            if output.is_empty() {
                 Err(error)
             } else {
                 log::warn!("opencode: session {session} failed mid-turn: {error}");
                 Ok(TurnOutcome {
-                    output: closure.output(),
+                    output,
                     stop_reason: "error".to_string(),
                     session_id: None,
                     failed: true,
@@ -276,58 +184,220 @@ pub(super) async fn run(
     }
 }
 
-/// Send the turn: a slash command the server advertises goes through the
-/// command endpoint, everything else is a regular prompt.
-///
-/// The command endpoint answers only when the turn is finished, so its POST
-/// runs detached — the SSE stream is what feeds the turn either way.
+pub(super) fn cancelled(session: Option<&str>, output: String) -> TurnOutcome {
+    TurnOutcome {
+        output,
+        stop_reason: "cancelled".to_string(),
+        session_id: session.map(str::to_string),
+        failed: false,
+    }
+}
+
+pub(super) async fn wait_for_stop(stop: &AtomicBool) {
+    let mut poll = tokio::time::interval(STOP_POLL);
+    while !stop.load(Ordering::Relaxed) {
+        poll.tick().await;
+    }
+}
+
+async fn finish_turn(
+    dispatch: impl Future<Output = Result<Dispatch, String>>,
+    events: impl Future<Output = Result<(), String>>,
+    acknowledged: &mut bool,
+) -> Result<(), String> {
+    tokio::pin!(dispatch, events);
+    tokio::select! {
+        result = &mut dispatch => {
+            let dispatch = result?;
+            *acknowledged = true;
+            match dispatch {
+                Dispatch::Prompt => events.await,
+                Dispatch::Command => tokio::time::timeout(REQUEST_TIMEOUT, events)
+                    .await
+                    .map_err(|_| "opencode: no idle event after the command finished".to_string())?,
+            }
+        }
+        result = &mut events => {
+            result?;
+            // The turn is idle. A synchronous command should now acknowledge it.
+            tokio::time::timeout(REQUEST_TIMEOUT, dispatch)
+                .await
+                .map_err(|_| "opencode: timed out waiting for the turn response".to_string())?
+                .map(drop)
+        }
+    }
+}
+
+async fn abort_and_wait(
+    http: &Http,
+    events: &mut TurnEvents<'_>,
+    grace: Duration,
+) -> Result<(), String> {
+    let path = format!("/session/{}/abort", events.session);
+    let wait_for_idle = async {
+        while let Some(signals) = events.next().await? {
+            if signals.iter().any(|signal| matches!(signal, Signal::Idle)) {
+                return Ok(());
+            }
+        }
+        Err("the event stream closed before the session was idle".to_string())
+    };
+    tokio::time::timeout(grace, async {
+        tokio::try_join!(http.post_empty(&path), wait_for_idle).map(|((), ())| ())
+    })
+    .await
+    .map_err(|_| "timed out waiting for the session to stop".to_string())?
+}
+
+struct TurnEvents<'a> {
+    session: &'a str,
+    stream: EventStream,
+    mapper: Mapper,
+    closure: TurnClosure,
+    chunks: &'a UnboundedSender<SubagentEvent>,
+}
+
+impl<'a> TurnEvents<'a> {
+    fn new(
+        session: &'a str,
+        stream: EventStream,
+        chunks: &'a UnboundedSender<SubagentEvent>,
+    ) -> Self {
+        Self {
+            session,
+            stream,
+            mapper: Mapper::new(false),
+            closure: TurnClosure::default(),
+            chunks,
+        }
+    }
+
+    async fn next(&mut self) -> Result<Option<Vec<Signal>>, String> {
+        let Some(event) = self.stream.next().await? else {
+            return Ok(None);
+        };
+        let (events, signals) = self.mapper.map(&event, self.session);
+        for event in events {
+            self.closure.observe(&event);
+            let _ = self.chunks.send(event);
+        }
+        Ok(Some(signals))
+    }
+}
+
+async fn consume_events(
+    http: &Http,
+    events: &mut TurnEvents<'_>,
+    mut permission_rx: Option<UnboundedReceiver<PanePermissionAnswer>>,
+) -> Result<(), String> {
+    let mut windows_cache = None;
+    while let Some(signals) = events.next().await? {
+        for signal in signals {
+            match signal {
+                Signal::Idle => return Ok(()),
+                Signal::Error(error) => return Err(error),
+                Signal::Permission(notice) => {
+                    let answer = if let Some(rx) = &mut permission_rx {
+                        let _ = events.chunks.send(SubagentEvent::PermissionRequest {
+                            call_id: notice.id.clone(),
+                            title: notice.title.clone(),
+                            kind: notice.kind,
+                            raw_input: notice.raw_input.clone(),
+                            options: permission_options(),
+                        });
+                        permission_answer(rx.recv().await.as_ref())
+                    } else {
+                        api::answer::ONCE
+                    };
+                    let (path, payload) = notice.reply(events.session, answer);
+                    http.post_ack(&path, &payload).await.map_err(|error| {
+                        format!("opencode: could not answer permission: {error}")
+                    })?;
+                }
+                Signal::Usage(usage) => {
+                    if windows_cache.is_none() {
+                        windows_cache = Some(fetch_context_windows(http).await);
+                    }
+                    let key = format!("{}/{}", usage.provider, usage.model);
+                    if let Some(&window) = windows_cache
+                        .as_ref()
+                        .and_then(|windows| windows.get(&key))
+                        .filter(|&&window| window > 0)
+                    {
+                        let _ = events.chunks.send(SubagentEvent::Usage {
+                            context_window: window,
+                            tokens_in_context: usage.in_context(),
+                        });
+                    }
+                    log::trace!(
+                        "opencode: usage provider={} model={} in={} out={} reasoning={} total={}",
+                        usage.provider,
+                        usage.model,
+                        usage.input,
+                        usage.output,
+                        usage.reasoning,
+                        usage.total
+                    );
+                }
+                Signal::Retry { attempt, message } => {
+                    log::debug!("opencode: provider retry #{attempt}: {message}");
+                    let _ = events.chunks.send(SubagentEvent::Thought {
+                        text: format!("[retry {attempt}] {message}"),
+                    });
+                }
+                Signal::Title(title) => {
+                    let _ = events
+                        .chunks
+                        .send(SubagentEvent::SessionInfo { title: Some(title) });
+                }
+            }
+        }
+    }
+    Err("opencode: the event stream closed mid-turn".to_string())
+}
+
+enum Dispatch {
+    Prompt,
+    Command,
+}
+
+/// Known slash commands use the command endpoint. Other input is sent as text.
 async fn dispatch(
-    server: &Server,
+    http: &Http,
     session: &str,
     input: &str,
-    body: &PromptBody<'_>,
+    model: Option<api::ModelRef>,
     agent: Option<&str>,
-    model: Option<&str>,
-) -> Result<(), String> {
+) -> Result<Dispatch, String> {
+    let agent = agent.filter(|agent| !agent.is_empty());
     if let Some((command, arguments)) = split_command(input)
-        && advertised_command(server, command).await
+        && advertised_command(http, command).await
     {
-        let http = server.http().clone();
-        let path = format!("/session/{session}/command");
-        // The detached POST outlives this call, so the values it sends are
-        // owned rather than borrowed from `input`. Optional keys are only
-        // sent when set: the server rejects a `null` agent/model.
-        let name = command.to_string();
-        let mut payload = serde_json::json!({
-            "command": name.clone(),
-            "arguments": arguments.to_string(),
-        });
-        if let Some(agent) = agent.filter(|agent| !agent.is_empty()) {
-            payload["agent"] = Value::String(agent.to_string());
-        }
-        if let Some(model) = model {
-            payload["model"] = Value::String(model.to_string());
-        }
-        log::debug!("opencode: running session command /{name}");
-        tokio::spawn(async move {
-            if let Err(error) = http.post_ack::<serde_json::Value>(&path, &payload).await {
-                log::warn!("opencode: command /{name} failed: {error}");
-            }
-        });
-        return Ok(());
+        let body = api::CommandBody {
+            command,
+            arguments,
+            agent,
+            model: model.map(|model| format!("{}/{}", model.provider, model.model)),
+        };
+        return http
+            .post_command(&format!("/session/{session}/command"), &body)
+            .await
+            .map(|()| Dispatch::Command)
+            .map_err(|error| format!("opencode: command /{command} failed: {error}"));
     }
-    let path = format!("/session/{session}/prompt_async");
-    server
-        .http()
-        .post_ack(&path, body)
+    let body = PromptBody {
+        parts: vec![PromptPart::Text { text: input }],
+        model,
+        agent,
+    };
+    http.post_ack(&format!("/session/{session}/prompt_async"), &body)
         .await
+        .map(|()| Dispatch::Prompt)
         .map_err(|error| format!("opencode: the prompt was refused: {error}"))
 }
 
-/// Whether the server advertises `name` as a command. An unknown `/word` is
-/// ordinary text and must reach the model as written.
-async fn advertised_command(server: &Server, name: &str) -> bool {
-    match server.http().get::<Vec<api::Command>>("/command").await {
+async fn advertised_command(http: &Http, name: &str) -> bool {
+    match http.get::<Vec<api::Command>>("/command").await {
         Ok(commands) => commands.iter().any(|command| command.name == name),
         Err(error) => {
             log::debug!("opencode: could not list commands: {error}");
@@ -336,11 +406,9 @@ async fn advertised_command(server: &Server, name: &str) -> bool {
     }
 }
 
-/// Seed the plan from the session's current todo list, so a resumed pane
-/// shows the work already planned before this turn.
-async fn seed_plan(server: &Server, session: &str, chunk_tx: &UnboundedSender<SubagentEvent>) {
+async fn seed_plan(http: &Http, session: &str, chunk_tx: &UnboundedSender<SubagentEvent>) {
     let path = format!("/session/{session}/todo");
-    let Ok(todos) = server.http().get::<Vec<api::Todo>>(&path).await else {
+    let Ok(todos) = http.get::<Vec<api::Todo>>(&path).await else {
         return;
     };
     let entries: Vec<_> = todos
@@ -353,13 +421,8 @@ async fn seed_plan(server: &Server, session: &str, chunk_tx: &UnboundedSender<Su
     }
 }
 
-/// The context window each `provider/model` declares, for the usage badge.
-async fn fetch_context_windows(server: &Server) -> HashMap<String, u64> {
-    let Ok(providers) = server
-        .http()
-        .get::<api::Providers>("/config/providers")
-        .await
-    else {
+async fn fetch_context_windows(http: &Http) -> HashMap<String, u64> {
+    let Ok(providers) = http.get::<api::Providers>("/config/providers").await else {
         return HashMap::new();
     };
     let mut windows = HashMap::new();
@@ -390,27 +453,246 @@ fn auth_hint(error: String) -> String {
     error
 }
 
-/// Await the pane's permission answer, giving up (rejecting) when the turn
-/// is stopped meanwhile.
-async fn await_answer(
-    rx: &mut UnboundedReceiver<PanePermissionAnswer>,
-    stop: &AtomicBool,
-) -> Option<PanePermissionAnswer> {
-    loop {
-        tokio::select! {
-            answer = rx.recv() => return answer,
-            () = tokio::time::sleep(STOP_POLL) => {
-                if stop.load(Ordering::Relaxed) {
-                    return None;
-                }
-            }
-        }
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
+    use tokio::io::{AsyncBufReadExt, AsyncReadExt, AsyncWriteExt, BufReader};
+    use tokio::net::{TcpListener, TcpStream};
+
+    async fn test_server() -> (Http, TcpListener) {
+        let listener = TcpListener::bind(("127.0.0.1", 0)).await.unwrap();
+        let http = Http::new(
+            format!("http://{}", listener.local_addr().unwrap()),
+            None,
+            None,
+        );
+        (http, listener)
+    }
+
+    async fn request(listener: &TcpListener, expected: &str) -> (TcpStream, Vec<u8>) {
+        let (stream, _) = listener.accept().await.unwrap();
+        let mut reader = BufReader::new(stream);
+        let mut line = String::new();
+        reader.read_line(&mut line).await.unwrap();
+        assert_eq!(line.trim_end(), format!("{expected} HTTP/1.1"));
+
+        let mut content_length = 0;
+        loop {
+            line.clear();
+            assert_ne!(reader.read_line(&mut line).await.unwrap(), 0);
+            if line == "\r\n" {
+                break;
+            }
+            if let Some((name, value)) = line.split_once(':')
+                && name.eq_ignore_ascii_case("content-length")
+            {
+                content_length = value.trim().parse().unwrap();
+            }
+        }
+        let mut body = vec![0; content_length];
+        reader.read_exact(&mut body).await.unwrap();
+        (reader.into_inner(), body)
+    }
+
+    async fn reply(mut stream: TcpStream, status: &str, body: &str) {
+        let response = format!(
+            "HTTP/1.1 {status}\r\nContent-Length: {}\r\nConnection: close\r\n\r\n{body}",
+            body.len()
+        );
+        stream.write_all(response.as_bytes()).await.unwrap();
+    }
+
+    async fn open_events(http: &Http, listener: &TcpListener) -> (EventStream, TcpStream) {
+        let serve = async {
+            let (mut stream, _) = request(listener, "GET /event").await;
+            stream
+                .write_all(b"HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nConnection: close\r\n\r\n")
+                .await
+                .unwrap();
+            stream
+        };
+        let (events, stream) = tokio::join!(http.open_stream("/event"), serve);
+        (events.unwrap(), stream)
+    }
+
+    async fn emit(stream: &mut TcpStream, event: serde_json::Value) {
+        stream
+            .write_all(format!("data: {event}\n\n").as_bytes())
+            .await
+            .unwrap();
+    }
+
+    #[tokio::test]
+    async fn a_command_rejection_ends_the_turn_while_sse_is_open() {
+        let (http, listener) = test_server().await;
+        let (stream, _live_stream) = open_events(&http, &listener).await;
+        let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
+        let mut events = TurnEvents::new("ses_1", stream, &tx);
+        let mut acknowledged = false;
+        let turn = finish_turn(
+            dispatch(&http, "ses_1", "/review changes", None, None),
+            consume_events(&http, &mut events, None),
+            &mut acknowledged,
+        );
+        let serve = async {
+            let (catalog, _) = request(&listener, "GET /command").await;
+            reply(catalog, "200 OK", r#"[{"name":"review"}]"#).await;
+            let (command, body) = request(&listener, "POST /session/ses_1/command").await;
+            assert_eq!(
+                serde_json::from_slice::<serde_json::Value>(&body).unwrap(),
+                json!({
+                    "command": "review", "arguments": "changes"
+                })
+            );
+            reply(command, "400 Bad Request", "This command was rejected").await;
+        };
+        let (result, ()) =
+            tokio::time::timeout(Duration::from_secs(3), async { tokio::join!(turn, serve) })
+                .await
+                .expect("the command failure should not wait for SSE");
+        let error = result.unwrap_err();
+        assert!(error.contains("400 Bad Request"), "{error}");
+        assert!(error.contains("This command was rejected"), "{error}");
+        assert!(!acknowledged);
+    }
+
+    #[tokio::test]
+    async fn a_live_permission_uses_the_current_reply_endpoint() {
+        let (http, listener) = test_server().await;
+        let (sse, mut stream) = open_events(&http, &listener).await;
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+        let (answers, permission_rx) = tokio::sync::mpsc::unbounded_channel();
+        let mut events = TurnEvents::new("ses_1", sse, &tx);
+        let turn = consume_events(&http, &mut events, Some(permission_rx));
+        let serve = async {
+            for (id, session) in [("per_other", "ses_other"), ("per_1", "ses_1")] {
+                emit(
+                    &mut stream,
+                    json!({
+                        "type": "permission.asked",
+                        "properties": {
+                            "id": id, "sessionID": session, "permission": "bash",
+                            "patterns": ["cargo test"], "metadata": {"command": "cargo test"},
+                            "always": ["cargo test *"]
+                        }
+                    }),
+                )
+                .await;
+            }
+            let Some(SubagentEvent::PermissionRequest {
+                call_id,
+                title,
+                kind,
+                raw_input,
+                ..
+            }) = rx.recv().await
+            else {
+                panic!("expected permission request");
+            };
+            assert_eq!(call_id, "per_1");
+            assert_eq!(title, "bash: cargo test");
+            assert_eq!(kind, crate::events::ToolKind::Execute);
+            assert_eq!(raw_input, Some(json!({ "command": "cargo test" })));
+            answers
+                .send(PanePermissionAnswer::Selected(
+                    api::answer::REJECT.to_string(),
+                ))
+                .unwrap();
+            let (permission, body) = request(&listener, "POST /permission/per_1/reply").await;
+            assert_eq!(
+                serde_json::from_slice::<serde_json::Value>(&body).unwrap(),
+                json!({ "reply": "reject" })
+            );
+            reply(permission, "200 OK", "true").await;
+            emit(
+                &mut stream,
+                json!({
+                    "type": "session.idle", "properties": { "sessionID": "ses_1" }
+                }),
+            )
+            .await;
+        };
+        let (result, ()) =
+            tokio::time::timeout(Duration::from_secs(3), async { tokio::join!(turn, serve) })
+                .await
+                .expect("the session should resume after the permission reply");
+        result.unwrap();
+        assert!(rx.try_recv().is_err());
+    }
+
+    #[tokio::test]
+    async fn cancellation_deadline_includes_the_abort_request() {
+        let (http, listener) = test_server().await;
+        let (stream, _live_stream) = open_events(&http, &listener).await;
+        let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
+        let mut events = TurnEvents::new("ses_1", stream, &tx);
+        let abort = abort_and_wait(&http, &mut events, Duration::from_millis(200));
+        let serve = request(&listener, "POST /session/ses_1/abort");
+        let (result, (_unanswered_request, _)) =
+            tokio::time::timeout(Duration::from_secs(3), async { tokio::join!(abort, serve) })
+                .await
+                .expect("a stalled abort must time out");
+        assert_eq!(
+            result.unwrap_err(),
+            "timed out waiting for the session to stop"
+        );
+    }
+
+    #[tokio::test]
+    async fn cancellation_preserves_events_up_to_idle() {
+        let (http, listener) = test_server().await;
+        let (sse, mut stream) = open_events(&http, &listener).await;
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+        let mut events = TurnEvents::new("ses_1", sse, &tx);
+        let abort = abort_and_wait(&http, &mut events, Duration::from_secs(3));
+        let serve = async {
+            let (request, _) = request(&listener, "POST /session/ses_1/abort").await;
+            emit(
+                &mut stream,
+                json!({
+                    "type": "session.idle", "properties": { "sessionID": "ses_other" }
+                }),
+            )
+            .await;
+            emit(&mut stream, json!({
+                "type": "message.updated",
+                "properties": { "info": { "id": "msg_1", "sessionID": "ses_1", "role": "assistant" } }
+            })).await;
+            emit(
+                &mut stream,
+                json!({
+                    "type": "message.part.updated",
+                    "properties": { "part": {
+                        "type": "text", "id": "part_1", "sessionID": "ses_1", "messageID": "msg_1",
+                        "text": "Partial answer"
+                    } }
+                }),
+            )
+            .await;
+            emit(
+                &mut stream,
+                json!({
+                    "type": "session.status",
+                    "properties": { "sessionID": "ses_1", "status": { "type": "idle" } }
+                }),
+            )
+            .await;
+            reply(request, "200 OK", "true").await;
+        };
+        let (result, ()) =
+            tokio::time::timeout(Duration::from_secs(3), async { tokio::join!(abort, serve) })
+                .await
+                .unwrap();
+        result.unwrap();
+        assert_eq!(events.closure.output(), "Partial answer");
+        assert_eq!(
+            rx.try_recv().unwrap(),
+            SubagentEvent::Message {
+                text: "Partial answer".to_string()
+            }
+        );
+    }
 
     #[test]
     fn the_model_pick_is_read_from_the_option_set() {

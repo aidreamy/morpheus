@@ -13,9 +13,9 @@ use std::sync::{Mutex, PoisonError};
 use tokio::sync::mpsc::{UnboundedReceiver, UnboundedSender};
 
 use super::server::Server;
-use super::turn;
+use super::{snapshot, turn};
 use crate::acp::TurnOutcome;
-use crate::events::{PanePermissionAnswer, SubagentEvent};
+use crate::events::{AgentSessionMode, PanePermissionAnswer, SubagentEvent};
 
 /// One live native session.
 pub struct Session {
@@ -76,6 +76,20 @@ impl Session {
         self.server.shutdown();
     }
 
+    pub(crate) async fn modes(
+        &self,
+        stop: &AtomicBool,
+    ) -> Result<Option<Vec<AgentSessionMode>>, String> {
+        tokio::select! {
+            biased;
+            () = turn::wait_for_stop(stop) => Ok(None),
+            result = async {
+                self.server.ensure_ready().await?;
+                snapshot::available_modes(self.server.http()).await.map(Some)
+            } => result,
+        }
+    }
+
     /// Run one turn, resuming the stored session when the server still knows
     /// it and opening one on the first call otherwise.
     ///
@@ -97,19 +111,18 @@ impl Session {
                 "The OpenCode session was closed before answering the turn.".to_string(),
             );
         }
-        if let Err(error) = self.server.ensure_ready().await {
-            return crate::acp::failed_outcome(error);
-        }
         let resume = self
             .session_id
             .lock()
             .unwrap_or_else(PoisonError::into_inner)
             .clone();
         let model = turn::model_from_picks(picks);
-        let session = match turn::ensure_session(&self.server, resume.as_deref()).await {
-            Ok(session) => session,
-            Err(error) => return crate::acp::failed_outcome(error),
-        };
+        let session =
+            match turn::prepare_session(&self.server, resume.as_deref(), &stop_signal).await {
+                Ok(Some(session)) => session,
+                Ok(None) => return turn::cancelled(resume.as_deref(), String::new()),
+                Err(error) => return crate::acp::failed_outcome(error),
+            };
         *self
             .session_id
             .lock()
@@ -121,7 +134,7 @@ impl Session {
             model,
             mode,
             permission_rx,
-            stop_signal,
+            &stop_signal,
             &chunk_tx,
         )
         .await

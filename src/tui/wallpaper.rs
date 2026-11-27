@@ -94,6 +94,19 @@ impl Wallpaper {
         })
     }
 
+    /// Decode image bytes that have no on-disk location (a clipboard image,
+    /// or an image attached to the prompt while `/wallpaper` was being
+    /// composed) instead of reading a path.
+    pub fn from_bytes(bytes: &[u8]) -> Result<Self, String> {
+        let image = image::load_from_memory(bytes).map_err(|error| format!("image: {error}"))?;
+        Ok(Self {
+            source: prepare(image),
+            offset: (0, 0),
+            anchor: Anchor::Center,
+            cache: None,
+        })
+    }
+
     /// Shift the centered art by `offset` terminal cells (positive = right /
     /// down). The centering itself is unchanged, so `(0, 0)` is the default.
     pub fn with_offset(mut self, offset: (i32, i32)) -> Self {
@@ -357,13 +370,29 @@ pub fn parse_request(tail: &str, base: &Path) -> Result<Request, String> {
     } else {
         Some(parse_offset(rest.trim())?)
     };
-    let expanded = expand_home(raw_path);
+    let expanded = expand_location(raw_path);
     let path = if expanded.is_absolute() {
         expanded
     } else {
         base.join(expanded)
     };
     Ok(Request::Load { path, offset })
+}
+
+/// Resolve the location forms the prompt's image paste accepts: `~/`, a bare
+/// `~`, and `file://` URIs, so `/wallpaper file:///image.png` means what
+/// pasting the same location into an ordinary prompt means.
+fn expand_location(location: &str) -> PathBuf {
+    if let Some(rest) = location.strip_prefix("file://") {
+        let rest = rest.strip_prefix("localhost").unwrap_or(rest);
+        let path = if rest.starts_with('/') {
+            rest.to_string()
+        } else {
+            format!("/{rest}")
+        };
+        return expand_home(&path);
+    }
+    expand_home(location)
 }
 
 /// Split the leading path token (quoted or up to whitespace) from the rest.
@@ -410,6 +439,35 @@ fn expand_home(path: &str) -> PathBuf {
 
 fn home_dir() -> Option<PathBuf> {
     directories::BaseDirs::new().map(|dirs| dirs.home_dir().to_path_buf())
+}
+
+/// Directory holding wallpaper copies saved from image bytes:
+/// `{data_dir}/wallpaper` (`~/.local/share/morpheus/wallpaper/` on Unix).
+/// Resolved through the same [`morpheus::setup::data_dir_override`] as every
+/// other data file, so the test isolation and `MORPHEUS_DATA_DIR` apply.
+pub fn stored_dir() -> PathBuf {
+    morpheus::setup::data_dir_override().join("wallpaper")
+}
+
+/// Name of the copy saved from pasted/attached bytes. A single fixed name
+/// makes a new paste REPLACE the previous copy instead of accumulating
+/// files: `setup.json` only ever points at one stored wallpaper anyway.
+const STORED_FILE: &str = "pasted.png";
+
+/// Save an image that arrived without a path (a clipboard image or a draft
+/// attachment) into [`stored_dir`] and return where it landed. The caller
+/// persists that path, so the next start reloads the wallpaper through the
+/// ordinary [`Wallpaper::from_path`] route. The bytes are re-encoded as PNG
+/// so every supported input format gets the same stored extension.
+pub fn store_image(bytes: &[u8]) -> Result<PathBuf, String> {
+    let dir = stored_dir();
+    std::fs::create_dir_all(&dir).map_err(|error| format!("{}: {error}", dir.display()))?;
+    let image = image::load_from_memory(bytes).map_err(|error| format!("image: {error}"))?;
+    let path = dir.join(STORED_FILE);
+    image
+        .save(&path)
+        .map_err(|error| format!("{}: {error}", path.display()))?;
+    Ok(path)
 }
 
 #[cfg(test)]
@@ -585,6 +643,51 @@ mod tests {
                 offset: None,
             }
         );
+    }
+
+    #[test]
+    fn parse_request_accepts_file_urls_like_the_image_paste_does() {
+        assert_eq!(
+            parse_request("file:///repo/art.png 1,2", Path::new("/base")).unwrap(),
+            Request::Load {
+                path: PathBuf::from("/repo/art.png"),
+                offset: Some((1, 2)),
+            }
+        );
+        assert_eq!(
+            parse_request("file://localhost/art.png", Path::new("/repo")).unwrap(),
+            Request::Load {
+                path: PathBuf::from("/art.png"),
+                offset: None,
+            }
+        );
+        // A `file://` location is absolute, like the image paste treats it.
+        assert_eq!(
+            parse_request("file://art.png", Path::new("/repo")).unwrap(),
+            Request::Load {
+                path: PathBuf::from("/art.png"),
+                offset: None,
+            }
+        );
+    }
+
+    #[test]
+    fn from_bytes_decodes_without_a_path() {
+        let mut png = Vec::new();
+        image::DynamicImage::ImageLuma8(GrayImage::from_raw(2, 2, vec![0, 64, 128, 255]).unwrap())
+            .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
+            .unwrap();
+        let mut wallpaper = Wallpaper::from_bytes(&png).expect("png bytes must decode");
+        assert_eq!(wallpaper.anchor, Anchor::Center);
+        let area = Rect::new(0, 0, 20, 10);
+        let mut buf = Buffer::empty(area);
+        wallpaper.render(&mut buf, area, Color::Red);
+        assert!(buf.content.iter().any(|cell| cell.symbol() != " "));
+    }
+
+    #[test]
+    fn from_bytes_rejects_non_image_payloads() {
+        assert!(Wallpaper::from_bytes(b"not an image").is_err());
     }
 
     #[test]

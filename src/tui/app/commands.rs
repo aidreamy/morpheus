@@ -1329,9 +1329,22 @@ impl App {
     ///   offset. A relative path resolves against the session's working
     ///   directory, so `/wallpaper pics/art.png` means what a shell command
     ///   typed in this project would mean.
-    fn apply_wallpaper_command(&mut self, tail: Option<&str>) {
+    pub(super) fn apply_wallpaper_command(&mut self, tail: Option<&str>) {
         use crate::ui::toast::{ToastOptions, ToastVariant};
         use crate::wallpaper::{Request, Wallpaper};
+
+        // Any image attached to the draft while the command was composed is
+        // the command's argument, never the agent's: consume it here, so the
+        // attachment can never ride along with a later turn. A bare
+        // `/wallpaper` uses that image as the wallpaper (a clipboard image
+        // has no path to put in the tail).
+        let attached = self.prompt_view.take_images();
+        if tail.is_none()
+            && let Some(image) = attached.last()
+        {
+            self.set_wallpaper_from_image(&image.bytes, &image.name);
+            return;
+        }
 
         let base = std::path::Path::new(&self.state.working_directory);
         let request = match tail.map(|tail| crate::wallpaper::parse_request(tail, base)) {
@@ -1375,6 +1388,39 @@ impl App {
                 }
                 Err(error) => (format!("Wallpaper: {error}"), ToastVariant::Error),
             },
+            Err(error) => (format!("Wallpaper: {error}"), ToastVariant::Error),
+        };
+        self.toast_state.show(ToastOptions {
+            title: Some("Wallpaper".into()),
+            message,
+            variant,
+            duration_ms: 4000,
+        });
+    }
+
+    /// Set the wallpaper from image bytes that have no usable path argument
+    /// (a clipboard image, or an image attached to the draft). A copy is
+    /// saved under `{data_dir}/wallpaper/` and its path persisted in
+    /// `setup.json`, so the choice survives a restart exactly like one made
+    /// with `/wallpaper <path>`. If the copy cannot be written the wallpaper
+    /// still applies for this session.
+    pub(super) fn set_wallpaper_from_image(&mut self, bytes: &[u8], name: &str) {
+        use crate::ui::toast::{ToastOptions, ToastVariant};
+        let (message, variant) = match crate::wallpaper::Wallpaper::from_bytes(bytes) {
+            Ok(wallpaper) => {
+                self.wallpaper = Some(wallpaper);
+                match crate::wallpaper::store_image(bytes) {
+                    Ok(path) => {
+                        self.setup.appearance.wallpaper = path.display().to_string();
+                        self.setup.save();
+                        (format!("Wallpaper set from {name}."), ToastVariant::Info)
+                    }
+                    Err(error) => (
+                        format!("Wallpaper set from {name} (not saved: {error})."),
+                        ToastVariant::Warning,
+                    ),
+                }
+            }
             Err(error) => (format!("Wallpaper: {error}"), ToastVariant::Error),
         };
         self.toast_state.show(ToastOptions {

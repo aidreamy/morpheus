@@ -77,6 +77,94 @@ async fn slash_toolcall_command_opens_tool_call_dialog() {
     assert!(!app.slash_menu.visible, "slash menu closes after Enter");
 }
 
+fn test_png_bytes() -> Vec<u8> {
+    let image =
+        image::RgbImage::from_fn(2, 2, |x, y| image::Rgb([x as u8 * 127, y as u8 * 127, 0]));
+    let mut png = Vec::new();
+    image::DynamicImage::ImageRgb8(image)
+        .write_to(&mut std::io::Cursor::new(&mut png), image::ImageFormat::Png)
+        .unwrap();
+    png
+}
+
+/// A `/wallpaper` with no path argument must consume an image attached to
+/// the draft as the wallpaper, never leave it behind for the agent turn.
+#[tokio::test]
+async fn wallpaper_command_consumes_a_pasted_image() {
+    let _guard = HOME_LOCK.lock();
+    isolate_home();
+    let mut app = App::new("/tmp".to_string());
+    app.prompt_view
+        .add_image(test_png_bytes(), "clipboard.png".into(), String::new());
+    assert!(app.prompt_view.has_images());
+
+    app.run_slash_command(&slash_cmd("wallpaper"));
+
+    assert!(
+        !app.prompt_view.has_images(),
+        "the image belongs to the command"
+    );
+    assert!(
+        app.wallpaper.is_some(),
+        "the pasted image becomes the wallpaper"
+    );
+    assert!(app.prompt_view.input.is_empty());
+}
+
+/// A wallpaper set from pasted bytes must survive a restart: the image is
+/// copied under `{data_dir}/wallpaper/`, its path goes into `setup.json`, and
+/// boot reloads it through the ordinary `/wallpaper <path>` route.
+#[tokio::test]
+async fn wallpaper_from_a_pasted_image_persists_across_restarts() {
+    let _guard = HOME_LOCK.lock();
+    isolate_home();
+    let mut app = App::new("/tmp".to_string());
+    app.prompt_view
+        .add_image(test_png_bytes(), "clipboard.png".into(), String::new());
+
+    app.run_slash_command(&slash_cmd("wallpaper"));
+
+    let stored = crate::wallpaper::stored_dir().join("pasted.png");
+    assert!(
+        stored.is_file(),
+        "the image must be copied into the data dir"
+    );
+    assert_eq!(app.setup.appearance.wallpaper, stored.display().to_string());
+
+    let restarted = App::new("/tmp".to_string());
+    assert_eq!(
+        restarted.setup.appearance.wallpaper,
+        stored.display().to_string()
+    );
+    assert!(
+        restarted.wallpaper.is_some(),
+        "the stored copy reloads on boot"
+    );
+}
+
+/// `/wallpaper file:///path.png` (the location form the image paste accepts)
+/// resolves the path and drops any attachment that was already in the draft.
+#[tokio::test]
+async fn wallpaper_command_reads_a_file_url_and_drops_attachments() {
+    let _guard = HOME_LOCK.lock();
+    isolate_home();
+    let dir = tempfile::tempdir().unwrap();
+    let path = dir.path().join("art.png");
+    std::fs::write(&path, test_png_bytes()).unwrap();
+
+    let mut app = App::new("/tmp".to_string());
+    app.prompt_view
+        .set_draft(format!("/wallpaper file://{}", path.display()));
+    app.prompt_view
+        .add_image(test_png_bytes(), "clipboard.png".into(), String::new());
+
+    app.run_slash_command(&slash_cmd("wallpaper"));
+
+    assert_eq!(app.setup.appearance.wallpaper, path.display().to_string());
+    assert!(app.wallpaper.is_some());
+    assert!(!app.prompt_view.has_images());
+}
+
 /// The TODO completion strike-through animation: a todo that flips to
 /// `completed` arms a fresh frame counter (hold 2 frames, sweep 12), repeated
 /// `set_todos` calls with the same list keep it ticking, the already-struck

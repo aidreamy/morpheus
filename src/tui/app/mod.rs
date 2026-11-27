@@ -238,9 +238,8 @@ pub struct App {
     pub add_provider_view: AddProviderView,
     pub show_add_provider: bool,
     pub settings_view: SettingsView,
-    pub download_view: DownloadView,
-    /// The `download` router is open (`/download`).
-    pub show_download: bool,
+    download_view: DownloadView,
+    show_download: bool,
     /// None: agent picker; Some(None): add summarizer; Some(Some(i)): edit.
     pub summarization_model_edit: Option<Option<usize>>,
     /// The focused pane whose per-pane model dialog is open: `Some(pane)`
@@ -875,7 +874,7 @@ impl App {
             add_provider_view: AddProviderView::new(),
             show_add_provider: false,
             settings_view: SettingsView::new(),
-            download_view: DownloadView::new(&setup),
+            download_view: DownloadView::new(),
             show_download: false,
             summarization_model_edit: None,
             pane_model_edit: None,
@@ -1305,6 +1304,16 @@ impl App {
             area.y,
             area.width.saturating_sub(sidebar_w),
             area.height,
+        )
+    }
+
+    fn settings_route_area(&self, terminal: Rect) -> Rect {
+        let main = self.main_content_area(terminal);
+        Rect::new(
+            main.x,
+            main.y.saturating_add(1),
+            main.width,
+            main.height.saturating_sub(4),
         )
     }
 

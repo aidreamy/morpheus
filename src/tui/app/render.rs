@@ -92,8 +92,6 @@ impl App {
         live = live || agent_spinner_live;
         live = live || (self.prompt_correction_active && !agent_spinner_live);
         live = live || self.rag_spinner_active();
-        // An install keeps the frame loop live so its progress bar advances.
-        live = live || self.download_view.is_running();
         live = live || has_active_spinner;
         live = live || has_active_pane_spinner;
         // Free-gateway recommendation: its fake-streaming text advances per
@@ -704,24 +702,14 @@ impl App {
                 }
                 AppMode::Settings => {
                     self.prompt_view.blur();
-                    let settings_area = Rect::new(
-                        session_area.x,
-                        session_area.y,
-                        session_area.width,
-                        session_area.height.saturating_sub(1),
-                    );
+                    let settings_area = self.settings_route_area(area);
                     self.settings_view
                         .render(buf, settings_area, &self.theme, &self.setup);
                 }
                 AppMode::Download => {
                     self.prompt_view.blur();
-                    let download_area = Rect::new(
-                        session_area.x,
-                        session_area.y,
-                        session_area.width,
-                        session_area.height.saturating_sub(1),
-                    );
-                    self.render_download_view(buf, download_area);
+                    let download_area = self.settings_route_area(area);
+                    self.download_view.render(buf, download_area, &self.theme);
                 }
                 AppMode::Router => {
                     self.prompt_view.blur();
@@ -1154,6 +1142,13 @@ impl App {
                     _ => false,
                 };
                 d.login_hover = hover;
+            }
+            if self.download_picker_visible()
+                && let Some(picker) = self.download_view.picker()
+            {
+                picker.cursor.terminal_focused = self.terminal_focused;
+                self.download_view
+                    .render_picker(buf, area, &self.theme, now);
             }
             self.dialog.render(buf, area, &self.theme, now);
             // The /agents picker renders above every modal panel (a

@@ -12,7 +12,7 @@ edition = "2024"
 [features]
 default = []
 lancedb = ["dep:lancedb", "dep:arrow-array", "dep:arrow-schema", "dep:futures"]
-fastembed = ["dep:fastembed"]
+fastembed = ["dep:fastembed", "dep:hf-hub"]
 cloud = ["dep:aiface"]
 
 [dependencies]
@@ -27,6 +27,7 @@ serde = { version = "1", features = ["derive"] }
 # `ort =2.0.0-rc.13` (features ndarray, std, api-24), which is the exact
 # configuration morpheus-onnx uses, so a single ort build serves both.
 fastembed = { version = "7", optional = true }
+hf-hub = { version = "0.5", optional = true, default-features = false }
 
 # Vector database
 lancedb = { version = "0.30", optional = true }

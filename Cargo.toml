@@ -19,7 +19,7 @@ onnx = ["dep:morpheus-onnx"]
 # Local voice output (`src/speak`). Gates `sherpa-onnx`, which statically
 # links ONNX Runtime, out of the default build for the same reason `onnx`
 # exists: a plain build must not carry the runtime.
-speak = ["dep:sherpa-onnx"]
+speak = ["dep:sherpa-onnx", "dep:tempfile"]
 # The advanced text frontend: `piper-phonemize` (espeak-ng) phonemizes in
 # Rust for the Kokoro languages sherpa-onnx ships no lexicon for (pt-br,
 # es, fr, ...). That crate is GPL-3.0-or-later and adds an espeak-ng
@@ -152,6 +152,7 @@ reqwest = { version = "0.13", features = ["json", "blocking"] }
 # default feature is the pure-Rust decoder (no system libbz2 to link).
 tar = "0.4"
 bzip2 = "0.6"
+tempfile = { version = "3", optional = true }
 crossterm = { version = "0.29", features = ["bracketed-paste"] }
 directories = "6.0.0"
 regex = "1"

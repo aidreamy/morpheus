@@ -1,13 +1,6 @@
-//! Downloading a Kokoro bundle into the local model cache.
-//!
-//! The release page only ships `.tar.bz2` archives, one per published bundle.
-//! [`download`] streams the archive to a temporary file beside the cache,
-//! extracts it and verifies the resulting directory with
-//! [`crate::speak::is_complete`], so a broken transfer never looks installed.
-//! The bundle directory name is what the engine maps to a voice table, which
-//! is why the archive is unpacked under its own name.
+//! Install published Kokoro bundles into the local model cache.
 
-use std::fs::File;
+use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Write};
 use std::path::{Path, PathBuf};
 
@@ -16,6 +9,7 @@ use bzip2::read::BzDecoder;
 use crate::speak::voice;
 
 /// One published bundle the router can fetch.
+#[derive(PartialEq, Eq)]
 pub struct Bundle {
     /// Archive stem and the installed directory name.
     pub dir: &'static str,
@@ -61,36 +55,57 @@ impl Bundle {
 
 /// Fetch `bundle` into `models` and return the installed directory.
 ///
-/// `progress` receives `(downloaded_bytes, total_bytes)` while the archive
-/// streams in; `total` is 0 when the server sends no content length. The
-/// archive only becomes visible under its final name after extraction, and a
-/// failed unpack removes whatever it wrote, so an interrupted run never leaves
-/// a directory that [`Bundle::is_installed`] would accept.
+/// `progress` receives `(downloaded_bytes, total_bytes)`, with zero for an unknown total.
 pub fn download(
     bundle: &Bundle,
     models: &Path,
     mut progress: impl FnMut(u64, u64),
 ) -> Result<PathBuf, String> {
-    std::fs::create_dir_all(models)
-        .map_err(|e| format!("could not create the model cache: {e}"))?;
-    let archive = models.join(format!(".{}.tar.bz2.part", bundle.dir));
+    install_bundle(bundle, models, |archive| {
+        fetch(bundle, archive, &mut progress)
+    })
+}
+
+fn install_bundle(
+    bundle: &Bundle,
+    models: &Path,
+    fetch_archive: impl FnOnce(&Path) -> Result<(), String>,
+) -> Result<PathBuf, String> {
+    fs::create_dir_all(models).map_err(|e| format!("could not create the model cache: {e}"))?;
+
+    let lock = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(models.join(format!(".{}.lock", bundle.dir)))
+        .map_err(|e| format!("could not open the bundle lock: {e}"))?;
+    lock.lock()
+        .map_err(|e| format!("could not lock the voice bundle: {e}"))?;
+
     let dest = models.join(bundle.dir);
-    let result = fetch(bundle, &archive, &mut progress).and_then(|()| {
-        // A previous half-extracted directory is replaced, never merged with.
-        let _ = std::fs::remove_dir_all(&dest);
-        unpack(&archive, models).and_then(|()| {
-            if voice::is_complete(&dest) {
-                Ok(())
-            } else {
-                Err("the downloaded archive is missing the bundle files".to_string())
-            }
-        })
-    });
-    let _ = std::fs::remove_file(&archive);
-    if let Err(reason) = result {
-        let _ = std::fs::remove_dir_all(&dest);
-        return Err(reason);
+    if voice::is_complete(&dest) {
+        return Ok(dest);
     }
+
+    let staging = tempfile::tempdir_in(models)
+        .map_err(|e| format!("could not stage the voice bundle: {e}"))?;
+    let archive = staging.path().join("bundle.tar.bz2");
+    fetch_archive(&archive)?;
+    unpack(&archive, staging.path())?;
+    let extracted = staging.path().join(bundle.dir);
+    if !voice::is_complete(&extracted) {
+        return Err("the downloaded archive is missing the bundle files".into());
+    }
+
+    if let Err(error) = fs::remove_dir_all(&dest)
+        && error.kind() != std::io::ErrorKind::NotFound
+    {
+        return Err(format!(
+            "could not replace the incomplete voice bundle: {error}"
+        ));
+    }
+    fs::rename(extracted, &dest).map_err(|e| format!("could not install the voice bundle: {e}"))?;
     Ok(dest)
 }
 
@@ -181,6 +196,26 @@ mod tests {
                 )
             );
         }
+    }
+
+    #[test]
+    fn invalid_archive_preserves_an_existing_bundle_directory() {
+        let models = tempfile::tempdir().unwrap();
+        let bundle = &BUNDLES[0];
+        let dest = models.path().join(bundle.dir);
+        fs::create_dir(&dest).unwrap();
+        fs::write(dest.join("tokens.txt"), b"existing tokens").unwrap();
+
+        let result = install_bundle(bundle, models.path(), |archive| {
+            fs::write(archive, b"invalid archive").unwrap();
+            Ok(())
+        });
+
+        assert!(result.is_err());
+        assert_eq!(
+            fs::read(dest.join("tokens.txt")).unwrap(),
+            b"existing tokens"
+        );
     }
 
     #[test]

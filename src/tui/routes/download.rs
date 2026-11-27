@@ -1,386 +1,496 @@
-//! Download router — the single place that fetches local models.
-//!
-//! One `Models` section lists everything the build can run locally: the Kokoro
-//! voice bundles (`speak`), the termination-checkup checkpoint (`onnx`) and the
-//! embedding models the knowledge bases use (`embed`). Each row reports whether
-//! its files are already on disk; Enter starts the download on a worker thread
-//! and the footer shows live progress, so a slow transfer never blocks the
-//! render loop or the chat.
+//! The /download route and its searchable local model picker.
 
-use std::sync::mpsc::Receiver;
+use std::sync::mpsc::{Receiver, TryRecvError};
+use std::time::SystemTime;
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::Style;
+use unicode_width::UnicodeWidthStr;
 
-use morpheus_tui::core::types::MouseEvent;
-
+use crate::component::list_dialog::{self, FilterState, ListBoxLayout, ListRow, MouseHit};
 use crate::theme::{Theme, rgba_color};
-use crate::util::draw::{draw_section_bottom, draw_section_top, draw_text_line};
+use crate::util::draw::{
+    SECTION_ITEM_INDENT, SECTION_PAD, draw_section_bottom, draw_section_top, draw_section_walls,
+    draw_text_line_compact, wrap_words,
+};
 use crate::util::list_selection::ListSelection;
+use morpheus::setup::Setup;
 
-/// Lines each row occupies: the model name and its description.
-const ROW_LINES: u16 = 2;
-/// Top contour row of the bordered section.
-const SECTION_TOP: u16 = 1;
-/// A row never spans the whole terminal, so long descriptions stay readable.
-const CONTENT_WIDTH: u16 = 78;
+const SECTION_TITLE: &str = "Models";
+const EMPTY_MESSAGE: &str = "This build has no local models to download.";
+const STATUS_WIDTH: usize = "downloading 100%".len();
 
-/// Which local model a row installs.
-#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+#[derive(Clone, PartialEq, Eq)]
 pub enum DownloadKind {
-    /// A published Kokoro bundle, by directory name.
     #[cfg(feature = "speak")]
-    Voice(&'static str),
-    /// The configured termination-checkup checkpoint.
+    TextToSpeech(&'static morpheus::speak::install::Bundle),
     #[cfg(feature = "onnx")]
-    Decision,
-    /// A local embedding model.
+    Decision(morpheus::weights::WeightsTarget),
     #[cfg(feature = "embed")]
-    Embed(morpheus_recall::embed::LocalEmbedModel),
+    Embedding(morpheus_recall::embed::LocalEmbedModel),
 }
 
-/// What the worker thread reports back to the router.
+pub type DownloadResult = Result<Option<(String, String)>, String>;
+
+#[cfg_attr(not(any(feature = "speak", feature = "onnx")), allow(dead_code))]
 pub enum DownloadEvent {
-    Progress {
-        done: u64,
-        total: u64,
-    },
-    /// The files are installed. `repo`/`revision` are set for the decision
-    /// checkpoint, whose mirror pin the app records when the install lands.
-    Finished {
-        repo: Option<String>,
-        revision: Option<String>,
-    },
-    Failed(String),
+    Progress { done: u64, total: u64 },
+    Finished(DownloadResult),
 }
 
-/// One row of the `Models` section.
-struct DownloadItem {
-    label: String,
+pub struct DownloadModel {
+    pub label: String,
+    pub installed: bool,
+    pub kind: DownloadKind,
     detail: String,
-    installed: bool,
-    kind: DownloadKind,
 }
 
-/// The router's state: the item list, the row cursor and at most one
-/// in-flight download.
-pub struct DownloadView {
-    pub selection: ListSelection,
-    items: Vec<DownloadItem>,
-    /// Index of the row whose download is running.
-    active: Option<usize>,
-    active_label: Option<String>,
+struct DownloadCategory {
+    title: &'static str,
+    description: &'static str,
+    models: Vec<DownloadModel>,
+}
+
+struct DownloadJob {
+    kind: DownloadKind,
+    label: String,
+    events: Receiver<DownloadEvent>,
     progress: Option<(u64, u64)>,
-    receiver: Option<Receiver<DownloadEvent>>,
+}
+
+pub struct DownloadView {
+    selection: ListSelection,
+    categories: Vec<DownloadCategory>,
+    picker: Option<FilterState>,
+    job: Option<DownloadJob>,
 }
 
 impl DownloadView {
-    pub fn new(setup: &morpheus::setup::Setup) -> Self {
+    pub fn new() -> Self {
         Self {
             selection: ListSelection::new(),
-            items: build_items(setup),
-            active: None,
-            active_label: None,
-            progress: None,
-            receiver: None,
+            categories: Vec::new(),
+            picker: None,
+            job: None,
         }
     }
 
-    /// Rebuild the rows from the current configuration and files on disk.
-    /// Called when the router opens and after every finished download.
-    pub fn refresh(&mut self, setup: &morpheus::setup::Setup) {
-        self.items = build_items(setup);
-        self.selection.clamp(self.items.len());
-    }
-
-    pub fn select_next(&mut self, visible: usize) {
-        self.selection.set_visible_count(visible);
-        self.selection.select_next(self.items.len());
-    }
-
-    pub fn select_prev(&mut self, visible: usize) {
-        self.selection.set_visible_count(visible);
-        self.selection.select_prev(self.items.len());
-    }
-
-    /// The model under the cursor, with the row's install state.
-    pub fn selected(&self) -> Option<(DownloadKind, bool)> {
-        self.items
-            .get(self.selection.selected_index)
-            .map(|item| (item.kind, item.installed))
-    }
-
-    /// Label under the cursor, for the app's toasts.
-    pub fn selected_label(&self) -> Option<&str> {
-        self.items
-            .get(self.selection.selected_index)
-            .map(|item| item.label.as_str())
-    }
-
-    pub const fn is_running(&self) -> bool {
-        self.receiver.is_some()
-    }
-
-    /// The model being downloaded, for the app's toasts.
-    pub fn active_label(&self) -> Option<&str> {
-        self.active_label.as_deref()
-    }
-
-    /// Attach the worker's event channel and mark `kind` as the active row.
-    pub fn start(&mut self, kind: DownloadKind, receiver: Receiver<DownloadEvent>) {
-        self.active = self.items.iter().position(|item| item.kind == kind);
-        self.active_label = self
-            .active
-            .and_then(|index| self.items.get(index))
-            .map(|item| item.label.clone());
-        self.progress = None;
-        self.receiver = Some(receiver);
-    }
-
-    /// Drain the worker's events; the caller reacts to them (toasts, mirror
-    /// pin) and calls [`Self::refresh`] on completion.
-    pub fn poll(&mut self) -> Vec<DownloadEvent> {
-        let Some(receiver) = self.receiver.as_ref() else {
-            return Vec::new();
-        };
-        let mut events = Vec::new();
-        loop {
-            match receiver.try_recv() {
-                Ok(event) => {
-                    if let DownloadEvent::Progress { done, total } = &event {
-                        self.progress = Some((*done, *total));
-                    }
-                    events.push(event);
-                }
-                Err(std::sync::mpsc::TryRecvError::Empty) => break,
-                Err(std::sync::mpsc::TryRecvError::Disconnected) => {
-                    // A panicked worker must not leave the router stuck on
-                    // "downloading" forever.
-                    if !events
-                        .iter()
-                        .any(|event| !matches!(event, DownloadEvent::Progress { .. }))
-                    {
-                        events.push(DownloadEvent::Failed(
-                            "the download stopped unexpectedly".into(),
-                        ));
-                    }
-                    break;
-                }
-            }
-        }
-        if events
+    pub fn refresh(&mut self, setup: &Setup) {
+        let title = self.category().map(|category| category.title);
+        self.categories = build_categories(setup);
+        if let Some(index) = self
+            .categories
             .iter()
-            .any(|event| !matches!(event, DownloadEvent::Progress { .. }))
+            .position(|category| Some(category.title) == title)
         {
-            self.receiver = None;
-            self.active = None;
-            self.active_label = None;
-            self.progress = None;
+            self.selection.selected_index = index;
+        } else {
+            self.picker = None;
         }
-        events
+        self.selection.clamp(self.categories.len());
+
+        if let Some(picker) = &self.picker {
+            let selected = picker.clamped(self.matching_count());
+            self.select_row(selected);
+        }
     }
 
-    /// Geometry shared by render and mouse dispatch: the content column and
-    /// the first row's top.
-    fn body(&self, area: Rect) -> (u16, u16, u16) {
-        let width = area.width.min(CONTENT_WIDTH);
-        let x = area.x + area.width.saturating_sub(width) / 2;
-        (x, width, area.y + SECTION_TOP)
+    pub fn select_next(&mut self) {
+        let count = self.matching_count();
+        if let Some(picker) = &mut self.picker {
+            picker.select_next(count);
+        } else {
+            self.selection.select_next(self.categories.len());
+        }
     }
 
-    /// Rows that fit above the progress footer and the bottom contour.
-    fn visible_rows(&self, area: Rect) -> usize {
-        area.height
-            .saturating_sub(SECTION_TOP + 1 + 1)
-            .saturating_div(ROW_LINES) as usize
+    pub fn select_prev(&mut self) {
+        let count = self.matching_count();
+        if let Some(picker) = &mut self.picker {
+            picker.select_prev(count);
+        } else {
+            self.selection.select_prev(self.categories.len());
+        }
     }
 
-    /// The row under the pointer, when the click lands inside the content
-    /// column.
-    pub fn handle_mouse(&self, mouse: &MouseEvent, area: Rect) -> Option<usize> {
-        let (x, width, top) = self.body(area);
-        if mouse.x < x || mouse.x >= x + width || mouse.y < top {
-            return None;
+    pub fn select_row(&mut self, index: usize) {
+        if let Some(picker) = &mut self.picker {
+            picker.selected = index;
+        } else {
+            self.selection.selected_index = index;
         }
-        let row = self.selection.scroll_offset + ((mouse.y - top) / ROW_LINES) as usize;
-        (row < self.items.len()).then_some(row)
     }
 
-    pub fn render(&mut self, buf: &mut Buffer, area: Rect, theme: &Theme) {
-        let (x, width, top) = self.body(area);
-        if width == 0 || area.height <= SECTION_TOP {
-            return;
-        }
-        let fg = rgba_color(theme.text);
-        let muted = rgba_color(theme.text_muted);
-        let primary = rgba_color(theme.primary);
-        let installed = rgba_color(theme.success);
+    pub fn picker(&mut self) -> Option<&mut FilterState> {
+        self.picker.as_mut()
+    }
 
-        draw_section_top(
-            buf,
-            x,
-            area.y,
-            width,
-            "Models",
-            Style::default().fg(fg),
-            Style::default().fg(muted),
-        );
+    pub fn is_picker_open(&self) -> bool {
+        self.picker.is_some()
+    }
 
-        let visible = self.visible_rows(area);
-        self.selection.set_visible_count(visible);
-        self.selection.clamp(self.items.len());
-        if self.items.is_empty() {
-            draw_text_line(
-                buf,
-                "This build has no local models to download.",
-                x,
-                top,
-                width,
-                Style::default().fg(muted),
-            );
-            return;
-        }
-        for (offset, index) in (self.selection.scroll_offset
-            ..(self.selection.scroll_offset + visible).min(self.items.len()))
-            .enumerate()
+    pub fn open_picker(&mut self) {
+        if self
+            .category()
+            .is_some_and(|category| !category.models.is_empty())
         {
-            let item = &self.items[index];
-            let y = top + offset as u16 * ROW_LINES;
-            let selected = index == self.selection.selected_index;
-            let marker = if selected { "🞴 " } else { "  " };
-            draw_text_line(
-                buf,
-                &format!("{marker}{}", item.label),
-                x,
-                y,
-                width,
-                Style::default().fg(if selected { primary } else { fg }),
-            );
-            let status = if self.active == Some(index) {
-                "downloading"
-            } else if item.installed {
-                "installed"
-            } else {
-                "not installed"
-            };
-            // Right-aligned state, measured from the same text the label
-            // draws so a long label never collides with it.
-            let label_w = marker.chars().count() + item.label.chars().count();
-            let status_x = x + width.saturating_sub(status.chars().count() as u16);
-            if label_w < (status_x - x) as usize {
-                draw_text_line(
-                    buf,
-                    status,
-                    status_x,
-                    y,
-                    width,
-                    Style::default().fg(if item.installed { installed } else { muted }),
-                );
-            }
-            draw_text_line(
-                buf,
-                &format!("    {}", item.detail),
-                x,
-                y + 1,
-                width,
-                Style::default().fg(muted),
-            );
-        }
-
-        let bottom_y = top + (visible as u16 * ROW_LINES);
-        if bottom_y < area.bottom() {
-            draw_section_bottom(buf, x, bottom_y, width, Style::default().fg(muted));
-        }
-
-        if let Some((done, total)) = self.progress {
-            let pct = done
-                .min(total)
-                .checked_mul(100)
-                .and_then(|scaled| scaled.checked_div(total))
-                .unwrap_or(0) as u8;
-            let bar = crate::component::budget::render_budget_bar(pct);
-            let mb = |bytes: u64| bytes / (1024 * 1024);
-            let line = format!(
-                "downloading {bar} {pct:>3}% · {}/{} MB",
-                mb(done),
-                mb(total)
-            );
-            draw_text_line(
-                buf,
-                &truncate(&line, width as usize),
-                x,
-                area.bottom().saturating_sub(1),
-                width,
-                Style::default().fg(primary),
-            );
+            self.picker = Some(FilterState::new());
         }
     }
-}
 
-fn truncate(text: &str, width: usize) -> String {
-    text.chars().take(width).collect()
-}
-
-/// The rows this build supports, in section order.
-fn build_items(setup: &morpheus::setup::Setup) -> Vec<DownloadItem> {
-    let _ = setup;
-    #[cfg(not(any(feature = "speak", feature = "onnx", feature = "embed")))]
-    {
-        return Vec::new();
+    pub fn close_picker(&mut self) -> bool {
+        self.picker.take().is_some()
     }
+
     #[cfg(any(feature = "speak", feature = "onnx", feature = "embed"))]
-    {
-        let mut items = Vec::new();
-        #[cfg(feature = "speak")]
+    pub fn selected_model(&self) -> Option<&DownloadModel> {
+        let picker = self.picker.as_ref()?;
+        self.matching_models(picker).nth(picker.selected)
+    }
+
+    #[cfg(any(feature = "speak", feature = "onnx", feature = "embed"))]
+    pub fn is_running(&self) -> bool {
+        self.job.is_some()
+    }
+
+    #[cfg(any(feature = "speak", feature = "onnx", feature = "embed"))]
+    pub fn start(&mut self, kind: DownloadKind, label: String, events: Receiver<DownloadEvent>) {
+        self.job = Some(DownloadJob {
+            kind,
+            label,
+            events,
+            progress: None,
+        });
+    }
+
+    pub fn poll(&mut self) -> Option<(String, DownloadResult)> {
+        let job = self.job.as_mut()?;
+        let result = loop {
+            match job.events.try_recv() {
+                Ok(DownloadEvent::Progress { done, total }) => job.progress = Some((done, total)),
+                Ok(DownloadEvent::Finished(result)) => break result,
+                Err(TryRecvError::Empty) => return None,
+                Err(TryRecvError::Disconnected) => {
+                    break Err("the download stopped unexpectedly".into());
+                }
+            }
+        };
+        self.job.take().map(|job| (job.label, result))
+    }
+
+    pub fn hit_test(&self, x: u16, y: u16, area: Rect) -> MouseHit {
+        if let Some(picker) = &self.picker {
+            let count = self.matching_models(picker).count();
+            let Some(layout) = picker_layout(picker, count, area) else {
+                return MouseHit::Outside;
+            };
+            return match list_dialog::hit_test(&layout, x, y) {
+                MouseHit::Row(index) if index >= count => MouseHit::Inside,
+                hit => hit,
+            };
+        }
+
+        let layout = self.layout(area);
+        if x < layout.section.x.saturating_add(SECTION_PAD)
+            || x >= layout.section.right().saturating_sub(SECTION_PAD)
         {
-            let models = morpheus::speak::models_dir();
-            for bundle in morpheus::speak::install::BUNDLES {
-                items.push(DownloadItem {
-                    label: format!("{} · {} voices", bundle.label, bundle.voices),
-                    detail: format!("Kokoro speech for {}", bundle.languages),
-                    installed: bundle.is_installed(&models),
-                    kind: DownloadKind::Voice(bundle.dir),
-                });
+            return MouseHit::Outside;
+        }
+        layout
+            .visible_lines()
+            .find_map(|(row_y, line)| match line {
+                Line::Category(index) if y == row_y => Some(MouseHit::Row(*index)),
+                _ => None,
+            })
+            .unwrap_or(MouseHit::Outside)
+    }
+
+    pub fn picker_fits(area: Rect) -> bool {
+        area.width >= 13 && area.height >= 5
+    }
+
+    fn category(&self) -> Option<&DownloadCategory> {
+        self.categories.get(self.selection.selected_index)
+    }
+
+    fn matching_models<'a>(
+        &'a self,
+        picker: &'a FilterState,
+    ) -> impl Iterator<Item = &'a DownloadModel> {
+        self.category()
+            .into_iter()
+            .flat_map(|category| &category.models)
+            .filter(|model| picker.matches(&model.label) || picker.matches(&model.detail))
+    }
+
+    fn matching_count(&self) -> usize {
+        self.picker
+            .as_ref()
+            .map_or(0, |picker| self.matching_models(picker).count())
+    }
+
+    fn layout(&self, area: Rect) -> CategoryLayout {
+        let content_width = self
+            .categories
+            .iter()
+            .map(|category| {
+                category.description.width().max(
+                    usize::from(SECTION_ITEM_INDENT) + category.title.width() + 2 + STATUS_WIDTH,
+                )
+            })
+            .max()
+            .unwrap_or_else(|| EMPTY_MESSAGE.width());
+        let width = (content_width + 2 * SECTION_PAD as usize).min(area.width as usize) as u16;
+        let inner_width = width.saturating_sub(2 * SECTION_PAD) as usize;
+        let mut lines = vec![Line::Title, Line::SectionTop];
+        let mut selected_line = 0;
+        if self.categories.is_empty() {
+            lines.extend(
+                wrap_words(EMPTY_MESSAGE, inner_width)
+                    .into_iter()
+                    .map(Line::Description),
+            );
+        }
+        for (index, category) in self.categories.iter().enumerate() {
+            if index > 0 {
+                lines.push(Line::Blank);
+            }
+            lines.extend(
+                wrap_words(category.description, inner_width)
+                    .into_iter()
+                    .map(Line::Description),
+            );
+            if index == self.selection.selected_index {
+                selected_line = lines.len();
+            }
+            lines.push(Line::Category(index));
+        }
+        lines.push(Line::SectionBottom);
+
+        let height = area.height.min(lines.len() as u16);
+        let first_line = selected_line
+            .saturating_sub(usize::from(height.saturating_sub(2)))
+            .min(lines.len().saturating_sub(height as usize));
+        CategoryLayout {
+            section: Rect::new(
+                area.x + (area.width - width) / 2,
+                area.y + (area.height - height) / 2,
+                width,
+                height,
+            ),
+            lines,
+            first_line,
+        }
+    }
+
+    pub fn render(&self, buf: &mut Buffer, area: Rect, theme: &Theme) {
+        let fg = Style::default().fg(rgba_color(theme.text));
+        let muted = Style::default().fg(rgba_color(theme.text_muted));
+        let primary = Style::default().fg(rgba_color(theme.primary));
+        let layout = self.layout(area);
+        let section = layout.section;
+        let x = section.x + SECTION_PAD.min(section.width);
+        let inner_width = section.width.saturating_sub(2 * SECTION_PAD) as usize;
+
+        for (y, line) in layout.visible_lines() {
+            if matches!(line, Line::Blank | Line::Description(_) | Line::Category(_)) {
+                draw_section_walls(buf, section.x, y, section.width, muted);
+            }
+            match line {
+                Line::Title => {
+                    buf.set_stringn(x, y, "Download", inner_width, muted);
+                }
+                Line::SectionTop => {
+                    draw_section_top(buf, section.x, y, section.width, SECTION_TITLE, fg, muted);
+                }
+                Line::SectionBottom => {
+                    draw_section_bottom(buf, section.x, y, section.width, muted);
+                }
+                Line::Blank => {}
+                Line::Description(text) => {
+                    buf.set_stringn(x, y, text, inner_width, muted);
+                }
+                Line::Category(index) => {
+                    let category = &self.categories[*index];
+                    let style = if *index == self.selection.selected_index {
+                        primary
+                    } else {
+                        fg
+                    };
+                    let label = format!("{}: {}", category.title, self.category_status(category));
+                    let label_width = inner_width.saturating_sub(SECTION_ITEM_INDENT as usize);
+                    buf.set_stringn(
+                        x.saturating_add(SECTION_ITEM_INDENT),
+                        y,
+                        label,
+                        label_width,
+                        style,
+                    );
+                }
             }
         }
-        #[cfg(feature = "onnx")]
+    }
+
+    fn category_status(&self, category: &DownloadCategory) -> String {
+        if let Some(job) = &self.job
+            && category.models.iter().any(|model| model.kind == job.kind)
         {
-            use morpheus::weights;
-            if let Some(target) =
-                weights::resolve_target(&setup.decision.model, &setup.decision.hub)
-            {
-                items.push(DownloadItem {
-                    label: format!("{} · termination checkup", target.display_name),
-                    detail: "Local decision model that reviews ambiguous loop stops".to_string(),
-                    installed: weights::is_cached(&target),
-                    kind: DownloadKind::Decision,
-                });
-            }
+            return download_status(job.progress);
         }
-        #[cfg(feature = "embed")]
-        {
-            for model in embedding_models() {
-                items.push(DownloadItem {
-                    label: model.label(),
-                    detail: "Local embeddings for the knowledge bases".to_string(),
-                    installed: morpheus_recall::embed::local_model_installed(
-                        model.to_fastembed_model(),
-                    ),
-                    kind: DownloadKind::Embed(model),
-                });
-            }
+        let installed = category
+            .models
+            .iter()
+            .filter(|model| model.installed)
+            .count();
+        match category.models.len() {
+            1 if installed == 1 => "installed".into(),
+            1 => "not installed".into(),
+            total => format!("{installed}/{total} installed"),
         }
-        items
+    }
+
+    pub fn render_picker(&self, buf: &mut Buffer, area: Rect, theme: &Theme, now: SystemTime) {
+        let (Some(picker), Some(category)) = (&self.picker, self.category()) else {
+            return;
+        };
+        let rows: Vec<_> = self
+            .matching_models(picker)
+            .map(|model| self.model_row(model))
+            .collect();
+        let Some(layout) = picker_layout(picker, rows.len(), area) else {
+            return;
+        };
+        let title = format!("{} models", category.title);
+        list_dialog::render_chrome(buf, &layout, theme, now, picker, &title, None);
+        if rows.is_empty() {
+            draw_text_line_compact(
+                buf,
+                "No matching models",
+                layout.x + 1,
+                layout.list_top(),
+                layout.width.saturating_sub(2),
+                Style::default().fg(rgba_color(theme.text_muted)),
+            );
+        } else {
+            list_dialog::render_rows(buf, &layout, theme, &rows, picker.clamped(rows.len()));
+        }
+    }
+
+    fn model_row(&self, model: &DownloadModel) -> ListRow {
+        let status = match &self.job {
+            Some(job) if job.kind == model.kind => download_status(job.progress),
+            _ if model.installed => "installed".into(),
+            _ => "not installed".into(),
+        };
+        let mut detail = format!("  ·  {status}");
+        if !model.detail.is_empty() {
+            detail.push_str(" · ");
+            detail.push_str(&model.detail);
+        }
+        ListRow::item(&model.label, detail, model.installed)
     }
 }
 
-/// The local embedding models the knowledge bases actually use, without
-/// duplicates; the default model stands in when no base is configured.
+fn picker_layout(picker: &FilterState, count: usize, area: Rect) -> Option<ListBoxLayout> {
+    DownloadView::picker_fits(area).then(|| {
+        picker.layout(
+            picker.clamped(count),
+            count,
+            usize::MAX,
+            50,
+            30,
+            area,
+            false,
+            true,
+        )
+    })
+}
+
+struct CategoryLayout {
+    section: Rect,
+    lines: Vec<Line>,
+    first_line: usize,
+}
+
+impl CategoryLayout {
+    fn visible_lines(&self) -> impl Iterator<Item = (u16, &Line)> {
+        (self.section.y..self.section.bottom()).zip(self.lines.iter().skip(self.first_line))
+    }
+}
+
+enum Line {
+    Title,
+    SectionTop,
+    SectionBottom,
+    Blank,
+    Description(String),
+    Category(usize),
+}
+
+fn download_status(progress: Option<(u64, u64)>) -> String {
+    match progress {
+        Some((done, total)) if total > 0 => {
+            let percent = u128::from(done.min(total)) * 100 / u128::from(total);
+            format!("downloading {percent}%")
+        }
+        Some((done, _)) => format!("downloading {} MiB", done / (1024 * 1024)),
+        None => "downloading".into(),
+    }
+}
+
+fn build_categories(_setup: &Setup) -> Vec<DownloadCategory> {
+    let categories: [Option<DownloadCategory>; _] = [
+        #[cfg(feature = "speak")]
+        Some(text_to_speech_category()),
+        #[cfg(feature = "onnx")]
+        decision_category(_setup),
+        #[cfg(feature = "embed")]
+        Some(embedding_category()),
+    ];
+    categories.into_iter().flatten().collect()
+}
+
+#[cfg(feature = "speak")]
+fn text_to_speech_category() -> DownloadCategory {
+    let models_dir = morpheus::speak::models_dir();
+    DownloadCategory {
+        title: "Text-to-speech",
+        description: "Kokoro bundles with model weights and speaker data",
+        models: morpheus::speak::install::BUNDLES
+            .iter()
+            .map(|bundle| DownloadModel {
+                label: bundle.label.into(),
+                detail: format!("{} voices, {}", bundle.voices, bundle.languages),
+                installed: bundle.is_installed(&models_dir),
+                kind: DownloadKind::TextToSpeech(bundle),
+            })
+            .collect(),
+    }
+}
+
+#[cfg(feature = "onnx")]
+fn decision_category(setup: &Setup) -> Option<DownloadCategory> {
+    use morpheus::weights;
+
+    let target = weights::resolve_target(&setup.decision.model, &setup.decision.hub)?;
+    Some(DownloadCategory {
+        title: "Decision",
+        description: "Answer questions about structured data",
+        models: vec![DownloadModel {
+            label: target.display_name.clone(),
+            detail: String::new(),
+            installed: weights::is_cached(&target),
+            kind: DownloadKind::Decision(target),
+        }],
+    })
+}
+
 #[cfg(feature = "embed")]
-fn embedding_models() -> Vec<morpheus_recall::embed::LocalEmbedModel> {
+fn embedding_category() -> DownloadCategory {
     use crate::routes::rag::models::EmbedderConfig;
     use crate::routes::rag::registry::RagRegistry;
+    use morpheus_recall::embed::{LocalEmbedModel, local_model_installed};
 
     let mut models = Vec::new();
     for db in RagRegistry::load().dbs {
@@ -391,7 +501,150 @@ fn embedding_models() -> Vec<morpheus_recall::embed::LocalEmbedModel> {
         }
     }
     if models.is_empty() {
-        models.push(morpheus_recall::embed::LocalEmbedModel::AllMiniLML6V2);
+        models.push(LocalEmbedModel::AllMiniLML6V2);
     }
-    models
+    DownloadCategory {
+        title: "Embedding",
+        description: "Encode text as vectors for similarity search",
+        models: models
+            .into_iter()
+            .map(|model| DownloadModel {
+                label: model.label(),
+                detail: String::new(),
+                installed: local_model_installed(model.to_fastembed_model()),
+                kind: DownloadKind::Embedding(model),
+            })
+            .collect(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::theme::ThemeRegistry;
+
+    #[test]
+    fn selected_category_is_visible_and_clickable_in_a_short_view() {
+        let mut view = DownloadView::new();
+        view.categories = ["Text-to-speech", "Decision", "Embedding"]
+            .into_iter()
+            .map(|title| DownloadCategory {
+                title,
+                description: "Local models for the selected type",
+                models: Vec::new(),
+            })
+            .collect();
+        view.select_prev();
+        let area = Rect::new(2, 1, 52, 4);
+        let mut buf = Buffer::empty(area);
+        let registry = ThemeRegistry::new();
+        let theme = registry.default_theme();
+        view.render(&mut buf, area, theme);
+
+        let (x, y) = (area.y..area.bottom())
+            .flat_map(|y| (area.x..area.right()).map(move |x| (x, y)))
+            .find(|&(x, y)| {
+                let cell = &buf[(x, y)];
+                cell.symbol() == "E" && cell.fg == rgba_color(theme.primary)
+            })
+            .expect("the selected Embedding row is visible");
+        assert_eq!(
+            buf[(x - SECTION_PAD - SECTION_ITEM_INDENT, y)].symbol(),
+            "│"
+        );
+        assert_eq!(buf[(x - 2, y)].symbol(), " ");
+        assert_eq!(buf[(x - 1, y)].symbol(), " ");
+        assert_eq!(view.hit_test(x, y, area), MouseHit::Row(2));
+        assert_eq!(view.hit_test(x, y - 1, area), MouseHit::Outside);
+        assert!((area.x..area.right()).any(|x| buf[(x, area.bottom() - 1)].symbol() == "╯"));
+    }
+
+    #[test]
+    fn progress_handles_unknown_totals_and_large_downloads() {
+        assert_eq!(download_status(None), "downloading");
+        assert_eq!(
+            download_status(Some((2 * 1024 * 1024, 0))),
+            "downloading 2 MiB"
+        );
+        assert_eq!(
+            download_status(Some((u64::MAX, u64::MAX))),
+            "downloading 100%"
+        );
+        assert_eq!(download_status(Some((200, 100))), "downloading 100%");
+    }
+
+    #[cfg(feature = "speak")]
+    #[test]
+    fn picker_keeps_the_categories_visible_around_it() {
+        let mut view = DownloadView::new();
+        view.categories = vec![
+            text_to_speech_category(),
+            DownloadCategory {
+                title: "Embedding",
+                description: "Encode text as vectors for similarity search",
+                models: Vec::new(),
+            },
+        ];
+        let area = Rect::new(0, 0, 120, 24);
+        let route_area = Rect::new(32, 1, 88, 20);
+        let registry = ThemeRegistry::new();
+        let theme = registry.default_theme();
+
+        let mut background = Buffer::empty(area);
+        view.render(&mut background, route_area, theme);
+        view.open_picker();
+
+        for query in [String::new(), "x".repeat(48)] {
+            view.picker().unwrap().filter = query;
+            let count = view.matching_count();
+            let layout = picker_layout(view.picker().unwrap(), count, area).unwrap();
+            let mut frame = Buffer::empty(area);
+            view.render(&mut frame, route_area, theme);
+            view.render_picker(&mut frame, area, theme, SystemTime::UNIX_EPOCH);
+
+            let (header_x, header_y, _) = layout.header();
+            let expected_title = "Text-to-speech models";
+            let title: String = (header_x..header_x + expected_title.len() as u16)
+                .map(|x| frame[(x, header_y)].symbol())
+                .collect();
+            assert_eq!(title, expected_title);
+            let overlay = layout.rect();
+            for y in area.y..area.bottom() {
+                for x in area.x..area.right() {
+                    if !overlay.contains((x, y).into()) {
+                        assert_eq!(frame[(x, y)], background[(x, y)], "cell at {x}, {y}");
+                    }
+                }
+            }
+        }
+    }
+
+    #[cfg(feature = "speak")]
+    #[test]
+    fn picker_filters_and_hit_tests_through_the_shared_layout() {
+        let mut view = DownloadView::new();
+        view.categories = vec![text_to_speech_category()];
+        view.open_picker();
+        let picker = view.picker().unwrap();
+        for ch in "portuguese".chars() {
+            picker.push_char(ch);
+        }
+        assert_eq!(view.selected_model().unwrap().label, "Kokoro v1.0");
+
+        let area = Rect::new(5, 2, 60, 8);
+        let layout = picker_layout(view.picker().unwrap(), 1, area).unwrap();
+        assert_eq!(
+            view.hit_test(layout.x + 1, layout.list_top(), area),
+            MouseHit::Row(0)
+        );
+        view.picker().unwrap().push_char('z');
+        assert!(view.selected_model().is_none());
+        assert_eq!(
+            view.hit_test(layout.x + 1, layout.list_top(), area),
+            MouseHit::Inside
+        );
+        assert!(view.close_picker());
+        view.open_picker();
+        assert!(view.picker().unwrap().filter.is_empty());
+    }
 }

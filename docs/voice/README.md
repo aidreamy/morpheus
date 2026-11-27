@@ -12,7 +12,8 @@ how to configure everything through `setup.json` without the TUI.
 ## Quick start
 
 1. Build with the voice feature (see [Build features](#build-features)).
-2. Run `/download` and install a Kokoro bundle (see [Model bundles](#model-bundles)).
+2. Install a Kokoro bundle from `/download` → **Models** → **Text-to-speech**
+   (see [Model bundles](#model-bundles)).
 3. Pick a voice in `/settings` → **Voice** → **Speaker**.
 
 The TUI writes `voice.speaker` and `voice.language` together, so you never have

@@ -114,6 +114,10 @@ impl App {
                 return Ok(false);
             }
 
+            if self.download_picker_visible() && self.handle_download_key(key) {
+                return Ok(false);
+            }
+
             // ESC clears a question-dialog copy selection BEFORE the loop
             // interrupt and the dialog dispatch: the question dialog's own
             // Esc is a semantic REJECT of the pending tool call (it dismisses
@@ -891,29 +895,12 @@ impl App {
                 }
             }
 
-            // Download mode: move through the model rows, install with Enter
-            // and leave with Esc. Anything else falls through to the shared
-            // keymap, like the other routes.
-            if matches!(self.mode(), AppMode::Download) && !self.dialog.visible() {
-                match key.code {
-                    KeyCode::Up => {
-                        self.download_view.select_prev(20);
-                        return Ok(false);
-                    }
-                    KeyCode::Down => {
-                        self.download_view.select_next(20);
-                        return Ok(false);
-                    }
-                    KeyCode::Enter | KeyCode::Char(' ') => {
-                        self.activate_download_row();
-                        return Ok(false);
-                    }
-                    KeyCode::Esc => {
-                        self.show_download = false;
-                        return Ok(false);
-                    }
-                    _ => {}
-                }
+            if matches!(self.mode(), AppMode::Download)
+                && !self.dialog.visible()
+                && !self.download_view.is_picker_open()
+                && self.handle_download_key(key)
+            {
+                return Ok(false);
             }
 
             // Settings mode: navigation and activation keys
@@ -1865,7 +1852,7 @@ impl App {
                     } else if matches!(self.mode(), AppMode::Settings) {
                         self.show_settings = false;
                     } else if matches!(self.mode(), AppMode::Download) {
-                        self.show_download = false;
+                        self.dismiss_download();
                     } else if self.is_rag_mode() {
                         self.handle_rag_cancel_action();
                     }

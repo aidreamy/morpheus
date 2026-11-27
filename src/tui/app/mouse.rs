@@ -67,6 +67,11 @@ impl App {
 
         let mouse = MouseEvent::new(event_type, button, x, y, modifiers);
 
+        if self.download_picker_visible() {
+            self.handle_download_picker_mouse(&mouse);
+            return Ok(true);
+        }
+
         // ANY open dialog box owns the mouse before everything else: the
         // exit confirm (ctrl+c), question/permission/queue-choice boxes all
         // float above the session surface, and a click meant for one of them
@@ -1120,7 +1125,7 @@ impl App {
                     } else if matches!(self.mode(), AppMode::Settings) {
                         self.settings_view.select_prev(20, &self.setup);
                     } else if matches!(self.mode(), AppMode::Download) {
-                        self.download_view.select_prev(20);
+                        self.download_view.select_prev();
                     } else if self.try_rag_scroll_up() {
                     }
                     return Ok(true);
@@ -1214,7 +1219,7 @@ impl App {
                     } else if matches!(self.mode(), AppMode::Settings) {
                         self.settings_view.select_next(20, &self.setup);
                     } else if matches!(self.mode(), AppMode::Download) {
-                        self.download_view.select_next(20);
+                        self.download_view.select_next();
                     } else if self.try_rag_scroll_down() {
                     }
                     return Ok(true);
@@ -1971,19 +1976,7 @@ impl App {
 
         // 8a. Settings view — mouse click on a setting row toggles it
         if matches!(self.mode(), AppMode::Settings) && !self.dialog.visible() {
-            let area = self.terminal_size();
-            let main_area = self.main_content_area(area);
-            // Matches the render geometry: in non-Session modes the render
-            // path resolves to terminal height - 4 (session_main_area drops
-            // the footer rows and the mode arm subtracts 1 more). Keeping
-            // both rects identical keeps content_start_y — and therefore
-            // hit-tested rows — aligned with the drawn option.
-            let settings_area = Rect::new(
-                main_area.x,
-                area.y + 1,
-                main_area.width,
-                main_area.height.saturating_sub(4),
-            );
+            let settings_area = self.settings_route_area(self.terminal_size());
             if let Some(clicked_idx) =
                 self.settings_view
                     .handle_mouse(&mouse, settings_area, &self.setup)
@@ -2088,24 +2081,11 @@ impl App {
             }
         }
 
-        // 8a-bis. Download view — click selects and installs the row under
-        // the pointer, the same contract the settings rows follow. The rect
-        // mirrors 8a for the same reason: it must match what the render arm
-        // draws or the hit-tested row drifts.
-        if matches!(self.mode(), AppMode::Download) && !self.dialog.visible() {
-            let area = self.terminal_size();
-            let main_area = self.main_content_area(area);
-            let download_area = Rect::new(
-                main_area.x,
-                area.y + 1,
-                main_area.width,
-                main_area.height.saturating_sub(4),
-            );
-            if let Some(clicked) = self.download_view.handle_mouse(&mouse, download_area) {
-                self.download_view.selection.selected_index = clicked;
-                self.activate_download_row();
-                return Ok(true);
-            }
+        if matches!(self.mode(), AppMode::Download)
+            && !self.dialog.visible()
+            && self.handle_download_mouse(x, y)
+        {
+            return Ok(true);
         }
 
         // 8b. Internal Tools view — mouse click on a tool row toggles it

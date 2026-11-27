@@ -5839,6 +5839,7 @@ dependencies = [
  "directories",
  "fastembed",
  "futures",
+ "hf-hub",
  "lancedb",
  "log",
  "serde",

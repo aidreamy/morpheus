@@ -557,7 +557,7 @@ pub enum DialogType {
         filter: FilterState,
     },
     /// Compact three-option picker for the checkup resident model
-    /// (Settings → Checkup model): `english` / `multilingual` /
+    /// (Settings → Decision model): `english` / `multilingual` /
     /// `typed-decisions`. Custom checkpoints stay setup.json-only and are
     /// never selectable here — `current` then matches no option and no
     /// row carries the indicator.
@@ -3413,7 +3413,7 @@ impl DialogState {
                     .add_modifier(Modifier::BOLD);
                 draw_text_line_compact(
                     buf,
-                    "Checkup model",
+                    "Decision model",
                     header_x,
                     dialog_y,
                     header_w,
@@ -3433,7 +3433,7 @@ impl DialogState {
                 // Line 1: explanation (muted).
                 draw_text_line_compact(
                     buf,
-                    "Resident decision-model checkpoint",
+                    "Used for the termination checkup",
                     header_x,
                     dialog_y + 1,
                     header_w,

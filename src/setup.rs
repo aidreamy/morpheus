@@ -646,11 +646,7 @@ impl DecisionModel {
         }
     }
 
-    /// The model's display name for user-facing copy: the upstream model
-    /// family and checkpoint (`Laya`, `Laya-Multilingual`,
-    /// `Laya-Typed-Decisions`), or the repo id for a custom checkpoint.
-    /// The weights install copy addresses the model by THIS name —
-    /// "decision model" says the role, not the model.
+    /// The checkpoint's display name or the repository ID of a custom model.
     pub fn display_name(&self) -> &str {
         match self {
             Self::English => "Laya",

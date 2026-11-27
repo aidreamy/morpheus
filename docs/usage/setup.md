@@ -14,7 +14,7 @@ screen. Type these commands in the chat input and press Enter:
 | `/settings` | All persistent settings, grouped by section |
 | `/models` | Provider, model, and reasoning selection |
 | `/router` | Model fallback and prompt-correction chains |
-| `/download` | Local models: voice bundles, decision checkpoint, embeddings |
+| `/download` | Local text-to-speech, decision, and embedding models |
 | `/providers` | Local provider endpoints |
 | `/tools` | Enable or disable internal tools |
 | `/themes`, `/background`, `/bell`, `/anim`, `/toolcall` | Direct toggles |
@@ -219,8 +219,8 @@ model runs there. They remain part of the file schema for binaries built with
 | `hub.pinned_repo` | `""` | Repository to which the recorded revision belongs. |
 | `hub.pinned_revision` | `""` | Revision pin. Empty resolves and records the first installed revision. |
 
-The named model kinds are selected by **Checkup model**. A custom checkpoint
-is file-only:
+Use **Decision model** to select the checkpoint used for the termination
+checkup. Configure a custom checkpoint in `setup.json`.
 
 ```json
 {
@@ -233,15 +233,14 @@ is file-only:
 `MORPHEUS_ONNX_HUB_REPO` overrides `model_decision.hub.repo`. The legacy top-level
 name `checkup` is still accepted when reading, but Morpheus writes
 `model_decision`. The checkpoint itself is installed from `/download` →
-**Models**; a chat turn never fetches it, and an uncached checkpoint simply
-disables the audit until it is installed.
+**Models** → **Decision**. An uncached checkpoint disables the audit until it
+is installed.
 
 ## `voice` (speak builds only)
 
 Speaks the agent's final answer with a local Kokoro model. `/download` →
-**Models** installs the bundle without a manual `curl`/`tar`; the full reference
-— all speakers, their identifiers and the language matrix — is in
-[`docs/voice/README.md`](../voice/README.md).
+**Models** → **Text-to-speech** lists the downloadable bundles. The full speaker
+and language reference is in [`docs/voice/README.md`](../voice/README.md).
 
 ```json
 {

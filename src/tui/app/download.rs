@@ -1,185 +1,207 @@
-//! App-side plumbing for the download router: opening it, starting a model
-//! install on a worker thread, and folding the worker's events back into the
-//! view (toasts, the decision mirror pin, the refreshed rows).
+#[cfg(any(feature = "speak", feature = "onnx", feature = "embed"))]
+use std::sync::mpsc::{self, Sender};
 
-use ratatui::buffer::Buffer;
-use ratatui::layout::Rect;
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use morpheus_tui::core::types::{MouseButton, MouseEvent, MouseEventType};
 
-use super::App;
-use crate::routes::download::{DownloadEvent, DownloadKind};
+use super::{App, AppMode};
+use crate::component::list_dialog::MouseHit;
+use crate::routes::download::DownloadView;
+#[cfg(any(feature = "speak", feature = "onnx", feature = "embed"))]
+use crate::routes::download::{DownloadEvent, DownloadKind, DownloadResult};
 use crate::ui::toast::{ToastOptions, ToastVariant};
 
 impl App {
-    /// Open `/download`, rebuilding the rows so installs made outside the TUI
-    /// (or by a previous run) show their real state.
     pub(super) fn open_download(&mut self) {
         self.download_view.refresh(&self.setup);
         self.show_download = true;
     }
 
-    pub(super) fn render_download_view(&mut self, buf: &mut Buffer, area: Rect) {
-        self.prompt_view.blur();
-        self.download_view.render(buf, area, &self.theme);
-    }
-
-    /// Drain the worker channel. Called every frame regardless of the active
-    /// route, so a download finishes and toasts even after the user leaves the
-    /// router.
     pub(super) fn poll_download(&mut self) {
-        if !self.download_view.is_running() {
-            return;
-        }
-        let label = self
-            .download_view
-            .active_label()
-            .unwrap_or("Model")
-            .to_string();
-        let events = self.download_view.poll();
-        let mut terminal = false;
-        for event in events {
-            match event {
-                DownloadEvent::Progress { .. } => {}
-                DownloadEvent::Finished { repo, revision } => {
-                    terminal = true;
-                    // A mirror install records the resolved SHA as the pin:
-                    // every later load cache-probes exactly this snapshot.
-                    if let (Some(repo), Some(revision)) = (repo, revision)
-                        && repo == self.setup.decision.hub.effective_repo()
-                    {
-                        self.setup.decision.hub.pinned_repo = repo;
-                        self.setup.decision.hub.pinned_revision = revision;
-                        self.setup.save();
-                    }
-                    self.toast_state.show(ToastOptions {
-                        title: Some("Download".into()),
-                        message: format!("{label} installed."),
-                        variant: ToastVariant::Success,
-                        duration_ms: 4000,
-                    });
-                }
-                DownloadEvent::Failed(reason) => {
-                    terminal = true;
-                    self.toast_state.show(ToastOptions {
-                        title: Some("Download".into()),
-                        message: format!("{label}: {reason}"),
-                        variant: ToastVariant::Error,
-                        duration_ms: 8000,
-                    });
-                }
-            }
-        }
-        if terminal {
-            self.download_view.refresh(&self.setup);
-        }
-    }
-
-    /// Enter/click on the row under the cursor.
-    pub(super) fn activate_download_row(&mut self) {
-        let Some((kind, installed)) = self.download_view.selected() else {
+        let Some((label, result)) = self.download_view.poll() else {
             return;
         };
-        if installed {
-            let label = self
-                .download_view
-                .selected_label()
-                .unwrap_or("Model")
-                .to_string();
-            self.toast_state.show(ToastOptions {
-                title: Some("Download".into()),
-                message: format!("{label} is already installed."),
-                variant: ToastVariant::Info,
-                duration_ms: 3000,
-            });
-            return;
+        match result {
+            Ok(pin) => {
+                if let Some((repo, revision)) = pin
+                    && repo == self.setup.decision.hub.effective_repo()
+                {
+                    self.setup.decision.hub.pinned_repo = repo;
+                    self.setup.decision.hub.pinned_revision = revision;
+                    self.setup.save();
+                }
+                self.download_toast(format!("{label} installed."), ToastVariant::Success, 4000);
+            }
+            Err(reason) => {
+                self.download_toast(format!("{label}: {reason}"), ToastVariant::Error, 8000);
+            }
         }
-        self.start_download(kind);
+        self.download_view.refresh(&self.setup);
     }
 
-    /// Install `kind` in the background. The worker owns the download and
-    /// reports progress through a channel; the render loop never blocks.
-    pub(super) fn start_download(&mut self, kind: DownloadKind) {
-        if self.download_view.is_running() {
-            self.toast_state.show(ToastOptions {
-                title: Some("Download".into()),
-                message: "A model download is already running.".into(),
-                variant: ToastVariant::Warning,
-                duration_ms: 3000,
-            });
-            return;
-        }
-        #[cfg(not(any(feature = "speak", feature = "onnx", feature = "embed")))]
-        {
-            let _ = kind;
-            return;
-        }
-        #[cfg(any(feature = "speak", feature = "onnx", feature = "embed"))]
-        {
-            let (tx, rx) = std::sync::mpsc::channel();
-            match kind {
-                #[cfg(feature = "speak")]
-                DownloadKind::Voice(dir) => {
-                    let Some(bundle) = morpheus::speak::install::BUNDLES
-                        .iter()
-                        .find(|bundle| bundle.dir == dir)
-                    else {
-                        return;
-                    };
-                    let models = morpheus::speak::models_dir();
-                    std::thread::spawn(move || {
-                        let progress_tx = tx.clone();
-                        let result =
-                            morpheus::speak::install::download(bundle, &models, |done, total| {
-                                let _ = progress_tx.send(DownloadEvent::Progress { done, total });
-                            });
-                        let _ = tx.send(match result {
-                            Ok(_) => DownloadEvent::Finished {
-                                repo: None,
-                                revision: None,
-                            },
-                            Err(reason) => DownloadEvent::Failed(reason),
-                        });
-                    });
-                }
-                #[cfg(feature = "onnx")]
-                DownloadKind::Decision => {
-                    let Some(target) = morpheus::weights::resolve_target(
-                        &self.setup.decision.model,
-                        &self.setup.decision.hub,
-                    ) else {
-                        return;
-                    };
-                    let repo = target.repo.clone();
-                    std::thread::spawn(move || {
-                        let progress_tx = tx.clone();
-                        let result = morpheus::weights::install(&target, move |done, total| {
-                            let _ = progress_tx.send(DownloadEvent::Progress { done, total });
-                        });
-                        let _ = tx.send(match result {
-                            Ok(revision) => DownloadEvent::Finished {
-                                repo: Some(repo),
-                                revision: Some(revision),
-                            },
-                            Err(reason) => DownloadEvent::Failed(reason),
-                        });
-                    });
-                }
-                #[cfg(feature = "embed")]
-                DownloadKind::Embed(model) => {
-                    std::thread::spawn(move || {
-                        let result = morpheus_recall::embed::download_local_model(
-                            model.to_fastembed_model(),
-                        );
-                        let _ = tx.send(match result {
-                            Ok(()) => DownloadEvent::Finished {
-                                repo: None,
-                                revision: None,
-                            },
-                            Err(error) => DownloadEvent::Failed(error.to_string()),
-                        });
-                    });
+    pub(super) fn handle_download_key(&mut self, key: KeyEvent) -> bool {
+        match key.code {
+            KeyCode::Up => self.download_view.select_prev(),
+            KeyCode::Down => self.download_view.select_next(),
+            KeyCode::Enter => self.activate_download(),
+            KeyCode::Esc => self.dismiss_download(),
+            KeyCode::Backspace => {
+                let Some(picker) = self.download_view.picker() else {
+                    return false;
+                };
+                picker.pop_char();
+            }
+            KeyCode::Char(ch)
+                if matches!(key.modifiers, KeyModifiers::NONE | KeyModifiers::SHIFT) =>
+            {
+                if let Some(picker) = self.download_view.picker() {
+                    picker.push_char(ch);
+                } else if ch == ' ' {
+                    self.activate_download();
+                } else {
+                    return false;
                 }
             }
-            self.download_view.start(kind, rx);
+            _ => return false,
+        }
+        true
+    }
+
+    pub(super) fn dismiss_download(&mut self) {
+        if !self.download_view.close_picker() {
+            self.show_download = false;
+            self.prompt_view.focus();
+        }
+    }
+
+    pub(super) fn download_picker_visible(&self) -> bool {
+        matches!(self.mode(), AppMode::Download)
+            && !self.dialog.visible()
+            && self.download_view.is_picker_open()
+    }
+
+    pub(super) fn handle_download_mouse(&mut self, x: u16, y: u16) -> bool {
+        let area = self.settings_route_area(self.terminal_size());
+        let MouseHit::Row(index) = self.download_view.hit_test(x, y, area) else {
+            return false;
+        };
+        self.download_view.select_row(index);
+        self.activate_download();
+        true
+    }
+
+    pub(super) fn handle_download_picker_mouse(&mut self, mouse: &MouseEvent) {
+        match mouse.event_type {
+            MouseEventType::ScrollUp => self.download_view.select_prev(),
+            MouseEventType::ScrollDown => self.download_view.select_next(),
+            _ => {
+                let confirm =
+                    mouse.event_type == MouseEventType::Up && mouse.button == MouseButton::Left;
+                match self
+                    .download_view
+                    .hit_test(mouse.x, mouse.y, self.terminal_size())
+                {
+                    MouseHit::Row(index) => {
+                        self.download_view.select_row(index);
+                        if confirm {
+                            self.activate_download();
+                        }
+                    }
+                    MouseHit::Outside | MouseHit::Dismiss if confirm => {
+                        self.download_view.close_picker();
+                    }
+                    _ => {}
+                }
+            }
+        }
+    }
+
+    fn activate_download(&mut self) {
+        if !DownloadView::picker_fits(self.terminal_size()) {
+            return;
+        }
+        if !self.download_view.is_picker_open() {
+            self.download_view.open_picker();
+        } else {
+            #[cfg(any(feature = "speak", feature = "onnx", feature = "embed"))]
+            self.start_download();
+        }
+    }
+
+    #[cfg(any(feature = "speak", feature = "onnx", feature = "embed"))]
+    fn start_download(&mut self) {
+        let Some(model) = self.download_view.selected_model() else {
+            return;
+        };
+        if model.installed {
+            self.download_toast(
+                format!("{} is already installed.", model.label),
+                ToastVariant::Info,
+                3000,
+            );
+            return;
+        }
+        if self.download_view.is_running() {
+            self.download_toast(
+                "A model download is already running.".into(),
+                ToastVariant::Warning,
+                3000,
+            );
+            return;
+        }
+
+        let kind = model.kind.clone();
+        let worker_kind = kind.clone();
+        let label = model.label.clone();
+        let (tx, rx) = mpsc::channel();
+        match std::thread::Builder::new()
+            .name("model-download".into())
+            .spawn(move || {
+                let result = install_model(worker_kind, tx.clone());
+                let _ = tx.send(DownloadEvent::Finished(result));
+            }) {
+            Ok(_) => self.download_view.start(kind, label, rx),
+            Err(error) => self.download_toast(
+                format!("Could not start the model download: {error}"),
+                ToastVariant::Error,
+                8000,
+            ),
+        }
+    }
+
+    fn download_toast(&mut self, message: String, variant: ToastVariant, duration_ms: u64) {
+        self.toast_state.show(ToastOptions {
+            title: Some("Download".into()),
+            message,
+            variant,
+            duration_ms,
+        });
+    }
+}
+
+#[cfg(any(feature = "speak", feature = "onnx", feature = "embed"))]
+fn install_model(kind: DownloadKind, _events: Sender<DownloadEvent>) -> DownloadResult {
+    #[cfg(any(feature = "speak", feature = "onnx"))]
+    let progress = move |done, total| {
+        let _ = _events.send(DownloadEvent::Progress { done, total });
+    };
+
+    match kind {
+        #[cfg(feature = "speak")]
+        DownloadKind::TextToSpeech(bundle) => {
+            morpheus::speak::install::download(bundle, &morpheus::speak::models_dir(), progress)?;
+            Ok(None)
+        }
+        #[cfg(feature = "onnx")]
+        DownloadKind::Decision(target) => {
+            let revision = morpheus::weights::install(&target, progress)?;
+            Ok(Some((target.repo, revision)))
+        }
+        #[cfg(feature = "embed")]
+        DownloadKind::Embedding(model) => {
+            morpheus_recall::embed::download_local_model(model.to_fastembed_model())
+                .map_err(|error| error.to_string())?;
+            Ok(None)
         }
     }
 }

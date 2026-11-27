@@ -30,6 +30,10 @@ const COMMAND_HELP: &[(&str, &str)] = &[
         "whatsapp",
         "Answer WhatsApp messages with the agent, pairing by QR code",
     ),
+    (
+        "workflow <action>",
+        "Run a durable local workflow and verify Git patches",
+    ),
     ("help [command]", "Show this help, or one command's page"),
 ];
 
@@ -62,6 +66,7 @@ const COMMAND_ROWS: &[Row] = &[
     Row::Item(COMMAND_HELP[1].0, COMMAND_HELP[1].1),
     Row::Item(COMMAND_HELP[2].0, COMMAND_HELP[2].1),
     Row::Item(COMMAND_HELP[3].0, COMMAND_HELP[3].1),
+    Row::Item(COMMAND_HELP[4].0, COMMAND_HELP[4].1),
 ];
 
 const OVERVIEW: Page = Page {
@@ -261,6 +266,44 @@ const WHATSAPP_PAGE: Page = Page {
     ],
 };
 
+const WORKFLOW_PAGE: Page = Page {
+    title: "morpheus workflow",
+    sections: &[
+        Section {
+            title: "Usage",
+            rows: &[
+                Row::Prose("morpheus workflow init <state.json> <plan.json>"),
+                Row::Prose("morpheus workflow status <state.json>"),
+                Row::Prose("morpheus workflow claim <state.json> <task>"),
+                Row::Prose(
+                    "morpheus workflow complete|fail <state.json> <task> <attempt> <report-file>",
+                ),
+                Row::Prose("morpheus workflow ack <state.json> <task> <attempt>"),
+                Row::Prose("morpheus workflow recover <state.json>"),
+                Row::Prose("morpheus workflow retry <state.json> <task>"),
+                Row::Prose("morpheus workflow verify <state.json> <task> <attempt> <commit>..."),
+            ],
+        },
+        Section {
+            title: "Plan and results",
+            rows: &[
+                Row::Prose(
+                    "The plan is a JSON array of tasks with id, optional input, optional dependencies (task IDs), and optional verification. Claim prints the attempt, task and dependency results as JSON.",
+                ),
+                Row::Prose(
+                    "Set verification when writing the plan, for example { \"base_ref\": \"refs/heads/main\", \"command\": [\"cargo\", \"test\"] }. Those tasks need a verified commit to unblock dependents.",
+                ),
+                Row::Prose(
+                    "Recover releases running attempts after their workers have stopped. Retry releases a failed task. Results remain available through status until acknowledged, and stay in the workflow history after that.",
+                ),
+                Row::Prose(
+                    "Verify runs the plan's command from a temporary integration worktree in the current repository. On success it records and pins the tested commit under refs/morpheus/verified/ for review.",
+                ),
+            ],
+        },
+    ],
+};
+
 const HELP_PAGE: Page = Page {
     title: "morpheus help",
     sections: &[
@@ -295,6 +338,7 @@ fn page_for(subject: Option<&str>) -> &'static Page {
         Some("update") => &UPDATE_PAGE,
         Some("paths") => &PATHS_PAGE,
         Some("whatsapp") => &WHATSAPP_PAGE,
+        Some("workflow") => &WORKFLOW_PAGE,
         Some("help") => &HELP_PAGE,
         _ => &OVERVIEW,
     }

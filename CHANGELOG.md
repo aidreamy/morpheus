@@ -40,6 +40,18 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   from the Integrations switches in Settings; an environment variable always
   takes precedence. Changes take effect on the next launch.
 
+- `morpheus workflow` runs local task plans with dependencies and saves
+  attempts and reports to disk. After a restart, `morpheus workflow recover`
+  makes interrupted tasks available again and preserves completed results.
+  Reports remain pending until acknowledged, and late replies cannot
+  complete a newer attempt.
+
+- `morpheus workflow verify` combines Git commits in a temporary worktree
+  and runs the check defined in the task plan. A successful verification
+  records the exact tested commit under `refs/morpheus/verified/` and
+  unblocks dependent tasks. If the base branch advances during the check,
+  the candidate must be verified again.
+
 ### Changed
 
 - The sub-agent implementation moved out of `morpheus-tools` into its own

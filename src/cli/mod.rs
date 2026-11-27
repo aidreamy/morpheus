@@ -7,7 +7,7 @@
 //! (session lookup, update, paths) is plain command-line work.
 //!
 //! The grammar is deliberately small and hand-parsed: `morpheus` is an interactive
-//! TUI first, and its CLI is a handful of flags plus three commands. A parser
+//! TUI first, and its CLI is a handful of flags plus a few commands. A parser
 //! crate would be more surface than the surface it parses.
 //!
 //! ```text
@@ -17,6 +17,7 @@
 //! morpheus update [version] [-y]    install the latest (or a pinned) release
 //! morpheus paths                    print the storage directories
 //! morpheus whatsapp                 answer WhatsApp messages with the agent
+//! morpheus workflow <action>        run a local workflow operation
 //! morpheus -h | --help [command]    show help
 //! morpheus -v | --version           print the version
 //! ```
@@ -29,6 +30,7 @@ pub mod paths;
 pub mod resume;
 pub mod style;
 pub mod update;
+pub mod workflow;
 
 /// Program name used in usage lines and error hints.
 pub const NAME: &str = "morpheus";
@@ -42,7 +44,7 @@ pub const VERSION: &str = env!("CARGO_PKG_VERSION");
 /// This list is also what `morpheus help <command>` validates against, so a
 /// command cannot ship without a help page (the guard test in [`help`] keeps
 /// the two in lockstep).
-pub const COMMANDS: &[&str] = &["update", "paths", "whatsapp", "help"];
+pub const COMMANDS: &[&str] = &["update", "paths", "whatsapp", "workflow", "help"];
 
 /// Options for the plain `morpheus` (TUI) start.
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -65,6 +67,8 @@ pub enum Invocation {
     Paths,
     /// `morpheus whatsapp` - the WhatsApp interface without the TUI.
     WhatsApp,
+    /// Operate a durable local workflow.
+    Workflow(workflow::Options),
     /// `morpheus --check-keyring` - the keyring diagnostic, unchanged.
     CheckKeyring,
     /// Print help and exit 0. `None` = the top-level page.
@@ -109,7 +113,11 @@ pub fn parse<I>(args: I) -> Result<Invocation, CliError>
 where
     I: IntoIterator<Item = OsString>,
 {
-    // Lossy on purpose: the only values that cross this boundary are an
+    let args: Vec<_> = args.into_iter().collect();
+    if args.first().is_some_and(|arg| arg == "workflow") {
+        return workflow::parse(&args[1..]);
+    }
+    // Lossy on purpose: for the other commands the only values are an
     // optional session id and a release version, both ASCII by construction.
     // A non-UTF-8 argument elsewhere is an unknown argument, not a crash.
     let args: Vec<String> = args

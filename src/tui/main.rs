@@ -62,6 +62,7 @@ async fn main() {
             prepare_plain_command("cli_update");
             std::process::exit(cli::update::run(options).await);
         }
+        cli::Invocation::Workflow(options) => std::process::exit(cli::workflow::run(options)),
         cli::Invocation::CheckKeyring => check_keyring(),
         cli::Invocation::Launch(options) => run_tui(options).await,
     }

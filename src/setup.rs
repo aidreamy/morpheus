@@ -62,6 +62,13 @@ pub struct Setup {
     /// one, so legacy files without the section keep loading unchanged.
     #[serde(default)]
     pub acp_agents: Vec<AcpAgentEntry>,
+    /// Transport override for the native OpenCode/Kilo server path
+    /// (`setup.json` → `native_transport`). Empty (the default) keeps the
+    /// native transport; `"acp"` forces the generic ACP transport for that
+    /// agent. An environment variable (`MORPHEUS_OPENCODE_TRANSPORT` /
+    /// `MORPHEUS_KILO_TRANSPORT`) always wins over this value.
+    #[serde(default)]
+    pub native_transport: NativeTransport,
     /// User-registered LLM provider endpoints (Settings screen). Each entry
     /// maps a public provider name to its base URL and API family — the
     /// same declarative shape Goose's custom providers use. Empty when the
@@ -121,6 +128,7 @@ impl Default for Setup {
             lsp: true,
             mcp: McpConfig::default(),
             acp_agents: Vec::new(),
+            native_transport: NativeTransport::default(),
             custom_providers: Vec::new(),
             editor: String::new(),
             telemetry: true,
@@ -828,6 +836,48 @@ pub struct AcpAgentEntry {
     pub name: String,
     /// Launch command, `command args…` (e.g. `my-agent --acp`).
     pub command: String,
+}
+
+/// Transport override for the native OpenCode/Kilo server path
+/// (`setup.json` → `native_transport`). Empty (the default) keeps the native
+/// transport; `"acp"` forces the generic ACP transport for that agent. An
+/// environment variable (`MORPHEUS_OPENCODE_TRANSPORT` /
+/// `MORPHEUS_KILO_TRANSPORT`) always wins over these values.
+#[derive(Debug, Clone, Default, Serialize, Deserialize)]
+#[serde(default)]
+pub struct NativeTransport {
+    /// Force the generic ACP transport for OpenCode (`"acp"`); empty keeps
+    /// the native server path.
+    #[serde(default)]
+    pub opencode: String,
+    /// Force the generic ACP transport for Kilo (`"acp"`); empty keeps the
+    /// native server path.
+    #[serde(default)]
+    pub kilo: String,
+}
+
+impl NativeTransport {
+    /// Apply these overrides to the process environment, but only when the
+    /// corresponding environment variable is not already set (the environment
+    /// always wins, mirroring the other env-backed knobs).
+    pub fn apply_to_env(&self) {
+        let pairs = [
+            ("MORPHEUS_OPENCODE_TRANSPORT", self.opencode.as_str()),
+            ("MORPHEUS_KILO_TRANSPORT", self.kilo.as_str()),
+        ];
+        for (env, value) in pairs {
+            let env_set = std::env::var(env)
+                .map(|v| !v.trim().is_empty())
+                .unwrap_or(false);
+            if env_set {
+                continue;
+            }
+            if value.trim().eq_ignore_ascii_case("acp") {
+                // SAFETY: single-threaded at startup, before harness assembly.
+                unsafe { std::env::set_var(env, "acp") };
+            }
+        }
+    }
 }
 
 /// One user-registered LLM provider endpoint (Settings → Integrations →

@@ -701,6 +701,10 @@ impl App {
 
         let theme_registry = ThemeRegistry::new();
         let setup = morpheus::setup::Setup::load();
+        // Propagate setup.json transport overrides into the process env before
+        // any harness is built: the env var always wins, so this only fills
+        // gaps left by the environment.
+        setup.native_transport.apply_to_env();
         // Captured before `setup` moves into the App: voice auto-generation is
         // enabled by config, and the state seeds its toggle from it.
         let voice_auto_generate = setup.voice.auto_generate;

@@ -38,7 +38,6 @@ use crate::routes::tools::InternalToolsView;
 use crate::session::store::SessionStore;
 use crate::state::AppState;
 use crate::theme::{Theme, ThemeRegistry};
-use crate::types::SessionStatus;
 use crate::ui::dialogs::DialogState;
 use crate::ui::toast::ToastState;
 
@@ -1096,6 +1095,26 @@ impl App {
         }
     }
 
+    fn agent_spinner_active(&self) -> bool {
+        self.any_agent_running()
+            || agents_dispatch::either_split(&self.agents_split, &self.parked_agents_split)
+                .is_some_and(
+                    crate::routes::session::agents_split::AgentsSplitState::any_rehydrating,
+                )
+    }
+
+    fn sync_agent_spinner(&mut self) {
+        if !self.agent_spinner_active() {
+            self.agent_spinner = None;
+        } else if self.agent_spinner.is_none() {
+            self.agent_spinner = Some(AgentSpinner::new(
+                self.agent_activity.label(),
+                &self.theme,
+                self.setup.appearance.spinner,
+            ));
+        }
+    }
+
     // RAG helper methods (cfg-gated at method level, always compiles)
     fn mode(&self) -> AppMode {
         #[cfg(feature = "embed")]
@@ -1855,23 +1874,7 @@ impl App {
         // the mouse geometry must match what was drawn (a 1-row drift here
         // skews every hit-test below the panes). A rehydrating pane counts
         // too - its replay streams through the same layout contract.
-        let agent_spinner_active = (matches!(self.state.status, SessionStatus::Working)
-            || self
-                .agents_split
-                .as_ref()
-                .is_some_and(crate::routes::session::agents_split::AgentsSplitState::any_running)
-            || self.agents_split.as_ref().is_some_and(
-                crate::routes::session::agents_split::AgentsSplitState::any_rehydrating,
-            )
-            || (self.agents_split.is_none()
-                && self.parked_agents_split.as_ref().is_some_and(
-                    crate::routes::session::agents_split::AgentsSplitState::any_running,
-                ))
-            || (self.agents_split.is_none()
-                && self.parked_agents_split.as_ref().is_some_and(
-                    crate::routes::session::agents_split::AgentsSplitState::any_rehydrating,
-                )))
-            && self.agent_spinner.is_some();
+        let agent_spinner_active = self.agent_spinner_active();
         let correction_spinner_active = self.prompt_correction_active && !agent_spinner_active;
         let spinner_h = u16::from(
             (agent_spinner_active || correction_spinner_active) && !self.question_dialog.visible,

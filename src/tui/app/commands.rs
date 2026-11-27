@@ -213,15 +213,6 @@ impl App {
     /// the split: no pane can keep it alive once the panes are gone.
     pub(super) fn close_agents_split(&mut self) {
         self.set_agents_split(None);
-        // A parked split is invisible but its sessions are still live; closing
-        // the mode ends them too (no session survives without a pane).
-        if let Some(parked) = self.parked_agents_split.take() {
-            for pane in parked.panes {
-                if let Some(handle) = pane.acp_session {
-                    handle.shutdown();
-                }
-            }
-        }
         // The MAIN-AGENT mirror leaves with the mode too (its projection
         // resets; the next open starts fresh).
         self.close_main_mirror();
@@ -323,6 +314,7 @@ impl App {
                 })
                 .unwrap_or_default();
         morpheus::harness::agent_coworkers::set_coworkers(panes);
+        self.wake_main_agent_with_reports(None);
     }
 
     /// Mirror the `/agents` panes into the right panel's SHARED subagent
@@ -434,50 +426,8 @@ impl App {
         }
     }
 
-    /// Fail the IN-FLIGHT `agents_call` of every OUTGOING pane that still
-    /// owns a turn (the reconcile below keeps the surviving panes and
-    /// signal-stops only the dropped ones): a dropped pane's terminal
-    /// `AgentsPaneDone` finds no pane to land in - its registry `serving`
-    /// entry would otherwise outlive the turn forever, keeping
-    /// `has_outstanding_requests` true and hanging the requester loop's
-    /// busy-guard (the loop waits at its natural-completion point for an
-    /// answer that can never arrive). Kept panes are untouched: their
-    /// turns keep running and their own terminal Done resolves the
-    /// request normally (failing them would kill a turn that just kept
-    /// streaming - the old behavior that cancelled every running agent on
-    /// any pane-set change). Teardown (no fresh set) fails everything.
-    fn fail_outgoing_pane_requests(&self) {
-        let ids: Vec<String> = either_split(&self.agents_split, &self.parked_agents_split)
-            .map(|split| {
-                split
-                    .panes
-                    .iter()
-                    .enumerate()
-                    .filter(|(_, p)| p.running || p.stop_signal.is_some())
-                    .filter_map(|(i, _)| split.pane_registry_id(i))
-                    .collect()
-            })
-            .unwrap_or_default();
-        for id in ids {
-            morpheus::harness::agent_coworkers::fail_serving(
-                &id,
-                "the pane's set was replaced or torn down".into(),
-            );
-        }
-    }
-
-    /// The point-of-no-return variant: EVERY pane of the outgoing split
-    /// (running or idle) loses its in-flight AND queued `agents_call`
-    /// requests, and the pane leaves the registry. For a whole-set death -
-    /// a session switch - the outgoing panes will never serve
-    /// anything again in this process: a leftover queued request would
-    /// hang its requester's busy-guard forever (`has_outstanding_requests`
-    /// stuck true with nobody left to dispatch it - the harness loop's
-    /// pre-Done wait spins eternally), and a request whose id COLLIDES
-    /// with the incoming session's panes (same agent name) would be served
-    /// cross-session. Must run BEFORE the slots swap, keyed by the
-    /// outgoing ids; the caller re-syncs the registry to the incoming set
-    /// afterwards.
+    /// Settle the outgoing session's waits and clear its inbox before the
+    /// next session registers panes that may use the same labels.
     fn fail_whole_outgoing_pane_set(&self) {
         let ids: Vec<String> = either_split(&self.agents_split, &self.parked_agents_split)
             .map(|split| {
@@ -495,6 +445,7 @@ impl App {
                 "the session switched away - this pane's set is gone".into(),
             );
         }
+        morpheus::harness::agent_coworkers::discard_call_reports();
     }
 
     /// The state-only core of open/close: signal-stop every pane of the
@@ -509,13 +460,6 @@ impl App {
     /// `AgentsPaneDone` against a stale epoch so the handler drops them
     /// instead of binding old sessions into the new set.
     fn set_agents_split(&mut self, panes: Option<Vec<crate::types::AgentPaneRef>>) {
-        // The DROPPED panes' in-flight `agents_call` requests must fail
-        // NOW, keyed by their ids - after the swap their terminal Done
-        // finds no pane to land in and could never resolve the request (a
-        // stale id may even survive into the new set, where a blind
-        // completion could hit the WRONG turn's request). Kept panes'
-        // requests stay in flight: their turns keep running.
-        self.fail_outgoing_pane_requests();
         // The split slots' generation moves on EVERY replacement or teardown
         // (see the `agents_pane_epoch` field doc). The pane-id routing (see
         // the `AgentsPaneEvent::pane_id` doc) makes this gate secondary -
@@ -539,39 +483,24 @@ impl App {
                     old, agents,
                 ),
             );
-        } else if let Some(old) = &mut self.agents_split {
-            // Teardown (`None`): every pane's turn stops with the split.
-            // A discarded stop signal is one nobody will ever set again -
-            // its turn would run to completion, un-stoppable, and its late
-            // events would land in whatever set later shares the indexes.
-            for pane in &mut old.panes {
-                if let Some(signal) = &pane.stop_signal {
-                    signal.store(true, std::sync::atomic::Ordering::Relaxed);
-                }
-                pane.running = false;
-                if let Some(handle) = pane.acp_session.take() {
-                    handle.shutdown();
-                }
-            }
         }
-        // A FRESH confirm supersedes a parked set of the same session: the
-        // user re-picked, so the parked panes (and any turn still running in
-        // them) stop exactly like a live replacement would - leaving them
-        // would stream old-set events into whichever slot later takes pane
-        // `pane`'s index.
-        if panes.is_some()
-            && let Some(old) = &mut self.parked_agents_split
-        {
+        // Closing drops the live split. Both closing and replacing retire a
+        // parked split. Registry reconciliation below settles the removed
+        // identities and keeps requests belonging to surviving panes.
+        let closed = if panes.is_none() {
+            self.agents_split.take()
+        } else {
+            None
+        };
+        for mut old in closed.into_iter().chain(self.parked_agents_split.take()) {
             for pane in &mut old.panes {
                 if let Some(signal) = &pane.stop_signal {
                     signal.store(true, std::sync::atomic::Ordering::Relaxed);
                 }
-                pane.running = false;
                 if let Some(handle) = pane.acp_session.take() {
                     handle.shutdown();
                 }
             }
-            self.parked_agents_split = None;
         }
         // Only a teardown (or a replace with NO prior live split) still
         // builds a fresh state here; a replace reconciled the surviving
@@ -606,13 +535,7 @@ impl App {
             // moment the split takes the screen, not only on its next turn.
             self.hydrate_manager_pane_model_selections();
         }
-        // Drop the split's spinner only when no NORMAL agent loop is still
-        // running behind it (the double-scenario): a Working loop keeps its
-        // indicator; an idle app must not inherit a stale spinner.
-        if self.agents_split.is_none() && self.state.status != crate::types::SessionStatus::Working
-        {
-            self.agent_spinner = None;
-        }
+        self.sync_agent_spinner();
         // The slash menu's source follows the pane set on EVERY change
         // (open, replace, close): a fresh confirm leaves pane 0 focused, a
         // teardown restores the morpheus set. Without this the menu would keep
@@ -734,9 +657,7 @@ impl App {
             self.agents_split = None;
             self.close_main_mirror();
             self.state.right_panel.drop_agents_pane_windows();
-            if self.state.status != crate::types::SessionStatus::Working {
-                self.agent_spinner = None;
-            }
+            self.sync_agent_spinner();
         }
         super::agents_dispatch::sync_slash_source(self);
     }
@@ -1066,7 +987,7 @@ impl App {
         // NEW session's metadata under a same-named pane. The in-flight
         // `agents_call` requests fail first, keyed by the outgoing ids -
         // the stale-dropped Done can never resolve them (see
-        // `fail_outgoing_pane_requests`).
+        // `fail_whole_outgoing_pane_set`).
         // A whole-set death (session switch): every outgoing pane
         // loses its in-flight AND queued `agents_call` requests and leaves
         // the registry - the incoming set re-syncs it below. Without this
@@ -1154,13 +1075,7 @@ impl App {
         // same way a fresh open does (idle panes, no running turns - the
         // old session's turns were stopped above).
         self.sync_agents_pane_mirrors();
-        // The shared spinner follows the same rule `set_agents_split`
-        // applies: drop it only when no split owns the screen and no NORMAL
-        // agent loop is running behind the switch.
-        if self.agents_split.is_none() && self.state.status != crate::types::SessionStatus::Working
-        {
-            self.agent_spinner = None;
-        }
+        self.sync_agent_spinner();
         // Same cleanup, now against the NEWLY selected session.
         self.finalize_stale_compaction_lines();
         // The slash menu follows the rebuilt pane set: a session restored
@@ -1214,6 +1129,7 @@ impl App {
         // other morpheus process trying to open X was refused with "already
         // open in another process" while nothing here was using it.
         self.persist_and_release_current_session();
+        self.fail_whole_outgoing_pane_set();
         self.state.add_empty_session(id.clone(), title, now_ms);
         self.state.current_session_id = Some(id);
         // A fresh session has no answer to speak; the previous session's

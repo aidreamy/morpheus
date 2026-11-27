@@ -273,8 +273,8 @@ pub struct AgentCoworkerDelivery {
     pub coworker: String,
     /// The producing coworker's IDENTITY (stamped at completion from the served
     /// request / the op): the drain renders the note with the identity-keyed
-    /// redirect budget, and reconciliation retains by identity instead of by
-    /// the recyclable label.
+    /// redirect budget. Operation outcomes can also use it to track the
+    /// target pane through reconciliation.
     pub coworker_id: u64,
     /// The request this answer completes.
     pub request_id: String,
@@ -315,6 +315,16 @@ impl AgentCoworkerReport {
     pub const fn new(output: Result<String, String>, end: AgentCoworkerTurnEnd) -> Self {
         Self { output, end }
     }
+}
+
+/// Give up an inline wait for user input. Closing first makes it mutually
+/// exclusive with the sender: a prior send is readable here and a later
+/// send returns its report to the registry.
+pub(crate) fn close_report_wait(
+    receiver: &mut tokio::sync::oneshot::Receiver<AgentCoworkerReport>,
+) -> Option<AgentCoworkerReport> {
+    receiver.close();
+    receiver.try_recv().ok()
 }
 
 /// What an `agents_worktree` ask does to its target coworker.
@@ -508,9 +518,8 @@ fn removal_error(removed_label: &str, known: &[String]) -> String {
 
 /// Replace the registry's coworker set (the App syncs this on every split
 /// change - open, park, attach, replace). Requests queued to coworkers that
-/// no longer exist are failed immediately: their wait-mode callers get an
-/// error result and their queued entries are dropped (a coworker removed from
-/// the split can never serve them).
+/// no longer exist are failed immediately. The requester receives the error
+/// inline or in its inbox, using the same delivery path as a completed turn.
 ///
 /// The reconciliation is keyed on the descriptors' IDENTITY
 /// ([`AgentCoworkerDescriptor::coworker_id`]), never on the positional label: removing a
@@ -556,13 +565,10 @@ pub fn set_coworkers(coworkers: Vec<AgentCoworkerDescriptor>) {
         // Render the failure FIRST (it reads the live set, which still
         // holds the survivors) so the mutable cleanup below stays simple.
         let error = removal_error(label, &known);
-        if let Some(mut queue) = state.queues.remove(label) {
-            for request in queue.drain(..) {
-                fail_wait(&mut state, &request.id, error.clone());
-            }
-        }
-        if let Some(request) = state.serving.remove(label) {
-            fail_wait(&mut state, &request.id, error);
+        let serving = state.serving.remove(label);
+        let queued = state.queues.remove(label).into_iter().flatten();
+        for request in serving.into_iter().chain(queued) {
+            fail_request(&mut state, label, request, error.clone());
         }
         old_identities.remove(label);
     }
@@ -608,18 +614,10 @@ pub fn set_coworkers(coworkers: Vec<AgentCoworkerDescriptor>) {
         }
     }
 
-    // 3. Retention by IDENTITY (deliveries and ops carry their target's
-    //    identity stamped at enqueue/completion - a label can no longer
-    //    vouch for anything).
-    //    Finished background deliveries of removed coworkers are ORPHANED: their
-    //    requester may be long gone, and a stale delivery draining into a
-    //    LATER loop (a session reopened, a new manager turn) would inject a
-    //    report from a dead conversation. They die with the coworker. Worktree
-    //    outcomes are the exception: their RECEIPT-holder (the requesting
-    //    loop) is alive and waiting for the answer, so a worktree finding -
-    //    including a failure committed after the coworker closed - survives.
+    // 3. Reports belong to the requester. A pane change within this session
+    // preserves its results, including failures for panes removed above.
     state.deliveries.retain(|delivery| {
-        delivery.kind == DeliveryKind::Worktree || live_identities.contains(&delivery.coworker_id)
+        delivery.kind != DeliveryKind::Compact || live_identities.contains(&delivery.coworker_id)
     });
     // Parked worktree ops of removed coworkers die immediately: the coworker can
     // never be rebound again. complete them as failures so the requesting
@@ -851,9 +849,10 @@ pub fn pop_next_request(coworker: &str) -> Option<AgentCoworkerRequest> {
     // `running` with no activity behind it. Fail the stale wait so the
     // requester unblocks instead.
     if let Some(request) = state.serving.remove(coworker) {
-        fail_wait(
+        fail_request(
             &mut state,
-            &request.id,
+            coworker,
+            request,
             format!("pane '{coworker}' orphaned the request: its turn never completed"),
         );
     }
@@ -898,55 +897,47 @@ pub fn complete_request(coworker: &str, report: AgentCoworkerReport) -> Option<&
     let mut state = registry().lock().unwrap_or_else(|p| p.into_inner());
     let request = state.serving.remove(coworker)?;
     let requester = request.requester;
-    let coworker_identity = request.coworker_id;
-    let AgentCoworkerReport { output, end } = report;
-    match request.mode {
-        ReplyMode::Wait => {
-            // A LIVE waiter takes the report inline. A DEAD one (the
-            // requester's turn ended or was stopped while the coworker worked
-            // - the oneshot was dropped) must not swallow the report: the
-            // wake promise ("an input sent by the agent owes it an output")
-            // parks the delivery for the requester's drain / the App's
-            // idle-main-agent wake, exactly like background mode.
-            match state.waits.remove(&request.id) {
-                Some(pending) => {
-                    // `send` hands the value BACK when the receiver is gone
-                    // - a dropped wait handle means the requester's turn
-                    // ended before the report; the promise parks it.
-                    if let Err(undelivered) = pending.tx.send(AgentCoworkerReport { output, end }) {
-                        state.deliveries.push(AgentCoworkerDelivery {
-                            coworker: coworker.to_string(),
-                            coworker_id: coworker_identity,
-                            request_id: request.id,
-                            requester,
-                            output: undelivered.output,
-                            kind: DeliveryKind::CallReport,
-                            end,
-                        });
-                    }
-                }
-                None => state.deliveries.push(AgentCoworkerDelivery {
-                    coworker: coworker.to_string(),
-                    coworker_id: coworker_identity,
-                    request_id: request.id,
-                    requester,
-                    output,
-                    kind: DeliveryKind::CallReport,
-                    end,
-                }),
-            }
-        }
-        ReplyMode::Background => state.deliveries.push(AgentCoworkerDelivery {
-            coworker: coworker.to_string(),
-            coworker_id: coworker_identity,
-            request_id: request.id,
-            requester,
-            output,
-            kind: DeliveryKind::CallReport,
-            end,
-        }),
-    }
+    resolve_request(&mut state, coworker, request, report);
     Some(requester)
+}
+
+fn resolve_request(
+    state: &mut RegistryState,
+    coworker: &str,
+    request: AgentCoworkerRequest,
+    report: AgentCoworkerReport,
+) {
+    let report = if let Some(waiter) = state.waits.remove(&request.id) {
+        match waiter.tx.send(report) {
+            Ok(()) => return,
+            Err(undelivered) => undelivered,
+        }
+    } else {
+        report
+    };
+    state.deliveries.push(AgentCoworkerDelivery {
+        coworker: coworker.to_string(),
+        coworker_id: request.coworker_id,
+        request_id: request.id,
+        requester: request.requester,
+        output: report.output,
+        kind: DeliveryKind::CallReport,
+        end: report.end,
+    });
+}
+
+fn fail_request(
+    state: &mut RegistryState,
+    coworker: &str,
+    request: AgentCoworkerRequest,
+    error: String,
+) {
+    resolve_request(
+        state,
+        coworker,
+        request,
+        AgentCoworkerReport::new(Err(error), AgentCoworkerTurnEnd::Error),
+    );
 }
 
 /// Fail a coworker's IN-FLIGHT request, if any: the coworker's turn was reset
@@ -960,7 +951,7 @@ pub fn complete_request(coworker: &str, report: AgentCoworkerReport) -> Option<&
 pub fn fail_serving(coworker: &str, error: String) {
     let mut state = registry().lock().unwrap_or_else(|p| p.into_inner());
     if let Some(request) = state.serving.remove(coworker) {
-        fail_wait(&mut state, &request.id, error);
+        fail_request(&mut state, coworker, request, error);
     }
 }
 
@@ -993,13 +984,15 @@ pub fn cancel_serving(coworker: &str, reason: String) -> Option<&'static str> {
 /// behind it auto-starts a fresh turn on the pane the user just halted.
 fn drop_queued_requests(coworker: &str, error: &str) {
     let mut state = registry().lock().unwrap_or_else(|p| p.into_inner());
-    let dropped: Vec<String> = state
-        .queues
-        .get_mut(coworker)
-        .map(|queue| queue.drain(..).map(|request| request.id).collect())
-        .unwrap_or_default();
-    for id in dropped {
-        fail_wait(&mut state, &id, error.to_string());
+    if let Some(queue) = state.queues.remove(coworker) {
+        for request in queue {
+            resolve_request(
+                &mut state,
+                coworker,
+                request,
+                AgentCoworkerReport::new(Err(error.to_string()), AgentCoworkerTurnEnd::Cancelled),
+            );
+        }
     }
 }
 
@@ -1139,25 +1132,49 @@ fn fail_wait(state: &mut RegistryState, request_id: &str, error: String) {
 /// inject a report the main loop asked for, and vice versa.
 #[must_use]
 pub fn take_ready_deliveries(requester: &str) -> Vec<AgentCoworkerDelivery> {
+    take_deliveries(|delivery| delivery.requester == requester)
+}
+
+/// Drain the reports that can start another turn automatically. A deliberate
+/// pane cancellation remains available when the requester next runs.
+#[must_use]
+pub fn take_wake_reports(requester: &str) -> Vec<AgentCoworkerDelivery> {
+    take_deliveries(|delivery| is_wake_report(delivery, requester))
+}
+
+#[must_use]
+pub fn has_wake_reports(requester: &str) -> bool {
+    registry()
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .deliveries
+        .iter()
+        .any(|delivery| is_wake_report(delivery, requester))
+}
+
+fn is_wake_report(delivery: &AgentCoworkerDelivery, requester: &str) -> bool {
+    delivery.requester == requester
+        && delivery.kind == DeliveryKind::CallReport
+        && delivery.end != AgentCoworkerTurnEnd::Cancelled
+}
+
+/// Clear the previous session's inbox when the app replaces the entire session.
+pub fn discard_call_reports() {
+    registry()
+        .lock()
+        .unwrap_or_else(|p| p.into_inner())
+        .deliveries
+        .retain(|delivery| delivery.kind != DeliveryKind::CallReport);
+}
+
+fn take_deliveries(
+    mut matches: impl FnMut(&AgentCoworkerDelivery) -> bool,
+) -> Vec<AgentCoworkerDelivery> {
     let mut state = registry().lock().unwrap_or_else(|p| p.into_inner());
-    let mut ready = Vec::new();
-    state.deliveries.retain_mut(|delivery| {
-        if delivery.requester == requester {
-            ready.push(AgentCoworkerDelivery {
-                coworker: delivery.coworker.clone(),
-                coworker_id: delivery.coworker_id,
-                request_id: delivery.request_id.clone(),
-                requester: delivery.requester,
-                output: delivery.output.clone(),
-                kind: delivery.kind,
-                end: delivery.end,
-            });
-            false
-        } else {
-            true
-        }
-    });
-    ready
+    state
+        .deliveries
+        .extract_if(.., |delivery| matches(delivery))
+        .collect()
 }
 
 /// Take the ONE Worktree-kind delivery addressed to `requester` with the
@@ -2965,7 +2982,158 @@ mod tests {
     }
 
     #[test]
-    fn set_panes_prunes_orphaned_serving_and_deliveries() {
+    fn orchestration_regression_reads_a_report_that_arrives_during_the_final_request() {
+        use crate::harness::{
+            Checkup, Harness, HarnessEvent, TerminationDecision, TerminationVerdict,
+        };
+        use std::sync::Arc;
+        use std::sync::atomic::AtomicBool;
+
+        struct FinishCoworkerAtNaturalStop;
+
+        impl Checkup for FinishCoworkerAtNaturalStop {
+            fn review_termination(&self, _: &str) -> TerminationVerdict {
+                // The real loop has already drained its inbox for this iteration.
+                let _ = complete_request(
+                    "claude",
+                    AgentCoworkerReport::new(
+                        Ok("the delegated result".into()),
+                        AgentCoworkerTurnEnd::EndTurn,
+                    ),
+                );
+                TerminationVerdict {
+                    decision: TerminationDecision::Terminated,
+                    confidence: 1.0,
+                }
+            }
+        }
+
+        let _guard = lock();
+        set_coworkers(vec![coworker("claude", "claude", true)]);
+        let request = enqueue("claude", "investigate", MANAGER, ReplyMode::Background).unwrap();
+        pop_next_request("claude").unwrap();
+        let mut harness = Harness::new_test()
+            .as_manager()
+            .with_test_tool(
+                "test_tool",
+                serde_json::json!({"type": "object", "properties": {"x": {"type": "string"}}}),
+            )
+            .with_mock_streams(vec![
+                Ok(vec![r#"{"name":"test_tool","arguments":{"x":"test"}}"#]),
+                Ok(vec!["My work is complete."]),
+                Ok(vec!["I incorporated the delegated result."]),
+            ])
+            .with_checkup(Arc::new(FinishCoworkerAtNaturalStop));
+        let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel();
+        let (_answer_tx, answer_rx) = tokio::sync::mpsc::unbounded_channel();
+        let (_perm_tx, perm_rx) = tokio::sync::mpsc::unbounded_channel();
+
+        block_on(async {
+            tokio::time::timeout(
+                std::time::Duration::from_secs(5),
+                harness.run_agent_loop(
+                    "Coordinate the work",
+                    tx,
+                    answer_rx,
+                    perm_rx,
+                    Arc::new(AtomicBool::new(false)),
+                ),
+            )
+            .await
+            .expect("the orchestrator must complete");
+        });
+
+        let mut reports = Vec::new();
+        while let Ok(event) = rx.try_recv() {
+            match event {
+                HarnessEvent::ToolOutput { tool, output, .. } if tool == "agents_call" => {
+                    reports.push(output);
+                }
+                HarnessEvent::Done { .. } => break,
+                _ => {}
+            }
+        }
+        assert_eq!(reports.len(), 1, "the report must arrive before Done");
+        assert!(reports[0].contains(&request.request_id));
+        assert!(reports[0].contains("the delegated result"));
+        assert!(
+            harness.context_manager.items_snapshot().iter().any(|item| {
+                matches!(
+                    item,
+                    crate::harness::context::ContextItem::User { original, .. }
+                        if original == &reports[0]
+                )
+            }),
+            "the report must reach the model's context"
+        );
+        assert_eq!(
+            harness.context_manager.final_answer().as_deref(),
+            Some("I incorporated the delegated result.")
+        );
+        assert!(take_ready_deliveries(MANAGER).is_empty());
+    }
+
+    #[test]
+    fn orchestration_regression_reports_queued_and_running_calls_when_a_pane_is_removed() {
+        let _guard = lock();
+        set_coworkers(vec![coworker("claude", "claude", true)]);
+        let running = enqueue("claude", "already dispatched", MAIN, ReplyMode::Background).unwrap();
+        pop_next_request("claude").unwrap();
+        let queued = enqueue("claude", "still queued", MAIN, ReplyMode::Background).unwrap();
+        set_coworkers(vec![]);
+        assert!(!has_outstanding_requests(MAIN));
+
+        let deliveries = take_ready_deliveries(MAIN);
+        assert_eq!(deliveries.len(), 2);
+        for request in [running, queued] {
+            let delivery = deliveries
+                .iter()
+                .find(|d| d.request_id == request.request_id)
+                .unwrap();
+            assert_eq!(delivery.end, AgentCoworkerTurnEnd::Error);
+            assert!(delivery.output.is_err());
+        }
+    }
+
+    #[test]
+    fn orchestration_regression_preserves_reports_on_both_sides_of_wait_handoff() {
+        let _guard = lock();
+        set_coworkers(vec![coworker("claude", "claude", true)]);
+        for report_arrives_first in [true, false] {
+            let request = enqueue("claude", "delegate", MAIN, ReplyMode::Wait).unwrap();
+            let mut receiver = request.receiver.unwrap();
+            pop_next_request("claude").unwrap();
+
+            let complete = || {
+                assert_eq!(
+                    complete_request(
+                        "claude",
+                        AgentCoworkerReport::new(
+                            Ok("the report".into()),
+                            AgentCoworkerTurnEnd::EndTurn
+                        ),
+                    ),
+                    Some(MAIN)
+                );
+            };
+            if report_arrives_first {
+                complete();
+                let report = close_report_wait(&mut receiver).expect("already delivered");
+                assert_eq!(report.output.as_deref(), Ok("the report"));
+                assert!(take_ready_deliveries(MAIN).is_empty());
+            } else {
+                assert!(close_report_wait(&mut receiver).is_none());
+                complete();
+                let reports = take_ready_deliveries(MAIN);
+                assert_eq!(reports.len(), 1);
+                assert_eq!(reports[0].request_id, request.request_id);
+                assert_eq!(reports[0].output.as_deref(), Ok("the report"));
+            }
+        }
+    }
+
+    #[test]
+    fn removing_a_pane_preserves_an_already_completed_report() {
         let _g = lock();
         set_coworkers(vec![coworker("claude", "claude", true)]);
         // A background request pops into serving (the App dispatched it),
@@ -2986,21 +3154,13 @@ mod tests {
             !has_outstanding_requests(MANAGER),
             "a parked delivery is finished work, not outstanding"
         );
-        assert_eq!(take_ready_deliveries(MANAGER).len(), 1);
-        // A SECOND request stays in-flight (serving) when the coworker leaves
-        // the split: its serving entry is pruned with the coworker, and any
-        // parked-but-undrained delivery dies with it - a stale report must
-        // never drain into a LATER loop.
-        enqueue("claude", "second", MAIN, ReplyMode::Background).unwrap();
-        assert!(pop_next_request("claude").is_some());
         set_coworkers(vec![]);
-        assert!(
-            !has_outstanding_requests(MAIN),
-            "orphaned serving pruned with the pane"
-        );
+        let reports = take_ready_deliveries(MANAGER);
+        assert_eq!(reports.len(), 1);
+        assert_eq!(reports[0].request_id, handle.request_id);
+        assert_eq!(reports[0].output.as_deref(), Ok("report"));
         assert!(take_ready_deliveries(MAIN).is_empty());
         assert!(take_ready_deliveries(MANAGER).is_empty());
-        assert!(!handle.receiver.is_some(), "background carries no receiver");
     }
 
     #[test]
@@ -3278,7 +3438,7 @@ mod tests {
                 .await
                 .expect("waiter alive")
         });
-        assert_eq!(answer.end, AgentCoworkerTurnEnd::Error);
+        assert_eq!(answer.end, AgentCoworkerTurnEnd::Cancelled);
         assert!(
             answer.output.as_deref().unwrap_err().contains("stopped"),
             "the queued request's waiter learns the turn was stopped: {answer:?}"

@@ -214,7 +214,7 @@ impl Harness {
                 Ok(handle) => handle,
                 Err(error) => return Err(error),
             };
-            if let Some(rx) = handle.receiver {
+            if let Some(mut rx) = handle.receiver {
                 // Wait mode: the report IS the tool result. Esc unblocks:
                 // the stop wait wins the race and the tool returns the stop
                 // error (the request is cancelled for THIS requester - a
@@ -237,7 +237,7 @@ impl Harness {
                 // never saw the qualification a background caller did.
                 let queued_wake = self.loop_queued_input.clone();
                 let answer = tokio::select! {
-                    answer = rx => {
+                    answer = &mut rx => {
                         answer.unwrap_or_else(|_| {
                             super::agent_coworkers::AgentCoworkerReport::new(
                                 Err("the pane request was cancelled".to_string()),
@@ -259,12 +259,15 @@ impl Harness {
                             tokio::time::sleep(Duration::from_millis(50)).await;
                         }
                     } => {
-                        return Err(
-                            "the agents_call wait was interrupted: a user message arrived \
-                             while waiting - the coworker keeps working and its report arrives \
-                             as an automated notification."
-                                .to_string(),
-                        );
+                        match super::agent_coworkers::close_report_wait(&mut rx) {
+                            Some(report) => report,
+                            None => return Err(
+                                "the agents_call wait was interrupted: a user message arrived \
+                                 while waiting - the coworker keeps working and its report arrives \
+                                 as an automated notification."
+                                    .to_string(),
+                            ),
+                        }
                     }
                 };
                 return Ok(super::agent_coworkers::report_block(

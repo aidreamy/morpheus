@@ -1581,6 +1581,7 @@ impl App {
                     // save below: the pending-todos wake (fired after the
                     // persist) reads this snapshot.
                     let todo_snapshot = context.todo.clone();
+                    let resume_context = self.coworker_resume_context(&context);
                     // The main-agent mirror seals its turn BEFORE the status
                     // flips: success closes the marker as Completed.
                     self.mirror_main_done(false);
@@ -1606,7 +1607,7 @@ impl App {
                     // gets to; a stale flag would make the submit gate treat
                     // a genuinely idle agent as still awaiting reports.
                     self.awaiting_pane_reports = false;
-                    self.agent_spinner = None;
+                    self.set_agent_activity(crate::types::AgentActivity::Working);
                     self.stream_msg_id = None;
                     self.prune_unreused_cleared_stream();
                     // opencode model: the LSP engine is session-scoped (the
@@ -1733,8 +1734,11 @@ impl App {
                     // "next agent loop" candidates, and the first one starts a
                     // fresh loop (FIFO). If nothing is queued, the work is
                     // complete - ring the terminal bell to call the user back.
-                    let started_new_loop = self.handle_loop_end(true);
-                    if !started_new_loop {
+                    let started_new_loop = self.handle_loop_end(true)
+                        || resume_context.is_some_and(|context| {
+                            self.wake_main_agent_with_reports(Some(context))
+                        });
+                    if !started_new_loop && !self.any_agent_running() {
                         self.trigger_bell();
                         // Send a desktop notification if the terminal
                         // window is not focused (user switched away).
@@ -1822,6 +1826,7 @@ impl App {
                 }
 
                 HarnessEvent::Stopped { context } => {
+                    let resume_context = self.coworker_resume_context(&context);
                     // The main-agent mirror seals its interrupted turn as
                     // Failed, with the interruption notice as the transcript's
                     // last line (the same rule `close_turn` applies to a
@@ -1834,7 +1839,7 @@ impl App {
                     // the wait ends, but a loop that dies mid-wait - a stop,
                     // an error - never gets to.)
                     self.awaiting_pane_reports = false;
-                    self.agent_spinner = None;
+                    self.set_agent_activity(crate::types::AgentActivity::Working);
                     self.stream_msg_id = None;
                     self.prune_unreused_cleared_stream();
                     // Session-scoped servers (see the Done handler): keep the
@@ -1871,7 +1876,10 @@ impl App {
                         self.state.ensure_session_summary(&id);
                     }
 
-                    let started_new_loop = self.handle_loop_end(true);
+                    let started_new_loop = self.handle_loop_end(true)
+                        || resume_context.is_some_and(|context| {
+                            self.wake_main_agent_with_reports(Some(context))
+                        });
                     if !started_new_loop {
                         // Send a desktop notification if the terminal
                         // window is not focused (user switched away).
@@ -2057,7 +2065,7 @@ impl App {
                         message: message.clone(),
                         action: None,
                     };
-                    self.agent_spinner = None;
+                    self.set_agent_activity(crate::types::AgentActivity::Working);
                     self.stream_msg_id = None;
                     self.prune_unreused_cleared_stream();
                     // The loop died mid-flight, so any pending "only waiting
@@ -2308,6 +2316,20 @@ impl App {
                 }
             }
         }
+        self.sync_agent_spinner();
+    }
+
+    /// A pane report can arrive while the main loop's terminal event is
+    /// still queued. Use its latest context even if the async save is pending.
+    /// A user interrupt leaves the report for the next regular turn.
+    fn coworker_resume_context(
+        &self,
+        context: &ContextManagerState,
+    ) -> Option<ContextManagerState> {
+        use morpheus::harness::agent_coworkers::{MAIN, has_wake_reports};
+
+        (!self.stop_signal.load(std::sync::atomic::Ordering::Relaxed) && has_wake_reports(MAIN))
+            .then(|| context.clone())
     }
 
     /// Incremental persistence: called on each throttled `ContextSnapshot`

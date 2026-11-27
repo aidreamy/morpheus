@@ -27,6 +27,7 @@ pub(crate) use crate::routes::session::pending_queue::PendingQueueRow;
 
 impl App {
     pub(super) fn render(&mut self, frame: &mut Frame<'_>, delta_time: f64) {
+        self.sync_agent_spinner();
         self.telemetry_view();
         // Background model installs finish here even when their router is
         // closed, so a completion toast and the mirror pin never wait for the
@@ -78,16 +79,7 @@ impl App {
         // with the user scrolled away from the bottom (not sticky), no
         // streaming text and no active tool spinner otherwise reached the
         // idle path, dropping the beam animation to ~5 fps.
-        let agent_spinner_live = (self.state.status == crate::types::SessionStatus::Working
-            || self
-                .agents_split
-                .as_ref()
-                .is_some_and(crate::routes::session::agents_split::AgentsSplitState::any_running)
-            || (self.agents_split.is_none()
-                && self.parked_agents_split.as_ref().is_some_and(
-                    crate::routes::session::agents_split::AgentsSplitState::any_running,
-                )))
-            && self.agent_spinner.is_some();
+        let agent_spinner_live = self.agent_spinner_active();
         live = live || agent_spinner_live;
         live = live || (self.prompt_correction_active && !agent_spinner_live);
         live = live || self.rag_spinner_active();
@@ -572,32 +564,7 @@ impl App {
 
             // Both spinners share the row above the prompt. The correction
             // indicator yields to the agent loop rather than replacing it.
-            // The /agents split keeps the spinner alive while ANY pane
-            // streams (its turns live outside the shared session loop, so
-            // `status` alone cannot see them) - a PARKED split too (the
-            // stream follows the panes, not the screen). This predicate
-            // MUST match `agent_spinner_active` in the mouse layout
-            // (`mod.rs`): a one-row drift here skews every hit-test below
-            // the prompt for the whole parked turn.
-            let agents_panes_running =
-                self.agents_split.as_ref().is_some_and(
-                    crate::routes::session::agents_split::AgentsSplitState::any_running,
-                ) || (self.agents_split.is_none()
-                    && self.parked_agents_split.as_ref().is_some_and(
-                        crate::routes::session::agents_split::AgentsSplitState::any_running,
-                    ));
-            // A rehydrating pane streams its replayed history too - same
-            // spinner-row contract, live or parked.
-            let agents_panes_rehydrating = self.agents_split.as_ref().is_some_and(
-                crate::routes::session::agents_split::AgentsSplitState::any_rehydrating,
-            ) || (self.agents_split.is_none()
-                && self.parked_agents_split.as_ref().is_some_and(
-                    crate::routes::session::agents_split::AgentsSplitState::any_rehydrating,
-                ));
-            let agent_spinner_active = (self.state.status == crate::types::SessionStatus::Working
-                || agents_panes_running
-                || agents_panes_rehydrating)
-                && self.agent_spinner.is_some();
+            let agent_spinner_active = self.agent_spinner_active();
             let correction_spinner_active = self.prompt_correction_active && !agent_spinner_active;
             let spinner_h = u16::from(
                 is_session

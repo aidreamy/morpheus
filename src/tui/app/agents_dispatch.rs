@@ -1528,6 +1528,13 @@ impl App {
         // spinner and a mirror spinning.
         let manager_session: Option<String> = if is_manager_pane {
             let Some(id) = self.ensure_manager_pane_session(pane) else {
+                if from_agent && let Some(pane) = &pane_registry_id {
+                    morpheus::harness::agent_coworkers::fail_serving(
+                        pane,
+                        "Could not create the manager session.".into(),
+                    );
+                    self.wake_main_agent_with_reports(None);
+                }
                 return;
             };
             Some(id)
@@ -2060,39 +2067,38 @@ impl App {
     /// alone - it drains its deliveries at its own natural points (the
     /// per-iteration drain and the pre-Done busy-guard).
     pub(super) fn wake_main_agent_if_promised(&mut self, requester: Option<&'static str>) {
-        if requester != Some(morpheus::harness::agent_coworkers::MAIN) {
-            return;
+        if requester == Some(morpheus::harness::agent_coworkers::MAIN) {
+            self.wake_main_agent_with_reports(None);
         }
-        if self.state.status == crate::types::SessionStatus::Working {
-            return;
+    }
+
+    pub(super) fn wake_main_agent_with_reports(
+        &mut self,
+        context: Option<morpheus::harness::ContextManagerState>,
+    ) -> bool {
+        use morpheus::harness::agent_coworkers::{self, MAIN};
+
+        if self.state.status == crate::types::SessionStatus::Working
+            || self.state.mode == morpheus::harness::Mode::Command
+            || self.state.current_session_id.is_none()
+            || self
+                .active_loop_session_id
+                .as_ref()
+                .is_some_and(|owner| self.state.current_session_id.as_ref() != Some(owner))
+            || !agent_coworkers::has_wake_reports(MAIN)
+            || self.gateway_recommendation_offers(false).is_some()
+        {
+            return false;
         }
-        // The USER's stop is ABSOLUTE: a `Cancelled` delivery is the registry's
-        // record of a turn the user stopped (Ctrl+X) - waking the main agent
-        // with it would override the interrupt with a synthetic turn. Cancelled
-        // deliveries are consumed and DISCARDED here (not left parked: a later
-        // unrelated wake must never deliver a stale cancellation).
-        let notes: Vec<String> = morpheus::harness::agent_coworkers::take_ready_deliveries(
-            morpheus::harness::agent_coworkers::MAIN,
-        )
-        .into_iter()
-        .filter_map(|delivery| {
-            if delivery.end == morpheus::harness::agent_coworkers::AgentCoworkerTurnEnd::Cancelled {
-                log::info!(
-                    target: "laya",
-                    "wake promise: a cancelled pane report (the user stopped the turn) is dropped, never delivered"
-                );
-                return None;
-            }
-            Some(morpheus::harness::agent_coworkers::delivery_note(&delivery))
-        })
-        .collect();
+        let notes: Vec<_> = agent_coworkers::take_wake_reports(MAIN)
+            .iter()
+            .map(agent_coworkers::delivery_note)
+            .collect();
         if notes.is_empty() {
-            // Nothing parked (a wait-mode resolution whose receiver died -
-            // the requester's turn was stopped): no promise left to keep.
-            return;
+            return false;
         }
-        let report = notes.join("\n\n");
-        self.start_agent_loop(report);
+        self.start_agent_loop_with_context(notes.join("\n\n"), context);
+        true
     }
 
     /// The pending-todos wake (the manager/coordination counterpart the
@@ -2197,7 +2203,7 @@ impl App {
     /// must not fire while an agent is active - the report of a running
     /// pane is the fresher material, and a working main loop reconciles its
     /// own list.
-    fn any_agent_running(&self) -> bool {
+    pub(super) fn any_agent_running(&self) -> bool {
         self.state.status == crate::types::SessionStatus::Working
             || either_split(&self.agents_split, &self.parked_agents_split)
                 .is_some_and(|split| split.panes.iter().any(|p| p.running))

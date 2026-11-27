@@ -196,6 +196,14 @@ impl App {
     /// stay queued: [`App::pump_queued_messages`] hands them to the loop's
     /// queued-input channel one at a time (honoring the queue-actions hold).
     pub(super) fn start_agent_loop(&mut self, msg: String) {
+        self.start_agent_loop_with_context(msg, None);
+    }
+
+    pub(super) fn start_agent_loop_with_context(
+        &mut self,
+        msg: String,
+        context: Option<morpheus::harness::ContextManagerState>,
+    ) {
         // The pending-todos wake budget: the wake flags its OWN start so the
         // state survives it; ANY other start (a user prompt, a queued
         // message, a wake promise) is fresh steering - it resets the budget
@@ -451,11 +459,12 @@ impl App {
         // into the context. No context records (a fresh session, or a file
         // that is missing/corrupt) means the loop starts with an empty
         // context.
-        let ctx_state: Option<morpheus::harness::ContextManagerState> = self
-            .state
-            .current_session_id
-            .as_ref()
-            .and_then(|id| self.session_store.load_context(id));
+        let ctx_state = context.or_else(|| {
+            self.state
+                .current_session_id
+                .as_ref()
+                .and_then(|id| self.session_store.load_context(id))
+        });
 
         std::thread::spawn(move || {
             use std::panic::AssertUnwindSafe;

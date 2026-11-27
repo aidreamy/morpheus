@@ -1154,7 +1154,10 @@ async fn agents_pane_done_promotes_the_pane_binding_for_the_next_open() {
 /// chat visually reset.
 #[tokio::test]
 async fn adding_panes_while_running_keeps_the_running_turns_and_chats() {
-    use morpheus::harness::HarnessEvent;
+    use morpheus::harness::{
+        HarnessEvent,
+        agent_coworkers::{self, ReplyMode},
+    };
 
     let _guard = HOME_LOCK.lock();
     isolate_home();
@@ -1169,6 +1172,15 @@ async fn adding_panes_while_running_keeps_the_running_turns_and_chats() {
     }]);
 
     // Pane 0 starts a turn and streams content.
+    app.state.status = crate::types::SessionStatus::Working;
+    let delegation = agent_coworkers::enqueue(
+        "claude",
+        "delegate",
+        agent_coworkers::MAIN,
+        ReplyMode::Background,
+    )
+    .unwrap();
+    agent_coworkers::pop_next_request("claude").unwrap();
     app.agents_split.as_mut().unwrap().set_running(0, true);
     let pane_id = app.agents_split.as_ref().unwrap().panes[0].id;
     let epoch = app.agents_pane_epoch;
@@ -1196,6 +1208,9 @@ async fn adding_panes_while_running_keeps_the_running_turns_and_chats() {
             instances: 1,
         },
     ]);
+    assert!(agent_coworkers::has_outstanding_requests(
+        agent_coworkers::MAIN
+    ));
     {
         let split = app.agents_split.as_ref().unwrap();
         assert_eq!(split.panes.len(), 2, "the fresh set has both panes");
@@ -1265,6 +1280,10 @@ async fn adding_panes_while_running_keeps_the_running_turns_and_chats() {
         })
         .ok();
     app.poll_events();
+    let reports = agent_coworkers::take_ready_deliveries(agent_coworkers::MAIN);
+    assert_eq!(reports.len(), 1);
+    assert_eq!(reports[0].request_id, delegation.request_id);
+    assert_eq!(reports[0].output.as_deref(), Ok("report after re-pick"));
     {
         let split = app.agents_split.as_ref().unwrap();
         assert!(
@@ -2626,6 +2645,178 @@ async fn a_rebooted_morpheus_pane_replays_its_session_from_the_store() {
     );
 }
 
+#[tokio::test]
+async fn orchestration_regression_keeps_the_spinner_until_the_last_pane_finishes() {
+    use morpheus::harness::{HarnessEvent, context::ContextManagerState};
+    use ratatui::{Terminal, backend::TestBackend};
+
+    let _guard = HOME_LOCK.lock();
+    isolate_home();
+    let mut app = App::new("/tmp".into());
+    let id = crate::session::store::generate_session_id();
+    app.state
+        .add_empty_session(id.clone(), "orchestration".into(), 0);
+    app.state.current_session_id = Some(id);
+    app.open_agents_split(vec![crate::ui::agents_picker::AgentPick {
+        name: "claude".into(),
+        instances: 1,
+    }]);
+    let split = app.agents_split.as_mut().unwrap();
+    let pane_id = split.panes[0].id;
+    let turn = split.begin_turn(0);
+    split.set_running(0, true);
+    app.park_agents_split();
+    app.state.status = crate::types::SessionStatus::Working;
+    app.agent_spinner = Some(crate::component::any_spinner::AnySpinner::new(
+        "working",
+        &app.theme,
+        morpheus::setup::SpinnerStyle::Bass,
+    ));
+
+    app.event_tx
+        .send(HarnessEvent::Done {
+            context: ContextManagerState::default(),
+            checkup_verdict: None,
+        })
+        .unwrap();
+    app.poll_events();
+
+    assert_eq!(app.state.status, crate::types::SessionStatus::Idle);
+    assert!(app.parked_agents_split.as_ref().unwrap().any_running());
+    assert!(
+        app.agent_spinner.is_some(),
+        "the parked pane is still working"
+    );
+    app.set_test_size(80, 24);
+    let mut terminal = Terminal::new(TestBackend::new(80, 24)).unwrap();
+    terminal.draw(|frame| app.render(frame, 0.033)).unwrap();
+    let rendered: String = terminal
+        .backend()
+        .buffer()
+        .content()
+        .iter()
+        .map(|cell| cell.symbol())
+        .collect();
+    assert!(
+        rendered.contains("working"),
+        "the spinner row is still visible"
+    );
+
+    app.event_tx
+        .send(HarnessEvent::AgentsPaneDone {
+            pane: 0,
+            pane_id,
+            epoch: app.agents_pane_epoch,
+            turn,
+            output: "finished".into(),
+            stop_reason: "end_turn".into(),
+            session: None,
+        })
+        .unwrap();
+    app.poll_events();
+    assert!(app.agent_spinner.is_none(), "all turns have completed");
+}
+
+#[tokio::test]
+async fn orchestration_regression_delivers_a_report_that_precedes_the_main_terminal_event() {
+    use morpheus::harness::{HarnessEvent, context::ContextManagerState};
+
+    let _guard = HOME_LOCK.lock();
+    isolate_home();
+    assert_report_at_main_termination(
+        HarnessEvent::Done {
+            context: ContextManagerState::default(),
+            checkup_verdict: None,
+        },
+        false,
+    );
+    assert_report_at_main_termination(
+        HarnessEvent::Stopped {
+            context: ContextManagerState::default(),
+        },
+        false,
+    );
+    assert_report_at_main_termination(
+        HarnessEvent::Stopped {
+            context: ContextManagerState::default(),
+        },
+        true,
+    );
+}
+
+fn assert_report_at_main_termination(
+    terminal_event: morpheus::harness::HarnessEvent,
+    user_stopped: bool,
+) {
+    use morpheus::harness::{
+        HarnessEvent,
+        agent_coworkers::{self, ReplyMode},
+    };
+
+    let mut app = App::new("/tmp".into());
+    app.gateway_declined = true;
+    app.llm_config.provider.clear();
+    app.llm_config.model = None;
+    app.router_view.fallbacks.clear();
+    let id = crate::session::store::generate_session_id();
+    app.state
+        .add_empty_session(id.clone(), "wake promise".into(), 0);
+    app.state.current_session_id = Some(id);
+    app.open_agents_split(vec![crate::ui::agents_picker::AgentPick {
+        name: "claude".into(),
+        instances: 1,
+    }]);
+    let split = app.agents_split.as_mut().unwrap();
+    let pane_id = split.panes[0].id;
+    let turn = split.begin_turn(0);
+    split.set_running(0, true);
+    app.state.status = crate::types::SessionStatus::Working;
+    let request = agent_coworkers::enqueue(
+        "claude",
+        "delegate",
+        agent_coworkers::MAIN,
+        ReplyMode::Background,
+    )
+    .unwrap();
+    agent_coworkers::pop_next_request("claude").unwrap();
+
+    app.event_tx
+        .send(HarnessEvent::AgentsPaneDone {
+            pane: 0,
+            pane_id,
+            epoch: app.agents_pane_epoch,
+            turn,
+            output: "the delegated result".into(),
+            stop_reason: "end_turn".into(),
+            session: None,
+        })
+        .unwrap();
+    app.stop_signal
+        .store(user_stopped, std::sync::atomic::Ordering::Relaxed);
+    app.event_tx.send(terminal_event).unwrap();
+    app.poll_events();
+
+    let delivered = app.state.current_session().unwrap().messages.iter().any(|message| {
+        message.parts.iter().any(|part| matches!(
+            part,
+            crate::types::Part::Text(text)
+                if text.text.contains(&request.request_id) && text.text.contains("the delegated result")
+        ))
+    });
+    let parked = agent_coworkers::take_ready_deliveries(agent_coworkers::MAIN);
+    if user_stopped {
+        assert!(!delivered, "a user interrupt must not start a new turn");
+        assert_eq!(parked.len(), 1);
+        assert_eq!(parked[0].request_id, request.request_id);
+    } else {
+        assert!(
+            delivered,
+            "the main agent must receive the ready report when it closes"
+        );
+        assert!(parked.is_empty(), "the report is handed off exactly once");
+    }
+}
+
 /// The wake promise (user-reported): "se o agente principal mandou uma
 /// mensagem para um agente em um pane, ele precisa ter um output no
 /// futuro". A pane turn whose request was made by the MAIN loop (here:
@@ -2752,8 +2943,8 @@ async fn a_user_initiated_pane_turn_never_wakes_the_main_agent() {
 
 /// A CANCELLED pane report (the USER stopped the turn with Ctrl+X) must never
 /// wake the idle main agent: the stop is absolute, and the wake would override
-/// the interrupt with a synthetic turn. The cancelled delivery is consumed and
-/// dropped, not parked for a later wake.
+/// the interrupt with a synthetic turn. The next regular turn can still read
+/// the cancellation.
 #[tokio::test]
 async fn a_cancelled_pane_report_never_wakes_the_main_agent() {
     use morpheus::harness::agent_coworkers::{self, ReplyMode};
@@ -2795,9 +2986,11 @@ async fn a_cancelled_pane_report_never_wakes_the_main_agent() {
         crate::types::SessionStatus::Idle,
         "a cancelled report must not wake the main agent - the user's stop stands"
     );
-    assert!(
-        agent_coworkers::take_ready_deliveries(agent_coworkers::MAIN).is_empty(),
-        "the cancelled delivery is consumed, never parked for a later wake"
+    let deliveries = agent_coworkers::take_ready_deliveries(agent_coworkers::MAIN);
+    assert_eq!(deliveries.len(), 1);
+    assert_eq!(
+        deliveries[0].end,
+        agent_coworkers::AgentCoworkerTurnEnd::Cancelled
     );
     assert!(
         app.state

@@ -2312,22 +2312,26 @@ impl Harness {
                 // the report (same nesting rule as the background
                 // sub-agents below). Wait for the completions; Esc
                 // interrupts the wait and ends the turn normally.
-                if !self.nested
-                    && super::agent_coworkers::has_outstanding_requests(self.coworkers_requester)
-                {
-                    log::debug!("run_agent_loop WAITING for /agents pane reports before Done");
-                    // Tell the TUI the loop is only waiting: a prompt
-                    // submitted now is meant for IMMEDIATE delivery, and the
-                    // wait below wakes for it. The `false` on the way out is
-                    // emitted for every exit - the flag must never outlive
-                    // the condition it describes.
-                    let _ = tx.send(HarnessEvent::AwaitingCoworkerReports { awaiting: true });
-                    let exit = Self::wait_for_outstanding(&stop_signal, &queued_input, || {
-                        super::agent_coworkers::has_outstanding_requests(self.coworkers_requester)
-                    })
-                    .await;
-                    let _ = tx.send(HarnessEvent::AwaitingCoworkerReports { awaiting: false });
+                if !self.nested {
+                    let exit = if super::agent_coworkers::has_outstanding_requests(
+                        self.coworkers_requester,
+                    ) {
+                        log::debug!("run_agent_loop WAITING for /agents pane reports before Done");
+                        let _ = tx.send(HarnessEvent::AwaitingCoworkerReports { awaiting: true });
+                        let exit = Self::wait_for_outstanding(&stop_signal, &queued_input, || {
+                            super::agent_coworkers::has_outstanding_requests(
+                                self.coworkers_requester,
+                            )
+                        })
+                        .await;
+                        let _ = tx.send(HarnessEvent::AwaitingCoworkerReports { awaiting: false });
+                        exit
+                    } else {
+                        WaitExit::Resolved
+                    };
                     if exit != WaitExit::Stopped {
+                        // The last request may have completed during this
+                        // model request, before we ever entered the wait.
                         let notes: Vec<(String, String, Option<String>)> =
                             super::agent_coworkers::take_ready_deliveries(self.coworkers_requester)
                                 .iter()
@@ -2339,15 +2343,12 @@ impl Harness {
                                     )
                                 })
                                 .collect();
-                        self.inject_completion_notes(&tx, notes);
-                        // New input (or just the resolved waits): the stale
-                        // steering text must not shadow it. The loop
-                        // continues so the model responds to it - and on a
-                        // `MessagePending` exit this is what hands the
-                        // waiting user message to the next iteration's drain
-                        // instead of parking it behind the reports.
-                        current_input.clear();
-                        continue;
+                        if self.inject_completion_notes(&tx, notes)
+                            || exit == WaitExit::MessagePending
+                        {
+                            current_input.clear();
+                            continue;
+                        }
                     }
                 }
                 // Background tasks still outstanding: the turn does NOT end

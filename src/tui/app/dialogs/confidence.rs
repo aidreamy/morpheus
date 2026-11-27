@@ -142,7 +142,7 @@ impl App {
     }
 
     fn open_confidence_level(&mut self, pane_id: u64, profile: AgentProfile) {
-        let title = format!("Confidence · {}", profile.id);
+        let title = "Confidence";
         let level = profile.confidence.map_or("reset", Confidence::label);
         let levels = [
             ("reset", "Unrated"),

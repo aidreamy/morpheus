@@ -91,14 +91,43 @@ impl ConfidencePreferences {
         self.0.is_empty()
     }
     pub fn get(&self, profile: &AgentProfile) -> Option<Confidence> {
-        self.0
-            .get(&profile.agent)?
-            .get(&profile.confidence_key())
+        let models = self.0.get(&profile.agent)?;
+        let key = profile.confidence_key();
+        models
+            .get(&key)
+            .or_else(|| {
+                // A preference may be set before the first turn reveals its
+                // provider. Keep it visible once the serving model becomes
+                // provider-qualified, while preferring a more specific rating.
+                profile
+                    .model
+                    .as_deref()
+                    .filter(|model| key.as_str() != *model)
+                    .and_then(|model| model.rsplit('/').next())
+                    .and_then(|model| models.get(model))
+            })
             .copied()
     }
 
     pub fn set(&mut self, profile: &AgentProfile, level: Option<Confidence>) {
-        self.set_key(&profile.agent, profile.confidence_key(), level);
+        let key = profile.confidence_key();
+        if key.contains('/')
+            && let Some(model) = profile
+                .model
+                .as_deref()
+                .and_then(|model| model.rsplit('/').next())
+        {
+            // Once the provider is known, migrate any pre-discovery rating
+            // to the specific profile (or clear it on reset) to avoid the
+            // unresolved alias bleeding into another provider later.
+            if let Some(models) = self.0.get_mut(&profile.agent) {
+                models.remove(model);
+                if models.is_empty() {
+                    self.0.remove(&profile.agent);
+                }
+            }
+        }
+        self.set_key(&profile.agent, key, level);
     }
 
     fn set_key(&mut self, agent: &str, key: String, level: Option<Confidence>) {
@@ -174,6 +203,29 @@ impl AgentObservation {
                 .tools
                 .extend(observed_capability(*kind, tool.as_deref())),
             _ => {}
+        }
+    }
+
+    pub fn merge_from(&mut self, observation: Self) {
+        if observation.model.is_some()
+            && (self.model != observation.model
+                || (observation.provider.is_some() && self.provider != observation.provider))
+        {
+            *self = observation;
+            return;
+        }
+        if observation.commands.is_some() {
+            self.commands = observation.commands;
+        }
+        self.tools.extend(observation.tools);
+        if observation.model.is_some() {
+            self.model = observation.model;
+        }
+        if observation.provider.is_some() {
+            self.provider = observation.provider;
+        }
+        if observation.reasoning.is_some() {
+            self.reasoning = observation.reasoning;
         }
     }
 }
@@ -603,6 +655,40 @@ mod tests {
         disk.merge_changes(&baseline, &without_a);
         assert_eq!(disk.get(&a), None);
         assert_eq!(disk.get(&b), Some(Confidence::High));
+    }
+
+    #[test]
+    fn confidence_set_before_provider_discovery_survives_qualification() {
+        let unresolved = profile("claude#1", "sonnet");
+        let mut preferences = ConfidencePreferences::default();
+        preferences.set(&unresolved, Some(Confidence::High));
+
+        let mut resolved = unresolved.clone();
+        resolved.provider = Some("anthropic".into());
+        assert_eq!(preferences.get(&resolved), Some(Confidence::High));
+
+        preferences.set(&resolved, Some(Confidence::Low));
+        let mut other_provider = resolved.clone();
+        other_provider.provider = Some("other".into());
+        assert_eq!(preferences.get(&other_provider), None);
+        assert_eq!(preferences.get(&resolved), Some(Confidence::Low));
+    }
+
+    #[test]
+    fn observation_merge_discards_tools_when_provider_changes() {
+        let mut previous = AgentObservation {
+            model: Some("model-x".into()),
+            provider: Some("provider-a".into()),
+            tools: ["old_tool".into()].into(),
+            ..Default::default()
+        };
+        previous.merge_from(AgentObservation {
+            model: Some("model-x".into()),
+            provider: Some("provider-b".into()),
+            tools: ["new_tool".into()].into(),
+            ..Default::default()
+        });
+        assert_eq!(previous.tools, ["new_tool".into()].into());
     }
 
     #[tokio::test]

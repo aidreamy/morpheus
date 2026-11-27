@@ -345,20 +345,7 @@ impl ChatControl {
     pub fn record_observation(&mut self, key: &str, observation: AgentObservation) {
         if self.handles.contains_key(key) {
             let previous = self.observations.entry(key.to_string()).or_default();
-            if observation.model.is_some() && previous.model != observation.model {
-                *previous = observation;
-            } else {
-                if observation.commands.is_some() {
-                    previous.commands = observation.commands;
-                }
-                previous.tools.extend(observation.tools);
-                if observation.provider.is_some() {
-                    previous.provider = observation.provider;
-                }
-                if observation.reasoning.is_some() {
-                    previous.reasoning = observation.reasoning;
-                }
-            }
+            previous.merge_from(observation);
         }
     }
 

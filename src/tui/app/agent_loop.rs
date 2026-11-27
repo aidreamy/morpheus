@@ -450,13 +450,12 @@ impl App {
         // model-facing history source: the display transcript is never parsed
         // into the context. No context records (a fresh session, or a file
         // that is missing/corrupt) means the loop starts with an empty
-        // context - the user is told via toast below.
+        // context.
         let ctx_state: Option<morpheus::harness::ContextManagerState> = self
             .state
             .current_session_id
             .as_ref()
             .and_then(|id| self.session_store.load_context(id));
-        self.warn_if_resuming_without_context(&ctx_state);
 
         std::thread::spawn(move || {
             use std::panic::AssertUnwindSafe;
@@ -718,40 +717,6 @@ impl App {
                 checkup_verdict: None,
             });
         });
-    }
-
-    /// A persisted session whose context records went missing (deleted session
-    /// file, corrupt payload) would silently "forget" the whole conversation -
-    /// JSONL: a brand-new session's FIRST prompt also has a message on screen
-    /// with no context records yet (they are only written by Done/Stopped/
-    /// snapshot saves) - that is normal, not data loss. Known interim noise:
-    /// an early TUI-side failure persists the display messages alone, so a
-    /// resend warns even though nothing reached the model either (accepted;
-    /// TODO.md task 4 routes more saves through the context-aware path).
-    pub(super) fn warn_if_resuming_without_context(
-        &mut self,
-        ctx_state: &Option<morpheus::harness::ContextManagerState>,
-    ) {
-        let Some(id) = self.state.current_session_id.as_ref() else {
-            return;
-        };
-        if ctx_state.is_none()
-            && self.session_store.has_session(id)
-            && self
-                .state
-                .current_session()
-                .is_some_and(|s| !s.messages.is_empty())
-        {
-            use crate::ui::toast::{ToastOptions, ToastVariant};
-            self.toast_state.show(ToastOptions {
-                title: Some("Context lost".into()),
-                message: "Session context not found - the conversation \
-                          starts without history."
-                    .into(),
-                variant: ToastVariant::Warning,
-                duration_ms: 6000,
-            });
-        }
     }
 
     /// Called when an agent loop terminates. Leftover "next request"

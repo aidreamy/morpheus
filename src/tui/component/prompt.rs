@@ -728,8 +728,18 @@ impl PromptView {
         // If the pasted text is an image location (local path or URL),
         // download/read it, attach it as an image and show the preview
         // instead of inserting the link into the prompt.
+        //
+        // While `/wallpaper` is being composed the location is that command's
+        // argument: it stays TEXT so the command receives it as a tail and the
+        // image can never ride to the agent as an attachment.
         let candidate = text.trim();
-        if let Some((bytes, name)) = try_load_image(candidate) {
+        let loaded = try_load_image(candidate);
+        if self.wallpaper_command_pending() {
+            if loaded.is_some() {
+                self.paste_wallpaper_argument(candidate);
+                return;
+            }
+        } else if let Some((bytes, name)) = loaded {
             self.add_image(bytes, name, candidate.to_string());
             self.note_activity();
             return;
@@ -763,6 +773,30 @@ impl PromptView {
         }
         // One atomic step per paste: a single Ctrl+Z removes the whole
         // inserted block (compressed or not).
+        self.record_edit(EditKind::Paste);
+    }
+
+    /// Insert an image location as the argument of the `/wallpaper` command
+    /// being composed. A location pasted right after the command name is
+    /// separated by a space so `/wallpaper` + paste is not glued into
+    /// `/wallpaper/path`.
+    fn paste_wallpaper_argument(&mut self, location: &str) {
+        self.note_activity();
+        let at_end = self.cursor_pos == self.input.len();
+        let needs_space = at_end
+            && self
+                .input
+                .chars()
+                .next_back()
+                .is_some_and(|ch| !ch.is_whitespace());
+        let mut inserted = String::new();
+        if needs_space {
+            inserted.push(' ');
+        }
+        inserted.push_str(location);
+        let pos = self.cursor_pos;
+        self.input.insert_str(pos, &inserted);
+        self.cursor_pos = pos + inserted.len();
         self.record_edit(EditKind::Paste);
     }
 
@@ -831,6 +865,17 @@ impl PromptView {
     /// Whether any image is attached.
     pub fn has_images(&self) -> bool {
         !self.attached_images.is_empty()
+    }
+
+    /// Whether the draft is composing the `/wallpaper` command (`/wallpaper`
+    /// alone or followed by its argument tail). While this holds, an image
+    /// location is the COMMAND'S argument, not an attachment for the agent.
+    pub fn wallpaper_command_pending(&self) -> bool {
+        let trimmed = self.input.trim_start();
+        let Some(rest) = trimmed.strip_prefix("/wallpaper") else {
+            return false;
+        };
+        rest.is_empty() || rest.starts_with(char::is_whitespace)
     }
 
     pub fn cursor_word_left(&mut self) {
@@ -2107,6 +2152,73 @@ mod tests {
         assert_eq!(images.len(), 1);
         assert_eq!(images[0].source, "/tmp/photo.png");
         assert_eq!(images[0].name, "photo.png");
+    }
+
+    fn write_test_png(path: &std::path::Path) {
+        let image =
+            image::RgbImage::from_fn(2, 2, |x, y| image::Rgb([x as u8 * 127, y as u8 * 127, 0]));
+        image::DynamicImage::ImageRgb8(image).save(path).unwrap();
+    }
+
+    #[test]
+    fn wallpaper_paste_keeps_the_image_location_as_an_argument() {
+        // Regression: pasting the image location after `/wallpaper` attached
+        // it to the draft, so the command never saw the path and the image
+        // was left in the prompt as an agent attachment.
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("art.png");
+        write_test_png(&path);
+        let location = format!("file://{}", path.display());
+
+        let mut view = PromptView::new();
+        for ch in "/wallpaper".chars() {
+            view.type_char(ch);
+        }
+        view.handle_paste(&location);
+
+        assert!(!view.has_images(), "the image must not attach to the draft");
+        assert_eq!(
+            view.input,
+            format!("/wallpaper {location}"),
+            "the location must stay in the command's argument tail"
+        );
+        // An existing separator is not doubled.
+        let mut spaced = PromptView::new();
+        for ch in "/wallpaper ".chars() {
+            spaced.type_char(ch);
+        }
+        spaced.handle_paste(&location);
+        assert_eq!(spaced.input, format!("/wallpaper {location}"));
+        assert!(!spaced.has_images());
+    }
+
+    #[test]
+    fn image_paste_outside_wallpaper_still_attaches() {
+        // The command context is the ONLY exception: an ordinary prompt keeps
+        // turning a pasted image location into an attachment.
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("photo.png");
+        write_test_png(&path);
+
+        let mut view = PromptView::new();
+        view.handle_paste(&path.display().to_string());
+
+        assert!(view.has_images());
+        assert_eq!(view.input, "", "an attached image is not prompt text");
+    }
+
+    #[test]
+    fn wallpaper_command_detection_needs_the_whole_command_name() {
+        let mut view = PromptView::new();
+        view.input = "/wallpaper".into();
+        assert!(view.wallpaper_command_pending());
+        view.input = "/wallpaper art.png 1,2".into();
+        assert!(view.wallpaper_command_pending());
+        // A prompt that merely starts with the word is not the command.
+        view.input = "/wallpaperish text".into();
+        assert!(!view.wallpaper_command_pending());
+        view.input = "descreva /wallpaper art.png".into();
+        assert!(!view.wallpaper_command_pending());
     }
 
     #[test]

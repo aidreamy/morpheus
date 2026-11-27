@@ -1546,6 +1546,22 @@ impl App {
                         return Ok(false);
                     }
                     self.prompt_view.note_activity();
+                    // `/wallpaper [...]` submitted without the slash menu
+                    // claiming the Enter is still an app command. Handling
+                    // it here keeps its image argument out of the agent
+                    // turn: the command, not the prompt, owns the draft and
+                    // every image attached to it.
+                    let trimmed = self.prompt_view.input.trim_start();
+                    if let Some(rest) = trimmed.strip_prefix("/wallpaper")
+                        && (rest.is_empty() || rest.starts_with(char::is_whitespace))
+                    {
+                        let tail = rest.trim();
+                        let tail = (!tail.is_empty()).then(|| tail.to_string());
+                        self.apply_wallpaper_command(tail.as_deref());
+                        self.slash_menu.visible = false;
+                        self.prompt_view.clear_all();
+                        return Ok(false);
+                    }
                     // The /agents split intercepts the shared prompt: the
                     // FOCUSED pane receives the message as its own turn -
                     // EVEN WHILE the main agent is working (issue 3:
@@ -2463,6 +2479,16 @@ impl App {
     fn paste_clipboard_into_prompt(&mut self) {
         if let Some(bytes) = selection::clipboard_image() {
             self.prompt_view.note_activity();
+            if self.prompt_view.wallpaper_command_pending() {
+                // Composing `/wallpaper`: the clipboard image is the
+                // command's argument. It becomes the wallpaper right away
+                // and the draft is consumed with it, so a following Enter
+                // can never reset the art or send the image to the agent.
+                self.set_wallpaper_from_image(&bytes, "clipboard.png");
+                self.prompt_view.clear_all();
+                self.slash_menu.visible = false;
+                return;
+            }
             // A copied image has no on-disk location, so the source stays
             // empty and the provider-rejection retry has no bogus path to
             // echo back.

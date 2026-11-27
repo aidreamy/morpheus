@@ -15,12 +15,16 @@
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
-use unicode_width::{UnicodeWidthChar, UnicodeWidthStr};
+use unicode_width::UnicodeWidthStr;
 
 use morpheus_tui::core::types::MouseEvent;
 
 use crate::theme::{Theme, rgba_color};
 use crate::ui::dialogs::WhatsAppList;
+use crate::util::draw::{
+    SECTION_ITEM_INDENT, SECTION_PAD, draw_section_bottom, draw_section_top, draw_section_walls,
+    wrap_words,
+};
 use crate::util::list_selection::ListSelection;
 use morpheus::setup::{HookEntry, Setup, WhatsAppEntry};
 
@@ -31,11 +35,7 @@ pub const POST_TOOL_USE_EVENT: &str = "PostToolUse";
 /// Maximum characters of a hook command shown in list rows.
 const COMMAND_PREVIEW_LEN: usize = 34;
 
-/// Horizontal breathing room between a section's contour and its content,
-/// on each side (columns). The contour itself has no side walls — only the
-/// closed `╭…╮` / `╰…╯` top and bottom rows — so this padding is what keeps
-/// the content from touching the drawn margins.
-const BOX_PAD: usize = 2;
+const BOX_PAD: usize = SECTION_PAD as usize;
 
 /// Reorder/remove controls drawn on summarizer-model rows. Render and the
 /// mouse hit zones must agree on this width.
@@ -123,8 +123,7 @@ enum ChoiceInput {
     VoicePicker,
     /// Speech pace (`setup.voice.speed`), a scalar of its own.
     VoiceSpeed,
-    /// Checkup model picker (`setup.decision.model`: english | multilingual
-    /// | typed-decisions — custom checkpoints stay in setup.json).
+    /// Decision checkpoint picker for the termination checkup.
     #[cfg(feature = "onnx")]
     CheckupModel,
     /// Checkup min-confidence input (`setup.decision.termination
@@ -176,8 +175,8 @@ const AUTOMATION: SettingsSection = SettingsSection {
         #[cfg(feature = "onnx")]
         SettingsItem {
             id: "checkup_model",
-            label: "Checkup model",
-            description: "Checkpoint used by the decision models (english | multilingual | typed-decisions)",
+            label: "Decision model",
+            description: "Decision checkpoint used for the termination checkup",
             kind: SettingKind::Choice(ChoiceInput::CheckupModel),
         },
         // The confidence floor: how sure a "not finished" verdict must be
@@ -193,10 +192,9 @@ const AUTOMATION: SettingsSection = SettingsSection {
 };
 
 // Voice output (`setup.json` → `voice`). Gated like the ONNX checkup items:
-// without the `speak` feature (or outside unix, where the daemon transport
-// does not exist) there is no engine behind these values, so the rows do not
-// exist in that build.
-#[cfg(all(feature = "speak", unix))]
+// without the `speak` feature there is no engine behind these values, so the
+// rows do not exist in that build.
+#[cfg(feature = "speak")]
 const VOICE: SettingsSection = SettingsSection {
     title: "Voice",
     items: &[
@@ -347,7 +345,7 @@ const GENERAL: SettingsSection = SettingsSection {
 fn sections() -> &'static [SettingsSection] {
     &[
         AUTOMATION,
-        #[cfg(all(feature = "speak", unix))]
+        #[cfg(feature = "speak")]
         VOICE,
         MODELS_AND_CACHING,
         ENVIRONMENT,
@@ -377,7 +375,7 @@ fn item_at(index: usize) -> &'static SettingsItem {
 /// The configured speaker as the picker names it (`pf_dora · Portuguese
 /// (Brazil) · Kokoro v1.0`); the raw id when the bundle is not one of the
 /// published catalogs.
-#[cfg(all(feature = "speak", unix))]
+#[cfg(feature = "speak")]
 fn voice_summary(voice: &morpheus::setup::VoiceConfig) -> String {
     let dir = if voice.model_dir.trim().is_empty() {
         morpheus::speak::default_model_dir()
@@ -441,7 +439,7 @@ fn cache_choice_value(id: &str, setup: &Setup) -> Option<String> {
             "{:.0}%",
             setup.decision.termination.min_confidence * 100.0
         )),
-        #[cfg(all(feature = "speak", unix))]
+        #[cfg(feature = "speak")]
         "voice_picker" => Some(voice_summary(&setup.voice)),
         "voice_speed" => Some(format!("{:.2}×", setup.voice.speed())),
         _ => None,
@@ -508,57 +506,6 @@ fn truncate(s: &str, max_chars: usize) -> String {
         let cut: String = s.chars().take(max_chars.saturating_sub(1)).collect();
         format!("{cut}…")
     }
-}
-
-/// Word-aware wrap: breaks `text` into rows of at most `max_width` display
-/// columns, splitting only on spaces (the break consumes the space). A
-/// single word wider than `max_width` is hard-truncated at the boundary;
-/// blank text or a zero width still yields one (empty) row so callers can
-/// rely on at least one line.
-fn wrap_words(text: &str, max_width: usize) -> Vec<String> {
-    if max_width == 0 {
-        return vec![String::new()];
-    }
-    let mut rows = Vec::new();
-    let mut current = String::new();
-    let mut current_width = 0usize;
-    for word in text.split(' ') {
-        let word_width = word.width();
-        if word_width > max_width {
-            // Unbreakable: flush what is pending, then chunk the word
-            // itself at the width boundary.
-            if !current.is_empty() {
-                rows.push(std::mem::take(&mut current));
-            }
-            let mut start = 0;
-            let mut taken = 0usize;
-            for (i, ch) in word.char_indices() {
-                let char_width = ch.width().unwrap_or(0);
-                if taken + char_width > max_width {
-                    rows.push(word[start..i].to_string());
-                    start = i;
-                    taken = char_width;
-                } else {
-                    taken += char_width;
-                }
-            }
-            current = word[start..].to_string();
-            current_width = taken;
-        } else if current_width == 0 {
-            current = word.to_string();
-            current_width = word_width;
-        } else if current_width + 1 + word_width <= max_width {
-            current.push(' ');
-            current.push_str(word);
-            current_width += 1 + word_width;
-        } else {
-            rows.push(std::mem::take(&mut current));
-            current = word.to_string();
-            current_width = word_width;
-        }
-    }
-    rows.push(current);
-    rows
 }
 
 /// List label for a hook: friendly name, falling back to the command like the
@@ -1638,10 +1585,9 @@ impl SettingsView {
             .unwrap_or(0) as u16;
 
         let mut inside_box = false;
+        let box_width = (max_w as u16).min(area.width);
         for line in &layout {
-            // Track which side of the contour we are on BEFORE the
-            // visibility checks: when scrolling hides a box's top border,
-            // its visible rows below must still get walls.
+            // Update before clipping so scrolled sections keep their walls.
             if let Line::SectionBorder { top, .. } = &line.line {
                 inside_box = *top;
             }
@@ -1654,15 +1600,8 @@ impl SettingsView {
             if y >= area.bottom() {
                 break;
             }
-            // Side walls complete the contour: every row strictly between
-            // the box's top and bottom borders extends the ╭/╰ and ╮/╯
-            // corners into `│` pillars. Drawn BEFORE the content so nothing
-            // can overwrite them (content starts BOX_PAD columns in, and
-            // early-`continue` arms still keep their walls).
             if inside_box && !matches!(line.line, Line::SectionBorder { .. }) {
-                let wall = Style::default().fg(muted);
-                draw_text(buf, "│", box_x, y, area, wall);
-                draw_text(buf, "│", box_x + max_w as u16 - 1, y, area, wall);
+                draw_section_walls(buf, box_x, y, box_width, Style::default().fg(muted));
             }
             match &line.line {
                 Line::SummarizationModel(index) => {
@@ -1702,32 +1641,19 @@ impl SettingsView {
                     draw_text(buf, text, row_x, y, area, Style::default().fg(muted));
                 }
                 Line::SectionBorder { title, top } => {
-                    // The contour spans the same centered width the rows
-                    // use, so the boxes and their content share margins.
-                    // Corners close on both ends: `╭─ Title ───… ─╮` and
-                    // `╰─────… ─╯`.
+                    let border = Style::default().fg(muted);
                     if *top {
-                        let head = format!("╭─ {} ", title);
-                        let dashes = max_w.saturating_sub(head.width() + 1); // 1 = closing corner
-                        draw_text(
+                        draw_section_top(
                             buf,
-                            &format!("{head}{}╮", "─".repeat(dashes)),
                             box_x,
                             y,
-                            area,
-                            Style::default().fg(muted),
+                            box_width,
+                            title,
+                            Style::default().fg(fg),
+                            border,
                         );
-                        // The section title pops above the border glyph.
-                        draw_text(buf, title, box_x + 3, y, area, Style::default().fg(fg));
                     } else {
-                        draw_text(
-                            buf,
-                            &format!("╰{}╯", "─".repeat(max_w.saturating_sub(2))),
-                            box_x,
-                            y,
-                            area,
-                            Style::default().fg(muted),
-                        );
+                        draw_section_bottom(buf, box_x, y, box_width, border);
                     }
                 }
                 Line::Category { item } => {
@@ -1736,6 +1662,7 @@ impl SettingsView {
                         .position(|r| matches!(r, SettingsRow::Category(ci) if ci == item));
                     let is_selected = idx == Some(selected_idx);
                     let item = item_at(*item);
+                    let label_x = row_x + SECTION_ITEM_INDENT;
 
                     // Choice rows render "label: value" instead of the
                     // ✔/✗ switch symbol.
@@ -1744,7 +1671,7 @@ impl SettingsView {
                         draw_text(
                             buf,
                             &label,
-                            row_x + 2,
+                            label_x,
                             y,
                             area,
                             Style::default().fg(if is_selected { primary } else { fg }),
@@ -1763,7 +1690,7 @@ impl SettingsView {
                         draw_text(
                             buf,
                             item.label,
-                            row_x + 2,
+                            label_x,
                             y,
                             area,
                             Style::default().fg(if is_selected { primary } else { fg }),
@@ -1777,7 +1704,7 @@ impl SettingsView {
                     draw_text(
                         buf,
                         item.label,
-                        row_x + 2,
+                        label_x,
                         y,
                         area,
                         Style::default().fg(if is_selected { primary } else { fg }),
@@ -2503,7 +2430,7 @@ mod tests {
             // without the `speak` feature it does not exist. Insert its
             // rows right before the first Models item so the expected list
             // stays independent of the onnx/hook combinations above.
-            #[cfg(all(feature = "speak", unix))]
+            #[cfg(feature = "speak")]
             {
                 let at = rows
                     .iter()
@@ -3109,19 +3036,6 @@ mod tests {
                 )
             })
             .expect("contact entry row exists");
-        let group_row = rows
-            .iter()
-            .position(|r| {
-                matches!(
-                    r,
-                    SettingsRow::WhatsAppEntry {
-                        list: WhatsAppList::Groups,
-                        index: 1
-                    }
-                )
-            })
-            .expect("group entry row exists");
-
         // Activation flips the entry's own switch, like an MCP server; the
         // entry stays saved (disabling and removing are distinct actions).
         view.selection.selected_index = contact_row;
@@ -3600,7 +3514,7 @@ mod tests {
     /// can sync its in-memory `SpeechState`. The voice rows are a single
     /// searchable picker (language + model + speaker) plus the pace, and the
     /// picker row names the configured voice instead of showing a bare id.
-    #[cfg(all(feature = "speak", unix))]
+    #[cfg(feature = "speak")]
     #[test]
     fn voice_section_toggles_auto_and_opens_picker_and_pace() {
         let mut setup = Setup::default();

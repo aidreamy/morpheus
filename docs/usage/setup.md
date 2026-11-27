@@ -14,6 +14,7 @@ screen. Type these commands in the chat input and press Enter:
 | `/settings` | All persistent settings, grouped by section |
 | `/models` | Provider, model, and reasoning selection |
 | `/router` | Model fallback and prompt-correction chains |
+| `/download` | Local text-to-speech, decision, and embedding models |
 | `/providers` | Local provider endpoints |
 | `/tools` | Enable or disable internal tools |
 | `/themes`, `/background`, `/bell`, `/spinner`, `/toolcall`, `/wallpaper`, `/voice` | Direct toggles / appearance |
@@ -50,6 +51,7 @@ sessions and caches; it does not change the location of `setup.json`.
 | `cache` | `/settings` → Models & caching | Prompt-cache retention |
 | `skills` | `/settings` → Environment | Skill discovery |
 | `model_decision` | `/settings` → Automation, ONNX builds only | Local termination decision model |
+| `voice` | `/settings` → Voice, `speak` builds only | Local text-to-speech speaker, language and pace |
 | `lsp` | `/settings` → Environment | Language-server integration |
 | `mcp` | `/settings` → Integrations | External MCP servers |
 | `editor` | `/settings` → Environment | Editor opened by the file explorer |
@@ -267,8 +269,8 @@ model runs there. They remain part of the file schema for binaries built with
 | `hub.pinned_repo` | `""` | Repository to which the recorded revision belongs. |
 | `hub.pinned_revision` | `""` | Revision pin. Empty resolves and records the first installed revision. |
 
-The named model kinds are selected by **Checkup model**. A custom checkpoint
-is file-only:
+Use **Decision model** to select the checkpoint used for the termination
+checkup. Configure a custom checkpoint in `setup.json`.
 
 ```json
 {
@@ -280,7 +282,41 @@ is file-only:
 
 `MORPHEUS_ONNX_HUB_REPO` overrides `model_decision.hub.repo`. The legacy top-level
 name `checkup` is still accepted when reading, but Morpheus writes
-`model_decision`.
+`model_decision`. The checkpoint itself is installed from `/download` →
+**Models** → **Decision**. An uncached checkpoint disables the audit until it
+is installed.
+
+## `voice` (speak builds only)
+
+Speaks the agent's final answer with a local Kokoro model. `/download` →
+**Models** → **Text-to-speech** lists the downloadable bundles. The full speaker
+and language reference is in [`docs/voice/README.md`](../voice/README.md).
+
+```json
+{
+  "voice": {
+    "auto_generate": true,
+    "speaker": 42,
+    "speed": 1.0,
+    "language": "pt-br",
+    "model_dir": "/home/me/.cache/morpheus/models/kokoro-multi-lang-v1_0"
+  }
+}
+```
+
+| Field | Default | What it controls |
+|---|---:|---|
+| `auto_generate` | `true` | Generates the final answer's audio at the end of every turn. It is never played automatically. `false` generates on demand (Speak / `Ctrl+Y`). Legacy alias: `enabled`. |
+| `speaker` | `0` | Speaker id of the loaded bundle. Ids belong to one bundle: `42` is `pf_dora` (Portuguese) in v1.0 and `zf_075` (Chinese) in v1.1. Legacy alias: `voice`. |
+| `speed` | `1.0` | Pace: `1.0` natural, larger faster, smaller slower. Invalid values fall back to `1.0`. |
+| `language` | `""` | Voice language (`pt-br`, `es`, `ja`, …). Empty derives it from `speaker`; English and Chinese voices then use the bundle lexicon. A non-empty value wins, except when it is the voice's own language and the bundle has a lexicon for it (`en-us`, `en-gb`, `zh`): those always keep the lexicon. Non-lexicon languages are phonemized outside the engine: `ja` by the built-in Japanese frontend, the rest by espeak-ng. |
+| `model_dir` | `""` | Kokoro bundle. Empty uses `MORPHEUS_KOKORO_MODEL_DIR` or the cache default, and falls back to another installed bundle. `~` is not expanded. |
+
+English and Chinese voices need only the `speak` feature. Portuguese, Spanish,
+French, Hindi, Italian and Japanese need `speak-phonemize` (espeak-ng) and the
+v1.0 bundle, the only release that contains those voices. The daemon reads
+this section at startup; after a manual edit, stop `morpheus-ttsd` so the next
+synthesis reloads it.
 
 ## `lsp`, `mcp`, `editor`, and `telemetry`
 
@@ -419,6 +455,8 @@ These are convenience inputs, not additional JSON fields:
 | `MORPHEUS_LSP` | Runtime LSP override. |
 | `MORPHEUS_TELEMETRY` | Runtime telemetry override. |
 | `MORPHEUS_ONNX_HUB_REPO` | ONNX mirror override in ONNX builds. |
+| `MORPHEUS_KOKORO_MODEL_DIR` | Kokoro bundle used when `voice.model_dir` is empty. |
+| `MORPHEUS_TTSD_IDLE_SECS` | Idle seconds before the voice daemon exits (default `300`). |
 
 For normal use, configure through the TUI and let Morpheus write the file. Edit
 `setup.json` directly for `skills` filters, custom decision checkpoints,

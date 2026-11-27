@@ -1476,6 +1476,8 @@ impl App {
             self.show_add_provider = true;
         } else if cmd.name == "settings" {
             self.show_settings = true;
+        } else if cmd.name == "download" {
+            self.open_download();
         } else if cmd.name == "tools" {
             self.show_internal_tools = true;
         } else if cmd.name == "toolcall" {

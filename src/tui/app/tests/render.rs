@@ -598,7 +598,7 @@ async fn prompt_correction_spinner_yields_to_the_agent_loop_spinner() {
 /// A finalized answer keeps its voice controls while the NEXT answer streams:
 /// only the message currently being written withholds them, so the speak
 /// button of an earlier answer no longer vanishes for the whole turn.
-#[cfg(all(feature = "speak", unix))]
+#[cfg(feature = "speak")]
 #[tokio::test]
 async fn finalized_speak_controls_survive_while_the_next_answer_streams() {
     let _guard = HOME_LOCK.lock();

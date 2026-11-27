@@ -22,6 +22,7 @@ use serde_json::Value;
 
 use crate::daemon::ipc::{self, Message, RpcError};
 use crate::daemon::ipc_error::Ipc;
+use crate::daemon::transport::Listener;
 
 use super::model::Registry;
 use super::protocol::{
@@ -72,11 +73,7 @@ impl Server {
     /// Serve until the listener errors, the idle budget is exceeded, or a
     /// `shutdown` request drains the server. Returns when the daemon
     /// should exit; `main` then removes the socket file.
-    pub(crate) fn serve(
-        self: Arc<Self>,
-        listener: std::os::unix::net::UnixListener,
-        idle_timeout: Duration,
-    ) {
+    pub(crate) fn serve(self: Arc<Self>, listener: Listener, idle_timeout: Duration) {
         listener
             .set_nonblocking(true)
             .expect("listener nonblocking");

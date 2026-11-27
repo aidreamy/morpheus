@@ -271,10 +271,6 @@ pub async fn assemble(
     // per-review fail-open, and the loop behaves exactly as without the
     // model. The harness never chooses which model to load; a future
     // consumer of the engine passes its own kind the same way.
-    // The audit's add_assistant explanation, produced only on the onnx
-    // path below (unused on other paths).
-    #[cfg(feature = "onnx")]
-    let mut weights_explanation: Option<String> = None;
     #[cfg(feature = "onnx")]
     if let Some(checkup_config) = a.checkup
         && checkup_config.termination.enabled
@@ -283,12 +279,10 @@ pub async fn assemble(
         use crate::harness::events::ToastVariant;
 
         // The audit's kind resolves through the WEIGHTS MIRROR: the
-        // installer fills the shared hf-hub cache (cache-first, lazy —
-        // only when this turn's checkup is enabled and the checkpoint is
-        // not cached yet), and the daemon's loader probes that snapshot.
-        // The daemon kind is `Custom` over the mirror checkpoint, NOT the
-        // configured kind — the named kinds name the MIRROR's subfolders
-        // now.
+        // Download router fills the shared hf-hub cache; the daemon's
+        // loader probes that snapshot. The daemon kind is `Custom` over
+        // the mirror checkpoint, NOT the configured kind — the named kinds
+        // name the MIRROR's subfolders now.
         let attach_kind = |kind: Kind, harness: Harness| -> Harness {
             let checkup = IpcCheckup::new(kind);
             harness
@@ -308,15 +302,21 @@ pub async fn assemble(
         };
         match crate::weights::resolve_target(&checkup_config.model, &checkup_config.hub) {
             Some(target) => {
-                // Installed (or already cached): the daemon loads the
-                // mirror snapshot the installer filled. A download failure
-                // stays fail-open — toast (the Failed event already toasted)
-                // and assemble WITHOUT the audit.
-                if let Ok(explanation) =
-                    crate::weights::ensure_installed(target.clone(), event_tx.clone()).await
-                {
-                    weights_explanation = explanation;
+                // Downloads belong to the Download router: a turn never
+                // fetches weights. An uncached checkpoint disables the
+                // audit for this turn (fail-open) and points the user at
+                // the one place that installs it.
+                if crate::weights::is_cached(&target) {
                     harness = attach_kind(target.to_kind(), harness);
+                } else {
+                    let _ = event_tx.send(HarnessEvent::Toast {
+                        message: format!(
+                            "Termination checkup needs {} — run /download to fetch it. \
+                             The audit is disabled until then.",
+                            target.display_name
+                        ),
+                        variant: ToastVariant::Warning,
+                    });
                 }
             }
             // No mirror target (a local checkpoint, or a config the
@@ -380,14 +380,6 @@ pub async fn assemble(
     // fed to the model.
     if let Some(ref state) = a.ctx_state {
         harness.context_manager.restore_state(state);
-    }
-    // The weights installer's explanation: the TUI already rendered it as
-    // a real assistant message — record the SAME text here so the model's
-    // history agrees with the transcript. NOT closable: it is context,
-    // not a turn that may close the loop.
-    #[cfg(feature = "onnx")]
-    if let Some(explanation) = weights_explanation.as_deref() {
-        harness.context_manager.add_assistant(explanation, false);
     }
     #[cfg(feature = "embed")]
     if let Some((suffix, dbs)) = a.recall {

@@ -14,7 +14,8 @@ the reason.
       (`call_with_budget`), fail-open (errors become `Err` for the caller).
 - [x] `main.rs` + `[[bin]] morpheus-ttsd` with `required-features = ["speak"]`.
 - [x] `daemon/mod.rs`: the shared layer compiles with `onnx` **or** `speak`;
-      `tts` only under `all(feature = "speak", unix)` (the transport is a UDS).
+      `tts` only under `feature = "speak"` (the transport is cross-platform:
+      UDS on Unix, AF_UNIX via `uds_windows` on Windows).
 - [x] Model loaded once in the daemon (resident) from `setup.json` (`voice`),
       rebuilt per request only if it never loaded.
 
@@ -81,7 +82,8 @@ the reason.
       answer shows pause/rewind.
 - [x] A new turn never removes the earlier answers' controls (the `speak`
       label of the previous answer stays, with its own file).
-- [x] `pause` freezes/resumes the player process (SIGSTOP/SIGCONT).
+- [x] `pause` freezes/resumes the player process (SIGSTOP/SIGCONT on Unix,
+      `NtSuspendProcess`/`NtResumeProcess` on Windows).
 - [x] `rewind` restarts the current clip from the beginning.
 - [x] `Ctrl+Y` in the prompt plays the tail's audio — **only when the prompt
       edit history has no redo** (Ctrl+Y was already redo; redo takes
@@ -164,9 +166,11 @@ the reason.
   the voices. A voice-field save drains the resident daemon because it
   snapshots the settings at startup; the next synthesis activates a fresh
   one.
-- The TTS daemon is `unix`-only (like the existing daemon transport); on
-  Windows the `speak` feature still compiles the synthesis module, but the
-  voice controls are not mounted.
+- The TTS daemon and the voice controls are built wherever the `speak`
+  feature is on: the daemon transport is AF_UNIX on Unix and on Windows
+  (Windows 10 1803+), and `pause` uses `SIGSTOP`/`SIGCONT` on Unix and the
+  process-wide thread suspension of `NtSuspendProcess`/`NtResumeProcess` on
+  Windows.
 - The bass envelope is a real low-band energy measurement (band-pass obtained
   from the difference of neighbouring low-pass filters, not an FFT), enough
   for 8 bars and with no new dependency. The first version used the plain

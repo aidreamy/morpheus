@@ -24,6 +24,7 @@ use crate::left_panel::file_explorer::FileExplorerView;
 use crate::left_panel::sessions::SessionsView;
 use crate::left_panel::{LEFT_PANEL_WIDTH, MIN_WIDTH_FOR_LEFT_PANEL, Mode};
 use crate::routes::add_provider::AddProviderView;
+use crate::routes::download::DownloadView;
 use crate::routes::router::RouterView;
 use crate::routes::session::SessionView;
 use crate::routes::session::free_gateway_recommendation::FreeGatewayRecommendationDialog;
@@ -46,6 +47,7 @@ mod agents_dispatch;
 mod commands;
 mod compaction;
 mod dialogs;
+mod download;
 pub(crate) mod events;
 mod gateway_recommendation;
 mod keys;
@@ -136,6 +138,7 @@ enum AppMode {
     InternalTools,
     AddProvider,
     Settings,
+    Download,
     Router,
     #[cfg(feature = "embed")]
     Rag,
@@ -237,6 +240,8 @@ pub struct App {
     pub add_provider_view: AddProviderView,
     pub show_add_provider: bool,
     pub settings_view: SettingsView,
+    download_view: DownloadView,
+    show_download: bool,
     /// None: agent picker; Some(None): add summarizer; Some(Some(i)): edit.
     pub summarization_model_edit: Option<Option<usize>>,
     /// The focused pane whose per-pane model dialog is open: `Some(pane)`
@@ -880,6 +885,8 @@ impl App {
             add_provider_view: AddProviderView::new(),
             show_add_provider: false,
             settings_view: SettingsView::new(),
+            download_view: DownloadView::new(),
+            show_download: false,
             summarization_model_edit: None,
             pane_model_edit: None,
             show_settings: false,
@@ -1104,6 +1111,8 @@ impl App {
             AppMode::AddProvider
         } else if self.show_settings {
             AppMode::Settings
+        } else if self.show_download {
+            AppMode::Download
         } else {
             AppMode::Session
         }
@@ -1312,6 +1321,16 @@ impl App {
         )
     }
 
+    fn settings_route_area(&self, terminal: Rect) -> Rect {
+        let main = self.main_content_area(terminal);
+        Rect::new(
+            main.x,
+            main.y.saturating_add(1),
+            main.width,
+            main.height.saturating_sub(4),
+        )
+    }
+
     /// Width of the left panel. The usage dashboard and the file explorer
     /// share the sessions list's width, so geometry is consistent regardless
     /// of view. Shared by render and mouse dispatch for exact click
@@ -1482,6 +1501,7 @@ impl App {
             AppMode::InternalTools => Feature::Tools,
             AppMode::AddProvider => Feature::AddProvider,
             AppMode::Settings => Feature::Settings,
+            AppMode::Download => Feature::Other,
             AppMode::Router => Feature::Other,
             #[cfg(feature = "embed")]
             AppMode::Rag => Feature::Rag,
@@ -1777,7 +1797,7 @@ impl App {
     /// Drain the resident voice daemon so the next synthesis re-reads the
     /// voice settings it loaded at startup (`setup.json` → `voice`).
     fn restart_tts_daemon(&self) {
-        #[cfg(all(feature = "speak", unix))]
+        #[cfg(feature = "speak")]
         std::thread::spawn(|| {
             let _ = morpheus::daemon::tts::TtsClient::new().shutdown();
         });

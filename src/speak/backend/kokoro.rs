@@ -30,6 +30,14 @@ pub const DEFAULT_MODEL_DIR_NAME: &str = "kokoro-multi-lang-v1_1";
 /// Where the Kokoro bundle is expected when no explicit directory is given:
 /// `$MORPHEUS_KOKORO_MODEL_DIR` when set, otherwise
 /// `<user cache>/morpheus/models/kokoro-multi-lang-v1_1`.
+///
+/// When the recommended v1.1 bundle is not installed, another complete bundle
+/// beside it is used instead (newest first). That keeps the historical v1.0
+/// install working without an env var: v1.0 is the only release with
+/// Brazilian Portuguese, Spanish, French, Hindi, Italian and Japanese voices,
+/// while v1.1 only adds Chinese and English ones. With no bundle installed the
+/// v1.1 path is returned unchanged, so the error message still names the
+/// directory the user is expected to create.
 #[must_use]
 pub fn default_model_dir() -> PathBuf {
     if let Some(dir) = env::var_os(MODEL_DIR_ENV).filter(|value| !value.is_empty()) {
@@ -38,9 +46,30 @@ pub fn default_model_dir() -> PathBuf {
     let root = directories::BaseDirs::new()
         .map(|dirs| dirs.cache_dir().to_path_buf())
         .unwrap_or_else(env::temp_dir);
-    root.join("morpheus")
-        .join("models")
-        .join(DEFAULT_MODEL_DIR_NAME)
+    let models = root.join("morpheus").join("models");
+    let preferred = models.join(DEFAULT_MODEL_DIR_NAME);
+    if preferred.is_dir() {
+        return preferred;
+    }
+    if let Some(found) = crate::speak::installed_bundles(&models).into_iter().next() {
+        log::debug!(
+            "kokoro: {} is not installed; using the installed bundle {}",
+            preferred.display(),
+            found.display()
+        );
+        return found;
+    }
+    preferred
+}
+
+/// Root the download router installs bundles into: the parent of the bundle
+/// [`default_model_dir`] resolves, so an env override keeps its directory
+/// layout.
+#[must_use]
+pub fn models_dir() -> PathBuf {
+    default_model_dir()
+        .parent()
+        .map_or_else(default_model_dir, Path::to_path_buf)
 }
 
 /// Settings for the Kokoro backend.
@@ -79,6 +108,23 @@ impl KokoroConfig {
     /// reports its own path instead of a generic engine failure.
     pub(crate) fn load(&self, config: &SpeakConfig) -> Result<KokoroEngine, SpeakError> {
         let files = ModelFiles::resolve(self, &config.phonemizer)?;
+
+        #[cfg(feature = "speak-phonemize")]
+        {
+            // piper-phonemize's embedded espeak-ng data ships no per-language
+            // dictionaries, so Spanish, French, Hindi and Italian would
+            // phonemize to nothing. The bundle carries the full data; the
+            // first initialization in the process wins.
+            let data = self.model_dir.join("espeak-ng-data");
+            if data.join("phontab").is_file()
+                && let Err(error) = crate::speak::phonemize::initialize(&data)
+            {
+                log::warn!(
+                    "kokoro: could not initialize espeak-ng from {}: {error}",
+                    data.display()
+                );
+            }
+        }
 
         let mut sherpa_config = OfflineTtsConfig {
             model: OfflineTtsModelConfig {

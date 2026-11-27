@@ -25,12 +25,15 @@ pub enum Phonemizer {
     /// the model bundle (English and Chinese in both multilingual bundles)
     /// and needs nothing else.
     Lexicon,
-    /// Phonemize outside the engine with `piper-phonemize`, an espeak-ng
-    /// based GPL-3.0-or-later crate, and hand the model the codepoints.
+    /// Phonemize outside the engine and hand the model the codepoints.
     ///
     /// This is the path for Kokoro's other languages: their voices are
     /// present in `voices.bin` (Spanish, French, Hindi, Italian, Japanese,
-    /// Brazilian Portuguese, ...) but sherpa-onnx ships no lexicon for them.
+    /// Brazilian Portuguese) but sherpa-onnx ships no lexicon for them.
+    /// Spanish, French, Hindi, Italian and Brazilian Portuguese use
+    /// `piper-phonemize` (espeak-ng, GPL-3.0-or-later); `"ja"` uses the
+    /// built-in dictionary-based Japanese frontend instead, because espeak-ng
+    /// cannot read kanji and the model was trained on cutlet phonemes.
     /// Requires the `speak-phonemize` feature.
     #[cfg(feature = "speak-phonemize")]
     Piper {
@@ -52,7 +55,9 @@ pub struct SpeakConfig {
     /// ids of the loaded model to their names.
     pub voice: i32,
     /// Speech speed factor: `1.0` is the model's natural pace, larger is
-    /// slower and smaller is faster. Must be greater than zero.
+    /// faster and smaller is slower (sherpa-onnx's `GenerationConfig::speed`
+    /// semantics — not the inverse `length_scale` of the model config). Must
+    /// be greater than zero.
     pub speed: f32,
     /// ONNX Runtime inference threads. Two is a good default on a laptop;
     /// speech generation is bursty, so more threads rarely help.
@@ -117,6 +122,11 @@ pub enum SpeakError {
     #[error(transparent)]
     Io(#[from] std::io::Error),
     #[cfg(feature = "speak-phonemize")]
-    #[error("piper-phonemize could not phonemize the text for language `{lang}`")]
+    #[error(
+        "piper-phonemize (espeak-ng) could not phonemize the text for language \
+         `{lang}`. The selected voice needs an external frontend (espeak-ng or \
+         the Japanese dictionary); check that `voice.language` matches the \
+         speaker's language (see the voice docs)"
+    )]
     Phonemize { lang: String },
 }

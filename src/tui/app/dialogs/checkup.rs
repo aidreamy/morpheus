@@ -9,7 +9,7 @@ use crate::ui::dialogs::DialogType;
 const CHECKUP_MODEL_OPTIONS: [&str; 3] = ["english", "multilingual", "typed-decisions"];
 
 impl App {
-    /// Open the checkup-model picker (Settings → Checkup model).
+    /// Open the decision checkpoint picker for the termination checkup.
     #[cfg(feature = "onnx")]
     pub(in crate::app) fn open_checkup_model_dialog(&mut self) {
         let current = self.setup.decision.model.kind_name().to_string();

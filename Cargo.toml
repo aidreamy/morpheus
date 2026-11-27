@@ -19,12 +19,12 @@ onnx = ["dep:morpheus-onnx"]
 # Local voice output (`src/speak`). Gates `sherpa-onnx`, which statically
 # links ONNX Runtime, out of the default build for the same reason `onnx`
 # exists: a plain build must not carry the runtime.
-speak = ["dep:sherpa-onnx"]
+speak = ["dep:sherpa-onnx", "dep:tempfile"]
 # The advanced text frontend: `piper-phonemize` (espeak-ng) phonemizes in
 # Rust for the Kokoro languages sherpa-onnx ships no lexicon for (pt-br,
 # es, fr, ...). That crate is GPL-3.0-or-later and adds an espeak-ng
 # build dependency, so it stays opt-in.
-speak-phonemize = ["speak", "dep:piper-phonemize"]
+speak-phonemize = ["speak", "dep:piper-phonemize", "dep:sabiyomi"]
 
 [package]
 description = "Morpheus - coding agent for the terminal"
@@ -61,6 +61,12 @@ optional = true
 # External phonemizer for the `speak-phonemize` feature. GPL-3.0-or-later.
 [dependencies.piper-phonemize]
 version = "1.5.9"
+optional = true
+
+# Japanese readings (kanji -> kana) for the Japanese frontend. The IPADIC
+# dictionary is embedded in the binary, so no download or setup is needed.
+[dependencies.sabiyomi]
+version = "0.1.0"
 optional = true
 
 [dependencies.morpheus-tui]
@@ -132,14 +138,20 @@ rayon = "1"
 # crates/morpheus-tools, crates/morpheus-recall): error enums, header maps, URL
 # parsing for the MCP client. Not new crates, just newly direct.
 thiserror = "2"
-# The activation lock (`flock`) that serializes daemon bind races — see
-# `daemon::activation`. Same crate/version morpheus-tools already carries.
+# The activation lock (`flock`) that serializes daemon bind races on Unix —
+# see `daemon::activation`. Same crate/version morpheus-tools already carries.
 libc = "0.2"
 http = "1"
 url = "2"
 # GitHub release check for the home update banner (same crate/version the
 # morpheus-sdk connector already uses for its catalog fetches).
 reqwest = { version = "0.13", features = ["json", "blocking"] }
+# Kokoro bundles are published as `.tar.bz2`; the download router unpacks them
+# in-process. Both crates are already in the workspace graph, and bzip2's
+# default feature is the pure-Rust decoder (no system libbz2 to link).
+tar = "0.4"
+bzip2 = "0.6"
+tempfile = { version = "3", optional = true }
 crossterm = { version = "0.29", features = ["bracketed-paste"] }
 directories = "6.0.0"
 regex = "1"
@@ -226,7 +238,18 @@ version = "5"
 version = "4"
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "0.61.2", features = ["Win32_Storage_FileSystem"] }
+# `LockFileEx` is the Windows `flock` equivalent for the daemon activation
+# lock; `OVERLAPPED` lives in System::IO.
+windows-sys = { version = "0.61.2", features = [
+    "Win32_Foundation",
+    "Win32_Storage_FileSystem",
+    "Win32_System_IO",
+    "Win32_System_Threading",
+] }
+# AF_UNIX sockets on Windows (`daemon::transport`). The API mirrors
+# `std::os::unix::net`, and mio already pulls this crate in, so it is not a
+# new artifact in the graph. Requires Windows 10 1803+ / Server 2019+.
+uds_windows = "1.2.1"
 
 [dependencies.lru]
 version = "0.18"

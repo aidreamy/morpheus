@@ -506,38 +506,33 @@ pub fn render_chrome_raw(
         None => header_y + 1,
     };
 
-    // The Search line: the ModelList's exact rendering (placeholder +
-    // cursor over its first char, or filter text + trailing cursor). A
-    // searchless layout (`search: false` — the reasoning sub-box) drops
-    // the line entirely; the layout already gave its chrome row back.
-    if !layout.search {
+    if !layout.search || header_w == 0 {
         return;
     }
-    let cursor_state = cursor.current_state(now);
-    if filter_text.is_empty() {
-        draw_text_line_compact(
-            buf,
-            "Search",
-            header_x,
-            search_y,
-            header_w,
-            Style::default().fg(rgba_color(theme.text_muted)).bg(bg),
-        );
-        draw_search_cursor(buf, header_x, search_y, cursor_state, theme, bg);
+    let (text, foreground) = if filter_text.is_empty() {
+        ("Search", theme.text_muted)
     } else {
-        draw_text_line_compact(
-            buf,
-            filter_text,
-            header_x,
-            search_y,
-            header_w,
-            Style::default().fg(rgba_color(theme.text)).bg(bg),
-        );
+        (filter_text, theme.text)
+    };
+    draw_text_line_compact(
+        buf,
+        text,
+        header_x,
+        search_y,
+        header_w,
+        Style::default().fg(rgba_color(foreground)).bg(bg),
+    );
+    let caret_offset = filter_text
+        .chars()
+        .filter(|ch| !ch.is_control())
+        .take(header_w as usize)
+        .count() as u16;
+    if caret_offset < header_w {
         draw_search_cursor(
             buf,
-            header_x + filter_text.len() as u16,
+            header_x + caret_offset,
             search_y,
-            cursor_state,
+            cursor.current_state(now),
             theme,
             bg,
         );

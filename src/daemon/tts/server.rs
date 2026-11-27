@@ -8,7 +8,8 @@
 //! engine is free. A call that cannot acquire the engine within the queue
 //! window answers [`code::BUSY`]; the client retries once.
 
-use std::path::PathBuf;
+use std::collections::HashSet;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
@@ -16,6 +17,7 @@ use std::time::{Duration, Instant};
 use serde_json::Value;
 
 use crate::daemon::ipc::{self, Message, RpcError};
+use crate::daemon::transport::Listener;
 use crate::speak::{BassEnvelope, KokoroConfig, Phonemizer, Speak, SpeakConfig};
 
 use super::protocol::{
@@ -29,8 +31,11 @@ const SYNTH_QUEUE_WINDOW: Duration = Duration::from_secs(30);
 /// Per-call read/write budget. The first call may load the model (seconds).
 const CONNECTION_BUDGET: Duration = Duration::from_secs(180);
 
-/// Idle shutdown default: long enough that a working session never bounces the
-/// daemon, short enough that an abandoned one does not linger.
+/// Idle shutdown default (the backstop for a daemon whose clients never
+/// greeted): long enough that a working session never bounces the daemon,
+/// short enough that an abandoned one does not linger. A daemon whose
+/// greeted clients all exited does not wait for this — see
+/// [`Server::clients_gone`].
 pub(crate) const DEFAULT_IDLE_TIMEOUT: Duration = Duration::from_secs(300);
 
 /// The daemon's version, from the crate itself.
@@ -58,25 +63,83 @@ impl Default for Settings {
 }
 
 impl Settings {
-    fn speak_config(&self) -> SpeakConfig {
-        let backend = if self.model_dir.trim().is_empty() {
-            crate::speak::Backend::default()
+    /// The bundle directory the engine loads (the configured one, or the
+    /// `speak` default when `setup.json` leaves `voice.model_dir` empty).
+    fn model_dir(&self) -> PathBuf {
+        if self.model_dir.trim().is_empty() {
+            crate::speak::default_model_dir()
         } else {
-            crate::speak::Backend::Kokoro(KokoroConfig {
-                model_dir: PathBuf::from(self.model_dir.trim()),
-                ..KokoroConfig::default()
-            })
-        };
-        #[cfg(feature = "speak-phonemize")]
-        let phonemizer = if self.language.trim().is_empty() {
-            Phonemizer::Lexicon
-        } else {
-            Phonemizer::Piper {
-                lang: self.language.trim().to_string(),
+            PathBuf::from(self.model_dir.trim())
+        }
+    }
+
+    /// The language the text frontend should use, without having to repeat it
+    /// in `setup.json`: an explicit `voice.language` wins, otherwise the
+    /// language is the one the selected speaker was trained for. English and
+    /// Chinese voices keep the bundle's lexicon (`None`).
+    fn phonemizer_language(&self, model_dir: &Path) -> Option<String> {
+        let explicit = self.language.trim();
+        if !explicit.is_empty() {
+            self.warn_on_language_mismatch(model_dir, explicit);
+            // A consistent pair whose language the bundle covers with a
+            // lexicon (`en-us`, `en-gb`, `zh`) stays on that lexicon: the
+            // picker used to persist the language of every voice, which
+            // pushed English and Chinese onto the external espeak-ng
+            // frontend even though the bundle ships the phonemes those
+            // voices were built around.
+            let native_lexicon = crate::speak::voice_entry(model_dir, self.voice)
+                .is_some_and(|entry| entry.language == explicit && !entry.needs_phonemize());
+            if !native_lexicon {
+                return Some(explicit.to_string());
             }
+        }
+        crate::speak::espeak_language(model_dir, self.voice).map(str::to_string)
+    }
+
+    /// A `speaker` and `language` that disagree speak the right id with the
+    /// wrong phonemes, so the screenshot of a manual `setup.json` edit is
+    /// logged once per model load instead of failing silently.
+    fn warn_on_language_mismatch(&self, model_dir: &Path, language: &str) {
+        let Some(entry) = crate::speak::voice_entry(model_dir, self.voice) else {
+            return;
         };
-        #[cfg(not(feature = "speak-phonemize"))]
-        let phonemizer = Phonemizer::Lexicon;
+        if entry.language != language {
+            log::warn!(
+                "tts daemon: voice.speaker {} is `{}` ({}), but voice.language is `{}`; \
+                 the voice will sound wrong. Set voice.language to `{}` or empty to derive it",
+                self.voice,
+                entry.name,
+                entry.language_label,
+                language,
+                entry.language
+            );
+        }
+    }
+
+    fn speak_config(&self) -> SpeakConfig {
+        let model_dir = self.model_dir();
+        let backend = crate::speak::Backend::Kokoro(KokoroConfig {
+            model_dir: model_dir.clone(),
+            ..KokoroConfig::default()
+        });
+        let language = self.phonemizer_language(&model_dir);
+        let phonemizer = match language {
+            #[cfg(feature = "speak-phonemize")]
+            Some(lang) => Phonemizer::Piper { lang },
+            // Without the external frontend the language cannot be honored;
+            // the bundle lexicon still produces audio, so the engine keeps
+            // working and the log names the build feature to enable.
+            #[cfg(not(feature = "speak-phonemize"))]
+            Some(lang) => {
+                log::warn!(
+                    "tts daemon: voice language `{lang}` needs the `speak-phonemize` cargo \
+                     feature (espeak-ng or the Japanese dictionary); this build uses \
+                     the bundle lexicon instead"
+                );
+                Phonemizer::Lexicon
+            }
+            None => Phonemizer::Lexicon,
+        };
         SpeakConfig {
             backend,
             voice: self.voice,
@@ -106,6 +169,10 @@ struct ConnState {
 pub(crate) struct Server {
     settings: Settings,
     engine: Mutex<Engine>,
+    /// The `morpheus` processes that greeted this daemon, from each
+    /// connection's `hello`. Once none is alive the daemon exits, so closing
+    /// the app does not leave a resident process holding the `.exe`.
+    clients: Mutex<HashSet<u32>>,
     draining: AtomicBool,
     started: Instant,
     last_request_millis: AtomicU64,
@@ -121,6 +188,7 @@ impl Server {
                 speak: None,
                 failed_at: None,
             }),
+            clients: Mutex::new(HashSet::new()),
             draining: AtomicBool::new(false),
             started: Instant::now(),
             last_request_millis: AtomicU64::new(0),
@@ -131,11 +199,7 @@ impl Server {
 
     /// Serve until the listener errors, the idle budget is exceeded, or
     /// `shutdown` drains the server.
-    pub(crate) fn serve(
-        self: Arc<Self>,
-        listener: std::os::unix::net::UnixListener,
-        idle_timeout: Duration,
-    ) {
+    pub(crate) fn serve(self: Arc<Self>, listener: Listener, idle_timeout: Duration) {
         listener
             .set_nonblocking(true)
             .expect("listener nonblocking");
@@ -162,11 +226,15 @@ impl Server {
                     }));
                 }
                 Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {
+                    connections.retain(|handle| !handle.is_finished());
+                    if self.clients_gone() {
+                        log::info!("tts daemon: every client exited, exiting");
+                        break;
+                    }
                     if self.idle_for(last_activity) >= idle_timeout {
                         log::info!("tts daemon: idle for {idle_timeout:?}, exiting");
                         break;
                     }
-                    connections.retain(|handle| !handle.is_finished());
                     std::thread::sleep(Duration::from_millis(200));
                 }
                 Err(e) if e.kind() == std::io::ErrorKind::PermissionDenied => {
@@ -187,6 +255,31 @@ impl Server {
         for handle in connections.drain(..) {
             let _ = handle.join();
         }
+    }
+
+    /// Register a greeting client and forget the ones that died.
+    ///
+    /// `true` only after at least one client was seen and all of them are
+    /// gone: a daemon that was activated but never greeted stays on the idle
+    /// budget, so the activation race cannot make it exit under a client
+    /// that is still connecting.
+    fn clients_gone(&self) -> bool {
+        let mut clients = self
+            .clients
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner());
+        if clients.is_empty() {
+            return false;
+        }
+        clients.retain(|pid| crate::daemon::activation::is_process_alive(*pid));
+        clients.is_empty()
+    }
+
+    fn note_client(&self, pid: u32) {
+        self.clients
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .insert(pid);
     }
 
     fn idle_for(&self, last_accept: Instant) -> Duration {
@@ -277,6 +370,9 @@ impl Server {
                 ),
             );
         }
+        // A greeted client keeps the daemon alive; once the last one exits
+        // the serve loop returns, so no resident process holds the `.exe`.
+        self.note_client(params.pid);
         Message::ok(
             id,
             ipc::to_value(&HelloResult {
@@ -330,6 +426,20 @@ impl Server {
                 );
             }
             let config = self.settings.speak_config();
+            // The three load-time knobs a wrong-sounding voice comes from:
+            // bundle, speaker and text frontend. A log line makes "English
+            // with a Portuguese speaker" obvious without re-reading
+            // setup.json.
+            let frontend = match &config.phonemizer {
+                #[cfg(feature = "speak-phonemize")]
+                Phonemizer::Piper { lang } => format!("phonemize/{lang}"),
+                Phonemizer::Lexicon => "lexicon".to_string(),
+            };
+            log::info!(
+                "tts daemon: loading speaker {} from {} ({frontend})",
+                config.voice,
+                self.settings.model_dir().display()
+            );
             match Speak::load(config) {
                 Ok(speak) => {
                     log::info!(
@@ -473,5 +583,204 @@ fn acquire_engine<'a>(
             }
             Err(std::sync::TryLockError::Poisoned(_)) => return Err(()),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::speak::Backend;
+
+    /// `setup.json`'s `voice` block is the daemon's only input: the speaker,
+    /// the pace, the espeak language and the bundle directory must all land in
+    /// the engine configuration. A field dropped here speaks the wrong voice
+    /// or the wrong language without any error.
+    #[test]
+    fn the_setup_voice_block_reaches_the_engine() {
+        let settings = Settings {
+            voice: 42,
+            speed: 0.9,
+            language: "pt-br".to_string(),
+            model_dir: r"C:\models\kokoro-multi-lang-v1_0".to_string(),
+        };
+        let config = settings.speak_config();
+        assert_eq!(config.voice, 42);
+        assert_eq!(config.speed, 0.9);
+        let Backend::Kokoro(kokoro) = config.backend;
+        assert_eq!(
+            kokoro.model_dir,
+            PathBuf::from(r"C:\models\kokoro-multi-lang-v1_0")
+        );
+        #[cfg(feature = "speak-phonemize")]
+        assert_eq!(
+            config.phonemizer,
+            Phonemizer::Piper {
+                lang: "pt-br".to_string()
+            }
+        );
+        #[cfg(not(feature = "speak-phonemize"))]
+        assert_eq!(config.phonemizer, Phonemizer::Lexicon);
+    }
+
+    /// An empty `model_dir` means "the default bundle", not the current
+    /// directory: the engine must keep its own default path.
+    #[test]
+    fn an_empty_model_dir_keeps_the_default_bundle() {
+        let config = Settings::default().speak_config();
+        assert_eq!(config.backend, Backend::default());
+        // No language selected: the bundle's own lexicon frontend.
+        assert_eq!(config.phonemizer, Phonemizer::Lexicon);
+    }
+
+    /// `setup.json` does not have to repeat what the speaker already says: a
+    /// Portuguese/Spanish/Japanese/... id alone selects its frontend language, while
+    /// an English or Chinese id keeps the lexicon frontend.
+    #[test]
+    fn an_empty_language_is_derived_from_the_speaker() {
+        let portuguese = Settings {
+            voice: 42, // pf_dora
+            language: String::new(),
+            model_dir: "/models/kokoro-multi-lang-v1_0".into(),
+            ..Settings::default()
+        };
+        let config = portuguese.speak_config();
+        #[cfg(feature = "speak-phonemize")]
+        assert_eq!(
+            config.phonemizer,
+            Phonemizer::Piper {
+                lang: "pt-br".into()
+            }
+        );
+        #[cfg(not(feature = "speak-phonemize"))]
+        assert_eq!(config.phonemizer, Phonemizer::Lexicon);
+
+        // af_heart (3) and zf_xiaobei (45) are English/Chinese: no external
+        // frontend, exactly as before.
+        for voice in [3, 45] {
+            let settings = Settings {
+                voice,
+                language: String::new(),
+                model_dir: "/models/kokoro-multi-lang-v1_0".into(),
+                ..Settings::default()
+            };
+            assert_eq!(settings.speak_config().phonemizer, Phonemizer::Lexicon);
+        }
+
+        // An explicit language still wins over the derived one.
+        let explicit = Settings {
+            voice: 42,
+            language: "es".into(),
+            model_dir: "/models/kokoro-multi-lang-v1_0".into(),
+            ..Settings::default()
+        };
+        #[cfg(feature = "speak-phonemize")]
+        assert_eq!(
+            explicit.speak_config().phonemizer,
+            Phonemizer::Piper {
+                lang: "es".into()
+            }
+        );
+        #[cfg(not(feature = "speak-phonemize"))]
+        assert_eq!(explicit.speak_config().phonemizer, Phonemizer::Lexicon);
+    }
+
+    /// An explicit language that is the voice's own is not a request to swap
+    /// frontends: English and Chinese voices keep the bundle lexicon, while a
+    /// genuinely mismatched language is still honored for manual overrides.
+    #[test]
+    fn an_explicit_lexicon_language_keeps_the_bundle_lexicon() {
+        let english = Settings {
+            voice: 3, // af_heart (en-us)
+            language: "en-us".into(),
+            model_dir: "/models/kokoro-multi-lang-v1_0".into(),
+            ..Settings::default()
+        };
+        assert_eq!(english.speak_config().phonemizer, Phonemizer::Lexicon);
+
+        let mismatched = Settings {
+            voice: 3,
+            language: "pt-br".into(),
+            ..english
+        };
+        #[cfg(feature = "speak-phonemize")]
+        assert_eq!(
+            mismatched.speak_config().phonemizer,
+            Phonemizer::Piper {
+                lang: "pt-br".into()
+            }
+        );
+        #[cfg(not(feature = "speak-phonemize"))]
+        assert_eq!(mismatched.speak_config().phonemizer, Phonemizer::Lexicon);
+    }
+
+    /// One speaker per supported language, checked against the frontend the
+    /// daemon must pick: English and Chinese stay on the bundle lexicon, every
+    /// other language is routed to the external phonemizer with its own code.
+    /// A new advertised language cannot ship without passing here.
+    #[test]
+    fn every_supported_language_selects_its_frontend() {
+        let cases = [
+            (3, "en-us", true),
+            (20, "en-gb", true),
+            (45, "zh", true),
+            (28, "es", false),
+            (30, "fr", false),
+            (31, "hi", false),
+            (35, "it", false),
+            (37, "ja", false),
+            (42, "pt-br", false),
+        ];
+        for (voice, language, lexicon) in cases {
+            let settings = Settings {
+                voice,
+                language: String::new(),
+                model_dir: "/models/kokoro-multi-lang-v1_0".into(),
+                ..Settings::default()
+            };
+            let config = settings.speak_config();
+            if lexicon {
+                assert_eq!(config.phonemizer, Phonemizer::Lexicon, "{language}");
+            } else {
+                #[cfg(feature = "speak-phonemize")]
+                assert_eq!(
+                    config.phonemizer,
+                    Phonemizer::Piper {
+                        lang: language.into()
+                    },
+                    "{language}"
+                );
+                #[cfg(not(feature = "speak-phonemize"))]
+                assert_eq!(config.phonemizer, Phonemizer::Lexicon, "{language}");
+            }
+        }
+    }
+
+    /// The serve loop must keep the daemon alive while one greeted client is
+    /// alive and close it once none is — this is what stops a closed TUI from
+    /// leaving `morpheus-ttsd.exe` resident (and locked) on Windows.
+    #[test]
+    fn the_daemon_exits_only_after_every_greeted_client_is_gone() {
+        let server = Server::new(Settings::default());
+        assert!(
+            !server.clients_gone(),
+            "a daemon nobody greeted is the idle timer's business"
+        );
+
+        server.note_client(std::process::id());
+        assert!(!server.clients_gone(), "the test process itself is alive");
+
+        server.note_client(u32::MAX);
+        assert!(
+            !server.clients_gone(),
+            "one live client is enough to keep the daemon"
+        );
+
+        server
+            .clients
+            .lock()
+            .unwrap_or_else(|poisoned| poisoned.into_inner())
+            .clear();
+        server.note_client(u32::MAX);
+        assert!(server.clients_gone(), "no live client left");
     }
 }

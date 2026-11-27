@@ -28,6 +28,10 @@ pub(crate) use crate::routes::session::pending_queue::PendingQueueRow;
 impl App {
     pub(super) fn render(&mut self, frame: &mut Frame<'_>, delta_time: f64) {
         self.telemetry_view();
+        // Background model installs finish here even when their router is
+        // closed, so a completion toast and the mirror pin never wait for the
+        // user to come back.
+        self.poll_download();
         // The draw loop can run at 60 fps, but frame-counted animations were
         // designed for 30 fps. Advance them by elapsed time so they keep the
         // same visual speed at either pacing rate.
@@ -711,14 +715,14 @@ impl App {
                 }
                 AppMode::Settings => {
                     self.prompt_view.blur();
-                    let settings_area = Rect::new(
-                        session_area.x,
-                        session_area.y,
-                        session_area.width,
-                        session_area.height.saturating_sub(1),
-                    );
+                    let settings_area = self.settings_route_area(area);
                     self.settings_view
                         .render(buf, settings_area, &self.theme, &self.setup);
+                }
+                AppMode::Download => {
+                    self.prompt_view.blur();
+                    let download_area = self.settings_route_area(area);
+                    self.download_view.render(buf, download_area, &self.theme);
                 }
                 AppMode::Router => {
                     self.prompt_view.blur();
@@ -1117,6 +1121,13 @@ impl App {
                     _ => false,
                 };
                 d.login_hover = hover;
+            }
+            if self.download_picker_visible()
+                && let Some(picker) = self.download_view.picker()
+            {
+                picker.cursor.terminal_focused = self.terminal_focused;
+                self.download_view
+                    .render_picker(buf, area, &self.theme, now);
             }
             self.dialog.render(buf, area, &self.theme, now);
             // The /agents picker renders above every modal panel (a

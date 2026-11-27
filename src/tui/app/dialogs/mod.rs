@@ -10,7 +10,7 @@ mod text_input;
 mod theme;
 mod tool_call;
 mod undo;
-#[cfg(all(feature = "speak", unix))]
+#[cfg(feature = "speak")]
 mod voice;
 
 use super::super::App;

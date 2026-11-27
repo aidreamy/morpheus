@@ -558,10 +558,12 @@ pub enum DialogType {
         search: bool,
         filter: FilterState,
     },
-    /// Searchable voice picker (Settings → Voice): one row per speaker of
-    /// the installed Kokoro bundle, grouped by language and model. Uses the
-    /// SAME shared list component as `/models` — search by voice name, id,
-    /// language or model, Enter applies speaker + language together.
+    /// Searchable voice picker (Settings → Voice): one row per speaker of the
+    /// configured Kokoro bundle and of every other complete bundle installed
+    /// beside it, grouped by language and model. Uses the SAME shared list
+    /// component as `/models` — search by voice name, id, language or model,
+    /// Enter applies speaker + language (and the bundle when the row belongs
+    /// to another one) together.
     VoiceList {
         voices: Vec<crate::ui::voice_list::VoiceChoice>,
         /// The configured speaker id (the ● indicator).
@@ -569,7 +571,7 @@ pub enum DialogType {
         filter: FilterState,
     },
     /// Compact three-option picker for the checkup resident model
-    /// (Settings → Checkup model): `english` / `multilingual` /
+    /// (Settings → Decision model): `english` / `multilingual` /
     /// `typed-decisions`. Custom checkpoints stay setup.json-only and are
     /// never selectable here — `current` then matches no option and no
     /// row carries the indicator.
@@ -3468,7 +3470,7 @@ impl DialogState {
                     .add_modifier(Modifier::BOLD);
                 draw_text_line_compact(
                     buf,
-                    "Checkup model",
+                    "Decision model",
                     header_x,
                     dialog_y,
                     header_w,
@@ -3488,7 +3490,7 @@ impl DialogState {
                 // Line 1: explanation (muted).
                 draw_text_line_compact(
                     buf,
-                    "Resident decision-model checkpoint",
+                    "Used for the termination checkup",
                     header_x,
                     dialog_y + 1,
                     header_w,

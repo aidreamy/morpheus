@@ -7,6 +7,7 @@
 //! `/models` uses — so this module only owns the rows and the filter.
 
 use std::collections::BTreeMap;
+use std::path::PathBuf;
 
 use crate::component::list_dialog::ListRow;
 
@@ -25,6 +26,14 @@ pub struct VoiceChoice {
     pub gender: String,
     /// Bundle label (`Kokoro v1.0`), shown in the header and searchable.
     pub model: String,
+    /// The bundle directory this row belongs to when it is NOT the configured
+    /// one; confirming the row switches `voice.model_dir` to it so a
+    /// Portuguese voice of the v1.0 bundle can be picked from a list that was
+    /// built around the v1.1 default.
+    pub model_dir: Option<PathBuf>,
+    /// Whether the voice needs an external frontend (every language except
+    /// the bundles' English and Chinese lexicons).
+    pub needs_phonemize: bool,
 }
 
 /// Case-insensitive match against everything the user can see or type: the
@@ -73,14 +82,36 @@ pub fn rows(voices: &[&VoiceChoice], current: i32) -> Vec<ListRow> {
     for ((language, model), group) in grouped {
         rows.push(ListRow::scope(format!("{language} · {model}")));
         for voice in group {
+            // The frontend note explains why some voices need a build with
+            // `speak-phonemize`: without it they fall back to a lexicon that
+            // does not cover their language.
+            let detail = match frontend_note(&voice.language) {
+                "" => format!("  ·  {} · {}", voice.speaker, voice.gender),
+                frontend => format!("  ·  {} · {} · {frontend}", voice.speaker, voice.gender),
+            };
             rows.push(ListRow::item(
                 voice.name.clone(),
-                format!("  ·  {} · {}", voice.speaker, voice.gender),
-                voice.speaker == current,
+                detail,
+                voice.speaker == current && voice.model_dir.is_none(),
             ));
         }
     }
     rows
+}
+
+/// The frontend that phonemizes `language`. Empty without the `speak`
+/// feature: the picker is only reachable in builds that can speak, and the
+/// notebook must still compile without the engine.
+fn frontend_note(language: &str) -> &'static str {
+    #[cfg(feature = "speak")]
+    {
+        morpheus::speak::frontend(language)
+    }
+    #[cfg(not(feature = "speak"))]
+    {
+        let _ = language;
+        ""
+    }
 }
 
 /// Visual row of the `selected`-th selectable (non-header) row.
@@ -121,6 +152,8 @@ mod tests {
             language_label: label.into(),
             gender: gender.into(),
             model: "Kokoro v1.0".into(),
+            model_dir: None,
+            needs_phonemize: !matches!(language, "en-us" | "en-gb" | "zh"),
         }
     }
 
@@ -154,6 +187,29 @@ mod tests {
         assert_eq!(filtered(&voices, "pt-br").len(), 3);
         assert_eq!(filtered(&voices, "unknown-voice").len(), 0);
         assert_eq!(filtered(&voices, "").len(), voices.len());
+    }
+
+    /// The row detail names the frontend per language: the bundle lexicon,
+    /// the Japanese dictionary or espeak-ng.
+    #[cfg(feature = "speak")]
+    #[test]
+    fn rows_name_the_frontend_that_phonemizes_each_language() {
+        let voices = vec![
+            voice(3, "af_heart", "en-us", "English (US)", "female"),
+            voice(37, "jf_alpha", "ja", "Japanese", "female"),
+            voice(42, "pf_dora", "pt-br", "Portuguese (Brazil)", "female"),
+        ];
+        let rows = rows(&filtered(&voices, ""), 42);
+        let details: Vec<&str> = rows
+            .iter()
+            .filter(|row| !row.header)
+            .map(|row| row.detail.as_str())
+            .collect();
+        // Headers sort by language label: English, Japanese, Portuguese.
+        assert_eq!(details.len(), 3);
+        assert!(details[0].ends_with("lexicon"), "{details:?}");
+        assert!(details[1].ends_with("Japanese dictionary"), "{details:?}");
+        assert!(details[2].ends_with("espeak-ng"), "{details:?}");
     }
 
     #[test]

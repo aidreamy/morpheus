@@ -1,53 +1,23 @@
-//! The weights installer's application side: what to download, the
-//! hardcoded explanation streamed into the chat, and the install run with
-//! progress events.
+//! The decision-model weights installer: what to download and how to install
+//! it.
 //!
-//! Lives in the library, gated behind the `onnx` feature: it depends on
-//! the setup config (`crate::setup`), the harness event channel and the
-//! `onnx` feature.
-//! The mirror repo id lives HERE via setup.json (`model_decision.hub`) —
-//! the `morpheus-onnx` crate receives it as a parameter and carries no
-//! default.
+//! Lives in the library, gated behind the `onnx` feature: it depends on the
+//! setup config (`crate::setup`) and the `morpheus-onnx` hub.
 //!
-//! The install itself is `morpheus_onnx::hub::install`: cache-first, the
-//! built-in progress bar disabled, `sha256sums.txt` verified before
-//! success. This module only translates config → install request →
-//! `HarnessEvent::WeightsInstall` events.
+//! The install itself is `morpheus_onnx::hub::install`: cache-first,
+//! `sha256sums.txt` verified before success. Downloads are driven by the TUI's
+//! Download router — never by a chat turn — so this module exposes a plain
+//! blocking call with a progress callback and no event plumbing of its own.
 
+#[cfg(feature = "onnx")]
 use std::sync::{Arc, Mutex};
 
-use crate::harness::events::{HarnessEvent, WeightsInstallEvent};
 #[cfg(feature = "onnx")]
 use crate::setup::{DecisionHub, DecisionModel};
 
-/// The graph candidates, quantized first (the mirror may not ship the
-/// int8 twin yet — the installer falls back to fp32).
+/// The graph candidates, quantized first (the mirror may not ship the int8
+/// twin yet — the installer falls back to fp32).
 const GRAPHS: &[&str] = &["laya.int8.onnx", "laya.onnx"];
-
-/// The explanation streamed into the chat BEFORE the download starts,
-/// built around the model's display name. It enters the agent context as a
-/// real assistant message, so the model can explain or translate it to the
-/// user. Written as prose (not code-generated text): the model is
-/// introduced as a general-purpose local classifier — the termination
-/// audit is the capability shipping TODAY, not the model's definition —
-/// because the same weights may classify preferences or other signals
-/// tomorrow.
-pub fn explanation(display_name: &str) -> String {
-    format!(
-        "I'm fetching {name} — a small classifier that runs entirely on your machine.\
-\n\n\
-morpheus ships a family of local models for judgment calls the main agent \
-shouldn't spend tokens on: classifying user preferences, scoring options, \
-reading intent from a message. Right now I'm wiring it up as a second \
-opinion on my own decisions — when I'm about to end a turn on an \
-ambiguous signal, it reviews that call and pushes back if it isn't \
-confident. It never takes part in this conversation itself.\
-\n\n\
-{name} ships as a quantized ONNX graph and downloads once; the progress \
-bar below tracks it. After that it works silently on every turn.",
-        name = display_name
-    )
-}
 
 /// One install target resolved from the setup config: which repo, which
 /// checkpoint inside it, which revision pin.
@@ -62,8 +32,7 @@ pub struct WeightsTarget {
     /// stays cached, so later sessions reuse it without re-resolving.
     pub revision: Option<String>,
     /// The model's user-facing name (upstream family + checkpoint, or the
-    /// repo id) for the install copy: the streamed explanation and the
-    /// progress line both address the model by it.
+    /// repo id) for the download router's row copy.
     pub display_name: String,
 }
 
@@ -140,156 +109,70 @@ pub fn resolve_target(model: &DecisionModel, hub: &DecisionHub) -> Option<Weight
     }
 }
 
-/// Is the target already fully cached (no download needed)?
+/// The revision the target is already cached under, if any.
 #[cfg(feature = "onnx")]
-pub fn is_cached(target: &WeightsTarget) -> bool {
+fn cached_revision(target: &WeightsTarget) -> Option<String> {
     morpheus_onnx::hub::cache_status(
         &target.repo,
         target.subfolder.as_deref(),
         GRAPHS,
         target.revision.as_deref(),
     )
-    .is_some()
+    .map(|(_, revision, _)| revision)
 }
 
-/// The cache-hit stage event: freezes any orphaned running install line in
-/// the transcript (a crash mid-install persisted one; a cache-hit turn
-/// emits NO other install event, so the stale bar would tick forever).
+/// Is the target already fully cached (no download needed)?
 #[cfg(feature = "onnx")]
-const fn cached_event() -> WeightsInstallEvent {
-    WeightsInstallEvent::Cached
+pub fn is_cached(target: &WeightsTarget) -> bool {
+    cached_revision(target).is_some()
 }
 
-/// Install the target's checkpoint into the shared hf-hub cache, streaming
-/// the explanation and the download progress as
-/// [`HarnessEvent::WeightsInstall`] events. Cache hit → no events, no
-/// network.
+/// Install the target's checkpoint into the shared hf-hub cache and return the
+/// revision it was installed under.
 ///
-/// Returns the explanation text ONLY when a download actually ran — the
-/// caller adds exactly that text to the agent context (after restoring
-/// it), so the model never sees an explanation for a download that never
-/// happened.
-///
-/// Async: the blocking install runs on the blocking thread pool (the
-/// agent runtime must never block on a download). Fails with the error
-/// message — the caller fails the turn's audit open, never the turn.
+/// Blocking: the TUI runs it on a worker thread so the render loop never
+/// stalls on the network. `progress` receives `(downloaded_bytes,
+/// total_bytes)` across every file of the install (`total` grows as further
+/// files start). A cache hit returns without touching the network.
 #[cfg(feature = "onnx")]
-pub async fn ensure_installed(
-    target: WeightsTarget,
-    event_tx: tokio::sync::mpsc::UnboundedSender<HarnessEvent>,
-) -> Result<Option<String>, String> {
-    let send = |event: WeightsInstallEvent| {
-        let _ = event_tx.send(HarnessEvent::WeightsInstall { event });
+pub fn install(
+    target: &WeightsTarget,
+    mut progress: impl FnMut(u64, u64) + Send + 'static,
+) -> Result<String, String> {
+    if let Some(revision) = cached_revision(target) {
+        return Ok(revision);
+    }
+
+    let files = Arc::new(Mutex::new(Files::default()));
+    let init_files = Arc::clone(&files);
+    let update_files = Arc::clone(&files);
+    let callbacks = morpheus_onnx::hub::ProgressCallbacks::new(
+        move |size, filename| {
+            if let Ok(mut files) = init_files.lock() {
+                files.start_file(filename.to_string(), size as u64);
+            }
+        },
+        move |delta| {
+            let Ok(mut files) = update_files.lock() else {
+                return;
+            };
+            files.advance(delta as u64);
+            progress(files.done.min(files.total), files.total);
+        },
+        move || {},
+    );
+
+    let request = morpheus_onnx::hub::InstallRequest {
+        repo: &target.repo,
+        subfolder: target.subfolder.as_deref(),
+        revision: target.revision.as_deref(),
+        graphs: GRAPHS,
+        expected_sha256: None,
+        progress: callbacks,
     };
-
-    if is_cached(&target) {
-        send(cached_event());
-        return Ok(None);
-    }
-
-    // Stream the explanation the way an LLM emits tokens: one event per
-    // word (with its trailing space), a few milliseconds between them —
-    // `split_inclusive` keeps the pieces concatenating back into EXACTLY
-    // the context text, and the event channel + TUI redraw absorb the
-    // pacing. Runs only on the cold path: a cache hit never streams.
-    let text = explanation(&target.display_name);
-    let mut opened = false;
-    for word in text.split_inclusive(char::is_whitespace) {
-        let event = if opened {
-            WeightsInstallEvent::TextDelta(word.to_string())
-        } else {
-            opened = true;
-            WeightsInstallEvent::TextBegin(word.to_string())
-        };
-        send(event);
-        tokio::time::sleep(std::time::Duration::from_millis(12)).await;
-    }
-
-    // Shared progress state. hf-hub calls `init(size, filename)` per file
-    // (again on resume/retry — the receiver resets, not accumulates) and
-    // `update(delta)` while bytes stream in. `update` carries no filename,
-    // so the CURRENT file is tracked explicitly (the one init'd most
-    // recently; downloads are strictly sequential here).
-    let model_name = target.display_name.clone();
-    let files: Arc<Mutex<Files>> = Arc::new(Mutex::new(Files::default()));
-    let throttle: Arc<Mutex<Throttle>> = Arc::new(Mutex::new(Throttle::new()));
-    let tx = event_tx.clone();
-
-    let progress = {
-        let files_init = Arc::clone(&files);
-        let files_upd = Arc::clone(&files);
-        let throttle = Arc::clone(&throttle);
-        morpheus_onnx::hub::ProgressCallbacks::new(
-            move |size, filename| {
-                if let Ok(mut f) = files_init.lock() {
-                    f.start_file(filename.to_string(), size as u64);
-                }
-            },
-            move |delta| {
-                let (done, total) = {
-                    let mut f = match files_upd.lock() {
-                        Ok(f) => f,
-                        Err(_) => return,
-                    };
-                    f.advance(delta as u64);
-                    (f.done.min(f.total), f.total)
-                };
-                // Throttle: emit at most every 0.2% of progress or 250 ms,
-                // so a 1 GB graph does not flood the event channel.
-                let permille = (done * 1000).checked_div(total).unwrap_or(0) as u32;
-                if let Ok(mut last) = throttle.lock()
-                    && (permille.saturating_sub(last.permille) >= 2
-                        || last.at.elapsed() >= std::time::Duration::from_millis(250))
-                {
-                    last.permille = permille;
-                    last.at = std::time::Instant::now();
-                    let _ = tx.send(HarnessEvent::WeightsInstall {
-                        event: WeightsInstallEvent::Progress {
-                            model: model_name.clone(),
-                            bytes_done: done,
-                            bytes_total: total,
-                        },
-                    });
-                }
-            },
-            move || {},
-        )
-    };
-
-    let repo = target.repo.clone();
-    let subfolder = target.subfolder.clone();
-    let revision = target.revision.clone();
-    let result = tokio::task::spawn_blocking(move || {
-        morpheus_onnx::hub::install(morpheus_onnx::hub::InstallRequest {
-            repo: &repo,
-            subfolder: subfolder.as_deref(),
-            revision: revision.as_deref(),
-            graphs: GRAPHS,
-            expected_sha256: None,
-            progress,
-        })
-    })
-    .await
-    .unwrap_or_else(|join| {
-        Err(morpheus_onnx::Error::Runtime(format!(
-            "morpheus-onnx: install task panicked: {join}"
-        )))
-    });
-
-    match result {
-        Ok(installed) => {
-            send(WeightsInstallEvent::Finished {
-                repo: target.repo.clone(),
-                revision: installed.revision.clone(),
-            });
-            Ok(Some(text))
-        }
-        Err(e) => {
-            let reason = e.message().to_string();
-            send(WeightsInstallEvent::Failed(reason.clone()));
-            Err(reason)
-        }
-    }
+    morpheus_onnx::hub::install(request)
+        .map(|installed| installed.revision)
+        .map_err(|e| e.message().to_string())
 }
 
 /// Per-file download accounting: totals per repo path, the current file's
@@ -334,24 +217,6 @@ impl Files {
         {
             *pos += delta;
             self.done += delta;
-        }
-    }
-}
-
-/// Progress-event throttle: at most one event per 0.2%-permille step or
-/// 250 ms, whichever first.
-#[cfg(feature = "onnx")]
-struct Throttle {
-    permille: u32,
-    at: std::time::Instant,
-}
-
-#[cfg(feature = "onnx")]
-impl Throttle {
-    fn new() -> Self {
-        Self {
-            permille: u32::MAX,
-            at: std::time::Instant::now() - std::time::Duration::from_secs(1),
         }
     }
 }
@@ -451,8 +316,7 @@ mod tests {
     }
 
     #[test]
-    fn explanation_names_the_model_and_streams_back_intact() {
-        // Each named kind is addressed by its full model name.
+    fn named_kinds_carry_their_display_name() {
         for (model, name) in [
             (DecisionModel::English, "Laya"),
             (DecisionModel::Multilingual, "Laya-Multilingual"),
@@ -460,19 +324,7 @@ mod tests {
         ] {
             let t = resolve_target(&model, &hub()).unwrap();
             assert_eq!(t.display_name, name);
-            let text = explanation(&t.display_name);
-            assert!(text.contains(name), "{name} missing from the copy");
         }
-
-        // The word-streaming split must concatenate back into EXACTLY the
-        // context text: the TUI appends every delta chunk, and the agent
-        // context gets the unsplit original.
-        let text = explanation("Laya");
-        let joined: String = text.split_inclusive(char::is_whitespace).collect();
-        assert_eq!(joined, text);
-        // The first chunk is never empty (the TUI opens the message with it).
-        let mut chunks = text.split_inclusive(char::is_whitespace);
-        assert!(!chunks.next().unwrap().trim().is_empty());
     }
 
     #[test]

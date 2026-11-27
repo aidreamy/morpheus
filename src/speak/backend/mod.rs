@@ -23,7 +23,9 @@ use super::config::{Phonemizer, SpeakConfig, SpeakError};
 use super::engine::Speech;
 use super::voice::Voice;
 
-pub use kokoro::{DEFAULT_MODEL_DIR_NAME, MODEL_DIR_ENV, KokoroConfig, default_model_dir};
+pub use kokoro::{
+    DEFAULT_MODEL_DIR_NAME, KokoroConfig, MODEL_DIR_ENV, default_model_dir, models_dir,
+};
 
 /// Which model family a [`Speak`](super::Speak) loads, with that family's
 /// own settings.
@@ -44,10 +46,7 @@ impl Default for Backend {
 impl Backend {
     /// Load the selected model. The per-session settings (`voice`, `speed`,
     /// `num_threads`, `phonemizer`) come from `config`.
-    pub(crate) fn load(
-        &self,
-        config: &SpeakConfig,
-    ) -> Result<Box<dyn BackendEngine>, SpeakError> {
+    pub(crate) fn load(&self, config: &SpeakConfig) -> Result<Box<dyn BackendEngine>, SpeakError> {
         match self {
             Self::Kokoro(model) => model.load(config).map(|engine| Box::new(engine) as _),
         }

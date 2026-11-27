@@ -114,6 +114,10 @@ impl App {
                 return Ok(false);
             }
 
+            if self.download_picker_visible() && self.handle_download_key(key) {
+                return Ok(false);
+            }
+
             // ESC clears a question-dialog copy selection BEFORE the loop
             // interrupt and the dialog dispatch: the question dialog's own
             // Esc is a semantic REJECT of the pending tool call (it dismisses
@@ -485,7 +489,7 @@ impl App {
 
             // Voice picker (Settings → Voice): same list mechanics as the
             // model picker, checked before the generic action lookup.
-            #[cfg(all(feature = "speak", unix))]
+            #[cfg(feature = "speak")]
             if self.is_voice_dialog_visible() && self.handle_voice_dialog_key(key.code) {
                 return Ok(false);
             }
@@ -891,6 +895,14 @@ impl App {
                 }
             }
 
+            if matches!(self.mode(), AppMode::Download)
+                && !self.dialog.visible()
+                && !self.download_view.is_picker_open()
+                && self.handle_download_key(key)
+            {
+                return Ok(false);
+            }
+
             // Settings mode: navigation and activation keys
             // Each matched arm returns early so unmatched keys fall through
             // to the keymap action dispatch (e.g. Ctrl+B, Ctrl+K).
@@ -975,14 +987,14 @@ impl App {
                             Some(crate::routes::settings::SettingsAction::OpenSkillsInput) => {
                                 self.open_skills_input();
                             }
-                            #[cfg(all(feature = "speak", unix))]
+                            #[cfg(feature = "speak")]
                             Some(crate::routes::settings::SettingsAction::OpenVoicePicker) => {
                                 self.open_voice_dialog();
                             }
-                            // The picker only exists in speak/unix builds (the
+                            // The picker only exists in `speak` builds (the
                             // Settings row is absent too); keep the match
                             // exhaustive without the module.
-                            #[cfg(not(all(feature = "speak", unix)))]
+                            #[cfg(not(feature = "speak"))]
                             Some(crate::routes::settings::SettingsAction::OpenVoicePicker) => {}
                             Some(crate::routes::settings::SettingsAction::OpenVoiceSpeed) => {
                                 self.open_voice_speed_input();
@@ -1846,6 +1858,8 @@ impl App {
                         self.show_add_provider = false;
                     } else if matches!(self.mode(), AppMode::Settings) {
                         self.show_settings = false;
+                    } else if matches!(self.mode(), AppMode::Download) {
+                        self.dismiss_download();
                     } else if self.is_rag_mode() {
                         self.handle_rag_cancel_action();
                     }

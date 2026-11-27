@@ -9,20 +9,20 @@
 //! their audio stays replayable after a new turn lands.
 
 use std::path::PathBuf;
-#[cfg(all(feature = "speak", unix))]
+#[cfg(feature = "speak")]
 use std::time::{Duration, Instant};
 
 use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
-#[cfg(all(feature = "speak", unix))]
+#[cfg(feature = "speak")]
 use ratatui::style::Style;
 
-#[cfg(all(feature = "speak", unix))]
+#[cfg(feature = "speak")]
 use crate::component::agent_spinner_bass::AgentSpinnerBass;
-#[cfg(all(feature = "speak", unix))]
+#[cfg(feature = "speak")]
 use crate::component::spinner::SpinnerState;
 use crate::theme::Theme;
-#[cfg(all(feature = "speak", unix))]
+#[cfg(feature = "speak")]
 use crate::theme::rgba_color;
 
 /// Equalizer bars and animation rate requested from the daemon.
@@ -64,7 +64,7 @@ pub struct SpeechFinished {
 }
 
 /// A generated utterance plus its measured bass envelope.
-#[cfg(all(feature = "speak", unix))]
+#[cfg(feature = "speak")]
 #[derive(Debug, Clone)]
 struct Clip {
     wav: PathBuf,
@@ -73,7 +73,7 @@ struct Clip {
     fps: u32,
 }
 
-#[cfg(all(feature = "speak", unix))]
+#[cfg(feature = "speak")]
 struct Active {
     clip: Clip,
     playback: Option<morpheus::speak::Playback>,
@@ -84,7 +84,7 @@ struct Active {
     started: Instant,
 }
 
-#[cfg(all(feature = "speak", unix))]
+#[cfg(feature = "speak")]
 impl Active {
     fn elapsed(&self) -> Duration {
         self.paused_at.unwrap_or_else(|| self.started.elapsed())
@@ -106,7 +106,7 @@ impl Active {
     }
 }
 
-#[cfg(all(feature = "speak", unix))]
+#[cfg(feature = "speak")]
 struct Generation {
     rx: std::sync::mpsc::Receiver<
         Result<morpheus::daemon::tts::protocol::SynthesizeResult, String>,
@@ -122,7 +122,7 @@ struct Generation {
 
 /// Built without the voice engine: the controls are never drawn and every
 /// action is a no-op, so the rest of the App needs no `cfg` noise.
-const AVAILABLE: bool = cfg!(all(feature = "speak", unix));
+const AVAILABLE: bool = cfg!(feature = "speak");
 
 /// Voice state attached to the App.
 pub struct SpeechState {
@@ -130,19 +130,19 @@ pub struct SpeechState {
     session_id: Option<String>,
     targets: Vec<VoiceTarget>,
     button_rects: Vec<(SpeechButton, usize, Rect)>,
-    #[cfg(all(feature = "speak", unix))]
+    #[cfg(feature = "speak")]
     spinner: SpinnerState,
     /// The bass equalizer that takes the speak button's place while a clip is
     /// playing, driven by the measured low end of the real speech.
-    #[cfg(all(feature = "speak", unix))]
+    #[cfg(feature = "speak")]
     bass: Option<AgentSpinnerBass>,
-    #[cfg(all(feature = "speak", unix))]
+    #[cfg(feature = "speak")]
     request: Option<Generation>,
-    #[cfg(all(feature = "speak", unix))]
+    #[cfg(feature = "speak")]
     active: Option<Active>,
     /// A finished background generation waiting for play, with the answer it
     /// belongs to. Kept so the first press already paints the measured bass.
-    #[cfg(all(feature = "speak", unix))]
+    #[cfg(feature = "speak")]
     prepared: Option<(usize, Clip)>,
 }
 
@@ -153,15 +153,15 @@ impl Default for SpeechState {
             session_id: None,
             targets: Vec::new(),
             button_rects: Vec::new(),
-            #[cfg(all(feature = "speak", unix))]
+            #[cfg(feature = "speak")]
             spinner: SpinnerState::new(),
-            #[cfg(all(feature = "speak", unix))]
+            #[cfg(feature = "speak")]
             bass: None,
-            #[cfg(all(feature = "speak", unix))]
+            #[cfg(feature = "speak")]
             request: None,
-            #[cfg(all(feature = "speak", unix))]
+            #[cfg(feature = "speak")]
             active: None,
-            #[cfg(all(feature = "speak", unix))]
+            #[cfg(feature = "speak")]
             prepared: None,
         }
     }
@@ -214,11 +214,11 @@ impl SpeechState {
 
     #[must_use]
     pub fn is_generating(&self) -> bool {
-        #[cfg(all(feature = "speak", unix))]
+        #[cfg(feature = "speak")]
         {
             self.request.is_some()
         }
-        #[cfg(not(all(feature = "speak", unix)))]
+        #[cfg(not(feature = "speak"))]
         {
             false
         }
@@ -226,11 +226,11 @@ impl SpeechState {
 
     #[must_use]
     pub fn is_paused(&self) -> bool {
-        #[cfg(all(feature = "speak", unix))]
+        #[cfg(feature = "speak")]
         {
             self.active.as_ref().is_some_and(Active::is_paused)
         }
-        #[cfg(not(all(feature = "speak", unix)))]
+        #[cfg(not(feature = "speak"))]
         {
             false
         }
@@ -241,13 +241,13 @@ impl SpeechState {
     /// give way to the bars.
     #[must_use]
     pub fn is_playing(&self) -> bool {
-        #[cfg(all(feature = "speak", unix))]
+        #[cfg(feature = "speak")]
         {
             self.active
                 .as_ref()
                 .is_some_and(|active| active.playback.is_some())
         }
-        #[cfg(not(all(feature = "speak", unix)))]
+        #[cfg(not(feature = "speak"))]
         {
             false
         }
@@ -257,7 +257,7 @@ impl SpeechState {
     /// clip needs none (its bars are frozen).
     #[must_use]
     pub fn is_animating(&self) -> bool {
-        #[cfg(all(feature = "speak", unix))]
+        #[cfg(feature = "speak")]
         {
             self.request.is_some()
                 || self
@@ -265,7 +265,7 @@ impl SpeechState {
                     .as_ref()
                     .is_some_and(|active| active.playback.is_some() && !active.is_paused())
         }
-        #[cfg(not(all(feature = "speak", unix)))]
+        #[cfg(not(feature = "speak"))]
         {
             false
         }
@@ -284,9 +284,9 @@ impl SpeechState {
         if target.audio.as_ref().is_some_and(|path| path.exists()) {
             return;
         }
-        #[cfg(all(feature = "speak", unix))]
+        #[cfg(feature = "speak")]
         self.spawn_generation(&target, store, false);
-        #[cfg(not(all(feature = "speak", unix)))]
+        #[cfg(not(feature = "speak"))]
         let _ = store;
     }
 
@@ -312,27 +312,27 @@ impl SpeechState {
         if target.text.trim().is_empty() {
             return;
         }
-        #[cfg(all(feature = "speak", unix))]
+        #[cfg(feature = "speak")]
         if let Some(request) = self.request.as_mut() {
             if request.slot == slot {
                 request.play = true;
             }
             return;
         }
-        #[cfg(all(feature = "speak", unix))]
+        #[cfg(feature = "speak")]
         if let Some(path) = target.audio.as_ref().filter(|path| path.exists()) {
             self.play(path.clone(), None, slot);
             return;
         }
-        #[cfg(all(feature = "speak", unix))]
+        #[cfg(feature = "speak")]
         self.spawn_generation(&target, store, true);
-        #[cfg(not(all(feature = "speak", unix)))]
+        #[cfg(not(feature = "speak"))]
         let _ = store;
     }
 
     /// Pause/resume the active playback.
     pub fn toggle_pause(&mut self) {
-        #[cfg(all(feature = "speak", unix))]
+        #[cfg(feature = "speak")]
         if let Some(active) = self.active.as_mut() {
             if active.is_paused() {
                 if let Some(playback) = active.playback.as_mut()
@@ -353,7 +353,7 @@ impl SpeechState {
 
     /// Restart the active clip from the beginning.
     pub fn rewind(&mut self) {
-        #[cfg(all(feature = "speak", unix))]
+        #[cfg(feature = "speak")]
         if let Some(active) = &self.active {
             let wav = active.clip.wav.clone();
             let clip = active.clip.clone();
@@ -366,7 +366,7 @@ impl SpeechState {
     /// finished generation exactly once so the App can persist the link /
     /// surface the error.
     pub fn tick(&mut self) -> Option<SpeechFinished> {
-        #[cfg(all(feature = "speak", unix))]
+        #[cfg(feature = "speak")]
         {
             if self.request.is_some() {
                 self.spinner.advance();
@@ -437,7 +437,7 @@ impl SpeechState {
 
             return finished;
         }
-        #[cfg(not(all(feature = "speak", unix)))]
+        #[cfg(not(feature = "speak"))]
         {
             None
         }
@@ -448,13 +448,13 @@ impl SpeechState {
     /// rectangles for the mouse.
     pub fn render_inline(&mut self, buf: &mut Buffer, anchors: &[(usize, Rect)], theme: &Theme) {
         self.button_rects.clear();
-        #[cfg(all(feature = "speak", unix))]
+        #[cfg(feature = "speak")]
         self.draw_inline(buf, anchors, theme);
-        #[cfg(not(all(feature = "speak", unix)))]
+        #[cfg(not(feature = "speak"))]
         let _ = (buf, anchors, theme);
     }
 
-    #[cfg(all(feature = "speak", unix))]
+    #[cfg(feature = "speak")]
     fn draw_inline(&mut self, buf: &mut Buffer, anchors: &[(usize, Rect)], theme: &Theme) {
         for &(slot, area) in anchors {
             let Some(index) = self.targets.iter().position(|target| target.slot == slot) else {
@@ -464,7 +464,7 @@ impl SpeechState {
         }
     }
 
-    #[cfg(all(feature = "speak", unix))]
+    #[cfg(feature = "speak")]
     fn draw_cluster(&mut self, buf: &mut Buffer, index: usize, area: Rect, theme: &Theme) {
         let Some(target) = self.targets.get(index).cloned() else {
             return;
@@ -552,7 +552,7 @@ impl SpeechState {
         );
     }
 
-    #[cfg(all(feature = "speak", unix))]
+    #[cfg(feature = "speak")]
     fn draw_button(
         &mut self,
         buf: &mut Buffer,
@@ -574,7 +574,7 @@ impl SpeechState {
         Some(x.saturating_add(width).saturating_add(GAP))
     }
 
-    #[cfg(all(feature = "speak", unix))]
+    #[cfg(feature = "speak")]
     fn bass_spinner(&mut self, theme: &Theme) -> &mut AgentSpinnerBass {
         let spinner = self.bass.get_or_insert_with(|| {
             let mut spinner = AgentSpinnerBass::new("", theme);
@@ -585,7 +585,7 @@ impl SpeechState {
         spinner
     }
 
-    #[cfg(all(feature = "speak", unix))]
+    #[cfg(feature = "speak")]
     fn playback_levels(&self, slot: usize) -> Option<Vec<f32>> {
         let active = self.active.as_ref()?;
         if active.slot != slot {
@@ -595,7 +595,7 @@ impl SpeechState {
         Some(active.levels())
     }
 
-    #[cfg(all(feature = "speak", unix))]
+    #[cfg(feature = "speak")]
     fn is_playing_at(&self, slot: usize) -> bool {
         self.active
             .as_ref()
@@ -627,7 +627,7 @@ impl SpeechState {
 
     /// Stop and forget the player (used on teardown and session changes).
     pub fn stop(&mut self) {
-        #[cfg(all(feature = "speak", unix))]
+        #[cfg(feature = "speak")]
         {
             self.active = None;
             self.request = None;
@@ -636,7 +636,7 @@ impl SpeechState {
         }
     }
 
-    #[cfg(all(feature = "speak", unix))]
+    #[cfg(feature = "speak")]
     fn spawn_generation(
         &mut self,
         target: &VoiceTarget,
@@ -674,7 +674,7 @@ impl SpeechState {
         });
     }
 
-    #[cfg(all(feature = "speak", unix))]
+    #[cfg(feature = "speak")]
     fn play(&mut self, wav: PathBuf, envelope: Option<Clip>, slot: usize) {
         let clip = envelope
             .or_else(|| self.clip_for(&wav, slot))
@@ -688,7 +688,7 @@ impl SpeechState {
         self.start_clip(clip, slot);
     }
 
-    #[cfg(all(feature = "speak", unix))]
+    #[cfg(feature = "speak")]
     fn clip_for(&self, wav: &std::path::Path, slot: usize) -> Option<Clip> {
         if let Some(active) = &self.active
             && active.slot == slot
@@ -702,7 +702,7 @@ impl SpeechState {
 
     /// Start (or restart) playback for `clip` and return the player error, if
     /// any. The clip is kept without a player so rewind can retry.
-    #[cfg(all(feature = "speak", unix))]
+    #[cfg(feature = "speak")]
     fn start_clip(&mut self, clip: Clip, slot: usize) -> Option<String> {
         let playback = morpheus::speak::Playback::start(&clip.wav);
         let error = playback.as_ref().err().map(ToString::to_string);
@@ -736,7 +736,7 @@ fn last_glyph(buf: &Buffer, area: Rect) -> Option<(u16, u16)> {
     None
 }
 
-#[cfg(all(test, feature = "speak", unix))]
+#[cfg(all(test, feature = "speak"))]
 mod tests {
     use super::*;
 

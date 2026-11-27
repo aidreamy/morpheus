@@ -224,3 +224,95 @@ impl Speech {
         player::play(self)
     }
 }
+
+#[cfg(all(test, feature = "speak-phonemize"))]
+mod tests {
+    use super::*;
+    use crate::speak::config::Phonemizer;
+
+    /// The last line of defence: every advertised language must actually
+    /// produce audio through a real v1.0 speaker, not just select a frontend.
+    /// Ignored because it loads the ~300 MB Kokoro bundle; run it before
+    /// releasing a voice change:
+    ///
+    /// ```text
+    /// cargo test --features speak-phonemize --lib -- --ignored every_supported_language
+    /// ```
+    #[test]
+    #[ignore = "loads the Kokoro model; run before releasing voice changes"]
+    fn every_supported_language_synthesizes_audio() {
+        let default = crate::speak::default_model_dir();
+        let root = default.parent().expect("the model dir has a parent");
+        let bundle = root.join("kokoro-multi-lang-v1_0");
+        assert!(
+            bundle.join("model.onnx").is_file(),
+            "install kokoro-multi-lang-v1_0 in {} to run this guarantee test",
+            root.display()
+        );
+
+        let cases = [
+            (3, Phonemizer::Lexicon, "Hello from Morpheus."),
+            (20, Phonemizer::Lexicon, "Hello from Morpheus."),
+            (45, Phonemizer::Lexicon, "你好，世界。"),
+            (
+                28,
+                Phonemizer::Piper { lang: "es".into() },
+                "Hola, mundo. ¿Cómo estás?",
+            ),
+            (
+                30,
+                Phonemizer::Piper { lang: "fr".into() },
+                "Bonjour, comment ça va ?",
+            ),
+            (
+                31,
+                Phonemizer::Piper { lang: "hi".into() },
+                "नमस्ते, आप कैसे हैं?",
+            ),
+            (
+                35,
+                Phonemizer::Piper { lang: "it".into() },
+                "Ciao, come stai?",
+            ),
+            (
+                37,
+                Phonemizer::Piper { lang: "ja".into() },
+                "今日はいい天気ですね。",
+            ),
+            (
+                42,
+                Phonemizer::Piper {
+                    lang: "pt-br".into(),
+                },
+                "Olá, tudo bem?",
+            ),
+        ];
+
+        for (voice, phonemizer, text) in cases {
+            let language = match &phonemizer {
+                Phonemizer::Lexicon => "lexicon".to_owned(),
+                Phonemizer::Piper { lang } => lang.clone(),
+            };
+            let config = SpeakConfig {
+                backend: crate::speak::Backend::Kokoro(crate::speak::KokoroConfig {
+                    model_dir: bundle.clone(),
+                    ..Default::default()
+                }),
+                voice,
+                speed: 1.0,
+                num_threads: 2,
+                phonemizer,
+            };
+            let speak = Speak::load(config)
+                .unwrap_or_else(|error| panic!("{language} speaker {voice}: {error}"));
+            let speech = speak
+                .synthesize(text)
+                .unwrap_or_else(|error| panic!("{language} speaker {voice}: {error}"));
+            assert!(
+                speech.duration() > Duration::from_millis(300),
+                "{language} speaker {voice} produced only {:?} of audio",
+                speech.duration()
+            );
+        }
+    }
+}

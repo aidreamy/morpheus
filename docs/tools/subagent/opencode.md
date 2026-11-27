@@ -137,3 +137,12 @@ proxy that blocks loopback ports) or when comparing the two transports.
 | `turn`     | One prompt/command turn: subscribe, dispatch, permissions, stop        |
 | `session`  | Persistent pane session (one server + one session id)                  |
 | `snapshot` | Advertised surface, session state and history replay                   |
+
+## Kilo
+
+Kilo is a fork of OpenCode and keeps the same server protocol, so it reuses
+this backend instead of a separate module. The operational details differ:
+the `kilo` binary, `KILO_SERVER_PASSWORD` / `KILO_SERVER_USERNAME`
+(default `kilo`), the `MORPHEUS_KILO_TRANSPORT` override and the
+`x-kilo-directory` header on instance-scoped requests. Set
+`MORPHEUS_KILO_TRANSPORT=acp` to restore the generic transport.

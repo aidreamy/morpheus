@@ -20,7 +20,7 @@ per-agent model picks.
 | `events`      | Typed event stream mapped from `session/update` notifications, consumed by the TUI sub-agent box   |
 | `internal`    | The same typed events synthesized for the internal (nested harness) sub-agent                      |
 | `model_picks` | Persisted per-agent model choices, injected-directory store                                       |
-| `opencode`    | Native OpenCode transport: spawns `opencode serve` and drives turns over its HTTP + SSE API     |
+| `opencode`    | Native OpenCode/Kilo transport: spawns `opencode serve` (or `kilo`) and drives turns over its HTTP + SSE API |
 | `palette`     | Brand palettes for painting each agent with its own logo colors                                   |
 | `severity`    | The `code_review` severity header contract and its extraction                                     |
 | `sandbox`     | Kernel-pinned `fs/*` handler sandbox (Unix only)                                                  |
@@ -52,6 +52,11 @@ resume, todos, the agent/command catalog and the model list.
 `acp::call`, `acp::open_session`, `acp::session_snapshot` and `acp::replay`
 route to it automatically, so consumers keep the same types and calls;
 `MORPHEUS_OPENCODE_TRANSPORT=acp` restores the generic transport.
+
+Kilo is a fork of OpenCode and shares the same server protocol, so it reuses
+this backend (spawning the `kilo` binary, `KILO_SERVER_PASSWORD` / `KILO_SERVER_USERNAME`,
+and sending `x-kilo-directory` on instance-scoped requests). `MORPHEUS_KILO_TRANSPORT=acp`
+restores the generic transport.
 
 ## Requirements
 

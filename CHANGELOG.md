@@ -30,6 +30,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   (`acp::call`, `open_session`, `session_snapshot`, `replay`);
   `MORPHEUS_OPENCODE_TRANSPORT=acp` restores the old transport.
 
+- Kilo now reuses the same native server path as OpenCode (it is a fork and
+  keeps the same protocol), parameterized through the existing `opencode`
+  module instead of a separate backend. `MORPHEUS_KILO_TRANSPORT=acp`
+  restores the generic transport.
+
+- Native transport can be forced per agent from `setup.json`
+  (`native_transport.opencode` / `native_transport.kilo`, set to `"acp"`) or
+  from the Integrations switches in Settings; an environment variable always
+  takes precedence. Changes take effect on the next launch.
+
 ### Changed
 
 - The sub-agent implementation moved out of `morpheus-tools` into its own

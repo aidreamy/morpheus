@@ -149,11 +149,12 @@ async fn rollback_allowed_outside_root_when_path_in_allowlist() {
         blocklist: None,
     };
 
-    let result = rollback(&FsRollback, allowed_meta, &outside, "").await;
-    assert!(
-        result.is_ok(),
-        "explicitly allowed path outside root must succeed, got: {:?}",
-        result.err()
+    let result = rollback(&FsRollback, allowed_meta, &outside, "")
+        .await
+        .expect("explicitly allowed path outside root must succeed");
+    assert_eq!(
+        result.warning.as_deref(),
+        Some("Modified a file outside the working directory.")
     );
     let _ = std::fs::remove_file(&outside);
 }

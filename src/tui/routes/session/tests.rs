@@ -5734,8 +5734,10 @@ fn proof_write_estimate_vs_render_mismatch() {
     let part = ToolPart {
         tool: "fs_write".into(),
         input: serde_json::json!({"filePath": "src/main.rs", "content": content}),
-        // Output típico de sucesso: curto (1 linha), bem menor que o content.
-        output: Some(r#"[{"ok": true}]"#.to_string()),
+        output: Some(
+            r#"[{"file_hash":"abcd","warnings":"Modified a file outside the working directory."}]"#
+                .to_string(),
+        ),
         status: ToolStatus::Completed,
         tool_call_id: Some("w1".into()),
         is_start: true,
@@ -5768,6 +5770,10 @@ fn proof_write_estimate_vs_render_mismatch() {
         dispatch_tool(&mut ctx, &part, 0);
     }
     let is_block = SessionView::tool_is_block(&part);
+    assert!(
+        is_block,
+        "an advisory warning keeps the successful write preview"
+    );
     let actual = line_h + if is_block { 2 } else { 0 };
 
     eprintln!(

@@ -36,7 +36,7 @@ use morpheus_sdk::tree_sitter::tree_sitter;
 use crate::util::path_guard::assert_editable_file;
 
 use super::edit::EditResult;
-use super::types::{AstEditOp, FsAstEdit, FsMetadata};
+use super::types::{AstEditOp, FsAstEdit, FsMetadata, OUTSIDE_CWD_WRITE_WARNING};
 
 /// Outcome of rewriting one file.
 struct FileEditOutcome {
@@ -359,9 +359,20 @@ pub async fn ast_edit(metadata: FsMetadata, tg: FsAstEdit) -> Result<Vec<EditRes
         return Ok(Vec::new());
     }
 
-    let mut results = Vec::new();
+    let mut results: Vec<EditResult> = Vec::new();
     for f in files {
-        let outcome = rewrite_file(&f, &tg.ops).await?;
+        let mut outcome = rewrite_file(&f, &tg.ops).await.map_err(|error| {
+            if results.iter().any(EditResult::modified_outside_cwd) {
+                format!("{error}\n{OUTSIDE_CWD_WRITE_WARNING}")
+            } else {
+                error
+            }
+        })?;
+        if outcome.touched {
+            outcome
+                .warnings
+                .extend(metadata.outside_cwd_write_warning(&f));
+        }
         if outcome.touched || !outcome.warnings.is_empty() {
             results.push(EditResult {
                 path: outcome.path,

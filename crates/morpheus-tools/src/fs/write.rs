@@ -269,6 +269,7 @@ pub async fn write(metadata: FsMetadata, tg: FsWrite) -> Result<Vec<WriteResult>
                             .to_string(),
                     );
                 }
+                warnings.extend(metadata.outside_cwd_write_warning(&validated_path));
 
                 let res = WriteResult {
                     file_hash: hash,

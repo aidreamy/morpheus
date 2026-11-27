@@ -9,7 +9,7 @@ use morpheus_sdk::hashline::{
 };
 use morpheus_sdk::rollback;
 
-use super::types::{EditTarget, FsEdit, FsMetadata};
+use super::types::{EditTarget, FsEdit, FsMetadata, OUTSIDE_CWD_WRITE_WARNING};
 use crate::util::path_guard::assert_editable_file;
 use regex::Regex;
 use serde::Serialize;
@@ -133,6 +133,14 @@ pub struct EditResult {
     pub dry_run: Option<bool>,
 }
 
+impl EditResult {
+    pub(crate) fn modified_outside_cwd(&self) -> bool {
+        self.warnings
+            .iter()
+            .any(|warning| warning == OUTSIDE_CWD_WRITE_WARNING)
+    }
+}
+
 /// Failure of a multi-target [`edit`] batch.
 ///
 /// Targets are applied in order, and order carries intention: when target N
@@ -172,6 +180,9 @@ impl fmt::Display for EditBatchError {
                     r.header.clone()
                 };
                 write!(f, "\n  {anchor}")?;
+                if r.modified_outside_cwd() {
+                    write!(f, "\n  {OUTSIDE_CWD_WRITE_WARNING}")?;
+                }
             }
         }
         if !self.skipped.is_empty() {
@@ -342,12 +353,17 @@ pub(crate) async fn edit_target(
         )
     };
 
+    let mut warnings = section.warnings;
+    if diff.is_some() {
+        warnings.extend(metadata.outside_cwd_write_warning(Path::new(&section.canonical_path)));
+    }
+
     Ok(EditResult {
         path: target.path.clone(),
         file_hash: section.file_hash,
         header: section.header,
         first_changed_line: section.first_changed_line,
-        warnings: section.warnings,
+        warnings,
         lsp_notes: None,
         dry_run: None,
         diff,

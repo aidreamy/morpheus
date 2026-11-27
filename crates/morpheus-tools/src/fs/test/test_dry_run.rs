@@ -154,6 +154,41 @@ async fn without_dry_run_the_edit_applies_for_real() {
 }
 
 #[tokio::test]
+async fn outside_cwd_edit_warns_only_after_writing() {
+    let root = TempRoot::new("workspace");
+    let outside = TempRoot::new("outside");
+    let (path, hash) = fixture(&outside, "edit", "a\nb\n");
+    let mut metadata = make_metadata(root.path());
+    metadata.allowlist = Some(vec![PathBuf::from(&path)]);
+    let target = EditTarget {
+        path: path.clone(),
+        file_hash: hash,
+        ops: "replace 1:\n+A".to_string(),
+    };
+
+    for dry_run in [true, false] {
+        let results = edit(
+            metadata.clone(),
+            FsEdit {
+                targets: vec![target.clone()],
+                dry_run,
+            },
+        )
+        .await
+        .expect("allowed edit should succeed");
+        assert_eq!(
+            results[0]
+                .warnings
+                .iter()
+                .any(|warning| warning == "Modified a file outside the working directory."),
+            !dry_run
+        );
+        let expected = if dry_run { "a\nb\n" } else { "A\nb\n" };
+        assert_eq!(std::fs::read_to_string(&path).unwrap(), expected);
+    }
+}
+
+#[tokio::test]
 async fn content_engine_honors_dry_run() {
     let root = TempRoot::new("content");
     let (path, hash) = fixture(&root, "content", "value = compute(x);\n");

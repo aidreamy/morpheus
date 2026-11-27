@@ -74,12 +74,20 @@ pub async fn rollback(
     })
     .await?;
 
+    let mut warning = out.warning;
+    if let Some(outside_warning) = metadata.outside_cwd_write_warning(&validated_path) {
+        warning = Some(match warning {
+            Some(existing) => format!("{existing}\n{outside_warning}"),
+            None => outside_warning,
+        });
+    }
+
     Ok(RollbackResult {
         path: out.path,
         file_hash: out.file_hash,
         header: out.header,
         replaced_hash: out.replaced_hash,
-        warning: out.warning,
+        warning,
         lsp_notes: None,
     })
 }

@@ -64,8 +64,8 @@ impl SessionView {
     /// the height estimate and the render agree on the box's external margins:
     /// `render_shell` boxes any bash with output (Running or Completed),
     /// `render_glob` boxes any glob with listable output, `render_write`
-    /// boxes a completed write with non-empty input content and no warnings
-    /// (its output is a short receipt - size comes from the input),
+    /// boxes a completed write when its input has content and its result shows
+    /// no failure (the input determines the size of the preview),
     /// `render_edit` boxes a completed edit with an extractable diff,
     /// `render_read` boxes any completed read with parseable content,
     /// `render_todo` boxes any non-running tool with listable output

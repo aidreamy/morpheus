@@ -1,3 +1,5 @@
+use morpheus::commands::Command;
+pub use morpheus::commands::Scope as CommandScope;
 use morpheus_tui::core::lib::rgba::RGBA;
 use morpheus_tui::core::types::{MouseButton, MouseEvent, MouseEventType};
 use ratatui::buffer::Buffer;
@@ -46,104 +48,27 @@ pub struct SlashCommand {
     pub desc: String,
 }
 
-/// Which TARGET a slash command acts on. This is the routing contract: a
-/// [`CommandScope::Global`] command is executed by the App for the whole app
-/// and is never handed to a focused `/agents` pane; a
-/// [`CommandScope::Agent`] command belongs to the agent that would receive it
-/// - the focused pane when the split has one, the main loop otherwise.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum CommandScope {
-    /// App/TUI state: appearance, preferences, the session list, dialogs.
-    /// There is exactly ONE of each in the process, so a per-pane version
-    /// would be overengineering - `/background` per pane would mean six
-    /// terminal backgrounds for one terminal.
-    Global,
-    /// The agent itself: its model, its toolset, its context, its
-    /// transcript, its working directory. These legitimately have a per-pane
-    /// meaning, because every pane runs an independent agent session.
-    Agent,
-}
-
-/// The command inventory: every morpheus slash command, its [`CommandScope`] and
-/// what it actually mutates. This table IS the answer to "is this command
-/// global or per-agent?" - kept in ONE place so a new command must declare a
-/// side instead of inheriting a leaky default, and `run_slash_command` routes
-/// by it rather than by the menu's incidental source.
-///
-/// | command      | scope  | target                                          |
-/// |--------------|--------|-------------------------------------------------|
-/// | `models`     | Agent  | the agent's model / reasoning                   |
-/// | `compact`    | Agent  | the agent's context                             |
-/// | `toolcall`   | Agent  | the agent's tool-call delivery mode             |
-/// | `tools`      | Agent  | the agent's internal tool set                   |
-/// | `export`     | Agent  | the agent's transcript                          |
-/// | `worktree`   | Agent  | the pane's cwd binding (`AgentPane.worktree`)   |
-/// | `agents`     | Global | the split itself (one split per session)        |
-/// | `router`     | Global | `router_view` fallbacks                         |
-/// | `download`   | Global | local model cache (`download_view`)             |
-/// | `providers`  | Global | `setup` provider list                           |
-/// | `settings`   | Global | `setup` (app configuration)                     |
-/// | `themes`     | Global | `setup.appearance` theme                        |
-/// | `background` | Global | `setup.appearance` terminal background          |
-/// | `wallpaper`  | Global | the session's ASCII background layer            |
-/// | `bell`       | Global | `setup.appearance.bell_enabled`                 |
-/// | `spinner`    | Global | `setup.appearance.spinner`                      |
-/// | `new`        | Global | the session list                                |
-/// | `rename`     | Global | the session's name                              |
-/// | `undo`       | Global | the last revert                                 |
-pub const COMMAND_INVENTORY: &[(&str, CommandScope)] = &[
-    ("models", CommandScope::Agent),
-    ("compact", CommandScope::Agent),
-    ("toolcall", CommandScope::Agent),
-    ("tools", CommandScope::Agent),
-    ("export", CommandScope::Agent),
-    ("worktree", CommandScope::Agent),
-    ("agents", CommandScope::Global),
-    ("confidence", CommandScope::Global),
-    ("router", CommandScope::Global),
-    ("download", CommandScope::Global),
-    ("providers", CommandScope::Global),
-    ("settings", CommandScope::Global),
-    ("themes", CommandScope::Global),
-    ("background", CommandScope::Global),
-    ("wallpaper", CommandScope::Global),
-    ("bell", CommandScope::Global),
-    ("voice", CommandScope::Global),
-    ("spinner", CommandScope::Global),
-    ("new", CommandScope::Global),
-    ("rename", CommandScope::Global),
-    ("undo", CommandScope::Global),
-];
-
-/// The [`CommandScope`] of `name`. A name absent from [`COMMAND_INVENTORY`]
-/// is an AGENT's own published command (that agent's harness interprets it),
-/// never a morpheus-owned global action - so an unknown command can never steal
-/// app-wide state. The guard test
-/// `every_morpheus_command_declares_its_scope` keeps both lists in lockstep.
+/// Unknown commands belong to the focused agent's own command source.
 #[must_use]
 pub fn command_scope(name: &str) -> CommandScope {
-    COMMAND_INVENTORY
+    Command::ALL
         .iter()
-        .find(|(command, _)| *command == name)
-        .map(|(_, scope)| *scope)
-        .unwrap_or(CommandScope::Agent)
+        .map(|command| command.metadata())
+        .find(|(command, _, _)| *command == name)
+        .map_or(CommandScope::Agent, |(_, _, scope)| scope)
 }
 
-/// The `/worktree` slash entry - a MORPHEUS-side command (a worktree is a morpheus
-/// binding, never the agent's own command).
-///
-/// It lives in the BASE command list because its target is whichever agent
-/// the user is talking to: the MAIN agent (no split open, applied by
-/// `apply_main_agent_worktree_command`) or the focused pane of any kind
-/// (`apply_worktree_command`). Both run their turns in the bound checkout,
-/// so the row means the same thing in every menu that lists it and the pane
-/// sources must not append a second copy.
-#[must_use]
 pub fn worktree_command_entry() -> SlashCommand {
-    SlashCommand {
-        name: "worktree".into(),
-        desc: "Isolate this agent in a git worktree (add <branch>|<path> <branch>, list, exit)"
-            .into(),
+    SlashCommand::from(Command::Worktree)
+}
+
+impl From<Command> for SlashCommand {
+    fn from(command: Command) -> Self {
+        let (name, desc, _) = command.metadata();
+        Self {
+            name: name.into(),
+            desc: desc.into(),
+        }
     }
 }
 
@@ -229,99 +154,13 @@ impl SlashMenu {
 
     /// The morpheus harness's own command set (the default source).
     pub fn morpheus_commands() -> Vec<SlashCommand> {
-        vec![
-            SlashCommand {
-                name: "models".into(),
-                desc: "Manage models".into(),
-            },
-            SlashCommand {
-                name: "agents".into(),
-                desc: "Split the chat into agent panes".into(),
-            },
-            SlashCommand {
-                name: "router".into(),
-                desc: "Open the fallback router".into(),
-            },
-            SlashCommand {
-                name: "download".into(),
-                desc: "Download local models".into(),
-            },
-            SlashCommand {
-                name: "providers".into(),
-                desc: "Add an API provider".into(),
-            },
-            SlashCommand {
-                name: "settings".into(),
-                desc: "Open settings".into(),
-            },
-            SlashCommand {
-                name: "tools".into(),
-                desc: "Open internal tools".into(),
-            },
-            SlashCommand {
-                name: "themes".into(),
-                desc: "Change theme".into(),
-            },
-            SlashCommand {
-                name: "background".into(),
-                desc: "Toggle terminal background".into(),
-            },
-            SlashCommand {
-                name: "wallpaper".into(),
-                desc: "Set the ASCII wallpaper (image.png [x,y], off)".into(),
-            },
-            SlashCommand {
-                name: "bell".into(),
-                desc: "Toggle completion bell".into(),
-            },
-            SlashCommand {
-                name: "voice".into(),
-                desc: "Toggle automatic voice generation".into(),
-            },
-            SlashCommand {
-                name: "spinner".into(),
-                desc: "Set spinner animation".into(),
-            },
-            SlashCommand {
-                name: "toolcall".into(),
-                desc: "Set tool call mode".into(),
-            },
-            SlashCommand {
-                name: "compact".into(),
-                desc: "Compact context now".into(),
-            },
-            SlashCommand {
-                name: "export".into(),
-                desc: "Export transcript to Markdown".into(),
-            },
-            SlashCommand {
-                name: "new".into(),
-                desc: "Start a new session".into(),
-            },
-            SlashCommand {
-                name: "rename".into(),
-                desc: "Rename session".into(),
-            },
-            SlashCommand {
-                name: "undo".into(),
-                desc: "Undo last revert".into(),
-            },
-            // The MAIN agent's worktree binding. It lives in the base list
-            // (not synthesized per pane) because the main agent - normal
-            // chat, no `/agents` split - is a legitimate target too: it is
-            // one more agent whose turns can run in a checkout. The pane
-            // sources do NOT append a second copy; see `slash_source`.
-            worktree_command_entry(),
-            confidence_command_entry(),
-        ]
+        Command::ALL
+            .iter()
+            .copied()
+            .map(SlashCommand::from)
+            .collect()
     }
 
-    /// Every morpheus-owned command name (the menu's own vocabulary, without the
-    /// synthesized per-pane entries). The scope inventory is checked against
-    /// this, and the router refuses a command missing from
-    /// [`COMMAND_INVENTORY`] as "not morpheus's" - so this is the single list a
-    /// new command must be added to twice (here and in the inventory), which
-    /// the guard test enforces.
     /// Swap the command source to an agent's own list (the pane's cached
     /// snapshot, blocklist-filtered by the app layer). Resets selection.
     pub fn set_agent_commands(&mut self, commands: Vec<SlashCommand>) {
@@ -706,17 +545,20 @@ mod tests {
             .into_iter()
             .map(|command| command.name)
             .collect();
-        let inventory_names: Vec<&str> = COMMAND_INVENTORY.iter().map(|(name, _)| *name).collect();
+        let inventory_names: Vec<&str> = Command::ALL
+            .iter()
+            .map(|command| command.metadata().0)
+            .collect();
         for name in &menu_names {
             assert!(
                 inventory_names.contains(&name.as_str()),
-                "`/{name}` is in the morpheus menu but declares no scope in COMMAND_INVENTORY"
+                "`/{name}` is in the morpheus menu but declares no scope in the shared inventory"
             );
         }
         for name in &inventory_names {
             assert!(
                 menu_names.iter().any(|menu| menu == name),
-                "COMMAND_INVENTORY declares `/{name}` which the morpheus menu does not offer"
+                "the shared inventory declares `/{name}` which the morpheus menu does not offer"
             );
         }
         assert_eq!(

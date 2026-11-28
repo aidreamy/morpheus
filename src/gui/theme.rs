@@ -1,0 +1,9 @@
+pub(crate) const CANVAS: u32 = 0x1a1a1a;
+pub(crate) const CHROME: u32 = 0x202020;
+pub(crate) const SURFACE: u32 = 0x242424;
+pub(crate) const BORDER: u32 = 0x303030;
+pub(crate) const HOVER: u32 = 0x333333;
+pub(crate) const ACTIVE: u32 = 0x393939;
+pub(crate) const FOCUS: u32 = 0x626262;
+pub(crate) const MUTED: u32 = 0x9c9c9c;
+pub(crate) const TEXT: u32 = 0xe2e2e2;

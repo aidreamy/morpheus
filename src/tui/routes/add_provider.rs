@@ -2,9 +2,7 @@ use ratatui::buffer::Buffer;
 use ratatui::layout::Rect;
 use ratatui::style::{Color, Style};
 
-use aiface::connector::{
-    get_provider, get_provider_env_var, has_api_key, is_local_provider, known_providers,
-};
+use aiface::connector::{get_provider, has_api_key, is_local_provider, known_providers};
 use morpheus_tui::core::types::MouseEvent;
 
 use crate::component::search_bar::SearchBar;
@@ -38,16 +36,7 @@ impl ProviderEntry {
     }
 }
 
-/// Resolve the API-key env var name for a (cloud) provider: built-ins
-/// carry a documented one; user-registered custom providers derive
-/// `<NAME>_API_KEY`, matching `aiface`'s own derivation so a key saved
-/// under that name is actually found later.
-#[must_use]
-pub fn provider_env_var_name(name: &str) -> String {
-    get_provider_env_var(name)
-        .map(str::to_string)
-        .unwrap_or_else(|| format!("{}_API_KEY", name.to_ascii_uppercase().replace('-', "_")))
-}
+pub use morpheus::providers::provider_env_var_name;
 
 fn all_providers() -> Vec<ProviderEntry> {
     let mut providers: Vec<ProviderEntry> = known_providers()

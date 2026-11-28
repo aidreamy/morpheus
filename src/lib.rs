@@ -2,6 +2,7 @@ pub const KEYRING_SERVICE: &str = "morpheus";
 
 pub mod agent_profiles;
 pub mod assembly;
+pub mod commands;
 pub mod config;
 pub mod coordinator;
 pub mod daemon;
@@ -9,7 +10,9 @@ pub mod fallback;
 pub mod git;
 pub mod harness;
 pub mod mcp;
+pub mod models;
 pub mod notification;
+pub mod providers;
 pub mod session;
 pub mod setup;
 /// Local voice output (Kokoro TTS through sherpa-onnx). Gated behind the
@@ -17,6 +20,7 @@ pub mod setup;
 #[cfg(feature = "speak")]
 pub mod speak;
 pub mod telemetry;
+pub mod tools_config;
 pub mod types;
 pub mod uninstall;
 pub mod update;

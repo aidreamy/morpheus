@@ -5,6 +5,7 @@
 //! conversation data model belongs to the library, not to an interface
 //! layer.
 
+pub mod export;
 pub mod history;
 pub mod snapshots;
 pub mod store;

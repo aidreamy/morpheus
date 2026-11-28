@@ -84,13 +84,7 @@ fn draw_rounded_border(buf: &mut Buffer, area: Rect, border_color: Color) {
 /// matches either the model name or its provider, so searching e.g.
 /// `openrouter` isolates the whole OpenRouter group instead of only models
 /// literally containing "openrouter" in their name.
-pub(crate) fn model_entry_matches_filter(entry: &ModelEntry, filter: &str) -> bool {
-    if filter.is_empty() {
-        return true;
-    }
-    let needle = filter.to_lowercase();
-    entry.model.to_lowercase().contains(&needle) || entry.provider.to_lowercase().contains(&needle)
-}
+pub(crate) use morpheus::models::matches_filter as model_entry_matches_filter;
 
 /// Only `options` rows matching the shared list-dialog filter (case-
 /// insensitive `contains` over name and value id - the model picker's

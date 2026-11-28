@@ -180,7 +180,7 @@ impl WhatsAppAgent {
             ChatControl::load(
                 self.store.clone(),
                 chat_key.to_string(),
-                self.config.initial_mode,
+                self.config.agent.initial_mode,
                 self.config.humanize_default,
             )
             .await,

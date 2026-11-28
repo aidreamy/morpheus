@@ -21,6 +21,10 @@
 //! NOT assembled here: they are different use cases with their own
 //! contracts, not subsets of this assembly.
 
+mod compact;
+pub use compact::build_manual_compaction_harness;
+pub mod config;
+
 use std::collections::HashSet;
 use std::sync::Arc;
 use std::sync::atomic::AtomicBool;

@@ -52,9 +52,7 @@ impl AgentConfig {
         // assembled, and the LSP switch is a process-wide flag. Doing this
         // here (rather than in `from_setup`) keeps the pure resolver
         // testable.
-        for error in
-            morpheus_agents::acp::register_custom_agents_lossy(&setup.acp_agent_pairs())
-        {
+        for error in morpheus_agents::acp::register_custom_agents_lossy(&setup.acp_agent_pairs()) {
             log::warn!("user-registered ACP agent skipped: {error}");
         }
         if let Err(error) = aiface::connector::register_custom_providers(
@@ -106,10 +104,7 @@ impl AgentConfig {
             provider,
             model: persisted_model.or(env.model),
             reasoning,
-            tool_call_mode: match setup.tools.tool_call_mode.as_str() {
-                "inline" => ToolCallMode::Inline,
-                _ => ToolCallMode::Native,
-            },
+            tool_call_mode: crate::tools_config::load_tool_call_mode(setup),
             base_url,
             local_base_urls,
             fallbacks: crate::fallback::load_fallbacks(setup)

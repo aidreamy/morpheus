@@ -10,12 +10,12 @@ use aiface::connector::ToolCallMode;
 use gpui::{App, Entity, ScrollHandle, Subscription, Window, div, prelude::*, px, relative};
 use morpheus::types::{Message, MessageRole, Part, TextPart, now_ms};
 use morpheus::{
-    ModelEntry, assembly::config::AgentConfig, harness::ContextManagerState,
-    session::store::generate_session_id,
+    ModelEntry, assembly::config::AgentConfig, git::worktree::PaneWorktree,
+    harness::ContextManagerState, session::store::generate_session_id, setup::Setup,
 };
 
 use crate::{
-    component::prompt::{ModelSelected, Prompt, Submitted},
+    component::prompt::{Prompt, Submitted},
     theme,
 };
 
@@ -38,8 +38,9 @@ pub(super) const UNAVAILABLE_TOOLS: &[&str] = &[
 pub(crate) struct Chat {
     prompt: Entity<Prompt>,
     _prompt_submission: Subscription,
-    _model_selection: Subscription,
     config: Arc<AgentConfig>,
+    worktree: Option<PaneWorktree>,
+    changing_worktree: bool,
     session_id: String,
     title: String,
     messages: Vec<Message>,
@@ -58,15 +59,12 @@ impl Chat {
         let prompt_submission = cx.subscribe(&prompt, |chat, _, Submitted(text), cx| {
             chat.submit(text.clone(), cx);
         });
-        let model_selection = cx.subscribe(&prompt, |chat, _, ModelSelected(model), cx| {
-            chat.apply_model(model);
-            cx.notify();
-        });
         Self {
             prompt,
             _prompt_submission: prompt_submission,
-            _model_selection: model_selection,
             config,
+            worktree: None,
+            changing_worktree: false,
             session_id: generate_session_id(),
             title: String::new(),
             messages: Vec::new(),
@@ -119,13 +117,7 @@ impl Chat {
     }
 
     fn submit(&mut self, text: String, cx: &mut Context<Self>) {
-        if self.turn.is_some() || self.compaction.is_some() {
-            return;
-        }
-        let mut words = text.split_whitespace();
-        if words.next() == Some("/models") {
-            self.select_model(words.next(), words.next(), words.next());
-            cx.notify();
+        if self.is_busy() {
             return;
         }
 
@@ -148,60 +140,44 @@ impl Chat {
         self.config.tool_call_mode
     }
 
-    pub(crate) fn set_tool_call_mode(&mut self, mode: ToolCallMode, cx: &mut Context<Self>) {
-        Arc::make_mut(&mut self.config).tool_call_mode = mode;
-        self.notice = Some(
-            match mode {
-                ToolCallMode::Native => "Native tool calls selected.",
-                ToolCallMode::Inline => "Inline tool calls selected.",
-            }
-            .into(),
-        );
+    pub(crate) fn notice(&mut self, message: impl Into<String>, cx: &mut Context<Self>) {
+        self.notice = Some(message.into());
         cx.notify();
     }
 
-    pub(crate) fn refresh_config(&mut self, shared: &AgentConfig) {
+    pub(crate) fn refresh_config(&mut self, setup: &Setup, shared: &AgentConfig) {
+        let next = self.worktree.as_ref().map_or_else(
+            || shared.clone(),
+            |worktree| AgentConfig::from_setup(setup, &worktree.path.to_string_lossy()),
+        );
         let config = &self.config;
         self.config = Arc::new(AgentConfig {
             provider: config.provider.clone(),
             model: config.model.clone(),
             reasoning: config.reasoning.clone(),
-            tool_call_mode: config.tool_call_mode,
-            base_url: shared.local_base_urls.get(&config.provider).cloned(),
-            ..shared.clone()
+            base_url: next.local_base_urls.get(&config.provider).cloned(),
+            ..next
         });
     }
 
-    fn select_model(&mut self, provider: Option<&str>, model: Option<&str>, extra: Option<&str>) {
-        match (provider, model, extra) {
-            (Some("auto"), None, None) => self.apply_model(&ModelEntry {
-                provider: String::new(),
-                model: "auto".into(),
-            }),
-            (Some(provider), Some(model), None) if model != "auto" => {
-                let provider = provider.to_ascii_lowercase();
-                let known = aiface::connector::known_providers().any(|name| name == provider);
-                if !known {
-                    self.error(format!("Unknown provider: {provider}"));
-                    return;
-                }
-                self.apply_model(&ModelEntry {
-                    provider,
-                    model: model.into(),
-                });
-            }
-            _ => self.error("Usage: /models <provider> <model> or /models auto".into()),
-        }
+    pub(crate) fn matches_model(&self, model: &ModelEntry) -> bool {
+        self.config.model.as_ref() == Some(&model.model)
+            && (model.provider.is_empty() || self.config.provider == model.provider)
     }
 
-    fn apply_model(&mut self, model: &ModelEntry) {
+    pub(crate) fn reasoning(&self) -> Option<&str> {
+        self.config.reasoning.as_deref()
+    }
+
+    pub(crate) fn apply_model(
+        &mut self,
+        model: &ModelEntry,
+        reasoning: Option<String>,
+        cx: &mut Context<Self>,
+    ) {
         let config = Arc::make_mut(&mut self.config);
-        let changed = config.model.as_ref() != Some(&model.model)
-            || (!model.provider.is_empty() && config.provider != model.provider);
         config.model = Some(model.model.clone());
-        if changed {
-            config.reasoning = None;
-        }
+        config.reasoning = reasoning;
         if model.provider.is_empty() {
             self.notice = Some("Model set to auto for this chat.".into());
         } else {
@@ -212,6 +188,39 @@ impl Chat {
                 model.provider, model.model
             ));
         }
+        cx.notify();
+    }
+
+    pub(crate) fn worktree(&self) -> Option<&PaneWorktree> {
+        self.worktree.as_ref()
+    }
+
+    pub(crate) fn cwd(&self) -> &str {
+        &self.config.cwd
+    }
+
+    pub(crate) fn is_busy(&self) -> bool {
+        self.turn.is_some() || self.compaction.is_some() || self.changing_worktree
+    }
+
+    pub(crate) fn set_worktree_busy(&mut self, busy: bool, cx: &mut Context<Self>) {
+        self.changing_worktree = busy;
+        if busy {
+            self.notice = None;
+        }
+        self.prompt
+            .update(cx, |prompt, cx| prompt.set_busy(busy, cx));
+        cx.notify();
+    }
+
+    pub(crate) fn set_worktree(
+        &mut self,
+        worktree: Option<PaneWorktree>,
+        setup: &Setup,
+        shared: &AgentConfig,
+    ) {
+        self.worktree = worktree;
+        self.refresh_config(setup, shared);
     }
 
     fn push_text(&mut self, role: MessageRole, text: String) {
@@ -267,7 +276,12 @@ impl Render for Chat {
                     .as_ref()
                     .map(|_| "Compacting context…".into())
             })
-            .or_else(|| self.notice.clone());
+            .or_else(|| self.changing_worktree.then(|| "Opening worktree…".into()));
+        let notice = self.notice.clone().or_else(|| {
+            self.worktree
+                .as_ref()
+                .map(|worktree| format!("Worktree · {}", worktree.branch))
+        });
         let column = div()
             .flex()
             .flex_col()
@@ -298,7 +312,7 @@ impl Render for Chat {
                                         view.update(cx, |chat, cx| chat.approve(id, action, cx));
                                 })
                             }))
-                            .children(status.map(|status| {
+                            .children([status, notice].into_iter().flatten().map(|status| {
                                 div()
                                     .flex_shrink_0()
                                     .mb(px(8.))

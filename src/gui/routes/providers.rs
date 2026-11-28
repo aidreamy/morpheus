@@ -122,7 +122,7 @@ impl Providers {
                 if next.save() {
                     self.setup = next;
                     self.feedback = Some(format!("Saved the endpoint for {provider}."));
-                    cx.emit(Saved::Configuration);
+                    cx.emit(Saved);
                 } else {
                     self.feedback = Some("Could not save the provider endpoint.".into());
                 }

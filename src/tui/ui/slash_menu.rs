@@ -51,11 +51,7 @@ pub struct SlashCommand {
 /// Unknown commands belong to the focused agent's own command source.
 #[must_use]
 pub fn command_scope(name: &str) -> CommandScope {
-    Command::ALL
-        .iter()
-        .map(|command| command.metadata())
-        .find(|(command, _, _)| *command == name)
-        .map_or(CommandScope::Agent, |(_, _, scope)| scope)
+    Command::from_name(name).map_or(CommandScope::Agent, |command| command.metadata().2)
 }
 
 pub fn worktree_command_entry() -> SlashCommand {

@@ -1,20 +1,16 @@
 use std::collections::HashSet;
 
-use aiface::connector::ToolCallMode;
-use gpui::{Context, Entity, EventEmitter, FocusHandle, Window, prelude::*};
+use gpui::{Context, EventEmitter, FocusHandle, Window, prelude::*};
 use morpheus::{
     setup::Setup,
     tools_config::{internal_tools, load_disabled_tools, save_disabled_tools},
 };
 
 use super::{Saved, button, content, message, row, section};
-use crate::component::prompt::{Prompt, Submitted};
 
 pub(crate) enum Page {
     Settings,
     Tools(String),
-    ToolCall(ToolCallMode),
-    Rename(String),
 }
 
 impl Page {
@@ -22,8 +18,6 @@ impl Page {
         match self {
             Self::Settings => "Settings",
             Self::Tools(_) => "Tools",
-            Self::ToolCall(_) => "Tool call mode",
-            Self::Rename(_) => "Rename session",
         }
     }
 }
@@ -41,8 +35,6 @@ enum View {
         cwd: String,
         disabled: HashSet<String>,
     },
-    ToolCall(ToolCallMode),
-    Rename(Entity<Prompt>),
 }
 
 impl EventEmitter<Saved> for Preferences {}
@@ -60,13 +52,6 @@ impl Preferences {
                     disabled,
                 }
             }
-            Page::ToolCall(mode) => View::ToolCall(mode),
-            Page::Rename(title) => {
-                let field = cx.new(|cx| Prompt::field("Session name", title, false, cx));
-                cx.subscribe(&field, |this, _, Submitted(name), cx| this.rename(name, cx))
-                    .detach();
-                View::Rename(field)
-            }
         };
         Self {
             focus: cx.focus_handle(),
@@ -75,22 +60,8 @@ impl Preferences {
         }
     }
 
-    pub(crate) fn focus(&self, window: &mut Window, cx: &gpui::App) {
-        if let View::Rename(field) = &self.view {
-            field.read(cx).focus(window);
-        } else {
-            self.focus.focus(window);
-        }
-    }
-
-    fn rename(&mut self, name: &str, cx: &mut Context<Self>) {
-        let name = name.trim();
-        if name.is_empty() {
-            self.feedback = Some("Enter a session name.".into());
-            cx.notify();
-        } else {
-            cx.emit(Saved::Rename(name.into()));
-        }
+    pub(crate) fn focus(&self, window: &mut Window) {
+        self.focus.focus(window);
     }
 
     fn change_setting(&mut self, change: impl FnOnce(&mut Setup), cx: &mut Context<Self>) {
@@ -102,7 +73,7 @@ impl Preferences {
         if next.save() {
             *setup = next;
             self.feedback = Some("Settings saved.".into());
-            cx.emit(Saved::Configuration);
+            cx.emit(Saved);
         } else {
             self.feedback = Some("Could not save settings.".into());
         }
@@ -129,7 +100,7 @@ impl Preferences {
             *disabled = load_disabled_tools(&next, cwd, next.tools.is_global());
             *setup = next;
             self.feedback = Some("Tool scope saved.".into());
-            cx.emit(Saved::Configuration);
+            cx.emit(Saved);
         } else {
             self.feedback = Some("Could not save tool scope.".into());
         }
@@ -163,7 +134,7 @@ impl Preferences {
                 *disabled = names;
                 *setup = next;
                 self.feedback = None;
-                cx.emit(Saved::Configuration);
+                cx.emit(Saved);
             }
             Err(error) => self.feedback = Some(format!("Could not save tools: {error}")),
         }
@@ -226,46 +197,6 @@ impl Render for Preferences {
                         ),
                     ))
                 })),
-            View::ToolCall(current) => body.children(
-                [
-                    (
-                        "native",
-                        "Native",
-                        "Use the provider's tool-call format.",
-                        ToolCallMode::Native,
-                    ),
-                    (
-                        "inline",
-                        "Inline",
-                        "Parse tool calls from the model's response.",
-                        ToolCallMode::Inline,
-                    ),
-                ]
-                .into_iter()
-                .map(|(id, name, description, mode)| {
-                    row(format!("{name} · {description}")).child(
-                        button(
-                            id,
-                            if *current == mode {
-                                "Current"
-                            } else {
-                                "Choose"
-                            },
-                        )
-                        .on_click(cx.listener(move |_, _, _, cx| cx.emit(Saved::ToolCall(mode)))),
-                    )
-                }),
-            ),
-            View::Rename(field) => {
-                let name = field.clone();
-                body.child(field.clone())
-                    .child(button("rename-session", "Rename").on_click(cx.listener(
-                        move |this, _, _, cx| {
-                            let value = name.read(cx).value().to_owned();
-                            this.rename(&value, cx);
-                        },
-                    )))
-            }
         };
 
         content().track_focus(&self.focus).child(body)

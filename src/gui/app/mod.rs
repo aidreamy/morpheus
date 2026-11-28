@@ -1,5 +1,6 @@
 mod commands;
 mod render;
+mod worktrees;
 
 use std::sync::Arc;
 
@@ -8,6 +9,8 @@ use morpheus::assembly::config::AgentConfig;
 
 use crate::routes::session::Chat;
 
+pub(crate) use commands::offers_command;
+
 pub(crate) struct Desktop {
     config: Arc<AgentConfig>,
     chats: Vec<Entity<Chat>>,
@@ -15,6 +18,7 @@ pub(crate) struct Desktop {
     tab_scroll: ScrollHandle,
     sidebar_visible: bool,
     route: Option<commands::Route>,
+    dialog: Option<commands::ActiveDialog>,
 }
 
 impl Desktop {
@@ -30,6 +34,7 @@ impl Desktop {
             tab_scroll: ScrollHandle::new(),
             sidebar_visible: true,
             route: None,
+            dialog: None,
         }
     }
 
@@ -42,6 +47,7 @@ impl Desktop {
     fn activate(&mut self, index: usize, window: &mut Window, cx: &mut Context<Self>) {
         self.active = index;
         self.route = None;
+        self.dialog = None;
         self.tab_scroll.scroll_to_item(index);
         self.chats[index].read(cx).focus_prompt(window, cx);
         cx.notify();

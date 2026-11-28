@@ -50,10 +50,7 @@ impl Prompt {
 
         if modifiers == Modifiers::secondary_key() {
             match key.key.as_str() {
-                "a" => {
-                    self.anchor = 0;
-                    self.caret = self.text.len();
-                }
+                "a" => self.select_all(),
                 "home" | "end" => {
                     self.move_caret(
                         if key.key == "home" {

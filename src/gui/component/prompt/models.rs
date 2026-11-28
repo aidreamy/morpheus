@@ -2,17 +2,13 @@ use std::collections::HashMap;
 use std::time::Duration;
 
 use gpui::{
-    Context, CursorStyle, Div, EventEmitter, MouseButton, Stateful, Window, div, prelude::*, px,
-    relative, rgb, rgba,
+    Context, CursorStyle, Div, MouseButton, Stateful, Window, div, prelude::*, px, relative, rgb,
+    rgba,
 };
 use morpheus::{ModelEntry, assembly::agent_runtime, models};
 
 use super::{Prompt, layout::LINE_HEIGHT};
-use crate::theme;
-
-pub(crate) struct ModelSelected(pub(crate) ModelEntry);
-
-impl EventEmitter<ModelSelected> for Prompt {}
+use crate::{keymap::ChooseModel, theme};
 
 pub(super) struct Draft {
     text: String,
@@ -80,7 +76,7 @@ impl Prompt {
     ) {
         if self.close_models() {
             self.focus(window);
-            cx.emit(ModelSelected(model));
+            window.dispatch_action(Box::new(ChooseModel(model)), cx);
             cx.notify();
         }
     }

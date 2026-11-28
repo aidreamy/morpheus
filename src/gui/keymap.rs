@@ -1,5 +1,5 @@
 use gpui::{Action, App, KeyBinding, actions};
-use morpheus::commands::Command;
+use morpheus::{ModelEntry, commands::Command};
 
 actions!(
     desktop,
@@ -17,7 +17,17 @@ actions!(
 
 #[derive(Clone, PartialEq, Action)]
 #[action(namespace = desktop, no_json)]
-pub(crate) struct RunCommand(pub(crate) Command);
+pub(crate) struct RunCommand(pub(crate) Command, pub(crate) String);
+
+#[derive(Clone, Action)]
+#[action(namespace = desktop, no_json)]
+pub(crate) struct ChooseModel(pub(crate) ModelEntry);
+
+impl PartialEq for ChooseModel {
+    fn eq(&self, other: &Self) -> bool {
+        self.0.provider == other.0.provider && self.0.model == other.0.model
+    }
+}
 
 pub(crate) fn bind(cx: &mut App) {
     cx.bind_keys([
@@ -29,5 +39,6 @@ pub(crate) fn bind(cx: &mut App) {
         KeyBinding::new("ctrl-p", ToggleRightPanel, Some("Desktop")),
         KeyBinding::new("ctrl-k", ToggleCommands, Some("Desktop")),
         KeyBinding::new("escape", Cancel, Some("Desktop")),
+        KeyBinding::new("escape", Cancel, Some("CommandDialog")),
     ]);
 }

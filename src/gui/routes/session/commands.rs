@@ -25,7 +25,7 @@ impl Drop for Compaction {
 
 impl Chat {
     pub(crate) fn compact(&mut self, cx: &mut Context<Self>) {
-        if self.turn.is_some() || self.compaction.is_some() {
+        if self.is_busy() {
             self.notice = Some("Context compaction runs between turns.".into());
             cx.notify();
             return;
@@ -41,6 +41,7 @@ impl Chat {
         self.compaction = Some(Compaction {
             cancel: cancel.clone(),
         });
+        self.notice = None;
         self.prompt
             .update(cx, |prompt, cx| prompt.set_busy(true, cx));
         cx.notify();

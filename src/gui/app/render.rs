@@ -1,4 +1,4 @@
-use gpui::{FontWeight, Window, div, prelude::*, px, rgb};
+use gpui::{FontWeight, Window, deferred, div, prelude::*, px, rgb, rgba};
 
 use super::Desktop;
 use crate::{component::tabs, keymap::*, left_panel, theme};
@@ -78,11 +78,16 @@ impl Render for Desktop {
 
         div()
             .size_full()
+            .relative()
             .flex()
             .flex_col()
             .bg(rgb(theme::CANVAS))
             .text_color(rgb(theme::TEXT))
-            .key_context("Desktop")
+            .key_context(if self.dialog.is_some() {
+                "CommandDialog"
+            } else {
+                "Desktop"
+            })
             .on_action(cx.listener(|this, _: &NewTab, window, cx| {
                 this.open_chat(window, cx);
             }))
@@ -111,10 +116,13 @@ impl Render for Desktop {
                 this.chats[this.active].update(cx, |chat, cx| chat.toggle_commands(window, cx));
             }))
             .on_action(cx.listener(|this, command: &RunCommand, window, cx| {
-                this.run_command(command.0, window, cx);
+                this.run_command(command.0, &command.1, window, cx);
+            }))
+            .on_action(cx.listener(|this, model: &ChooseModel, window, cx| {
+                this.choose_model(model.0.clone(), window, cx);
             }))
             .on_action(cx.listener(|this, _: &Cancel, window, cx| {
-                if !this.close_route(window, cx) {
+                if !this.close_dialog(window, cx) && !this.close_route(window, cx) {
                     this.chats[this.active].update(cx, |chat, cx| chat.cancel(cx));
                 }
             }))
@@ -125,5 +133,20 @@ impl Render for Desktop {
                 ),
             )
             .child(body)
+            .children(self.dialog.as_ref().map(|dialog| {
+                deferred(
+                    div()
+                        .id("command-dialog-overlay")
+                        .absolute()
+                        .inset_0()
+                        .occlude()
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .p(px(16.))
+                        .bg(rgba(0x00000066))
+                        .child(dialog.view.clone()),
+                )
+            }))
     }
 }

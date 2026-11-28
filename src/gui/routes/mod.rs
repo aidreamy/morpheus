@@ -3,33 +3,11 @@ pub(crate) mod providers;
 pub(crate) mod router;
 pub(crate) mod session;
 
-use aiface::connector::ToolCallMode;
-use gpui::{Div, ElementId, Stateful, div, prelude::*, px, rgb};
+use gpui::{Div, Stateful, div, prelude::*, px, rgb};
 
-use crate::theme;
+use crate::{theme, ui::button};
 
-pub(crate) enum Saved {
-    Configuration,
-    Rename(String),
-    ToolCall(ToolCallMode),
-}
-
-pub(super) fn button(
-    id: impl Into<ElementId>,
-    text: impl Into<gpui::SharedString>,
-) -> Stateful<Div> {
-    div()
-        .id(id)
-        .flex_shrink_0()
-        .px(px(10.))
-        .py(px(6.))
-        .rounded(px(6.))
-        .bg(rgb(theme::SURFACE))
-        .hover(|style| style.bg(rgb(theme::HOVER)))
-        .cursor_pointer()
-        .text_size(px(13.))
-        .child(text.into())
-}
+pub(crate) struct Saved;
 
 pub(super) fn content() -> Stateful<Div> {
     div()

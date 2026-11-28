@@ -2,6 +2,8 @@
 
 use std::{collections::HashSet, io, path::Path};
 
+use aiface::connector::ToolCallMode;
+
 use crate::setup::Setup;
 
 const PROJECT_FILE: &str = ".morpheus-tools.json";
@@ -10,6 +12,23 @@ const PROJECT_FILE: &str = ".morpheus-tools.json";
 struct ProjectTools {
     #[serde(default)]
     disabled: Vec<String>,
+}
+
+#[must_use]
+pub fn load_tool_call_mode(setup: &Setup) -> ToolCallMode {
+    match setup.tools.tool_call_mode.as_str() {
+        "inline" => ToolCallMode::Inline,
+        _ => ToolCallMode::Native,
+    }
+}
+
+pub fn save_tool_call_mode(setup: &mut Setup, mode: ToolCallMode) -> bool {
+    setup.tools.tool_call_mode = match mode {
+        ToolCallMode::Native => "native",
+        ToolCallMode::Inline => "inline",
+    }
+    .into();
+    setup.save()
 }
 
 pub fn load_disabled_tools(setup: &Setup, cwd: &str, global: bool) -> HashSet<String> {

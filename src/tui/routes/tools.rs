@@ -11,7 +11,7 @@ use crate::util::draw::draw_text_line;
 use crate::util::list_selection::ListSelection;
 
 use morpheus::tools_config::internal_tools;
-pub use morpheus::tools_config::load_disabled_tools;
+pub use morpheus::tools_config::{load_disabled_tools, load_tool_call_mode, save_tool_call_mode};
 
 pub fn save_disabled_tools(
     setup: &mut morpheus::setup::Setup,
@@ -45,27 +45,6 @@ pub fn toggle_entry(view: &mut InternalToolsView, setup: &mut morpheus::setup::S
     } else {
         save_disabled_tools(setup, &view.disabled, cwd, view.global);
     }
-}
-
-/// Load the persisted tool-call mode. Unknown/missing values fall back to
-/// `Native` (the default contract).
-#[must_use]
-pub fn load_tool_call_mode(setup: &morpheus::setup::Setup) -> aiface::connector::ToolCallMode {
-    match setup.tools.tool_call_mode.as_str() {
-        "inline" => aiface::connector::ToolCallMode::Inline,
-        _ => aiface::connector::ToolCallMode::Native,
-    }
-}
-
-pub fn save_tool_call_mode(
-    setup: &mut morpheus::setup::Setup,
-    mode: aiface::connector::ToolCallMode,
-) {
-    setup.tools.tool_call_mode = match mode {
-        aiface::connector::ToolCallMode::Native => "native".to_string(),
-        aiface::connector::ToolCallMode::Inline => "inline".to_string(),
-    };
-    setup.save();
 }
 
 pub struct InternalToolsView {

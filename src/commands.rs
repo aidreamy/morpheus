@@ -56,6 +56,13 @@ impl Command {
         Self::Confidence,
     ];
 
+    pub fn from_name(name: &str) -> Option<Self> {
+        Self::ALL
+            .iter()
+            .copied()
+            .find(|command| command.metadata().0 == name)
+    }
+
     pub const fn metadata(self) -> (&'static str, &'static str, Scope) {
         use Scope::{Agent, Global};
         match self {

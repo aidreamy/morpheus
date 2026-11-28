@@ -164,7 +164,7 @@ impl Router {
             self.dirty_auto = false;
             self.dirty_summary = false;
             self.feedback = Some("Routes saved.".into());
-            cx.emit(Saved::Configuration);
+            cx.emit(Saved);
         } else {
             self.feedback = Some("Could not save routes.".into());
         }

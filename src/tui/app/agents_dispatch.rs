@@ -17,6 +17,7 @@ use crate::routes::session::right_panel::types::SubagentTimelineEntry;
 use morpheus::coordinator::turn::{
     TerminalCause, TerminalKind, assemble_turn_input, close_pane_turn,
 };
+use morpheus::git::worktree::{WorktreeCommand, parse_worktree_command};
 use morpheus::harness::events::HarnessEvent;
 use morpheus_agents::events::{SubagentEvent, ToolCallStatus, ToolOutputBlock};
 use std::collections::HashSet;
@@ -215,97 +216,6 @@ pub(super) fn apply_worktree_command(app: &mut App, tail: Option<&str>) {
         // The grammar is shared with the MAIN agent's path (`parse_
         // worktree_command`), so "malformed" means the same thing for both.
         None => worktree_usage_toast(app),
-    }
-}
-
-/// One parsed `/worktree` invocation. The pane path and the MAIN agent's
-/// path share this parse: the two must accept byte-identical arguments, so
-/// the grammar lives here once
-/// (`add [<path>] <branch>` / `exit` / `list`).
-#[derive(Debug, Clone, PartialEq, Eq)]
-enum WorktreeCommand {
-    /// `add [<path>] <branch>` - `path` is `None` for the managed temp root.
-    Add {
-        path: Option<String>,
-        branch: String,
-    },
-    /// `exit` - drop the binding; nothing on disk is touched.
-    Exit,
-    /// `list` - show the repository's worktrees, marking the bound one.
-    List,
-}
-
-/// Split the argument tail into tokens, honouring double quotes.
-///
-/// `split_whitespace` is not enough here: a worktree path may contain a
-/// space, and `/worktree list` deliberately prints copyable paths. Without
-/// quoting, a copied `/tmp/my tree` could not be pasted back into `add` -
-/// it would parse as two tokens and refuse with a branch/path error that
-/// says nothing about the real problem. `"<path with spaces>"` round-trips.
-///
-/// Inside quotes, `\` escapes the next character (so a path can contain a
-/// quote). An unterminated quote is malformed (`None`), never a guess about
-/// where the path ends.
-fn split_args(tail: &str) -> Option<Vec<String>> {
-    let mut out: Vec<String> = Vec::new();
-    let mut current = String::new();
-    let mut in_quotes = false;
-    // A token exists even when it is empty (`""`), so this tracks "started"
-    // separately from the buffer's contents.
-    let mut has_token = false;
-    let mut chars = tail.chars();
-    while let Some(ch) = chars.next() {
-        match ch {
-            '"' => {
-                in_quotes = !in_quotes;
-                has_token = true;
-            }
-            '\\' if in_quotes => {
-                if let Some(escaped) = chars.next() {
-                    current.push(escaped);
-                    has_token = true;
-                }
-            }
-            ch if ch.is_whitespace() && !in_quotes => {
-                if has_token {
-                    out.push(std::mem::take(&mut current));
-                    has_token = false;
-                }
-            }
-            ch => {
-                current.push(ch);
-                has_token = true;
-            }
-        }
-    }
-    if in_quotes {
-        return None;
-    }
-    if has_token {
-        out.push(current);
-    }
-    Some(out)
-}
-
-/// Parse the argument tail. `None` means malformed - the caller shows the
-/// usage toast (an empty tail is malformed: the command takes arguments).
-///
-/// A path containing spaces is written quoted: `/worktree add "/tmp/my
-/// tree" feat`.
-fn parse_worktree_command(tail: Option<&str>) -> Option<WorktreeCommand> {
-    let parts = split_args(tail?)?;
-    match parts.as_slice() {
-        [sub] if sub.as_str() == "exit" => Some(WorktreeCommand::Exit),
-        [sub] if sub.as_str() == "list" => Some(WorktreeCommand::List),
-        [add, branch] if add.as_str() == "add" => Some(WorktreeCommand::Add {
-            path: None,
-            branch: branch.clone(),
-        }),
-        [add, path, branch] if add.as_str() == "add" => Some(WorktreeCommand::Add {
-            path: Some(path.clone()),
-            branch: branch.clone(),
-        }),
-        _ => None,
     }
 }
 
@@ -3992,71 +3902,5 @@ mod tests {
         );
         assert!(input.starts_with("[workspace moved]"));
         assert!(input.ends_with("do the thing"));
-    }
-
-    /// A path with a space in it is the reason quoting exists: `/worktree
-    /// list` prints copyable paths, so a listing row must be pasteable back
-    /// into `add`. Splitting on whitespace made that impossible - the path
-    /// broke into two tokens and the refusal that followed named a branch
-    /// and a path the user never typed.
-    #[test]
-    fn a_quoted_path_keeps_its_spaces_as_one_token() {
-        assert_eq!(
-            split_args("add \"/tmp/my tree\" feat").expect("well-formed"),
-            vec!["add", "/tmp/my tree", "feat"]
-        );
-        // Quotes may appear mid-token and concatenate with bare text.
-        assert_eq!(
-            split_args("add /tmp/\"my tree\" feat").expect("well-formed"),
-            vec!["add", "/tmp/my tree", "feat"]
-        );
-        // An escaped quote inside quotes is a literal quote character.
-        assert_eq!(
-            split_args(r#"add "a\"b" feat"#).expect("well-formed"),
-            vec!["add", "a\"b", "feat"]
-        );
-        // No quotes at all: the ordinary shape is unchanged.
-        assert_eq!(
-            split_args("add feat").expect("well-formed"),
-            vec!["add", "feat"]
-        );
-        // Runs of whitespace collapse; leading/trailing spaces add no token.
-        assert_eq!(
-            split_args("  add    feat  ").expect("well-formed"),
-            vec!["add", "feat"]
-        );
-    }
-
-    /// An unterminated quote is refused rather than guessed at: guessing
-    /// where the path ends would silently bind a DIFFERENT directory than
-    /// the user meant.
-    #[test]
-    fn an_unterminated_quote_is_malformed() {
-        assert_eq!(split_args("add \"/tmp/my tree feat"), None);
-        assert_eq!(parse_worktree_command(Some("add \"/tmp/x feat")), None);
-    }
-
-    /// The quoted form reaches the command parser intact, so `add` sees a
-    /// two-argument tail even when the path contains a space.
-    #[test]
-    fn parse_accepts_a_quoted_path_as_one_argument() {
-        match parse_worktree_command(Some("add \"/tmp/my tree\" feat")) {
-            Some(WorktreeCommand::Add { path, branch }) => {
-                assert_eq!(path.as_deref(), Some("/tmp/my tree"));
-                assert_eq!(branch, "feat");
-            }
-            other => panic!("expected a two-argument add, got {other:?}"),
-        }
-        // `list` and `exit` still parse exactly as before.
-        assert!(matches!(
-            parse_worktree_command(Some("list")),
-            Some(WorktreeCommand::List)
-        ));
-        assert!(matches!(
-            parse_worktree_command(Some("exit")),
-            Some(WorktreeCommand::Exit)
-        ));
-        // An empty tail stays malformed (the command takes arguments).
-        assert!(parse_worktree_command(Some("   ")).is_none());
     }
 }

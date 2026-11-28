@@ -4,25 +4,18 @@ pub(crate) use morpheus::commands::Command;
 
 use crate::theme;
 
-pub(crate) const COMMANDS: &[Command] = &[
-    Command::Models,
-    Command::Router,
-    Command::Providers,
-    Command::Settings,
-    Command::Tools,
-    Command::ToolCall,
-    Command::Compact,
-    Command::Export,
-    Command::New,
-    Command::Rename,
-];
-
-pub(crate) fn exact(text: &str) -> Option<Command> {
-    let name = text.trim().strip_prefix('/')?;
-    COMMANDS
-        .iter()
-        .copied()
-        .find(|command| command.metadata().0 == name)
+pub(crate) fn invocation(text: &str) -> Option<(Command, &str)> {
+    let command = text.trim().strip_prefix('/')?;
+    if command.contains(['\n', '\r']) {
+        return None;
+    }
+    let (name, args) = command
+        .split_once(char::is_whitespace)
+        .unwrap_or((command, ""));
+    Some((
+        Command::from_name(&name.to_ascii_lowercase())?,
+        args.trim_start(),
+    ))
 }
 
 #[derive(Default)]
@@ -63,20 +56,40 @@ impl Menu {
         }
         let query = if self.forced {
             ""
-        } else if let Some(query) = text.trim_start().strip_prefix('/') {
+        } else if let Some(query) = text.trim().strip_prefix('/') {
+            if let Some((command @ (Command::Models | Command::Worktree), args)) = invocation(text)
+                && !args.is_empty()
+            {
+                return vec![command];
+            }
             query
         } else {
             return Vec::new();
         };
-        COMMANDS
+        let query = query.to_ascii_lowercase();
+        Command::ALL
             .iter()
             .copied()
-            .filter(|command| command.metadata().0.starts_with(query))
+            .filter(|command| {
+                crate::app::offers_command(*command) && command.metadata().0.contains(&query)
+            })
             .collect()
     }
 
-    pub(crate) fn selected(&self, text: &str) -> Option<Command> {
+    fn selected(&self, text: &str) -> Option<Command> {
         self.options(text).get(self.selected).copied()
+    }
+
+    pub(crate) fn submit<'a>(&self, text: &'a str) -> Option<(Command, &'a str)> {
+        if self.forced {
+            self.selected(text).map(|command| (command, ""))
+        } else {
+            invocation(text).or_else(|| self.selected(text).map(|command| (command, "")))
+        }
+    }
+
+    pub(crate) fn consumes_draft(&self) -> bool {
+        !self.forced
     }
 
     pub(crate) fn move_selection(&mut self, text: &str, down: bool) -> bool {
@@ -192,16 +205,50 @@ mod tests {
 
     #[test]
     fn desktop_menu_offers_terminal_commands_with_desktop_handlers() {
-        assert!(
-            COMMANDS
-                .iter()
-                .all(|command| Command::ALL.contains(command))
-        );
-        assert_eq!(exact("/router"), Some(Command::Router));
-        assert_eq!(exact("/rename"), Some(Command::Rename));
-        for text in ["/close", "/stop", "/sidebar", "/right-panel", "/wallpaper"] {
-            assert_eq!(exact(text), None);
-            assert!(Menu::default().options(text).is_empty());
+        let menu = Menu::default();
+        assert_eq!(menu.options("/rename"), [Command::Rename]);
+        assert_eq!(menu.options("/toolcall"), [Command::ToolCall]);
+        assert_eq!(menu.options("/CALL"), [Command::ToolCall]);
+        assert_eq!(menu.options("/worktree"), [Command::Worktree]);
+        assert_eq!(menu.options("/worktree list"), [Command::Worktree]);
+        for text in [
+            "/close",
+            "/stop",
+            "/sidebar",
+            "/right-panel",
+            "/wallpaper",
+            "/agents",
+        ] {
+            assert!(menu.options(text).is_empty());
         }
+    }
+
+    #[test]
+    fn complete_commands_and_arguments_resolve_after_dismissing_the_menu() {
+        let mut menu = Menu::default();
+        assert!(menu.dismiss("/models"));
+        assert_eq!(menu.submit("/models "), Some((Command::Models, "")));
+        assert_eq!(
+            menu.submit(" /models  auto "),
+            Some((Command::Models, "auto"))
+        );
+        assert_eq!(
+            menu.submit(r#"/worktree add "/tmp/my tree" branch"#),
+            Some((Command::Worktree, r#"add "/tmp/my tree" branch"#)),
+        );
+        assert_eq!(
+            menu.submit("/wallpaper off"),
+            Some((Command::Wallpaper, "off"))
+        );
+        assert_eq!(menu.submit("/tmp/my-tree"), None);
+        assert_eq!(menu.submit("/models\nDocument these commands."), None);
+    }
+
+    #[test]
+    fn command_palette_preserves_the_current_draft() {
+        let mut menu = Menu::default();
+        menu.toggle("/tmp/path");
+        assert_eq!(menu.submit("/tmp/path"), Some((Command::Models, "")));
+        assert!(!menu.consumes_draft());
     }
 }

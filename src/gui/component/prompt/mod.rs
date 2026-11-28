@@ -12,14 +12,13 @@ use gpui::{
 
 use layout::{Editor, LINE_HEIGHT, Layout};
 use models::Draft;
-pub(crate) use models::ModelSelected;
 
 use crate::{
     keymap::RunCommand,
     theme,
     ui::{
         model_picker::ModelPicker,
-        slash_menu::{self, Command, Menu},
+        slash_menu::{Command, Menu},
     },
 };
 
@@ -86,6 +85,11 @@ impl Prompt {
         &self.text
     }
 
+    pub(crate) fn select_all(&mut self) {
+        self.anchor = 0;
+        self.caret = self.text.len();
+    }
+
     pub(crate) fn clear_field(&mut self, cx: &mut Context<Self>) {
         self.text.clear();
         self.reset_editing();
@@ -142,12 +146,8 @@ impl Prompt {
             return;
         }
 
-        if let Some(command) = self
-            .menu
-            .selected(&self.text)
-            .or_else(|| slash_menu::exact(&self.text))
-        {
-            self.pick(command, window, cx);
+        if let Some((command, args)) = self.menu.submit(&self.text) {
+            self.pick(command, args.to_owned(), window, cx);
             return;
         }
         if self.busy || self.text.trim().is_empty() {
@@ -160,13 +160,19 @@ impl Prompt {
         cx.notify();
     }
 
-    fn pick(&mut self, command: Command, window: &mut Window, cx: &mut Context<Self>) {
-        if self.text.trim_start().starts_with('/') {
+    fn pick(
+        &mut self,
+        command: Command,
+        args: String,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        if self.menu.consumes_draft() {
             self.text.clear();
             self.reset_editing();
         }
         self.menu.dismiss(&self.text);
-        window.dispatch_action(Box::new(RunCommand(command)), cx);
+        window.dispatch_action(Box::new(RunCommand(command, args)), cx);
         cx.notify();
     }
 
@@ -214,7 +220,9 @@ impl Prompt {
     fn render_composer(&self, window: &Window, cx: &mut Context<Self>) -> impl IntoElement {
         let searching = self.model_draft.is_some();
         let focused = !searching && self.focus.is_focused(window);
-        let can_send = !searching && !self.text.trim().is_empty() && !self.busy;
+        let can_send = !searching
+            && (!self.busy || self.menu.submit(&self.text).is_some())
+            && !self.text.trim().is_empty();
         let vertical_padding = px(28.);
         let min_input_height = LINE_HEIGHT + vertical_padding * 2. + px(2.);
         let frame_top = px(28.);
@@ -317,7 +325,15 @@ impl Render for Prompt {
                     &self.text,
                     (window.viewport_size().height - px(218.)).min(px(294.)),
                     move |command, _, window, cx| {
-                        let _ = view.update(cx, |prompt, cx| prompt.pick(command, window, cx));
+                        let _ = view.update(cx, |prompt, cx| {
+                            let args = prompt
+                                .menu
+                                .submit(&prompt.text)
+                                .filter(|(typed, _)| *typed == command)
+                                .map_or("", |(_, args)| args)
+                                .to_owned();
+                            prompt.pick(command, args, window, cx);
+                        });
                     },
                 ))
             })
